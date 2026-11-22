@@ -42,6 +42,22 @@ One project: `pnpm exec nx run @lc/planner:typecheck`. Add `--skip-nx-cache` to 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix: …`, `build: …`);
 a Husky `commit-msg` hook checks them with commitlint.
 
+## What the viewer does
+
+- **Views**: week grid (drag to move, drag the bottom edge to resize, double-click an empty slot to add), month,
+  and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the calendar the whole window.
+- **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
+  `＋ Event` creates an event in any of them. Events you add can be deleted, generated ones can be restored.
+- **Progress**: mark a session done in its card. The side panel shows the session in progress or the next one
+  with a countdown, the week's budget, a ring per course, and a map of all weeks (red bar = over the budget).
+- **Plan files**: `Open plan file` first shows what the file holds and how it differs from the project plan, then
+  opens it for viewing and editing. Changes stay in the browser until you download the file.
+- **Keyboard**: `Ctrl/⌘ K` or `/` searches events and commands (including the theme and the language), `?` lists
+  the shortcuts. The last change to an event can be undone from the bar above the calendar.
+
+Everything changed in the viewer is stored in `packages/plan-data/data/edits.json` (event patches, calendars,
+added events) and applied on top of the generated schedule, so `pnpm run plan` never loses it.
+
 ## Languages
 
 The interface is in Russian (`/ru/…`, the default), English (`/en/…`) and Spanish (`/es/…`), built with

@@ -61,11 +61,17 @@ Modules do not know about each other, about the router, or about where data come
   state={Route.useLoaderData()}                 // data: loaded by a server function the app owns
   search={Route.useSearch()}                    // URL state: the app owns the router
   onSearchChange={…}
-  onSaveEdit={…}                                // persistence: a server function
+  onChange={…}                                  // persistence: one server function for every PlanChange
   headerAside={<LanguageSwitcher />}            // slot
   renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}   // another module
+  commands={shellCommands()}                    // palette entries the app owns: theme, language
 />
 ```
+
+Every edit is one `PlanChange` value from `@lc/plan-domain` (`event.patch`, `event.add`, `calendar.save`, …).
+The same pure reducer, `applyChange`, runs in three places: on the server before the edits file is written, in
+the browser to show a change before the server answers, and on a plan file opened from disk, whose edits never
+leave the browser. A new kind of edit is a new member of that union, not a new server function.
 
 That keeps each module testable on its own and makes it possible to serve one as a runtime remote later
 (`@module-federation/tanstack`) without restructuring: its public entry is already the federation boundary.
@@ -78,8 +84,8 @@ Each module's `src/` follows [Feature-Sliced Design](https://feature-sliced.desi
 src/
   index.ts             the module's public API
   pages/               a full screen, composed from the layers below
-  widgets/             self-contained blocks of a page (week grid, runway)
-  features/            one user action each (edit an event, filter calendars, open a plan file)
+  widgets/             self-contained blocks of a page (week grid, month grid, plan map, course progress)
+  features/            one user action each (edit an event, manage calendars, open a plan file, command palette)
   entities/            business objects with their UI (none yet: the domain lives in @lc/plan-domain)
   shared/              helpers with no business meaning
 ```
@@ -93,11 +99,11 @@ src/
 
 - **Single responsibility**: one reason to change per package — rules of the plan (`plan-domain`), where it is
   stored (`plan-data`), how it looks (`ui`), what it says (`i18n`), one user-facing area (each module).
-- **Open/closed**: the planner is extended through `headerAside` and `renderActions`, not edited, when the app
+- **Open/closed**: the planner is extended through `headerAside`, `renderActions` and `commands`, not edited, when the app
   adds an action.
 - **Liskov / interface segregation**: components take the narrow data they use (`plan`, `hidden`), not a store or
   a router.
-- **Dependency inversion**: modules declare callbacks (`onSaveEdit`, `onSearchChange`); the app supplies the
+- **Dependency inversion**: modules declare callbacks (`onChange`, `onSearchChange`); the app supplies the
   implementation. The domain depends on nothing.
 
 ## Adding things
