@@ -11,6 +11,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint -c ../../.oxlintrc.json"
   },
+  "dependencies": {
+    "lucide-react": "catalog:"
+  },
   "devDependencies": {
     "@storybook/react-vite": "catalog:",
     "@types/react": "catalog:",

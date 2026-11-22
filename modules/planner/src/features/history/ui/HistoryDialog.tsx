@@ -1,7 +1,7 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { hm, startOfDay, toMinsk, type HistoryView } from '@lc/plan-domain'
-import { Button, FOOT, Kbd, META, Modal, TITLE } from '@lc/ui'
+import { Button, FOOT, Kbd, META, Modal, Redo2, TITLE, Undo2 } from '@lc/ui'
 import { useState } from 'react'
 
 import { describeStep } from '../model/describe-step'
@@ -97,11 +97,15 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
       )}
       <div className={FOOT}>
         <span className="mr-auto flex flex-wrap gap-2">
-          <Button disabled={cursor === 0} onClick={() => void go(cursor - 1)}>
-            ↶ {m.undo()} <Kbd>{mod} Z</Kbd>
+          <Button className="flex items-center gap-1.5" disabled={cursor === 0} onClick={() => void go(cursor - 1)}>
+            <Undo2 size={15} aria-hidden /> {m.undo()} <Kbd>{mod} Z</Kbd>
           </Button>
-          <Button disabled={cursor >= steps.length} onClick={() => void go(cursor + 1)}>
-            ↷ {m.redo()} <Kbd>{mod} ⇧ Z</Kbd>
+          <Button
+            className="flex items-center gap-1.5"
+            disabled={cursor >= steps.length}
+            onClick={() => void go(cursor + 1)}
+          >
+            <Redo2 size={15} aria-hidden /> {m.redo()} <Kbd>{mod} ⇧ Z</Kbd>
           </Button>
         </span>
         <Button onClick={onClose}>{m.close()}</Button>

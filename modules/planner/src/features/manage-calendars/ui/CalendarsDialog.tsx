@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import type { Plan, PlanCalendar, PlanChange } from '@lc/plan-domain'
-import { Button, FOOT, INPUT, META, Modal, TITLE } from '@lc/ui'
+import { Button, FOOT, INPUT, META, Modal, TITLE, Trash2 } from '@lc/ui'
 import { useState, type FormEvent } from 'react'
 
 /** Offered for a new calendar: the first one no calendar uses yet. */
@@ -151,7 +151,7 @@ function CalendarRow({ calendar, events, onSave, onClear, onRemove }: RowProps) 
           title={m.delete_calendar({ name: calendar.name })}
           onClick={() => void onRemove()}
         >
-          ✕
+          <Trash2 size={15} aria-hidden />
         </Button>
       )}
     </form>

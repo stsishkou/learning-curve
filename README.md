@@ -50,6 +50,9 @@ a Husky `commit-msg` hook checks them with commitlint.
   and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the calendar the whole window.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
   `＋ Event` creates an event in any of them.
+- **One calendar at a time**: a click on a calendar chip hides or shows it; the eye that appears on the chip
+  (or a double click, or `Only …` in the command search) leaves it as the only one, and `Show all` brings the
+  rest back. It works the same with the calendar expanded.
 - **Moving things**: every event can be dragged, in the week and in the month: one repeat of a repeating event moves
   alone and the other repeats stay (the event card's buttons and its form change the whole series), an all-day
   one moves between days. Both edges resize. On a touch screen
@@ -60,7 +63,7 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Progress**: mark a session done in its card. The side panel shows the session in progress or the next one
   with a countdown, the week's budget, a ring per course, and a map of all weeks (red bar = over the budget).
 - **Plan files**: `Plan file` opens a reader on the plan: an overview, every event with search, and the file
-  itself as text with line numbers and find. Choose or drop another `plan.json` to read it, see how it differs
+  itself as colored JSON with line numbers, sections that fold (`Collapse sections` leaves the outline) and find. Choose or drop another `plan.json` to read it, see how it differs
   from the project plan, and open it for editing. Those changes stay in the browser until you download the file.
 - **Progress dashboard**: `/dashboard` (the `Progress` tab) shows how much is done, whether that is ahead of or
   behind the plan, hours added up against the plan, the load of every week by calendar against the budget, and

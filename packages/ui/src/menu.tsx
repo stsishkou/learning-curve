@@ -1,9 +1,12 @@
+import { EllipsisVertical } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
 export interface MenuItem {
   /** React key of the row */
   id: string
   label: string
+  /** A 16 px icon before the label; a switch that is on shows its check mark there instead */
+  icon?: ReactNode
   /** Shortcut shown at the end of the row */
   keys?: string
   /** A count or state shown next to the label */
@@ -21,7 +24,7 @@ export interface MenuItem {
 interface Props {
   /** Accessible name of the trigger and the menu */
   label: string
-  /** The rows, top to bottom: `{ id, label, run }` plus the optional `keys`, `badge`, `checked`, `disabled`, `className` */
+  /** The rows, top to bottom: `{ id, label, run }` plus the optional `icon`, `keys`, `badge`, `checked`, `disabled`, `className` */
   items: MenuItem[]
   /** Extra classes for the trigger button */
   className?: string
@@ -98,7 +101,7 @@ export function Menu({ label, items, className = '' }: Props) {
         aria-expanded={open}
         popoverTarget={id}
       >
-        ⋮
+        <EllipsisVertical size={18} aria-hidden />
       </button>
       <div
         ref={panel}
@@ -129,8 +132,8 @@ export function Menu({ label, items, className = '' }: Props) {
                 if (item.checked === undefined) panel.current?.hidePopover()
               }}
             >
-              <span aria-hidden className="w-3.5 text-center text-focus">
-                {item.checked ? '✓' : ''}
+              <span aria-hidden className={`grid w-4 place-items-center ${item.checked ? 'text-focus' : 'text-muted'}`}>
+                {item.checked ? '✓' : item.icon}
               </span>
               <span className="min-w-0 flex-1">{item.label}</span>
               {item.badge !== undefined && (

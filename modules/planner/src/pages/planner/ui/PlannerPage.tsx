@@ -20,7 +20,30 @@ import {
   type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
-import { Button, Kbd, Menu, Segmented, type MenuItem } from '@lc/ui'
+import {
+  Button,
+  Calendar,
+  CalendarClock,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  History,
+  Kbd,
+  Keyboard,
+  Maximize2,
+  Menu,
+  Minimize2,
+  MoveHorizontal,
+  Plus,
+  Redo2,
+  Search,
+  Segmented,
+  Trash2,
+  Undo2,
+  X,
+  type MenuItem,
+} from '@lc/ui'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { CatchUpDialog } from '../../../features/catch-up'
@@ -96,7 +119,7 @@ export function PlannerPage({
 }: Props) {
   const now = useNow()
   const mod = useModKey()
-  const { hidden, toggle, solo, reset } = useHiddenCalendars()
+  const { hidden, toggle, solo, showAll, reset } = useHiddenCalendars()
   const session = usePlanSession(state, { onChange, onTravel })
   const { plan, canEdit } = session
 
@@ -224,6 +247,12 @@ export function PlannerPage({
     expand: () => onSearchChange({ expanded: expanded ? undefined : true }),
   }
 
+  const only = (id: string) =>
+    solo(
+      id,
+      plan.calendars.map((c) => c.id),
+    )
+
   const actions: Command[] = [
     { id: 'today', group: m.palette_navigate(), label: m.go_today(), keys: 'T', run: go.today },
     { id: 'previous', group: m.palette_navigate(), label: m.previous_period(), keys: '←', run: () => step(-1) },
@@ -258,38 +287,111 @@ export function PlannerPage({
         ]
       : []),
     { id: 'shortcuts', group: m.palette_plan(), label: m.shortcuts(), keys: '?', run: () => setShortcutsOpen(true) },
+    ...plan.calendars.map((c) => ({
+      id: `only-${c.id}`,
+      group: m.calendars(),
+      label: m.calendar_only({ name: c.name }),
+      run: () => only(c.id),
+    })),
+    ...(hidden.size ? [{ id: 'show-all', group: m.calendars(), label: m.calendars_show_all(), run: showAll }] : []),
     ...(commands ?? []),
   ]
 
   const narrow = 'md:hidden'
   const menu: MenuItem[] = [
-    { id: 'search', label: m.search(), className: narrow, run: () => setPaletteOpen(true) },
+    {
+      id: 'search',
+      icon: <Search size={16} aria-hidden />,
+      label: m.search(),
+      className: narrow,
+      run: () => setPaletteOpen(true),
+    },
     ...(canEdit
       ? [
-          { id: 'undo', label: m.undo(), className: narrow, disabled: !canUndo, run: () => void undo() },
-          { id: 'redo', label: m.redo(), className: narrow, disabled: !canRedo, run: () => void redo() },
+          {
+            id: 'undo',
+            icon: <Undo2 size={16} aria-hidden />,
+            label: m.undo(),
+            className: narrow,
+            disabled: !canUndo,
+            run: () => void undo(),
+          },
+          {
+            id: 'redo',
+            icon: <Redo2 size={16} aria-hidden />,
+            label: m.redo(),
+            className: narrow,
+            disabled: !canRedo,
+            run: () => void redo(),
+          },
         ]
       : []),
     ...(view === 'week'
-      ? [{ id: 'full-day', label: m.full_day(), className: narrow, checked: search.fullDay === true, run: go.fullDay }]
+      ? [
+          {
+            id: 'full-day',
+            icon: <Clock size={16} aria-hidden />,
+            label: m.full_day(),
+            className: narrow,
+            checked: search.fullDay === true,
+            run: go.fullDay,
+          },
+        ]
       : []),
-    { id: 'expand', label: m.expand(), className: narrow, checked: expanded, run: go.expand },
+    {
+      id: 'expand',
+      icon: <Maximize2 size={16} aria-hidden />,
+      label: m.expand(),
+      className: narrow,
+      checked: expanded,
+      run: go.expand,
+    },
     ...(canEdit
       ? [
           {
             id: 'history',
+            icon: <History size={16} aria-hidden />,
             label: m.history(),
             keys: 'H',
             badge: steps.length ? `${cursor}/${steps.length}` : undefined,
             run: () => setHistoryOpen(true),
           },
-          { id: 'trash', label: m.trash(), badge: trashCount || undefined, run: () => setTrashOpen(true) },
-          { id: 'catch-up', label: m.catchup(), badge: overdue.length || undefined, run: () => setCatchUpOpen(true) },
-          { id: 'shift', label: m.shift_plan(), run: () => setShiftFrom(ymd(today ?? weekStart)) },
-          { id: 'calendars', label: m.manage_calendars(), keys: 'C', run: () => setCalendarsOpen(true) },
+          {
+            id: 'trash',
+            icon: <Trash2 size={16} aria-hidden />,
+            label: m.trash(),
+            badge: trashCount || undefined,
+            run: () => setTrashOpen(true),
+          },
+          {
+            id: 'catch-up',
+            icon: <CalendarClock size={16} aria-hidden />,
+            label: m.catchup(),
+            badge: overdue.length || undefined,
+            run: () => setCatchUpOpen(true),
+          },
+          {
+            id: 'shift',
+            icon: <MoveHorizontal size={16} aria-hidden />,
+            label: m.shift_plan(),
+            run: () => setShiftFrom(ymd(today ?? weekStart)),
+          },
+          {
+            id: 'calendars',
+            icon: <Calendar size={16} aria-hidden />,
+            label: m.manage_calendars(),
+            keys: 'C',
+            run: () => setCalendarsOpen(true),
+          },
         ]
       : []),
-    { id: 'shortcuts', label: m.shortcuts(), keys: '?', run: () => setShortcutsOpen(true) },
+    {
+      id: 'shortcuts',
+      icon: <Keyboard size={16} aria-hidden />,
+      label: m.shortcuts(),
+      keys: '?',
+      run: () => setShortcutsOpen(true),
+    },
   ]
 
   useShortcuts({
@@ -366,7 +468,7 @@ export function PlannerPage({
               className="order-last flex w-full items-center gap-1.5 md:order-none md:w-auto"
             >
               <button type="button" className={STEP} aria-label={m.previous_period()} onClick={() => step(-1)}>
-                ‹
+                <ChevronLeft size={18} aria-hidden />
               </button>
               <h2 className="relative mx-0.5 flex-1 text-center md:min-w-[170px] md:flex-none">
                 <button
@@ -391,14 +493,14 @@ export function PlannerPage({
                 />
               </h2>
               <button type="button" className={STEP} aria-label={m.next_period()} onClick={() => step(1)}>
-                ›
+                <ChevronRight size={18} aria-hidden />
               </button>
               <Button onClick={go.today}>{m.go_today()}</Button>
             </div>
           )}
           <div className="ml-auto flex items-center gap-1.5">
             <Button className="hidden items-center gap-2 text-muted md:flex" onClick={() => setPaletteOpen(true)}>
-              {m.search()} <Kbd>{mod} K</Kbd>
+              <Search size={15} aria-hidden /> {m.search()} <Kbd>{mod} K</Kbd>
             </Button>
             {canEdit && (
               <div role="group" aria-label={m.history()} className="hidden gap-1.5 md:flex">
@@ -410,7 +512,7 @@ export function PlannerPage({
                   disabled={!canUndo}
                   onClick={undo}
                 >
-                  ↶
+                  <Undo2 size={17} aria-hidden />
                 </button>
                 <button
                   type="button"
@@ -420,13 +522,18 @@ export function PlannerPage({
                   disabled={!canRedo}
                   onClick={redo}
                 >
-                  ↷
+                  <Redo2 size={17} aria-hidden />
                 </button>
               </div>
             )}
             {canEdit && (
-              <Button primary title={m.new_event_hint()} onClick={() => newEvent()}>
-                ＋ {m.event()}
+              <Button
+                primary
+                className="flex items-center gap-1.5"
+                title={m.new_event_hint()}
+                onClick={() => newEvent()}
+              >
+                <Plus size={16} aria-hidden /> {m.event()}
               </Button>
             )}
             <Menu label={m.more_actions()} items={menu} />
@@ -437,26 +544,28 @@ export function PlannerPage({
             calendars={plan.calendars}
             hidden={hidden}
             onToggle={toggle}
-            onSolo={(id) =>
-              solo(
-                id,
-                plan.calendars.map((c) => c.id),
-              )
-            }
+            onSolo={only}
+            onShowAll={hidden.size ? showAll : undefined}
             onManage={canEdit ? () => setCalendarsOpen(true) : undefined}
           />
           <div role="group" aria-label={m.view()} className="ml-auto hidden gap-1.5 md:flex">
             {view === 'week' && (
               <Button
-                className={PRESSED}
+                className={`flex items-center gap-1.5 ${PRESSED}`}
                 aria-pressed={search.fullDay === true}
                 title={m.full_day_hint()}
                 onClick={go.fullDay}
               >
-                {m.full_day()}
+                <Clock size={15} aria-hidden /> {m.full_day()}
               </Button>
             )}
-            <Button className={PRESSED} aria-pressed={expanded} title={m.expand_hint()} onClick={go.expand}>
+            <Button
+              className={`flex items-center gap-1.5 ${PRESSED}`}
+              aria-pressed={expanded}
+              title={m.expand_hint()}
+              onClick={go.expand}
+            >
+              {expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
               {expanded ? m.collapse() : m.expand()}
             </Button>
           </div>
@@ -471,10 +580,10 @@ export function PlannerPage({
           <span className="min-w-0 flex-1 basis-full md:basis-0">{m.overdue({ count: overdue.length })}</span>
           <button
             type="button"
-            className="font-semibold text-done-ink hover:underline"
+            className="flex items-center gap-1 font-semibold text-done-ink hover:underline"
             onClick={() => void changeQuietly({ type: 'events.done', uids: overdue.map((e) => e.uid), done: true })}
           >
-            ✓ {m.overdue_mark()}
+            <Check size={15} aria-hidden /> {m.overdue_mark()}
           </button>
           <button
             type="button"
@@ -485,11 +594,11 @@ export function PlannerPage({
           </button>
           <button
             type="button"
-            className="text-muted hover:text-ink"
+            className="grid place-items-center text-muted hover:text-ink"
             aria-label={m.close()}
             onClick={() => setOverdueHidden(true)}
           >
-            ✕
+            <X size={16} aria-hidden />
           </button>
         </div>
       )}
@@ -514,11 +623,11 @@ export function PlannerPage({
           </button>
           <button
             type="button"
-            className="text-muted hover:text-ink"
+            className="grid place-items-center text-muted hover:text-ink"
             aria-label={m.close()}
             onClick={session.dismissLastStep}
           >
-            ✕
+            <X size={16} aria-hidden />
           </button>
         </div>
       )}

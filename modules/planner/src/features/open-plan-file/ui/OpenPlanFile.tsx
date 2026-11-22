@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import type { Plan } from '@lc/plan-domain'
-import { Button } from '@lc/ui'
+import { Button, FileText } from '@lc/ui'
 import { useState } from 'react'
 
 import { PlanFileReader } from './PlanFileReader'
@@ -24,7 +24,9 @@ export function OpenPlanFile({ shown, project, onOpen }: Props) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{m.open_plan_file()}</Button>
+      <Button className="flex items-center justify-center gap-1.5" onClick={() => setOpen(true)}>
+        <FileText size={16} aria-hidden /> {m.open_plan_file()}
+      </Button>
       <PlanFileReader open={open} shown={shown} project={project} onOpen={onOpen} onClose={() => setOpen(false)} />
     </>
   )

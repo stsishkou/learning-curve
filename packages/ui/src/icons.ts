@@ -1,0 +1,32 @@
+/**
+ * The icons the workspace uses, from Lucide. Only signs most people know on sight belong here: an icon that has to
+ * be learned is worse than its label. Add one to this list before using it, so the set stays small and consistent.
+ */
+export {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  Calendar,
+  CalendarClock,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  Copy,
+  Download,
+  EllipsisVertical,
+  Eye,
+  FileText,
+  History,
+  Keyboard,
+  Maximize2,
+  Minimize2,
+  MoveHorizontal,
+  Plus,
+  Redo2,
+  Search,
+  Trash2,
+  Undo2,
+  X,
+} from 'lucide-react'

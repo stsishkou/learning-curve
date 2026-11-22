@@ -27,6 +27,14 @@ export function useHiddenCalendars() {
     })
   }, [])
   const reset = useCallback(() => setHidden(new Set()), [])
+  const showAll = useCallback(() => {
+    setHidden(new Set())
+    try {
+      localStorage.removeItem(HIDDEN_KEY)
+    } catch {
+      // ignore
+    }
+  }, [])
   /** Leaves only `id` visible; when it already is the only one, shows everything. Not remembered: it is a quick look. */
   const solo = useCallback((id: string, all: string[]) => {
     setHidden((prev) => {
@@ -35,5 +43,5 @@ export function useHiddenCalendars() {
       return new Set(alreadySolo ? [] : others)
     })
   }, [])
-  return { hidden, toggle, solo, reset }
+  return { hidden, toggle, solo, showAll, reset }
 }
