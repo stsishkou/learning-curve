@@ -32,6 +32,10 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return m.history_renamed({ name: subject })
     case 'reviews.plan':
       return m.history_reviews({ name: subject })
+    case 'course.add':
+      return m.history_course({ name: subject, count: change.sessions.length })
+    case 'events.add':
+      return subject ? m.history_added({ name: subject }) : m.history_added_many({ count: change.events.length })
     case 'event.patch':
       break
   }

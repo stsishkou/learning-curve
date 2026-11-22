@@ -482,5 +482,7 @@
   "busy_disconnect": "Disconnect",
   "busy_failed": "Could not read the calendar: {reason}",
   "busy_block": "Busy",
-  "busy_from_calendar": "From my calendar: {title}, {time}"
+  "busy_from_calendar": "From my calendar: {title}, {time}",
+  "history_course": "Course added: {name}, {count} sessions",
+  "history_added_many": "Events added: {count}"
 }

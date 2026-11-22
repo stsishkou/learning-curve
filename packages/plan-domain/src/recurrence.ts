@@ -8,6 +8,9 @@ const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0]
 /** A weekly rule the viewer can read and rewrite: it must name its weekdays. */
 export const WEEKLY_RULE = /^FREQ=WEEKLY(?:;[A-Z]+=[A-Z0-9,]+)*$/
 
+/** The only rule a new event may carry: every week on the named days, without an end, a count or an interval. */
+export const PLAIN_WEEKLY_RULE = /^FREQ=WEEKLY;BYDAY=(?:MO|TU|WE|TH|FR|SA|SU)(?:,(?:MO|TU|WE|TH|FR|SA|SU))*$/
+
 /** Weekdays of a weekly RRULE, 0 = Sunday. */
 export const weekdaysOf = (rrule: string): number[] =>
   (rrule.match(/BYDAY=([A-Z,]+)/)?.[1] ?? '')

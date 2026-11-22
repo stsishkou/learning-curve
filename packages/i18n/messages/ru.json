@@ -494,5 +494,7 @@
   "busy_disconnect": "Отключить",
   "busy_failed": "Не удалось прочитать календарь: {reason}",
   "busy_block": "Занято",
-  "busy_from_calendar": "Из моего календаря: {title}, {time}"
+  "busy_from_calendar": "Из моего календаря: {title}, {time}",
+  "history_course": "Добавлен курс «{name}», занятий: {count}",
+  "history_added_many": "Добавлено событий: {count}"
 }

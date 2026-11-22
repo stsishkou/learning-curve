@@ -98,8 +98,6 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
   const patch = parsePatch(value)
   if (!isRecord(value) || !patch || typeof value.uid !== 'string' || !value.uid) return null
   const { title, start, end, calendar } = patch
-  // A repeat is a property of generated events only.
-  if (patch.rrule || patch.skip) return null
   if (!title || !start || !end || !calendar) return null
   const event: PlanEvent = {
     uid: value.uid,
@@ -112,14 +110,16 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
     kind:
       value.availability === 'free' || value.kind === 'personal'
         ? 'personal'
-        : value.kind === 'review'
-          ? 'review'
+        : value.kind === 'review' || value.kind === 'lab'
+          ? value.kind
           : 'study',
     availability: value.availability === 'free' ? 'free' : 'busy',
   }
   if (patch.done) event.done = true
   if (patch.done && patch.actual) event.actual = patch.actual
   if (patch.paced) event.paced = true
+  if (patch.rrule) event.rrule = patch.rrule
+  if (patch.rrule && patch.skip?.length) event.skip = patch.skip
   return patchProblem(event, {}) ? null : event
 }
 

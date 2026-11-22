@@ -1,4 +1,4 @@
-import { DAY, parseLocal, toLocalString } from './dates'
+import { DAY, parseLocal, toLocalString, weekday } from './dates'
 import {
   HEX_COLOR,
   LOCAL_TIME,
@@ -11,6 +11,7 @@ import {
   type PlanEdits,
 } from './edits'
 import { isSession } from './progress'
+import { PLAIN_WEEKLY_RULE, weekdaysOf } from './recurrence'
 import type { SessionMove } from './replan'
 import { purgeTrash } from './trash'
 import type { Plan, PlanEvent } from './types'
@@ -24,7 +25,17 @@ export interface NewEvent {
   description: string
   /** `free` events do not count toward the weekly budget */
   availability: 'busy' | 'free'
+  /** `lab` for a hands-on session that cannot be paused; a session is `study` when this is left out */
+  kind?: 'study' | 'lab'
+  /**
+   * Makes the event repeat every week on the named days, e.g. `FREQ=WEEKLY;BYDAY=TU,TH`. `start` is the first
+   * repeat and must fall on one of those days. A repeat is a habit, never a course session: it cannot be marked done
+   */
+  rrule?: string
 }
+
+/** A session of a course that is being added: its calendar is the course itself. */
+export type NewSession = Omit<NewEvent, 'calendar'>
 
 /** One change a person makes to the plan in the viewer. The same value is applied in the browser and stored by the server. */
 export type PlanChange =
@@ -61,6 +72,10 @@ export type PlanChange =
   | { type: 'plan.rename'; title: string }
   /** Adds the review sessions of one finished module, as one step */
   | { type: 'reviews.plan'; reviews: NewEvent[] }
+  /** Adds a course as one step: a new calendar with that name and color, and its sessions in it */
+  | { type: 'course.add'; name: string; color: string; sessions: NewSession[] }
+  /** Adds several events to calendars that exist, as one step */
+  | { type: 'events.add'; events: NewEvent[] }
 
 /** A change that cannot be applied; `message` is safe to show. */
 export class PlanChangeError extends Error {}
@@ -69,19 +84,45 @@ const fail = (message: string): never => {
   throw new PlanChangeError(message)
 }
 
-function parseNewEvent(raw: unknown): NewEvent {
-  const patch = parsePatch(raw)
-  if (!isRecord(raw) || !patch?.title || !patch.start || !patch.end || !patch.calendar) {
-    return fail('A new event needs a title, a calendar, a start and an end')
+function parseNewSession(raw: unknown): NewSession {
+  const patch = parsePatch(isRecord(raw) ? { ...raw, rrule: undefined, calendar: undefined } : raw)
+  if (!isRecord(raw) || !patch?.title || !patch.start || !patch.end) {
+    return fail('A new event needs a title, a start and an end, with times like 2026-11-23T12:00')
   }
-  return {
-    calendar: patch.calendar,
+  const event: NewSession = {
     title: patch.title,
     start: patch.start,
     end: patch.end,
     description: patch.description ?? '',
     availability: raw.availability === 'free' ? 'free' : 'busy',
   }
+  if (raw.kind === 'lab') event.kind = 'lab'
+  if (raw.rrule !== undefined) {
+    const { rrule } = raw
+    if (typeof rrule !== 'string' || !PLAIN_WEEKLY_RULE.test(rrule)) {
+      return fail(`"${patch.title}": rrule must look like FREQ=WEEKLY;BYDAY=TU,TH`)
+    }
+    if (!weekdaysOf(rrule).includes(weekday(parseLocal(patch.start)))) {
+      return fail(`"${patch.title}": the first repeat must start on one of the days of its rrule`)
+    }
+    event.rrule = rrule
+  }
+  return event
+}
+
+function parseNewEvent(raw: unknown): NewEvent {
+  const session = parseNewSession(raw)
+  const calendar = isRecord(raw) && typeof raw.calendar === 'string' ? raw.calendar.trim() : ''
+  return calendar ? { calendar, ...session } : fail(`"${session.title}": a new event needs a calendar`)
+}
+
+/** At most this many events come in one change: more is a mistake, not a plan. */
+const MANY_MAX = 400
+
+function parseMany<T>(value: unknown, name: string, parse: (raw: unknown) => T): T[] {
+  if (!Array.isArray(value) || !value.length) return fail(`${name} must list the events to add`)
+  if (value.length > MANY_MAX) return fail(`${name} lists more than ${MANY_MAX} events`)
+  return value.map(parse)
 }
 
 /** Reads a change from untrusted input. Throws `PlanChangeError` when it is malformed. */
@@ -101,9 +142,19 @@ export function parseChange(input: unknown): PlanChange {
     }
     case 'event.add':
       return { type: 'event.add', event: parseNewEvent(input.event) }
-    case 'reviews.plan': {
-      if (!Array.isArray(input.reviews) || !input.reviews.length) return fail('reviews must list the sessions to add')
-      return { type: 'reviews.plan', reviews: input.reviews.map(parseNewEvent) }
+    case 'reviews.plan':
+      return { type: 'reviews.plan', reviews: parseMany(input.reviews, 'reviews', parseNewEvent) }
+    case 'events.add':
+      return { type: 'events.add', events: parseMany(input.events, 'events', parseNewEvent) }
+    case 'course.add': {
+      const color = text('color')
+      if (!HEX_COLOR.test(color)) return fail('color must look like #1a2b3c')
+      return {
+        type: 'course.add',
+        name: text('name'),
+        color,
+        sessions: parseMany(input.sessions, 'sessions', parseNewSession),
+      }
     }
     case 'event.remove':
       return { type: 'event.remove', uid: text('uid') }
@@ -204,7 +255,10 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
   const calendarExists = (id: string) =>
     !(id in removed.calendars) && (id in next.calendars || base.calendars.some((c) => c.id === id))
   /** One more event created in the viewer */
-  const add = (event: NewEvent, kind: PlanEvent['kind']) => {
+  const add = (
+    event: NewEvent,
+    kind: PlanEvent['kind'] = event.kind ?? (event.availability === 'free' ? 'personal' : 'study'),
+  ) => {
     if (!calendarExists(event.calendar)) fail(`Unknown calendar "${event.calendar}"`)
     if (!LOCAL_TIME.test(event.start) || !LOCAL_TIME.test(event.end)) fail('Times must look like 2026-11-23T12:00')
     const created: PlanEvent = { ...event, uid: `${newId('custom')}@learning-curve`, kind }
@@ -219,8 +273,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       const addedIndex = next.added.findIndex((e) => e.uid === uid)
       if (addedIndex !== -1) {
         if (!patch) return next
-        const { rrule: _rule, skip: _skip, ...fields } = patch
-        const merged: PlanEvent = { ...next.added[addedIndex], ...fields }
+        const current = next.added[addedIndex]
+        const { rrule, skip, ...fields } = patch
+        // Only an event that repeats can change its days or skip one.
+        const repeat = current.rrule ? { ...(rrule ? { rrule } : {}), ...(skip ? { skip } : {}) } : {}
+        const merged: PlanEvent = { ...current, ...fields, ...repeat }
+        if (!merged.skip?.length) delete merged.skip
         if (!merged.done) {
           delete merged.done
           delete merged.actual
@@ -249,8 +307,21 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       break
     }
     case 'event.add':
-      add(change.event, change.event.availability === 'free' ? 'personal' : 'study')
+      add(change.event)
       break
+    case 'events.add':
+      for (const event of change.events) add(event)
+      break
+    case 'course.add': {
+      const taken = applyEdits(base, next).plan.calendars.some(
+        (c) => c.name.trim().toLowerCase() === change.name.toLowerCase(),
+      )
+      if (taken) fail(`A calendar named "${change.name}" already exists: add its sessions with events.add`)
+      const id = newId('cal')
+      next.calendars[id] = { name: change.name, color: change.color }
+      for (const session of change.sessions) add({ ...session, calendar: id })
+      break
+    }
     case 'reviews.plan':
       for (const review of change.reviews) add(review, 'review')
       break

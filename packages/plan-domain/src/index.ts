@@ -24,6 +24,7 @@ export {
   parseChange,
   shiftTargets,
   type NewEvent,
+  type NewSession,
   type PlanChange,
 } from './changes'
 export { diffPlans, type PlanDiff } from './diff'
