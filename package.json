@@ -3,51 +3,33 @@
   "private": true,
   "description": "Personal study plan: schedule database, viewer and .ics export",
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "node .output/server/index.mjs",
-    "plan": "tsx scripts/build-plan.ts",
-    "i18n": "paraglide-js compile --project ./project.inlang",
-    "typecheck": "pnpm run i18n && tsc --noEmit",
-    "lint": "oxlint",
+    "dev": "nx run @lc/web:dev",
+    "build": "nx run-many -t build",
+    "start": "nx run @lc/web:start",
+    "plan": "nx run @lc/web:plan",
+    "i18n": "nx run-many -t i18n",
+    "typecheck": "nx run-many -t typecheck",
+    "lint": "nx run-many -t lint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "check:i18n": "inlang check --project ./project.inlang --source ./src/routes ./src/components ./src/lib/format.ts",
-    "check": "pnpm run typecheck && pnpm run lint && pnpm run fmt:check && pnpm run check:i18n",
-    "prepare": "husky && pnpm run i18n"
-  },
-  "dependencies": {
-    "@inlang/paraglide-js": "3.2.2",
-    "@tailwindcss/vite": "4.3.5",
-    "@tanstack/react-router": "1.170.46",
-    "@tanstack/react-start": "1.169.7",
-    "jszip": "3.10.2",
-    "nitro": "3.0.261103-rc",
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "tailwindcss": "4.3.5"
+    "check:i18n": "nx run-many -t check:i18n",
+    "check": "nx run-many -t typecheck lint check:i18n && oxfmt --check",
+    "affected": "nx affected -t typecheck lint check:i18n build",
+    "graph": "nx graph",
+    "prepare": "husky && nx run-many -t i18n"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
-    "@inlang/cli": "3.6.0",
-    "@types/node": "26.6.6",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.3.0",
+    "@inlang/paraglide-js": "3.2.2",
     "husky": "9.1.7",
+    "nx": "24.0.6",
     "oxfmt": "0.79.0",
     "oxlint": "1.94.0",
     "oxlint-tsgolint": "7.0.2008",
-    "tsx": "4.23.15",
-    "typescript": "7.0.2",
-    "vite": "8.3.8"
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=26"

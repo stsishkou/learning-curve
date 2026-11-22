@@ -1,0 +1,40 @@
+{
+  "name": "@lc/web",
+  "private": true,
+  "description": "The deployable web app: TanStack Start shell that composes the modules",
+  "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node .output/server/index.mjs",
+    "plan": "tsx scripts/build-plan.ts",
+    "i18n": "paraglide-js compile --project ./project.inlang",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "check:i18n": "inlang check --project ./project.inlang --source ./src/routes ./src/components ./src/lib/format.ts"
+  },
+  "dependencies": {
+    "@inlang/paraglide-js": "3.2.2",
+    "@tailwindcss/vite": "4.3.5",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-start": "1.169.7",
+    "jszip": "3.10.2",
+    "nitro": "3.0.261103-rc",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwindcss": "4.3.5"
+  },
+  "devDependencies": {
+    "@inlang/cli": "3.6.0",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "tsx": "4.23.15",
+    "vite": "8.3.8"
+  }
+}

@@ -10,7 +10,7 @@
   "options": {
     "typeAware": true
   },
-  "ignorePatterns": ["src/paraglide/**", "src/routeTree.gen.ts"],
+  "ignorePatterns": ["**/src/paraglide/**", "**/routeTree.gen.ts", ".nx/**"],
   "rules": {
     "react/react-in-jsx-scope": "off",
     // useNow and useHiddenCalendars set state after mount on purpose, so server and client markup match.

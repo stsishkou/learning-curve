@@ -4,14 +4,15 @@
   "semi": false,
   "singleQuote": true,
   "sortImports": true,
-  "sortTailwindcss": { "stylesheet": "./src/styles.css" },
+  "sortTailwindcss": { "stylesheet": "./apps/web/src/styles.css" },
   "ignorePatterns": [
-    "src/data/plan.json",
-    "src/lib/plan/content.ts",
-    "src/routeTree.gen.ts",
-    "messages/",
+    "**/data/plan.json",
+    "**/plan/content.ts",
+    "**/routeTree.gen.ts",
+    "**/messages/",
     "pnpm-lock.yaml",
     "*.md",
-    ".idea/"
+    ".idea/",
+    ".nx/"
   ]
 }
