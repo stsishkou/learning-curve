@@ -321,7 +321,8 @@ export function PlannerPage({
         </>
       )}
 
-      <div className="mb-3 grid gap-2.5">
+      {/* The single column may not grow with its content: the calendar chips scroll inside their row instead. */}
+      <div className="mb-3 grid grid-cols-[minmax(0,1fr)] gap-2.5">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
           <Segmented
             label={m.view()}
@@ -442,7 +443,7 @@ export function PlannerPage({
           className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13.5px]"
           role="status"
         >
-          <span className="min-w-0 flex-1">{m.overdue({ count: overdue.length })}</span>
+          <span className="min-w-0 flex-1 basis-full md:basis-0">{m.overdue({ count: overdue.length })}</span>
           <button
             type="button"
             className="font-semibold text-done-ink hover:underline"
