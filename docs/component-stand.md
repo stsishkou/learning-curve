@@ -136,7 +136,10 @@ Rules that keep `pnpm run check` green:
 - Callbacks are `fn()` from `storybook/test`: calls show up in the Actions panel and can be asserted in `play`.
 - A dialog covers the whole document. Give its stories their own frame on the docs page:
   `parameters: { docs: { story: { inline: false, iframeHeight: 520 } } }`. A dialog opens in an effect, so a
-  `play` function waits for it with `findByRole`, not `getByRole`.- In a `play` function, fill a text field with `fireEvent.change(input, { target: { value } })`, not
+  `play` function waits for it with `findByRole`, not `getByRole`.
+- A story that starts as an open dialog also sets `parameters: { dialog: true }`. Esc or a click on the
+  backdrop closes a native dialog while the `open` arg stays true; with the parameter the stand then shows an
+  "Open the dialog again" button that mounts the story anew (`apps/stand/src/reopen.tsx`).- In a `play` function, fill a text field with `fireEvent.change(input, { target: { value } })`, not
   `userEvent.type`. With React 19 the user-event build inside `storybook/test` writes the value through the
   tracker React keeps on a controlled input, so React sees no change and `onChange` never runs. Clicks and
   `userEvent.keyboard` work.

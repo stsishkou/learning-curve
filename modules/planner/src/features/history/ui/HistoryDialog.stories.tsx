@@ -30,7 +30,7 @@ const history: HistoryView = {
 const meta = {
   title: 'Planner/Features/HistoryDialog',
   component: HistoryDialog,
-  parameters: { docs: { story: { inline: false, iframeHeight: 520 } } },
+  parameters: { dialog: true, docs: { story: { inline: false, iframeHeight: 520 } } },
   args: { open: true, history, mod: 'Ctrl', now: fixtureNow, onTravel: fn(async () => {}), onClose: fn() },
 } satisfies Meta<typeof HistoryDialog>
 

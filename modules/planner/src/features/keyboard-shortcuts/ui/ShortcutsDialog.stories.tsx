@@ -7,6 +7,7 @@ const meta = {
   title: 'Planner/Features/ShortcutsDialog',
   component: ShortcutsDialog,
   parameters: {
+    dialog: true,
     docs: {
       description: {
         component:

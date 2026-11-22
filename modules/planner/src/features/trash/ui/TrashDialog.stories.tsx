@@ -8,7 +8,7 @@ import { TrashDialog } from './TrashDialog'
 const meta = {
   title: 'Planner/Features/TrashDialog',
   component: TrashDialog,
-  parameters: { docs: { story: { inline: false, iframeHeight: 480 } } },
+  parameters: { dialog: true, docs: { story: { inline: false, iframeHeight: 480 } } },
   args: { open: true, plan: fixturePlan, trash: fixtureTrash, onChange: fn(async () => {}), onClose: fn() },
   argTypes: { plan: { control: false }, trash: { control: false } },
 } satisfies Meta<typeof TrashDialog>

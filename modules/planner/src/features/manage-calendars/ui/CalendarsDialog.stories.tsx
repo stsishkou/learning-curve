@@ -7,7 +7,7 @@ import { CalendarsDialog } from './CalendarsDialog'
 const meta = {
   title: 'Planner/Features/CalendarsDialog',
   component: CalendarsDialog,
-  parameters: { docs: { story: { inline: false, iframeHeight: 640 } } },
+  parameters: { dialog: true, docs: { story: { inline: false, iframeHeight: 640 } } },
   args: {
     open: true,
     plan: fixturePlan,

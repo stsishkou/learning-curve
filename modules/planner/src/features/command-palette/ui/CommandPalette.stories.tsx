@@ -7,7 +7,7 @@ import { CommandPalette } from './CommandPalette'
 const meta = {
   title: 'Planner/Features/CommandPalette',
   component: CommandPalette,
-  parameters: { docs: { story: { inline: false, iframeHeight: 520 } } },
+  parameters: { dialog: true, docs: { story: { inline: false, iframeHeight: 520 } } },
   args: {
     open: true,
     plan: fixturePlan,
