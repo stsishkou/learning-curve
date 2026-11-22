@@ -63,6 +63,7 @@ function PlanPage() {
   const select = (e: PlanEvent) => setSelectedUid(e.uid)
   const [exportOpen, setExportOpen] = useState(false)
   const [fileError, setFileError] = useState('')
+  const [saveError, setSaveError] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
 
   const view: View = search.view ?? 'week'
@@ -82,6 +83,15 @@ function PlanPage() {
       await router.invalidate()
     } finally {
       setPending((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => key !== uid)))
+    }
+  }
+
+  async function moveEvent(uid: string, slot: EventPatch) {
+    try {
+      await saveEdit(uid, slot)
+      setSaveError('')
+    } catch (err) {
+      setSaveError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
     }
   }
 
@@ -120,6 +130,11 @@ function PlanPage() {
               </>
             )}
           </p>
+          {saveError && (
+            <p className="mt-1.5 text-[13px] text-today" role="alert">
+              {saveError}
+            </p>
+          )}
           {fileError && (
             <p className="mt-1.5 text-[13px] text-today" role="alert">
               {fileError}
@@ -204,7 +219,14 @@ function PlanPage() {
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_260px]">
         <section className="rounded-2xl border border-line bg-surface">
           {view === 'week' ? (
-            <WeekGrid plan={plan} weekStart={weekStart} items={weekItems} now={now} onSelect={select} />
+            <WeekGrid
+              plan={plan}
+              weekStart={weekStart}
+              items={weekItems}
+              now={now}
+              onSelect={select}
+              onMove={canEdit ? (e, slot) => void moveEvent(e.uid, slot) : undefined}
+            />
           ) : (
             <AgendaList plan={plan} items={allItems} now={now} onSelect={select} />
           )}

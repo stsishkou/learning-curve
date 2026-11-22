@@ -40,3 +40,37 @@ export const countsToBudget = (o: Occurrence) => !o.allDay && o.availability !==
 
 export const planStart = (plan: Plan) =>
   parseLocal(plan.events.reduce((min, e) => (e.start < min ? e.start : min), '9999-12-31'))
+
+export interface Lane {
+  /** 0-based column inside a group of overlapping events */
+  lane: number
+  /** number of columns that group needs */
+  lanes: number
+}
+
+/** Side-by-side columns for the timed events of one day, so overlapping events stay visible. */
+export function layoutLanes(items: Occurrence[]): Map<Occurrence, Lane> {
+  const result = new Map<Occurrence, Lane>()
+  let group: Occurrence[] = []
+  let groupEnd = -Infinity
+  let laneEnds: number[] = []
+  const flush = () => {
+    for (const o of group) result.get(o)!.lanes = laneEnds.length
+  }
+  for (const o of items.toSorted((a, b) => a.s - b.s || b.e - a.e)) {
+    if (o.s >= groupEnd) {
+      flush()
+      group = []
+      laneEnds = []
+      groupEnd = -Infinity
+    }
+    let lane = laneEnds.findIndex((end) => end <= o.s)
+    if (lane === -1) lane = laneEnds.length
+    laneEnds[lane] = o.e
+    groupEnd = Math.max(groupEnd, o.e)
+    group.push(o)
+    result.set(o, { lane, lanes: 1 })
+  }
+  flush()
+  return result
+}

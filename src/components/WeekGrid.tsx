@@ -1,6 +1,8 @@
+import { useRef, useState, type PointerEvent } from 'react'
+
 import { dowShort, fmtDay } from '#/lib/format'
-import { DAY, HOUR, hm, startOfDay, ymd } from '#/lib/plan/dates'
-import { durationHours, type Occurrence } from '#/lib/plan/occurrences'
+import { DAY, HOUR, hm, startOfDay, toLocalString, ymd } from '#/lib/plan/dates'
+import { layoutLanes, type Occurrence } from '#/lib/plan/occurrences'
 import type { Plan, PlanEvent } from '#/lib/plan/types'
 import { m } from '#/paraglide/messages.js'
 
@@ -12,14 +14,19 @@ interface Props {
   items: Occurrence[]
   now: number | null
   onSelect: (e: PlanEvent) => void
+  /** Present when the plan can be edited: called after an event is dragged or resized. */
+  onMove?: (e: PlanEvent, slot: { start: string; end: string }) => void
 }
 
 const PX_PER_HOUR = 56
+const SNAP = HOUR / 2
+/** Pointer travel in px before a press counts as a drag instead of a click */
+const DRAG_THRESHOLD = 5
 
 const HEAD = 'border-b border-line text-muted'
 const DAY_OFF = 'bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line-soft)_6px_8px)]'
 const EVENT =
-  'absolute inset-x-1 overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink'
+  'absolute overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink'
 const EVENT_BUSY =
   'bg-[color-mix(in_srgb,var(--c)_16%,var(--surface))] hover:bg-[color-mix(in_srgb,var(--c)_26%,var(--surface))]'
 const EVENT_FREE =
@@ -29,7 +36,20 @@ const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
 const shortTitle = (o: Occurrence) =>
   o.kind === 'study' || o.kind === 'lab' ? o.title.replace(/^[^—]+— /, '') : o.title
 
-export function WeekGrid({ plan, weekStart, items, now, onSelect }: Props) {
+interface Drag {
+  key: string
+  mode: 'move' | 'resize'
+  /** new wall-clock ms while the pointer is down */
+  s: number
+  e: number
+  /** horizontal shift in px, in whole day columns */
+  shiftX: number
+}
+
+const keyOf = (o: Occurrence) => `${o.uid}-${o.s}`
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+
+export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Props) {
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
   let minH = 8
@@ -43,6 +63,59 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect }: Props) {
   const days = Array.from({ length: 7 }, (_, i) => weekStart + i * DAY)
   const today = now === null ? null : startOfDay(now)
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
+
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const press = useRef<{ x: number; y: number; columnWidth: number; moved: boolean } | null>(null)
+  // The click that follows a drag must not open the event dialog.
+  const suppressClick = useRef(false)
+
+  // A repeating event is one series: its time is changed in the dialog. Touch keeps scrolling the grid.
+  const draggable = (o: Occurrence, e: PointerEvent) =>
+    onMove !== undefined && !o.rrule && e.pointerType !== 'touch' && e.button === 0
+
+  function pointerDown(e: PointerEvent<HTMLElement>, o: Occurrence, mode: Drag['mode']) {
+    if (!draggable(o, e)) return
+    const column = e.currentTarget.closest('[data-day]')
+    if (!column) return
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    press.current = { x: e.clientX, y: e.clientY, columnWidth: column.getBoundingClientRect().width, moved: false }
+    setDrag({ key: keyOf(o), mode, s: o.s, e: o.e, shiftX: 0 })
+  }
+
+  function pointerMove(e: PointerEvent<HTMLElement>, o: Occurrence) {
+    const p = press.current
+    if (!p || !drag || drag.key !== keyOf(o)) return
+    const dx = e.clientX - p.x
+    const dy = e.clientY - p.y
+    if (!p.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return
+    p.moved = true
+    const day = startOfDay(o.s)
+    const first = day + minH * HOUR
+    const last = day + maxH * HOUR
+    const shift = Math.round(((dy / PX_PER_HOUR) * HOUR) / SNAP) * SNAP
+    if (drag.mode === 'resize') {
+      setDrag({ ...drag, e: clamp(o.e + shift, o.s + SNAP, last) })
+      return
+    }
+    const length = o.e - o.s
+    const s = clamp(o.s + shift, first, last - length)
+    const dayIndex = (day - weekStart) / DAY
+    const dayShift = clamp(Math.round(dx / p.columnWidth), -dayIndex, 6 - dayIndex)
+    setDrag({ ...drag, s: s + dayShift * DAY, e: s + length + dayShift * DAY, shiftX: dayShift * p.columnWidth })
+  }
+
+  function pointerUp(o: Occurrence) {
+    const p = press.current
+    press.current = null
+    if (!p || !drag) return
+    setDrag(null)
+    if (!p.moved) return
+    suppressClick.current = true
+    // Cleared on a timer too, in case the browser sends no click after this drag.
+    window.setTimeout(() => (suppressClick.current = false), 50)
+    if (drag.s !== o.s || drag.e !== o.e) onMove?.(o, { start: toLocalString(drag.s), end: toLocalString(drag.e) })
+  }
 
   return (
     <>
@@ -94,43 +167,74 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect }: Props) {
             ))}
           </div>
 
-          {days.map((d) => (
-            <div key={d} className="relative border-r border-line-soft last:border-r-0" style={{ height }}>
-              {hours.map((h) => (
-                <div
-                  key={h}
-                  className="absolute inset-x-0 border-t border-line-soft"
-                  style={{ top: (h - minH) * PX_PER_HOUR }}
-                />
-              ))}
-              {timed
-                .filter((o) => startOfDay(o.s) === d)
-                .map((o) => (
-                  <button
-                    key={`${o.uid}-${o.s}`}
-                    type="button"
-                    className={`${EVENT} ${o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' ? EVENT_LAB : ''}`}
-                    style={{
-                      ...calendarColor(colorOf(o.calendar)),
-                      top: ((o.s - d) / HOUR - minH) * PX_PER_HOUR + 1,
-                      height: Math.max(22, durationHours(o) * PX_PER_HOUR - 3),
-                    }}
-                    onClick={() => onSelect(o)}
-                  >
-                    <b className="block font-semibold">{shortTitle(o)}</b>
-                    <small className="text-muted tabular-nums">
-                      {hm(o.s)}–{hm(o.e)}
-                    </small>
-                  </button>
+          {days.map((d) => {
+            const dayItems = timed.filter((o) => startOfDay(o.s) === d)
+            const lanes = layoutLanes(dayItems)
+            return (
+              <div
+                key={d}
+                data-day={ymd(d)}
+                className="relative border-r border-line-soft last:border-r-0"
+                style={{ height }}
+              >
+                {hours.map((h) => (
+                  <div
+                    key={h}
+                    className="absolute inset-x-0 border-t border-line-soft"
+                    style={{ top: (h - minH) * PX_PER_HOUR }}
+                  />
                 ))}
-              {now !== null && startOfDay(now) === d && (now - d) / HOUR >= minH && (now - d) / HOUR <= maxH && (
-                <div
-                  className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-['']"
-                  style={{ top: ((now - d) / HOUR - minH) * PX_PER_HOUR }}
-                />
-              )}
-            </div>
-          ))}
+                {dayItems.map((o) => {
+                  const dragged = drag?.key === keyOf(o) ? drag : null
+                  const s = dragged?.s ?? o.s
+                  const e = dragged?.e ?? o.e
+                  const { lane, lanes: count } = lanes.get(o) ?? { lane: 0, lanes: 1 }
+                  const canDrag = onMove !== undefined && !o.rrule
+                  return (
+                    <button
+                      key={keyOf(o)}
+                      type="button"
+                      className={`${EVENT} ${o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 select-none' : ''}`}
+                      style={{
+                        ...calendarColor(colorOf(o.calendar)),
+                        top: ((s - startOfDay(s)) / HOUR - minH) * PX_PER_HOUR + 1,
+                        height: Math.max(22, ((e - s) / HOUR) * PX_PER_HOUR - 3),
+                        left: `calc(${(lane / count) * 100}% + 4px)`,
+                        width: `calc(${100 / count}% - 8px)`,
+                        transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined,
+                      }}
+                      onPointerDown={(ev) => pointerDown(ev, o, 'move')}
+                      onPointerMove={(ev) => pointerMove(ev, o)}
+                      onPointerUp={() => pointerUp(o)}
+                      onPointerCancel={() => ((press.current = null), setDrag(null))}
+                      onClick={() => {
+                        if (suppressClick.current) suppressClick.current = false
+                        else onSelect(o)
+                      }}
+                    >
+                      <b className="block font-semibold">{shortTitle(o)}</b>
+                      <small className="text-muted tabular-nums">
+                        {hm(s)}–{hm(e)}
+                      </small>
+                      {canDrag && (
+                        <span
+                          aria-hidden
+                          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+                          onPointerDown={(ev) => pointerDown(ev, o, 'resize')}
+                        />
+                      )}
+                    </button>
+                  )
+                })}
+                {now !== null && startOfDay(now) === d && (now - d) / HOUR >= minH && (now - d) / HOUR <= maxH && (
+                  <div
+                    className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-['']"
+                    style={{ top: ((now - d) / HOUR - minH) * PX_PER_HOUR }}
+                  />
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
       {!items.length && <div className="px-[18px] py-10 text-center text-muted">{m.no_events_this_week()}</div>}
