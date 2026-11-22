@@ -11,20 +11,26 @@
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "plan": "tsx scripts/build-plan.ts",
-    "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "i18n": "paraglide-js compile --project ./project.inlang",
+    "typecheck": "pnpm run i18n && tsc --noEmit",
+    "check:i18n": "inlang check --project ./project.inlang --source ./src/routes ./src/components ./src/lib/format.ts",
+    "prepare": "husky && pnpm run i18n"
   },
   "dependencies": {
+    "@inlang/paraglide-js": "3.2.2",
+    "@tailwindcss/vite": "4.3.5",
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-start": "1.169.7",
     "jszip": "3.10.2",
     "nitro": "3.0.261103-rc",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "tailwindcss": "4.3.5"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
+    "@inlang/cli": "3.6.0",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

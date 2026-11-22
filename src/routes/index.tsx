@@ -4,12 +4,16 @@ import planData from '#/data/plan.json'
 import { AgendaList } from '#/components/AgendaList'
 import { BudgetPanel } from '#/components/BudgetPanel'
 import { EventDialog, ExportDialog } from '#/components/Dialogs'
+import { LanguageSwitcher } from '#/components/LanguageSwitcher'
 import { Runway } from '#/components/Runway'
+import { Button, Dot, Segmented, calendarColor } from '#/components/ui'
 import { WeekGrid } from '#/components/WeekGrid'
 import { useHiddenCalendars, useNow } from '#/lib/client'
-import { DAY, fmtDay, fmtShort, mondayOf, nowMinsk, parseLocal, plural, ymd } from '#/lib/plan/dates'
+import { fmtDay, fmtShort } from '#/lib/format'
+import { DAY, mondayOf, nowMinsk, parseLocal, ymd } from '#/lib/plan/dates'
 import { occurrences, planStart } from '#/lib/plan/occurrences'
 import type { Plan, PlanEvent } from '#/lib/plan/types'
+import { m } from '#/paraglide/messages.js'
 
 type View = 'week' | 'list'
 interface Search {
@@ -19,6 +23,8 @@ interface Search {
 }
 
 const bundledPlan = planData as Plan
+
+const WEEK_STEP = 'grid size-9 place-items-center rounded-[10px] border border-line bg-surface'
 
 export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>): Search => ({
@@ -58,41 +64,47 @@ function PlanPage() {
   async function openFile(file: File) {
     try {
       const next = JSON.parse(await file.text()) as Plan
-      if (!next?.meta || !Array.isArray(next.calendars) || !Array.isArray(next.events)) throw new Error('нет полей meta, calendars или events')
+      if (!next?.meta || !Array.isArray(next.calendars) || !Array.isArray(next.events)) throw new Error(m.file_missing_fields())
       setPlan(next)
       reset()
       setFileError('')
       navigate({ search: (prev) => ({ ...prev, week: undefined }) })
     } catch (err) {
-      setFileError(`Файл не похож на план: ${(err as Error).message}`)
+      setFileError(m.file_invalid({ reason: (err as Error).message }))
     }
   }
 
   return (
-    <div className="wrap">
-      <header className="top">
+    <div className="mx-auto max-w-[1240px] px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1>{plan.meta.title}</h1>
-          <p>
-            {plan.events.length} {plural(plan.events.length, 'событие', 'события', 'событий')} в {plan.calendars.length} календарях, до{' '}
-            {fmtDay(parseLocal(plan.meta.planEnd))}
+          <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{plan.meta.title}</h1>
+          <p className="mt-1 text-[14px] text-muted">
+            {m.plan_summary({
+              events: m.events_count({ count: plan.events.length }),
+              calendars: m.in_calendars({ count: plan.calendars.length }),
+              date: fmtDay(parseLocal(plan.meta.planEnd)),
+            })}
             {plan !== bundledPlan && (
               <>
                 {' '}
-                (открыт файл,{' '}
-                <button type="button" className="linkish" onClick={() => setPlan(bundledPlan)}>
-                  вернуть план проекта
+                ({m.file_opened()},{' '}
+                <button type="button" className="text-focus underline" onClick={() => setPlan(bundledPlan)}>
+                  {m.restore_plan()}
                 </button>
                 )
               </>
             )}
           </p>
-          {fileError && <p className="error" role="alert">{fileError}</p>}
+          {fileError && (
+            <p className="mt-1.5 text-[13px] text-today" role="alert">
+              {fileError}
+            </p>
+          )}
         </div>
-        <div className="actions">
-          <button className="btn" type="button" onClick={() => fileInput.current?.click()}>
-            Открыть файл плана
-          </button>
+        <div className="flex flex-wrap gap-2">
+          <LanguageSwitcher />
+          <Button onClick={() => fileInput.current?.click()}>{m.open_plan_file()}</Button>
           <input
             ref={fileInput}
             type="file"
@@ -104,57 +116,57 @@ function PlanPage() {
               e.target.value = ''
             }}
           />
-          <button className="btn primary" type="button" onClick={() => setExportOpen(true)}>
-            Экспорт в календарь
-          </button>
+          <Button primary onClick={() => setExportOpen(true)}>
+            {m.export_to_calendar()}
+          </Button>
         </div>
       </header>
 
       <Runway plan={plan} now={now} onSelect={setSelected} />
 
-      <div className="bar">
+      <div className="mb-3 flex flex-wrap items-center gap-2.5">
         {view === 'week' && (
-          <div className="weeknav">
-            <button className="icon" type="button" aria-label="Предыдущая неделя" onClick={() => setWeek(weekStart - 7 * DAY)}>
+          <div className="flex items-center gap-1.5">
+            <button type="button" className={WEEK_STEP} aria-label={m.previous_week()} onClick={() => setWeek(weekStart - 7 * DAY)}>
               ‹
             </button>
-            <h2>
+            <h2 className="mx-1.5 text-[16px]/[1.2] font-semibold md:min-w-[170px]">
               {fmtShort(weekStart)} – {fmtShort(weekStart + 6 * DAY)} {new Date(weekStart + 6 * DAY).getUTCFullYear()}
             </h2>
-            <button className="icon" type="button" aria-label="Следующая неделя" onClick={() => setWeek(weekStart + 7 * DAY)}>
+            <button type="button" className={WEEK_STEP} aria-label={m.next_week()} onClick={() => setWeek(weekStart + 7 * DAY)}>
               ›
             </button>
-            <button className="btn" type="button" onClick={() => navigate({ search: (prev) => ({ ...prev, week: undefined }) })}>
-              Сегодня
-            </button>
+            <Button onClick={() => navigate({ search: (prev) => ({ ...prev, week: undefined }) })}>{m.go_today()}</Button>
           </div>
         )}
-        <div className="seg-ctl" role="group" aria-label="Вид">
-          {(['week', 'list'] as const).map((v) => (
-            <button key={v} type="button" aria-pressed={view === v} onClick={() => navigate({ search: (prev) => ({ ...prev, view: v }) })}>
-              {v === 'week' ? 'Неделя' : 'Список'}
-            </button>
-          ))}
-        </div>
-        <div className="chips" aria-label="Календари">
+        <Segmented
+          label={m.view()}
+          value={view}
+          options={[
+            { value: 'week', label: m.view_week() },
+            { value: 'list', label: m.view_list() },
+          ]}
+          onChange={(v) => navigate({ search: (prev) => ({ ...prev, view: v }) })}
+        />
+        <div className="flex flex-wrap gap-1.5 md:ml-auto" aria-label={m.calendars()}>
           {plan.calendars.map((c) => (
             <button
               key={c.id}
               type="button"
-              className="chip"
-              style={{ '--c': c.color } as React.CSSProperties}
+              className="group inline-flex items-center gap-[7px] rounded-full border border-line bg-surface py-[5px] pr-[11px] pl-[9px] text-[13px] aria-[pressed=false]:opacity-45"
+              style={calendarColor(c.color)}
               aria-pressed={!hidden.has(c.id)}
               onClick={() => toggle(c.id)}
             >
-              <i />
+              <Dot className="size-2.5 group-aria-[pressed=false]:bg-transparent group-aria-[pressed=false]:shadow-[inset_0_0_0_2px_var(--c)]" />
               {c.name}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="main">
-        <section className="panel">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_260px]">
+        <section className="rounded-2xl border border-line bg-surface">
           {view === 'week' ? (
             <WeekGrid plan={plan} weekStart={weekStart} items={weekItems} now={now} onSelect={setSelected} />
           ) : (

@@ -1,0 +1,125 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "meta_title": "Learning curve — study plan",
+  "meta_description": "Study plan: viewer, weekly hour budget and export to Google Calendar and Outlook",
+  "not_found": "Page not found.",
+  "open_plan": "Open the plan",
+  "language": "Language",
+  "plan_summary": "{events} {calendars}, until {date}",
+  "in_calendars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "in {count} calendar",
+        "countPlural=*": "in {count} calendars"
+      }
+    }
+  ],
+  "file_opened": "file opened",
+  "restore_plan": "restore the project plan",
+  "file_missing_fields": "meta, calendars or events fields are missing",
+  "file_invalid": "The file does not look like a plan: {reason}",
+  "open_plan_file": "Open plan file",
+  "export_to_calendar": "Export to calendar",
+  "previous_week": "Previous week",
+  "next_week": "Next week",
+  "go_today": "Today",
+  "view": "View",
+  "view_week": "Week",
+  "view_list": "List",
+  "calendars": "Calendars",
+  "today": "today",
+  "all_day": "all day",
+  "day_off": "day off",
+  "no_events": "No events. Turn on at least one calendar.",
+  "no_events_this_week": "No events this week. Turn on calendars above or go to another week.",
+  "hours_short": "{value} h",
+  "study_this_week": "Study this week",
+  "budget_of": "of {budget}",
+  "budget_progress": [
+    {
+      "declarations": [
+        "input budget",
+        "local budgetPlural = budget: plural"
+      ],
+      "selectors": [
+        "budgetPlural"
+      ],
+      "match": {
+        "budgetPlural=one": "{total} of {budget} hour",
+        "budgetPlural=*": "{total} of {budget} hours"
+      }
+    }
+  ],
+  "no_study_events": "No study events",
+  "budget_note": "The Saturday buffer and the gym do not count toward the budget. Time zone {timezone}, plan updated {date}.",
+  "event_recurring": "every Tue and Thu {from}–{to}, from {date}",
+  "event_all_day": "{date}, all day",
+  "event_free": "does not block time",
+  "close": "Close",
+  "export_hint": "One .ics file per calendar. Works with Google Calendar and Outlook.",
+  "export_select_calendar": "Select at least one calendar.",
+  "export_done": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Archive downloaded: {count} calendar.",
+        "countPlural=*": "Archive downloaded: {count} calendars."
+      }
+    }
+  ],
+  "create_calendar": "create calendar",
+  "events_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} event",
+        "countPlural=*": "{count} events"
+      }
+    }
+  ],
+  "howto_google": "Google Calendar: Settings → Import & export → select the .ics → choose the calendar with the same name.",
+  "howto_outlook": "Outlook: Add calendar → Upload from file → select the .ics and the calendar.",
+  "howto_duplicates": "Before importing again, delete the old events from these calendars, otherwise you will get duplicates.",
+  "download_plan_json": "Download plan.json",
+  "download_zip": "Download .zip with .ics",
+  "runway_label": "Certificates before the deadline",
+  "days_to_deadline": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "day until the certificate deadline",
+        "countPlural=*": "days until the certificate deadline"
+      }
+    }
+  ],
+  "to_deadline": "until the certificate deadline",
+  "deadline_today": "the deadline is today",
+  "deadline_passed": "the deadline has passed",
+  "reserve": "Reserve",
+  "deadline_on": "Deadline: {date}"
+}

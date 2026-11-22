@@ -6,9 +6,6 @@ export const DAY = 86_400_000
 export const HOUR = 3_600_000
 const MINSK_OFFSET = 3 * HOUR
 
-const DOW = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
-
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /** `2026-11-23T12:00` or `2026-11-23` → wall-clock ms */
@@ -33,23 +30,3 @@ export const addDays = (s: string, n: number) => ymd(parseLocal(s) + n * DAY)
 
 /** Current Minsk wall-clock time */
 export const nowMinsk = () => Date.now() + MINSK_OFFSET
-
-export const fmtDay = (t: number) => {
-  const d = new Date(t)
-  return `${DOW[d.getUTCDay()]} ${d.getUTCDate()} ${MON[d.getUTCMonth()]}`
-}
-export const fmtShort = (t: number) => {
-  const d = new Date(t)
-  return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}`
-}
-export const dowShort = (t: number) => DOW[weekday(t)]
-
-export function plural(n: number, one: string, few: string, many: string) {
-  const m = n % 10
-  const h = n % 100
-  if (m === 1 && h !== 11) return one
-  if (m >= 2 && m <= 4 && (h < 10 || h >= 20)) return few
-  return many
-}
-
-export const fmtHours = (h: number) => `${Number.isInteger(h) ? h : h.toFixed(1).replace('.', ',')} ч`

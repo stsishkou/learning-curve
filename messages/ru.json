@@ -1,0 +1,135 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "meta_title": "Learning curve — план обучения",
+  "meta_description": "План обучения: просмотр, бюджет часов и экспорт в Google Calendar и Outlook",
+  "not_found": "Страница не найдена.",
+  "open_plan": "Открыть план",
+  "language": "Язык",
+  "plan_summary": "{events} {calendars}, до {date}",
+  "in_calendars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "в {count} календаре",
+        "countPlural=few": "в {count} календарях",
+        "countPlural=many": "в {count} календарях",
+        "countPlural=*": "в {count} календарях"
+      }
+    }
+  ],
+  "file_opened": "открыт файл",
+  "restore_plan": "вернуть план проекта",
+  "file_missing_fields": "нет полей meta, calendars или events",
+  "file_invalid": "Файл не похож на план: {reason}",
+  "open_plan_file": "Открыть файл плана",
+  "export_to_calendar": "Экспорт в календарь",
+  "previous_week": "Предыдущая неделя",
+  "next_week": "Следующая неделя",
+  "go_today": "Сегодня",
+  "view": "Вид",
+  "view_week": "Неделя",
+  "view_list": "Список",
+  "calendars": "Календари",
+  "today": "сегодня",
+  "all_day": "весь день",
+  "day_off": "выходной",
+  "no_events": "Нет событий. Включите хотя бы один календарь.",
+  "no_events_this_week": "На этой неделе событий нет. Включите календари выше или перейдите к другой неделе.",
+  "hours_short": "{value} ч",
+  "study_this_week": "Учёба на этой неделе",
+  "budget_of": "из {budget}",
+  "budget_progress": [
+    {
+      "declarations": [
+        "input budget",
+        "local budgetPlural = budget: plural"
+      ],
+      "selectors": [
+        "budgetPlural"
+      ],
+      "match": {
+        "budgetPlural=one": "{total} из {budget} часа",
+        "budgetPlural=few": "{total} из {budget} часов",
+        "budgetPlural=many": "{total} из {budget} часов",
+        "budgetPlural=*": "{total} из {budget} часа"
+      }
+    }
+  ],
+  "no_study_events": "Нет учебных событий",
+  "budget_note": "Буфер по субботам и спортзал в бюджет не входят. Часовой пояс {timezone}, план обновлён {date}.",
+  "event_recurring": "каждый Вт и Чт {from}–{to}, с {date}",
+  "event_all_day": "{date}, весь день",
+  "event_free": "не блокирует время",
+  "close": "Закрыть",
+  "export_hint": "Один .ics-файл на календарь. Подходит для Google Calendar и Outlook.",
+  "export_select_calendar": "Выберите хотя бы один календарь.",
+  "export_done": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Скачан архив: {count} календарь.",
+        "countPlural=few": "Скачан архив: {count} календаря.",
+        "countPlural=many": "Скачан архив: {count} календарей.",
+        "countPlural=*": "Скачан архив: {count} календаря."
+      }
+    }
+  ],
+  "create_calendar": "создать календарь",
+  "events_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} событие",
+        "countPlural=few": "{count} события",
+        "countPlural=many": "{count} событий",
+        "countPlural=*": "{count} события"
+      }
+    }
+  ],
+  "howto_google": "Google Calendar: Настройки → Импорт и экспорт → выбрать .ics → выбрать календарь с тем же названием.",
+  "howto_outlook": "Outlook: Добавить календарь → Загрузить из файла → выбрать .ics и календарь.",
+  "howto_duplicates": "Перед повторным импортом удалите старые события из этих календарей, иначе появятся дубли.",
+  "download_plan_json": "Скачать plan.json",
+  "download_zip": "Скачать .zip с .ics",
+  "runway_label": "Сертификаты до дедлайна",
+  "days_to_deadline": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "день до дедлайна сертификатов",
+        "countPlural=few": "дня до дедлайна сертификатов",
+        "countPlural=many": "дней до дедлайна сертификатов",
+        "countPlural=*": "дня до дедлайна сертификатов"
+      }
+    }
+  ],
+  "to_deadline": "до дедлайна сертификатов",
+  "deadline_today": "дедлайн сегодня",
+  "deadline_passed": "дедлайн прошёл",
+  "reserve": "Резерв",
+  "deadline_on": "Дедлайн: {date}"
+}

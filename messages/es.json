@@ -1,0 +1,125 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "meta_title": "Learning curve — plan de estudio",
+  "meta_description": "Plan de estudio: vista, presupuesto de horas y exportación a Google Calendar y Outlook",
+  "not_found": "Página no encontrada.",
+  "open_plan": "Abrir el plan",
+  "language": "Idioma",
+  "plan_summary": "{events} {calendars}, hasta el {date}",
+  "in_calendars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "en {count} calendario",
+        "countPlural=*": "en {count} calendarios"
+      }
+    }
+  ],
+  "file_opened": "archivo abierto",
+  "restore_plan": "restaurar el plan del proyecto",
+  "file_missing_fields": "faltan los campos meta, calendars o events",
+  "file_invalid": "El archivo no parece un plan: {reason}",
+  "open_plan_file": "Abrir archivo del plan",
+  "export_to_calendar": "Exportar al calendario",
+  "previous_week": "Semana anterior",
+  "next_week": "Semana siguiente",
+  "go_today": "Hoy",
+  "view": "Vista",
+  "view_week": "Semana",
+  "view_list": "Lista",
+  "calendars": "Calendarios",
+  "today": "hoy",
+  "all_day": "todo el día",
+  "day_off": "festivo",
+  "no_events": "No hay eventos. Activa al menos un calendario.",
+  "no_events_this_week": "No hay eventos esta semana. Activa los calendarios de arriba o ve a otra semana.",
+  "hours_short": "{value} h",
+  "study_this_week": "Estudio esta semana",
+  "budget_of": "de {budget}",
+  "budget_progress": [
+    {
+      "declarations": [
+        "input budget",
+        "local budgetPlural = budget: plural"
+      ],
+      "selectors": [
+        "budgetPlural"
+      ],
+      "match": {
+        "budgetPlural=one": "{total} de {budget} hora",
+        "budgetPlural=*": "{total} de {budget} horas"
+      }
+    }
+  ],
+  "no_study_events": "No hay eventos de estudio",
+  "budget_note": "El margen de los sábados y el gimnasio no cuentan para el presupuesto. Zona horaria {timezone}, plan actualizado el {date}.",
+  "event_recurring": "cada mar. y jue. {from}–{to}, desde el {date}",
+  "event_all_day": "{date}, todo el día",
+  "event_free": "no bloquea tiempo",
+  "close": "Cerrar",
+  "export_hint": "Un archivo .ics por calendario. Sirve para Google Calendar y Outlook.",
+  "export_select_calendar": "Selecciona al menos un calendario.",
+  "export_done": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Archivo descargado: {count} calendario.",
+        "countPlural=*": "Archivo descargado: {count} calendarios."
+      }
+    }
+  ],
+  "create_calendar": "crear calendario",
+  "events_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} evento",
+        "countPlural=*": "{count} eventos"
+      }
+    }
+  ],
+  "howto_google": "Google Calendar: Configuración → Importar y exportar → elegir el .ics → elegir el calendario con el mismo nombre.",
+  "howto_outlook": "Outlook: Agregar calendario → Cargar desde archivo → elegir el .ics y el calendario.",
+  "howto_duplicates": "Antes de volver a importar, elimina los eventos antiguos de estos calendarios; si no, habrá duplicados.",
+  "download_plan_json": "Descargar plan.json",
+  "download_zip": "Descargar .zip con .ics",
+  "runway_label": "Certificados antes de la fecha límite",
+  "days_to_deadline": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "día hasta la fecha límite de los certificados",
+        "countPlural=*": "días hasta la fecha límite de los certificados"
+      }
+    }
+  ],
+  "to_deadline": "hasta la fecha límite de los certificados",
+  "deadline_today": "la fecha límite es hoy",
+  "deadline_passed": "la fecha límite ya pasó",
+  "reserve": "Reserva",
+  "deadline_on": "Fecha límite: {date}"
+}

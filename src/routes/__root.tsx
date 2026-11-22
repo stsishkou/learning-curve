@@ -1,4 +1,6 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { m } from '#/paraglide/messages.js'
+import { getLocale, localizeHref } from '#/paraglide/runtime.js'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
@@ -6,8 +8,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-      { title: 'Learning curve — план обучения' },
-      { name: 'description', content: 'План обучения: просмотр, бюджет часов и экспорт в Google Calendar и Outlook' },
+      { title: m.meta_title() },
+      { name: 'description', content: m.meta_description() },
     ],
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -19,15 +21,20 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootDocument,
   notFoundComponent: () => (
-    <div className="wrap">
-      <p className="empty">Страница не найдена. <a href="/">Открыть план</a></p>
+    <div className="mx-auto max-w-[1240px] px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
+      <p className="px-[18px] py-10 text-center text-muted">
+        {m.not_found()}{' '}
+        <a className="text-focus underline" href={localizeHref('/')}>
+          {m.open_plan()}
+        </a>
+      </p>
     </div>
   ),
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang={getLocale()}>
       <head>
         <HeadContent />
       </head>

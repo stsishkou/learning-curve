@@ -20,10 +20,26 @@ Requires Node 26+ and pnpm 12.
 | `pnpm run plan` | Rebuilds `src/data/plan.json` from the course content and schedule rules |
 | `pnpm run plan --ics` | Same, plus writes `exports/*.ics` and import instructions |
 | `pnpm run build` / `pnpm start` | Production build (Nitro) and Node server from `.output/` |
-| `pnpm run typecheck` | `tsc --noEmit` |
+| `pnpm run typecheck` | Compiles the messages, then `tsc --noEmit` |
+| `pnpm run i18n` | Compiles `messages/*.json` into `src/paraglide/` (also runs on install, dev and build) |
+| `pnpm run check:i18n` | Fails on missing or empty translations, mismatched variables, missing plural forms and unused messages |
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix: …`, `build: …`);
 a Husky `commit-msg` hook checks them with commitlint.
+
+## Languages
+
+The interface is in Russian (default, unprefixed URLs), English (`/en/…`) and Spanish (`/es/…`), built with
+[Paraglide JS](https://paraglidejs.com). Plan content (event titles, descriptions, calendar notes) and the
+exported files are Russian only.
+
+- Messages live in `messages/{ru,en,es}.json`; `project.inlang/` holds the locale list and compiler options.
+- `src/paraglide/` is generated and git-ignored: never edit it.
+- Dates and hours are formatted per locale in `src/lib/format.ts`.
+- To review translations side by side, open the repo in [Fink](https://fink.inlang.com) or use the Sherlock
+  extension in VS Code.
+
+Styling is [Tailwind CSS](https://tailwindcss.com) v4; the color tokens and theme are in `src/styles.css`.
 
 ## How the plan is made
 
