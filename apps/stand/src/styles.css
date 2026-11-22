@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+@import '@lc/ui/theme.css';
+
+/* Workspace packages are linked through node_modules, which Tailwind does not scan on its own. */
+@source '../../../packages/ui/src';
+@source '../../../modules';
+
+/* A story shown inside a docs page sits on the app's background, not on the docs page's own. */
+.docs-story {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+}

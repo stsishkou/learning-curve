@@ -27,6 +27,7 @@ Run from the repository root; Nx runs the task in every project that has it and 
 |---|---|
 | `pnpm run dev` | Dev server on port 3000 with hot reload |
 | `pnpm run build` / `pnpm start` | Production build (Nitro) into `apps/web/.output`, with a per-project log, and the Node server |
+| `pnpm run stand` / `pnpm run stand:build` | The component stand (Storybook) on port 6006, and its static build in `apps/stand/dist`: see [docs/component-stand.md](docs/component-stand.md) |
 | `pnpm run plan` | Rebuilds `plan.json` from the course content, schedule rules and manual edits |
 | `pnpm run plan --ics` | Same, plus writes `packages/plan-data/exports/*.ics` and import instructions |
 | `pnpm run check` | Typecheck, lint, Feature-Sliced check, translation check and format check |
