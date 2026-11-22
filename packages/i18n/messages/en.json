@@ -265,5 +265,21 @@
   "reader_next_match": "Next match",
   "copy": "Copy",
   "copied": "Copied",
-  "copy_failed": "Could not copy"
+  "copy_failed": "Could not copy",
+  "history": "History",
+  "history_hint": "Every change in order. Pick a point to move the plan there, back or forward.",
+  "history_empty": "No changes yet.",
+  "history_start": "Before these changes",
+  "history_here": "now",
+  "history_undone": "undone",
+  "history_added": "Added: {name}",
+  "history_calendar_changed": "Calendar changed: {name}",
+  "history_restored": "Restored from the trash",
+  "history_trash_emptied": "Trash emptied",
+  "history_reset": "Planned version restored: {name}",
+  "history_done": "Done: {name}",
+  "history_not_done": "Not done again: {name}",
+  "history_skipped": "Day skipped: {name}",
+  "history_moved": "Moved: {name}",
+  "redo": "Redo"
 }

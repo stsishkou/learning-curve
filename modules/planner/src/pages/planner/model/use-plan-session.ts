@@ -1,15 +1,20 @@
-import { m } from '@lc/i18n/messages'
 import {
   applyChange,
   applyEdits,
   editedUids,
   emptyEdits,
+  emptyHistory,
   emptyTrash,
+  historyEdits,
+  historyView,
+  recordChange,
   trashOf,
-  type EventPatch,
+  travel,
+  type HistoryView,
   type Plan,
   type PlanChange,
   type PlanEdits,
+  type PlanHistory,
   type PlanTrash,
 } from '@lc/plan-domain'
 import { useCallback, useMemo, useState } from 'react'
@@ -24,6 +29,8 @@ export interface PlannerState {
   edited: string[]
   /** Removed events and calendars that can still be restored */
   trash: PlanTrash
+  /** The changes made so far and how many of them are applied */
+  history: HistoryView
 }
 
 interface OpenFile {
@@ -33,64 +40,26 @@ interface OpenFile {
   /** What was changed since, kept in the browser only */
   edits: PlanEdits
   trash: PlanTrash
+  history: PlanHistory
 }
 
-export interface Undo {
-  /** What the last change did, ready to show */
-  label: string
-  run: () => Promise<void>
-}
-
-/** The change that takes `change` back, with the text of the undo bar; null when there is nothing to take back. */
-function inverse(plan: Plan, change: PlanChange): { label: string; change: PlanChange } | null {
-  switch (change.type) {
-    case 'event.patch': {
-      const event = plan.events.find((e) => e.uid === change.uid)
-      if (!event || !change.patch) return null
-      const before: EventPatch = {}
-      for (const key of ['title', 'description', 'start', 'end', 'calendar', 'rrule'] as const) {
-        if (key in change.patch) before[key] = event[key]
-      }
-      if ('done' in change.patch) before.done = !!event.done
-      if ('skip' in change.patch) before.skip = event.skip ?? []
-      return {
-        label: m.changed_event({ title: event.title }),
-        change: { type: 'event.patch', uid: event.uid, patch: before },
-      }
-    }
-    case 'event.remove': {
-      const event = plan.events.find((e) => e.uid === change.uid)
-      return event
-        ? { label: m.trashed({ name: event.title }), change: { type: 'trash.restore', events: [event.uid] } }
-        : null
-    }
-    case 'calendar.clear': {
-      const calendar = plan.calendars.find((c) => c.id === change.id)
-      const events = plan.events.filter((e) => e.calendar === change.id).map((e) => e.uid)
-      return calendar && events.length
-        ? { label: m.calendar_cleared({ name: calendar.name }), change: { type: 'trash.restore', events } }
-        : null
-    }
-    case 'calendar.remove': {
-      const calendar = plan.calendars.find((c) => c.id === change.id)
-      return calendar
-        ? { label: m.trashed({ name: calendar.name }), change: { type: 'trash.restore', calendars: [calendar.id] } }
-        : null
-    }
-    default:
-      return null
-  }
+interface Host {
+  /** Stores one change. Resolves once `state` is fresh; rejects with the reason. */
+  onChange: (change: PlanChange) => Promise<void>
+  /** Moves the plan to a point of its history. Resolves once `state` is fresh. */
+  onTravel: (cursor: number) => Promise<void>
 }
 
 /**
  * The plan on screen and the one way to change it. Normally that is the project plan and changes go to the host;
  * while a file is open, the file is shown and changes stay in the browser until it is downloaded.
  */
-export function usePlanSession(state: PlannerState, onChange: (change: PlanChange) => Promise<void>) {
+export function usePlanSession(state: PlannerState, { onChange, onTravel }: Host) {
   const [file, setFile] = useState<OpenFile | null>(null)
   // Changes on their way to the host, shown at once so a dragged event does not jump back while saving.
   const [pending, setPending] = useState<PlanChange[]>([])
-  const [undo, setUndo] = useState<Undo | null>(null)
+  // True after a change, until the person dismisses the bar that offers to take it back.
+  const [justChanged, setJustChanged] = useState(false)
 
   const plan = useMemo(() => {
     if (file) return applyEdits(file.base, file.edits).plan
@@ -100,45 +69,44 @@ export function usePlanSession(state: PlannerState, onChange: (change: PlanChang
       try {
         edits = applyChange(state.plan, edits, change)
       } catch {
-        // A change that cannot be previewed (a removal) shows up when the host answers.
+        // A change that cannot be previewed (a restore from the trash) shows up when the host answers.
       }
     }
     return applyEdits(state.plan, edits).plan
   }, [file, pending, state.plan])
 
-  const apply = useCallback(
-    async (change: PlanChange) => {
+  const change = useCallback(
+    async (next: PlanChange) => {
       if (file) {
-        const edits = applyChange(file.base, file.edits, change)
-        setFile({ ...file, edits, trash: trashOf(file.base, edits) })
+        const edits = applyChange(file.base, file.edits, next)
+        const history = recordChange(file.history, applyEdits(file.base, file.edits).plan, next, edits)
+        setFile({ ...file, edits, trash: trashOf(file.base, edits), history })
+        setJustChanged(true)
         return
       }
-      setPending((prev) => [...prev, change])
+      setPending((prev) => [...prev, next])
       try {
-        await onChange(change)
+        await onChange(next)
+        setJustChanged(true)
       } finally {
-        setPending((prev) => prev.filter((other) => other !== change))
+        setPending((prev) => prev.filter((other) => other !== next))
       }
     },
     [file, onChange],
   )
 
-  /** Applies a change and remembers how to take it back when it edits or removes something. */
-  const change = useCallback(
-    async (next: PlanChange) => {
-      const back = inverse(plan, next)
-      await apply(next)
-      setUndo(
-        back && {
-          label: back.label,
-          run: async () => {
-            setUndo(null)
-            await apply(back.change)
-          },
-        },
-      )
+  const history = useMemo(() => (file ? historyView(file.history) : state.history), [file, state.history])
+
+  /** Moves the plan back or forward to a point of the history. */
+  const go = useCallback(
+    async (cursor: number) => {
+      setJustChanged(false)
+      if (!file) return onTravel(cursor)
+      const moved = travel(file.history, cursor)
+      const edits = historyEdits(moved)
+      setFile({ ...file, edits, trash: trashOf(file.base, edits), history: moved })
     },
-    [apply, plan],
+    [file, onTravel],
   )
 
   const edited = useMemo(() => new Set(file ? editedUids(file.edits) : state.edited), [file, state.edited])
@@ -150,14 +118,17 @@ export function usePlanSession(state: PlannerState, onChange: (change: PlanChang
     edited,
     trash: file ? file.trash : state.trash,
     change,
-    undo,
-    dismissUndo: () => setUndo(null),
+    history,
+    travel: go,
+    /** The step a bar offers to take back right after it was made */
+    lastStep: justChanged && history.cursor > 0 ? history.steps[history.cursor - 1] : null,
+    dismissLastStep: () => setJustChanged(false),
     file: file ? { name: file.name, changes: edited.size + Object.keys(file.edits.calendars).length } : null,
     openFile: (name: string, base: Plan) => (
-      setFile({ name, base, edits: emptyEdits(), trash: emptyTrash() }),
-      setUndo(null)
+      setFile({ name, base, edits: emptyEdits(), trash: emptyTrash(), history: emptyHistory() }),
+      setJustChanged(false)
     ),
-    closeFile: () => (setFile(null), setUndo(null)),
+    closeFile: () => (setFile(null), setJustChanged(false)),
     downloadFile: () => downloadText(file?.name ?? 'plan.json', JSON.stringify(plan, null, 2), 'application/json'),
   }
 }

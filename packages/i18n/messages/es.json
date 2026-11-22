@@ -265,5 +265,21 @@
   "reader_next_match": "Coincidencia siguiente",
   "copy": "Copiar",
   "copied": "Copiado",
-  "copy_failed": "No se pudo copiar"
+  "copy_failed": "No se pudo copiar",
+  "history": "Historial",
+  "history_hint": "Todos los cambios en orden. Elige un punto para llevar el plan allí, atrás o adelante.",
+  "history_empty": "Aún no hay cambios.",
+  "history_start": "Antes de estos cambios",
+  "history_here": "ahora",
+  "history_undone": "deshecho",
+  "history_added": "Añadido: {name}",
+  "history_calendar_changed": "Calendario cambiado: {name}",
+  "history_restored": "Restaurado de la papelera",
+  "history_trash_emptied": "Papelera vaciada",
+  "history_reset": "Versión planificada restaurada: {name}",
+  "history_done": "Hecho: {name}",
+  "history_not_done": "Marca quitada: {name}",
+  "history_skipped": "Día omitido: {name}",
+  "history_moved": "Movido: {name}",
+  "redo": "Rehacer"
 }

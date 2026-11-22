@@ -59,8 +59,11 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Plan files**: `Plan file` opens a reader on the plan: an overview, every event with search, and the file
   itself as text with line numbers and find. Choose or drop another `plan.json` to read it, see how it differs
   from the project plan, and open it for editing. Those changes stay in the browser until you download the file.
+- **History**: every change is a step you can take back and redo: `↶` `↷` in the toolbar, `Ctrl/⌘ Z` and
+  `Ctrl/⌘ Shift Z`, or the `History` window (`H`), where any point of the timeline can be picked. The last 100
+  steps are kept in `packages/plan-data/data/history.json`, which is local and not committed.
 - **Keyboard**: `Ctrl/⌘ K` or `/` searches events and commands (including the theme and the language), `?` lists
-  the shortcuts. The last change to an event can be undone from the bar above the calendar.
+  the shortcuts.
 
 Everything changed in the viewer is stored in `packages/plan-data/data/edits.json` (event patches, calendars,
 added events, the trash) and applied on top of the generated schedule, so `pnpm run plan` never loses it.

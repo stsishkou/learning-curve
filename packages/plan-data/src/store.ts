@@ -3,7 +3,17 @@
 import { accessSync, constants, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { applyEdits, buildPlan, isPlan, parseEdits, purgeTrash, type Plan, type PlanEdits } from '@lc/plan-domain'
+import {
+  applyEdits,
+  buildPlan,
+  isPlan,
+  parseEdits,
+  parseHistory,
+  purgeTrash,
+  type Plan,
+  type PlanEdits,
+  type PlanHistory,
+} from '@lc/plan-domain'
 
 import { bundledPlan } from './bundled'
 
@@ -20,6 +30,8 @@ function dataDir(): string {
 
 const PLAN_FILE = join(dataDir(), 'plan.json')
 const EDITS_FILE = join(dataDir(), 'edits.json')
+// Local to a checkout: a record of what was done here, not part of the plan.
+const HISTORY_FILE = join(dataDir(), 'history.json')
 
 const readJson = (file: string): unknown => JSON.parse(readFileSync(file, 'utf8'))
 const writeJson = (file: string, value: unknown) => writeFileSync(file, JSON.stringify(value, null, 2) + '\n')
@@ -27,6 +39,12 @@ const writeJson = (file: string, value: unknown) => writeFileSync(file, JSON.str
 export function readEdits(): PlanEdits {
   return parseEdits(existsSync(EDITS_FILE) ? readJson(EDITS_FILE) : null)
 }
+
+export function readHistory(): PlanHistory {
+  return parseHistory(existsSync(HISTORY_FILE) ? readJson(HISTORY_FILE) : null)
+}
+
+export const writeHistory = (history: PlanHistory) => writeJson(HISTORY_FILE, history)
 
 /** The plan on disk, so edits saved since the last build are visible; the bundled copy when the repo is not around. */
 export function readPlan(): Plan {
@@ -47,11 +65,11 @@ export function canWrite(): boolean {
 }
 
 /** Regenerates the schedule, applies `edits` without what has outstayed the trash, and writes both files. */
-export function writePlan(edits: PlanEdits): { plan: Plan; orphans: string[] } {
+export function writePlan(edits: PlanEdits): { plan: Plan; orphans: string[]; edits: PlanEdits } {
   const base = buildPlan()
   const kept = purgeTrash(base, edits)
   const result = applyEdits(base, kept)
   writeJson(EDITS_FILE, kept)
   writeJson(PLAN_FILE, result.plan)
-  return result
+  return { ...result, edits: kept }
 }

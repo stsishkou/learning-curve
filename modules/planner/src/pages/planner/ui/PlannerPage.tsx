@@ -26,6 +26,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
+import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
@@ -47,6 +48,8 @@ interface Props {
   onSearchChange: (patch: PlannerSearch) => void
   /** Stores one change. Resolves once `state` is fresh; rejects with the reason. */
   onChange: (change: PlanChange) => Promise<void>
+  /** Moves the plan to a point of its history: 0 is before the first change. Resolves once `state` is fresh. */
+  onTravel: (cursor: number) => Promise<void>
   /** Shown next to the title: controls the host owns, such as the language switcher */
   headerAside?: ReactNode
   /** More header actions that work on the plan as it is shown now, such as export */
@@ -56,7 +59,8 @@ interface Props {
 }
 
 const PRESSED = 'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg'
-const STEP = 'grid size-9 place-items-center rounded-[10px] border border-line bg-surface'
+const STEP =
+  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap disabled:opacity-40'
 const NO_CALENDARS: ReadonlySet<string> = new Set()
 
 function defaultWeek(plan: Plan) {
@@ -70,16 +74,26 @@ const firstWeekOf = (month: number) => mondayOf(month + 6 * DAY)
 
 const errorText = (err: unknown) => m.save_failed({ reason: err instanceof Error ? err.message : String(err) })
 
-export function PlannerPage({ state, search, onSearchChange, onChange, headerAside, renderActions, commands }: Props) {
+export function PlannerPage({
+  state,
+  search,
+  onSearchChange,
+  onChange,
+  onTravel,
+  headerAside,
+  renderActions,
+  commands,
+}: Props) {
   const now = useNow()
   const mod = useModKey()
   const { hidden, toggle, solo, reset } = useHiddenCalendars()
-  const session = usePlanSession(state, onChange)
+  const session = usePlanSession(state, { onChange, onTravel })
   const { plan, canEdit } = session
 
   const [draft, setDraft] = useState<NewEvent | null>(null)
   const [calendarsOpen, setCalendarsOpen] = useState(false)
   const [trashOpen, setTrashOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
   const [pickedDay, setPickedDay] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -126,6 +140,22 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
     } catch (err) {
       setSaveError(errorText(err))
     }
+  }
+
+  const { cursor, steps } = session.history
+  const canUndo = canEdit && cursor > 0
+  const canRedo = canEdit && cursor < steps.length
+  /** One step back or forward; its failure is shown above the calendar. */
+  const timeTravel = (to: number) =>
+    void session
+      .travel(to)
+      .then(() => setSaveError(''))
+      .catch((err: unknown) => setSaveError(errorText(err)))
+  const undo = () => canUndo && timeTravel(cursor - 1)
+  const redo = () => canRedo && timeTravel(cursor + 1)
+  const lastStep = session.lastStep && {
+    label: describeStep(session.lastStep),
+    run: () => session.travel(cursor - 1),
   }
 
   const move = (o: Occurrence, slot: { s: number; e: number }) =>
@@ -182,6 +212,9 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
             run: () => setCalendarsOpen(true),
           },
           { id: 'trash', group: m.palette_plan(), label: m.trash(), run: () => setTrashOpen(true) },
+          { id: 'history', group: m.palette_plan(), label: m.history(), keys: 'H', run: () => setHistoryOpen(true) },
+          { id: 'undo', group: m.palette_plan(), label: m.undo(), run: undo },
+          { id: 'redo', group: m.palette_plan(), label: m.redo(), run: redo },
         ]
       : []),
     { id: 'shortcuts', group: m.palette_plan(), label: m.shortcuts(), keys: '?', run: () => setShortcutsOpen(true) },
@@ -192,6 +225,8 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
     'mod+k': () => setPaletteOpen(true),
     '/': () => setPaletteOpen(true),
     ...Object.fromEntries(actions.flatMap((a) => (a.keys ? [[a.keys.toLowerCase(), a.run]] : []))),
+    'mod+z': undo,
+    'mod+shift+z': redo,
     arrowleft: () => step(-1),
     arrowright: () => step(1),
   })
@@ -281,6 +316,43 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
             ＋ {m.event()}
           </Button>
         )}
+        {canEdit && (
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              className={STEP}
+              aria-label={m.undo()}
+              title={m.undo()}
+              disabled={!canUndo}
+              onClick={undo}
+            >
+              ↶
+            </button>
+            <button
+              type="button"
+              className={STEP}
+              aria-label={m.redo()}
+              title={m.redo()}
+              disabled={!canRedo}
+              onClick={redo}
+            >
+              ↷
+            </button>
+            <button
+              type="button"
+              className={`${STEP} w-auto px-2.5 text-[13px]`}
+              title={m.history_hint()}
+              onClick={() => setHistoryOpen(true)}
+            >
+              {m.history()}
+              {steps.length > 0 && (
+                <em className="ml-1.5 text-muted not-italic tabular-nums">
+                  {cursor}/{steps.length}
+                </em>
+              )}
+            </button>
+          </div>
+        )}
         {canEdit && trashCount > 0 && (
           <Button title={m.trash_hint({ days: TRASH_DAYS })} onClick={() => setTrashOpen(true)}>
             {m.trash()} <em className="ml-1 text-muted not-italic tabular-nums">{trashCount}</em>
@@ -314,24 +386,23 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
           {saveError}
         </p>
       )}
-      {session.undo && (
+      {lastStep && (
         <div
           className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13.5px]"
           role="status"
         >
-          <span className="min-w-0 flex-1 truncate">{session.undo.label}</span>
-          <button
-            type="button"
-            className="font-semibold text-focus hover:underline"
-            onClick={() => void session.undo?.run().catch((err: unknown) => setSaveError(errorText(err)))}
-          >
+          <span className="min-w-0 flex-1 truncate">{lastStep.label}</span>
+          <button type="button" className="font-semibold text-focus hover:underline" onClick={undo}>
             {m.undo()}
+          </button>
+          <button type="button" className="text-muted hover:text-ink" onClick={() => setHistoryOpen(true)}>
+            {m.history()}
           </button>
           <button
             type="button"
             className="text-muted hover:text-ink"
             aria-label={m.close()}
-            onClick={session.dismissUndo}
+            onClick={session.dismissLastStep}
           >
             ✕
           </button>
@@ -403,7 +474,7 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
         plan={plan}
         open={calendarsOpen}
         onChange={session.change}
-        undo={session.undo}
+        undo={lastStep}
         trashCount={trashCount}
         onOpenTrash={() => (setCalendarsOpen(false), setTrashOpen(true))}
         onClose={() => setCalendarsOpen(false)}
@@ -414,6 +485,14 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
         open={trashOpen}
         onChange={session.change}
         onClose={() => setTrashOpen(false)}
+      />
+      <HistoryDialog
+        open={historyOpen}
+        history={session.history}
+        mod={mod}
+        now={now}
+        onTravel={session.travel}
+        onClose={() => setHistoryOpen(false)}
       />
       <CommandPalette
         open={paletteOpen}
@@ -426,6 +505,12 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
         open={shortcutsOpen}
         rows={[
           { keys: `${mod} K`, label: m.search() },
+          ...(canEdit
+            ? [
+                { keys: `${mod} Z`, label: m.undo() },
+                { keys: `${mod} ⇧ Z`, label: m.redo() },
+              ]
+            : []),
           ...actions.flatMap((a) => (a.keys ? [{ keys: a.keys, label: a.label }] : [])),
           ...(canEdit
             ? [

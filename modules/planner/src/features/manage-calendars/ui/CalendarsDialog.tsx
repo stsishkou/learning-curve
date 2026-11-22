@@ -12,7 +12,7 @@ interface Props {
   /** Rejects with the reason when the change cannot be stored */
   onChange: (change: PlanChange) => Promise<void>
   /** The last change that can be taken back, shown here because the dialog covers the page's undo bar */
-  undo: { label: string; run: () => Promise<void> } | null
+  undo: { label: string; run: () => Promise<void> } | null | false
   /** How many things wait in the trash, and the way to open it */
   trashCount: number
   onOpenTrash: () => void

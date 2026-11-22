@@ -14,3 +14,5 @@ todos.json
 exports
 .nx/cache
 .nx/workspace-data
+packages/plan-data/data/history.json
+.claude/worktrees

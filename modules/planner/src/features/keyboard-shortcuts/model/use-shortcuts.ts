@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-/** Keys are `event.key` in lower case; `mod+k` means Ctrl+K or ⌘K. */
+/** Keys are `event.key` in lower case; `mod+k` means Ctrl+K or ⌘K, `mod+shift+z` adds Shift. */
 export type Shortcuts = Record<string, () => void>
 
 const typing = (target: EventTarget | null) =>
@@ -19,10 +19,12 @@ export function useShortcuts(shortcuts: Shortcuts) {
     function keyDown(e: KeyboardEvent) {
       if (e.isComposing || e.altKey) return
       const mod = e.ctrlKey || e.metaKey
-      const key = `${mod ? 'mod+' : ''}${e.key.toLowerCase()}`
+      const key = `${mod ? 'mod+' : ''}${mod && e.shiftKey ? 'shift+' : ''}${e.key.toLowerCase()}`
       const action = latest.current[key]
       if (!action) return
       if (!mod && (typing(e.target) || document.querySelector('dialog[open]'))) return
+      // In a text field undo and redo belong to the text.
+      if (key.endsWith('+z') && typing(e.target)) return
       e.preventDefault()
       action()
     }

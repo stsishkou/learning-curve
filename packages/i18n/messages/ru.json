@@ -275,5 +275,21 @@
   "reader_next_match": "Следующее совпадение",
   "copy": "Копировать",
   "copied": "Скопировано",
-  "copy_failed": "Не удалось скопировать"
+  "copy_failed": "Не удалось скопировать",
+  "history": "История",
+  "history_hint": "Все изменения по порядку. Выберите момент, чтобы вернуть план к нему, назад или вперёд.",
+  "history_empty": "Изменений пока нет.",
+  "history_start": "До этих изменений",
+  "history_here": "сейчас",
+  "history_undone": "отменено",
+  "history_added": "Добавлено: {name}",
+  "history_calendar_changed": "Календарь изменён: {name}",
+  "history_restored": "Восстановлено из корзины",
+  "history_trash_emptied": "Корзина очищена",
+  "history_reset": "Возвращён плановый вариант: {name}",
+  "history_done": "Выполнено: {name}",
+  "history_not_done": "Снята отметка: {name}",
+  "history_skipped": "Пропущен день: {name}",
+  "history_moved": "Перенесено: {name}",
+  "redo": "Вернуть"
 }

@@ -9,6 +9,7 @@ export {
   startOfDay,
   startOfMonth,
   toLocalString,
+  toMinsk,
   weekday,
   ymd,
 } from './dates'
@@ -23,6 +24,18 @@ export {
   type PlanChange,
 } from './changes'
 export { diffPlans, type PlanDiff } from './diff'
+export {
+  emptyHistory,
+  historyEdits,
+  historyView,
+  inSync,
+  parseHistory,
+  recordChange,
+  travel,
+  type HistoryStep,
+  type HistoryView,
+  type PlanHistory,
+} from './history'
 export { movePatch, weekdaysOf } from './recurrence'
 export {
   TRASH_DAYS,

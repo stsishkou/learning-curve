@@ -4,7 +4,7 @@ import { locales, setLocale } from '@lc/i18n/runtime'
 import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planner'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
-import { getPlanState, savePlanChange } from '#/server/plan'
+import { getPlanState, savePlanChange, travelPlanHistory } from '#/server/plan'
 import { LanguageSwitcher } from '#/shell/LanguageSwitcher'
 import { setTheme } from '#/shell/theme'
 
@@ -38,6 +38,10 @@ function PlannerRoute() {
       onSearchChange={(patch) => void navigate({ search: (prev) => ({ ...prev, ...patch }) })}
       onChange={async (change) => {
         await savePlanChange({ data: change })
+        await router.invalidate()
+      }}
+      onTravel={async (cursor) => {
+        await travelPlanHistory({ data: cursor })
         await router.invalidate()
       }}
       headerAside={<LanguageSwitcher />}

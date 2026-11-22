@@ -1,1 +1,1 @@
-export { canWrite, readEdits, readPlan, writePlan } from './store'
+export { canWrite, readEdits, readHistory, readPlan, writeHistory, writePlan } from './store'

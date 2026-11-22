@@ -34,4 +34,6 @@ export const startOfMonth = (t: number, n = 0) => {
 export const addDays = (s: string, n: number) => ymd(parseLocal(s) + n * DAY)
 
 /** Current Minsk wall-clock time */
-export const nowMinsk = () => Date.now() + MINSK_OFFSET
+/** An instant as Minsk wall-clock ms, for the date helpers and formatters. */
+export const toMinsk = (instant: number) => instant + MINSK_OFFSET
+export const nowMinsk = () => toMinsk(Date.now())
