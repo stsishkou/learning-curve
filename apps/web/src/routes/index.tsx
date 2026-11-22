@@ -39,7 +39,8 @@ function PlannerRoute() {
     <PlannerPage
       state={Route.useLoaderData()}
       search={Route.useSearch()}
-      onSearchChange={(patch) => void navigate({ search: (prev) => ({ ...prev, ...patch }) })}
+      // The same page with another week, view or open event: the router would otherwise scroll it back to the top.
+      onSearchChange={(patch) => void navigate({ search: (prev) => ({ ...prev, ...patch }), resetScroll: false })}
       onChange={async (change) => {
         await savePlanChange({ data: change })
         await router.invalidate()

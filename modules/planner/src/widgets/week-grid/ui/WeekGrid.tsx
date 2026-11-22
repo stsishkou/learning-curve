@@ -141,9 +141,14 @@ export function WeekGrid({
     if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - 52
   }, [today, weekStart])
   // The full day opens at the first hour that has something, not at midnight.
+  // Only on opening the full day or another week: an edit that changes the first hour must not move the view.
+  const openAt = useRef(firstBusyHour)
   useEffect(() => {
-    if (fullDay && scroller.current) scroller.current.scrollTop = firstBusyHour * PX_PER_HOUR
-  }, [fullDay, firstBusyHour, weekStart])
+    openAt.current = firstBusyHour
+  }, [firstBusyHour])
+  useEffect(() => {
+    if (fullDay && scroller.current) scroller.current.scrollTop = openAt.current * PX_PER_HOUR
+  }, [fullDay, weekStart])
 
   const [drag, setDrag] = useState<Drag | null>(null)
   const press = useRef<Press | null>(null)
