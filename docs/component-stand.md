@@ -57,7 +57,9 @@ What Storybook costs: it is the heaviest option (96 packages added on install) a
 - **Prop docs use `react-docgen`.** The other generator, `react-docgen-typescript`, calls the TypeScript
   compiler API, which TypeScript 7 does not have. `react-docgen` parses each component file on its own. The
   limit: it documents the props declared in that file. Props that come from another type are not expanded, so
-  `Button` lists `primary` but not the native `<button>` attributes it also accepts.
+  `Button` on its own lists `primary` but not the native `<button>` attributes it also accepts. A component
+  that forwards native attributes says so in its story file: `packages/ui/src/button.stories.tsx` names the
+  element in the description and lists the common attributes in `argTypes` under their own category.
 - **Telemetry is off** (`core.disableTelemetry` in `apps/stand/.storybook/main.ts`). Storybook otherwise
   reports anonymous usage data.
 - **Every story is a test.** `pnpm run stand:test` runs `@storybook/addon-vitest`: Vitest opens each story
@@ -134,8 +136,7 @@ Rules that keep `pnpm run check` green:
 - Callbacks are `fn()` from `storybook/test`: calls show up in the Actions panel and can be asserted in `play`.
 - A dialog covers the whole document. Give its stories their own frame on the docs page:
   `parameters: { docs: { story: { inline: false, iframeHeight: 520 } } }`. A dialog opens in an effect, so a
-  `play` function waits for it with `findByRole`, not `getByRole`.
-- In a `play` function, fill a text field with `fireEvent.change(input, { target: { value } })`, not
+  `play` function waits for it with `findByRole`, not `getByRole`.- In a `play` function, fill a text field with `fireEvent.change(input, { target: { value } })`, not
   `userEvent.type`. With React 19 the user-event build inside `storybook/test` writes the value through the
   tracker React keeps on a controlled input, so React sees no change and `onChange` never runs. Clicks and
   `userEvent.keyboard` work.
