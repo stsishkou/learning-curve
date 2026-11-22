@@ -88,7 +88,9 @@ packages/plan-domain/src/fixtures.ts                the plan every story uses
   at 2026-12-02 12:40. Stories never read `packages/plan-data`, so editing the plan in the app does not
   change them.
 - **Nx.** `@lc/stand:dev` is a continuous target and `@lc/stand:build` is cached, both through the existing
-  `targetDefaults`. `pnpm run build` builds the stand together with the app.
+  `targetDefaults`. `pnpm run build` builds the stand as well as the app, one after the other
+  (`parallelism: false`): the app's build rewrites the compiled messages in `packages/i18n/src/paraglide`,
+  and a stand build running beside it would read them half-written.
 
 ## Adding a story
 
