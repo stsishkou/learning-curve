@@ -1,6 +1,6 @@
 import { fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
+import { expect, fireEvent, fn, within } from 'storybook/test'
 
 import { CommandPalette } from './CommandPalette'
 
@@ -40,8 +40,8 @@ export const SearchingEvents: Story = {
     await fireEvent.change(input, { target: { value: 'ADK' } })
     const [first] = await body.findAllByRole('option')
     await expect(first).toHaveTextContent('ADK')
-    await userEvent.click(input)
-    await userEvent.keyboard('{Enter}')
+    // Sent to the input itself: on a docs page the story sits in a frame that may not have the focus.
+    await fireEvent.keyDown(input, { key: 'Enter' })
     await expect(args.onSelectEvent).toHaveBeenCalledWith(expect.objectContaining({ calendar: 'certs' }))
   },
 }
