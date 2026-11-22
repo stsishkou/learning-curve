@@ -142,5 +142,7 @@
   "export_hint_single": "All selected events in one .ics file, to import them into a single calendar.",
   "howto_single": "Import the file into the calendar you want. Google Calendar: Settings → Import & export. Outlook: Add calendar → Upload from file.",
   "download_ics": "Download .ics",
-  "export_done_single": "Downloaded {name}."
+  "export_done_single": "Downloaded {name}.",
+  "full_day": "24 hours",
+  "full_day_hint": "Show every hour of the day, not only the hours with events"
 }

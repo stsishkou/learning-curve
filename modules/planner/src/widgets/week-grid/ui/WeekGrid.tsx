@@ -18,6 +18,8 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 interface Props {
   plan: Plan
   weekStart: number
+  /** All 24 hours in a scrolling grid; otherwise only the hours around the week's events */
+  fullDay?: boolean
   items: Occurrence[]
   now: number | null
   onSelect: (e: PlanEvent) => void
@@ -58,7 +60,7 @@ interface Drag {
 const keyOf = (o: Occurrence) => `${o.uid}-${o.s}`
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
-export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Props) {
+export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelect, onMove }: Props) {
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
   let minH = 8
@@ -66,6 +68,11 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Prop
   for (const o of timed) {
     minH = Math.min(minH, new Date(o.s).getUTCHours())
     maxH = Math.max(maxH, Math.ceil((o.e - startOfDay(o.e)) / HOUR) || 24)
+  }
+  const firstBusyHour = minH
+  if (fullDay) {
+    minH = 0
+    maxH = 24
   }
   const height = (maxH - minH) * PX_PER_HOUR
   const hours = Array.from({ length: maxH - minH - 1 }, (_, i) => minH + 1 + i)
@@ -79,6 +86,10 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Prop
     const column = today === null ? null : scroller.current?.querySelector<HTMLElement>(`[data-day="${ymd(today)}"]`)
     if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - 52
   }, [today, weekStart])
+  // The full day opens at the first hour that has something, not at midnight.
+  useEffect(() => {
+    if (fullDay && scroller.current) scroller.current.scrollTop = firstBusyHour * PX_PER_HOUR
+  }, [fullDay, firstBusyHour, weekStart])
 
   const [drag, setDrag] = useState<Drag | null>(null)
   const press = useRef<{ x: number; y: number; columnWidth: number; moved: boolean } | null>(null)
@@ -135,13 +146,19 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Prop
 
   return (
     <>
-      <div ref={scroller} className="snap-x scroll-pl-[52px] overflow-x-auto">
+      <div
+        ref={scroller}
+        className={`snap-x scroll-pl-[52px] overflow-x-auto ${fullDay ? 'max-h-[max(360px,calc(100dvh-220px))] overflow-y-auto rounded-2xl' : ''}`}
+      >
         <div className="grid min-w-[760px] grid-cols-[52px_repeat(7,minmax(96px,1fr))]">
-          <div className={`${HEAD} ${PINNED} rounded-tl-2xl`} />
+          <div className={`${HEAD} ${PINNED} top-0 z-6 rounded-tl-2xl`} />
           {days.map((d) => {
             const off = plan.meta.holidays.includes(ymd(d))
             return (
-              <div key={d} className={`${HEAD} snap-start px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''}`}>
+              <div
+                key={d}
+                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''}`}
+              >
                 {dowShort(d)}
                 <b
                   className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today' : 'text-ink'}`}

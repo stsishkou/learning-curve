@@ -183,6 +183,14 @@ export function PlannerPage({ state, search, onSearchChange, onSaveEdit, headerA
               ›
             </button>
             <Button onClick={() => onSearchChange({ week: undefined })}>{m.go_today()}</Button>
+            <Button
+              className="aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg"
+              aria-pressed={search.fullDay === true}
+              title={m.full_day_hint()}
+              onClick={() => onSearchChange({ fullDay: search.fullDay ? undefined : true })}
+            >
+              {m.full_day()}
+            </Button>
           </div>
         )}
         <CalendarFilter calendars={plan.calendars} hidden={hidden} onToggle={toggle} />
@@ -194,6 +202,7 @@ export function PlannerPage({ state, search, onSearchChange, onSaveEdit, headerA
             <WeekGrid
               plan={plan}
               weekStart={weekStart}
+              fullDay={search.fullDay === true}
               items={weekItems}
               now={now}
               onSelect={select}

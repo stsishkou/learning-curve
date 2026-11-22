@@ -5,9 +5,12 @@ export interface PlannerSearch {
   /** Monday of the visible week, YYYY-MM-DD */
   week?: string
   view?: PlannerView
+  /** The week grid shows all 24 hours instead of only the hours that have events */
+  fullDay?: true
 }
 
 export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSearch => ({
   week: typeof search.week === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search.week) ? search.week : undefined,
   view: search.view === 'list' || search.view === 'week' ? search.view : undefined,
+  fullDay: search.fullDay === true ? true : undefined,
 })
