@@ -8,7 +8,8 @@ import { defineConfig } from 'vite'
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
-    paraglideVitePlugin({ project: './project.inlang' }),
+    // Recompiles the messages when a translation changes, so dev picks it up without a restart.
+    paraglideVitePlugin({ project: '../../packages/i18n/project.inlang' }),
     tailwindcss(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
 

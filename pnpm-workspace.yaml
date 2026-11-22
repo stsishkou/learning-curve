@@ -3,6 +3,16 @@ packages:
   - modules/*
   - packages/*
 
+# One version of each shared dependency for the whole workspace: packages reference these as `catalog:`.
+catalog:
+  '@inlang/paraglide-js': 3.2.2
+  '@types/node': 26.6.6
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
+  react: 19.3.1
+  react-dom: 19.3.1
+  tsx: 4.23.15
+
 allowBuilds:
   esbuild: true
   nx: true

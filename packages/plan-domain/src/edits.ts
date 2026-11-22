@@ -4,7 +4,7 @@ import type { Plan, PlanEvent } from './types'
 /** Fields of an event that can be changed in the viewer. Times are Europe/Minsk wall-clock strings. */
 export type EventPatch = Partial<Pick<PlanEvent, 'title' | 'description' | 'start' | 'end'>>
 
-/** Manual changes kept in `src/data/edits.json` and applied on top of the generated schedule. */
+/** Manual changes kept in `packages/plan-data/data/edits.json` and applied on top of the generated schedule. */
 export interface PlanEdits {
   version: 1
   /** Patches by event uid */

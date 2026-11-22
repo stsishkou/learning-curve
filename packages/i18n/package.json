@@ -1,0 +1,30 @@
+{
+  "name": "@lc/i18n",
+  "private": true,
+  "description": "Interface translations (ru, en, es) compiled with Paraglide JS, and locale-aware date and hour text",
+  "type": "module",
+  "exports": {
+    "./messages": "./src/paraglide/messages.js",
+    "./runtime": "./src/paraglide/runtime.js",
+    "./server": "./src/paraglide/server.js",
+    "./format": "./src/format.ts"
+  },
+  "scripts": {
+    "i18n": "paraglide-js compile --project ./project.inlang",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "check:i18n": "inlang check --project ./project.inlang --source ./src/format.ts $(find ../../apps/web/src ../../modules -type f \\( -name '*.tsx' -o -name '*.ts' \\) ! -name 'index.ts' ! -name '*.gen.ts' ! -path '*/lib/*' 2>/dev/null)"
+  },
+  "dependencies": {
+    "@inlang/paraglide-js": "catalog:"
+  },
+  "devDependencies": {
+    "@inlang/cli": "3.6.0"
+  },
+  "nx": {
+    "tags": [
+      "type:shared",
+      "scope:shared"
+    ]
+  }
+}

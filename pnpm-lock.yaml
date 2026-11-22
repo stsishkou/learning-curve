@@ -171,6 +171,30 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@inlang/paraglide-js':
+      specifier: 3.2.2
+      version: 3.2.2
+    '@types/node':
+      specifier: 26.6.6
+      version: 26.6.6
+    '@types/react':
+      specifier: 19.3.0
+      version: 19.3.0
+    '@types/react-dom':
+      specifier: 19.3.0
+      version: 19.3.0
+    react:
+      specifier: 19.3.1
+      version: 19.3.1
+    react-dom:
+      specifier: 19.3.1
+      version: 19.3.1
+    tsx:
+      specifier: 4.23.15
+      version: 4.23.15
+
 importers:
 
   .:
@@ -182,7 +206,7 @@ importers:
         specifier: 21.2.4
         version: 21.2.4
       '@inlang/paraglide-js':
-        specifier: 3.2.2
+        specifier: 'catalog:'
         version: 3.2.2(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       husky:
         specifier: 9.1.7
@@ -206,8 +230,20 @@ importers:
   apps/web:
     dependencies:
       '@inlang/paraglide-js':
-        specifier: 3.2.2
+        specifier: 'catalog:'
         version: 3.2.2(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      '@lc/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@lc/plan-data':
+        specifier: workspace:*
+        version: link:../../packages/plan-data
+      '@lc/plan-domain':
+        specifier: workspace:*
+        version: link:../../packages/plan-domain
+      '@lc/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tailwindcss/vite':
         specifier: 4.3.5
         version: 4.3.5(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
@@ -224,36 +260,64 @@ importers:
         specifier: 3.0.261103-rc
         version: 3.0.261103-rc
       react:
-        specifier: 19.3.1
+        specifier: 'catalog:'
         version: 19.3.1
       react-dom:
-        specifier: 19.3.1
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       tailwindcss:
         specifier: 4.3.5
         version: 4.3.5
     devDependencies:
-      '@inlang/cli':
-        specifier: 3.6.0
-        version: 3.6.0
       '@types/node':
-        specifier: 26.6.6
+        specifier: 'catalog:'
         version: 26.6.6
       '@types/react':
-        specifier: 19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: 19.3.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 6.3.0
         version: 6.3.0(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       vite:
         specifier: 8.3.8
         version: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
+
+  packages/i18n:
+    dependencies:
+      '@inlang/paraglide-js':
+        specifier: 'catalog:'
+        version: 3.2.2(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+    devDependencies:
+      '@inlang/cli':
+        specifier: 3.6.0
+        version: 3.6.0
+
+  packages/plan-data:
+    dependencies:
+      '@lc/plan-domain':
+        specifier: workspace:*
+        version: link:../plan-domain
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
+
+  packages/plan-domain: {}
+
+  packages/ui:
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
 
 packages:
 

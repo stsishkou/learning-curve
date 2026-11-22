@@ -1,12 +1,19 @@
+import { dowShort, fmtDay } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import {
+  DAY,
+  hm,
+  HOUR,
+  layoutLanes,
+  type Occurrence,
+  type Plan,
+  type PlanEvent,
+  startOfDay,
+  toLocalString,
+  ymd,
+} from '@lc/plan-domain'
+import { calendarColor } from '@lc/ui'
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-
-import { dowShort, fmtDay } from '#/lib/format'
-import { DAY, HOUR, hm, startOfDay, toLocalString, ymd } from '#/lib/plan/dates'
-import { layoutLanes, type Occurrence } from '#/lib/plan/occurrences'
-import type { Plan, PlanEvent } from '#/lib/plan/types'
-import { m } from '#/paraglide/messages.js'
-
-import { calendarColor } from './ui'
 
 interface Props {
   plan: Plan

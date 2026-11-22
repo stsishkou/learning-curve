@@ -1,6 +1,5 @@
+import { nowMinsk } from '@lc/plan-domain'
 import { useCallback, useEffect, useState } from 'react'
-
-import { nowMinsk } from './plan/dates'
 
 /** Minsk wall-clock "now", available only after hydration (null during SSR) so markup matches. */
 export function useNow(): number | null {

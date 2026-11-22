@@ -1,12 +1,9 @@
+import { m } from '@lc/i18n/messages'
+import { calendarICS, combinedCalendar, combinedICS, icsFileName, IMPORT_HOWTO, type Plan } from '@lc/plan-domain'
+import { Button, calendarColor, Dot, FOOT, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useEffect, useMemo, useState } from 'react'
 
 import { downloadBlob, zipBlob } from '#/lib/client'
-import { calendarICS, combinedCalendar, combinedICS, icsFileName, IMPORT_HOWTO } from '#/lib/plan/ics'
-import type { Plan } from '#/lib/plan/types'
-import { m } from '#/paraglide/messages.js'
-
-import { FOOT, META, Modal, TITLE } from './Modal'
-import { Button, Dot, Segmented, calendarColor } from './ui'
 
 export function ExportDialog({
   plan,

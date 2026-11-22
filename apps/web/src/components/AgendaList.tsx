@@ -1,12 +1,8 @@
+import { fmtDay } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import { hm, type Occurrence, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
+import { calendarColor, Dot } from '@lc/ui'
 import { useEffect, useRef } from 'react'
-
-import { fmtDay } from '#/lib/format'
-import { hm, startOfDay } from '#/lib/plan/dates'
-import type { Occurrence } from '#/lib/plan/occurrences'
-import type { Plan, PlanEvent } from '#/lib/plan/types'
-import { m } from '#/paraglide/messages.js'
-
-import { Dot, calendarColor } from './ui'
 
 interface Props {
   plan: Plan

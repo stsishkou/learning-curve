@@ -1,7 +1,6 @@
+import { readPlan } from '@lc/plan-data'
+import { calendarICS, combinedCalendar, combinedICS, icsFileName } from '@lc/plan-domain'
 import { createFileRoute } from '@tanstack/react-router'
-
-import { calendarICS, combinedCalendar, combinedICS, icsFileName } from '#/lib/plan/ics'
-import { readPlan } from '#/lib/plan/store'
 
 /**
  * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`);

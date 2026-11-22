@@ -1,9 +1,6 @@
+import { canWrite, readEdits, readPlan, writePlan } from '@lc/plan-data'
+import { buildPlan, type EventPatch, parsePatch, patchProblem, type Plan } from '@lc/plan-domain'
 import { createServerFn } from '@tanstack/react-start'
-
-import { parsePatch, patchProblem, type EventPatch } from './edits'
-import { buildPlan } from './schedule'
-import { canWrite, readEdits, readPlan, writePlan } from './store'
-import type { Plan } from './types'
 
 export interface PlanState {
   plan: Plan
@@ -34,7 +31,7 @@ function parseSaveInput(input: unknown): SaveInput {
   return { uid: input.uid, patch }
 }
 
-/** Merges one event's patch into src/data/edits.json and regenerates src/data/plan.json. */
+/** Merges one event's patch into data/edits.json and regenerates data/plan.json. */
 export const saveEventEdit = createServerFn({ method: 'POST' })
   .validator(parseSaveInput)
   .handler(({ data }): PlanState => {

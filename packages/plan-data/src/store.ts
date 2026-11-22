@@ -1,13 +1,25 @@
 // Node-only: reads and writes the plan database on disk. Import it from server code and scripts, never from components.
+// `PLAN_DATA_DIR` points it at another directory.
 import { accessSync, constants, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+
+import { applyEdits, buildPlan, isPlan, parseEdits, type Plan, type PlanEdits } from '@lc/plan-domain'
 
 import { bundledPlan } from './bundled'
-import { applyEdits, parseEdits, type PlanEdits } from './edits'
-import { buildPlan } from './schedule'
-import { isPlan, type Plan } from './types'
 
-const PLAN_FILE = 'src/data/plan.json'
-const EDITS_FILE = 'src/data/edits.json'
+const DATA_DIR = 'packages/plan-data/data'
+
+/** Looks for the data directory upwards from the working directory, so every package and the built server find it. */
+function dataDir(): string {
+  if (process.env.PLAN_DATA_DIR) return process.env.PLAN_DATA_DIR
+  for (let dir = process.cwd(); ; dir = dirname(dir)) {
+    const candidate = join(dir, DATA_DIR)
+    if (existsSync(candidate) || dirname(dir) === dir) return candidate
+  }
+}
+
+const PLAN_FILE = join(dataDir(), 'plan.json')
+const EDITS_FILE = join(dataDir(), 'edits.json')
 
 const readJson = (file: string): unknown => JSON.parse(readFileSync(file, 'utf8'))
 const writeJson = (file: string, value: unknown) => writeFileSync(file, JSON.stringify(value, null, 2) + '\n')

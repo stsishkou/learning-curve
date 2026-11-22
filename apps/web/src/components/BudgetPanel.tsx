@@ -1,10 +1,7 @@
-import { fmtDay, fmtHours } from '#/lib/format'
-import { parseLocal } from '#/lib/plan/dates'
-import { countsToBudget, durationHours, type Occurrence } from '#/lib/plan/occurrences'
-import type { Plan } from '#/lib/plan/types'
-import { m } from '#/paraglide/messages.js'
-
-import { Dot, calendarColor } from './ui'
+import { fmtDay, fmtHours } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import { countsToBudget, durationHours, type Occurrence, parseLocal, type Plan } from '@lc/plan-domain'
+import { calendarColor, Dot } from '@lc/ui'
 
 interface Props {
   className?: string

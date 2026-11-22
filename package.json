@@ -7,7 +7,7 @@
     "dev": "nx run @lc/web:dev",
     "build": "nx run-many -t build",
     "start": "nx run @lc/web:start",
-    "plan": "nx run @lc/web:plan",
+    "plan": "nx run @lc/plan-data:plan",
     "i18n": "nx run-many -t i18n",
     "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint",
@@ -23,7 +23,7 @@
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
-    "@inlang/paraglide-js": "3.2.2",
+    "@inlang/paraglide-js": "catalog:",
     "husky": "9.1.7",
     "nx": "24.0.6",
     "oxfmt": "0.79.0",

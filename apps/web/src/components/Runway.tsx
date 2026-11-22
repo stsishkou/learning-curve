@@ -1,7 +1,6 @@
-import { fmtDay, fmtShort } from '#/lib/format'
-import { DAY, HOUR, parseLocal, startOfDay } from '#/lib/plan/dates'
-import type { Plan, PlanEvent } from '#/lib/plan/types'
-import { m } from '#/paraglide/messages.js'
+import { fmtDay, fmtShort } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import { DAY, HOUR, parseLocal, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
 
 interface Props {
   plan: Plan

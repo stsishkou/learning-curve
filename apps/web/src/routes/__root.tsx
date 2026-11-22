@@ -1,7 +1,6 @@
+import { m } from '@lc/i18n/messages'
+import { getLocale, localizeHref } from '@lc/i18n/runtime'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-import { m } from '#/paraglide/messages.js'
-import { getLocale, localizeHref } from '#/paraglide/runtime.js'
 
 import appCss from '../styles.css?url'
 

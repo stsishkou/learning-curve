@@ -1,3 +1,20 @@
+import { fmtDay, fmtShort } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import {
+  applyEdits,
+  DAY,
+  type EventPatch,
+  isPlan,
+  mondayOf,
+  nowMinsk,
+  occurrences,
+  parseLocal,
+  type Plan,
+  type PlanEvent,
+  planStart,
+  ymd,
+} from '@lc/plan-domain'
+import { Button, calendarColor, Dot, Segmented } from '@lc/ui'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useMemo, useRef, useState } from 'react'
 
@@ -7,16 +24,9 @@ import { EventDialog } from '#/components/EventDialog'
 import { ExportDialog } from '#/components/ExportDialog'
 import { LanguageSwitcher } from '#/components/LanguageSwitcher'
 import { Runway } from '#/components/Runway'
-import { Button, Dot, Segmented, calendarColor } from '#/components/ui'
 import { WeekGrid } from '#/components/WeekGrid'
 import { useHiddenCalendars, useNow } from '#/lib/client'
-import { fmtDay, fmtShort } from '#/lib/format'
-import { DAY, mondayOf, nowMinsk, parseLocal, ymd } from '#/lib/plan/dates'
-import { applyEdits, type EventPatch } from '#/lib/plan/edits'
-import { occurrences, planStart } from '#/lib/plan/occurrences'
-import { getPlanState, saveEventEdit } from '#/lib/plan/server'
-import { isPlan, type Plan, type PlanEvent } from '#/lib/plan/types'
-import { m } from '#/paraglide/messages.js'
+import { getPlanState, saveEventEdit } from '#/server/plan'
 
 type View = 'week' | 'list'
 interface Search {

@@ -1,13 +1,8 @@
+import { fmtDay } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import { type EventPatch, hm, parseLocal, type Plan, type PlanEvent } from '@lc/plan-domain'
+import { Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
 import { useState, type FormEvent } from 'react'
-
-import { fmtDay } from '#/lib/format'
-import { hm, parseLocal } from '#/lib/plan/dates'
-import type { EventPatch } from '#/lib/plan/edits'
-import type { Plan, PlanEvent } from '#/lib/plan/types'
-import { m } from '#/paraglide/messages.js'
-
-import { FOOT, META, Modal, TITLE } from './Modal'
-import { Button, Dot, calendarColor } from './ui'
 
 const FIELD = 'grid gap-1 text-[13px] text-muted'
 const INPUT = 'w-full rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-[15px] text-ink'

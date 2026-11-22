@@ -1,7 +1,7 @@
-// Locale-aware text for plan times. The values are UTC-naive wall-clock ms (see plan/dates.ts),
+// Locale-aware text for plan times. The values are UTC-naive wall-clock ms (see @lc/plan-domain dates),
 // hence `timeZone: 'UTC'` everywhere.
-import { m } from '#/paraglide/messages.js'
-import { getLocale } from '#/paraglide/runtime.js'
+import { m } from './paraglide/messages.js'
+import { getLocale } from './paraglide/runtime.js'
 
 type Style = 'day' | 'short' | 'weekday'
 

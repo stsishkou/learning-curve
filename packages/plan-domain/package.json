@@ -1,0 +1,19 @@
+{
+  "name": "@lc/plan-domain",
+  "private": true,
+  "description": "The study plan domain: types, Minsk dates, schedule rules, edits and .ics export. Pure TypeScript, no framework",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json"
+  },
+  "nx": {
+    "tags": [
+      "type:domain",
+      "scope:plan"
+    ]
+  }
+}

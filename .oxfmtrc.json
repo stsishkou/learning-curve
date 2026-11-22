@@ -7,7 +7,7 @@
   "sortTailwindcss": { "stylesheet": "./apps/web/src/styles.css" },
   "ignorePatterns": [
     "**/data/plan.json",
-    "**/plan/content.ts",
+    "**/plan-domain/src/content.ts",
     "**/routeTree.gen.ts",
     "**/messages/",
     "pnpm-lock.yaml",
