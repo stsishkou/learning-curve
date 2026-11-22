@@ -1,5 +1,5 @@
 // Course content: every item becomes one calendar event when the scheduler gives it a date.
-// Edit this file, then run `npm run plan` to regenerate src/data/plan.json.
+// Edit this file, then run `pnpm run plan` to regenerate src/data/plan.json.
 // Descriptions follow the project format: course URL, module URL, 1–3 line goal.
 import type { PlanCalendar, QueueItem } from './types'
 

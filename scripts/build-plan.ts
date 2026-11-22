@@ -1,6 +1,6 @@
 // Regenerates the plan database from src/lib/plan/content.ts and the schedule rules.
-//   npm run plan            → writes src/data/plan.json
-//   npm run plan -- --ics   → also writes exports/*.ics
+//   pnpm run plan            → writes src/data/plan.json
+//   pnpm run plan --ics   → also writes exports/*.ics
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { buildICS, icsFileName, IMPORT_HOWTO } from '../src/lib/plan/ics'
 import { buildPlan, weeklyHours } from '../src/lib/plan/schedule'

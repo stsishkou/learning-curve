@@ -6,21 +6,21 @@ Personal study plan as code: a schedule database (`src/data/plan.json`), a viewe
 ## Quick start
 
 ```bash
-npm install
-npm run dev          # http://localhost:3000
+pnpm install
+pnpm run dev          # http://localhost:3000
 ```
 
-Requires Node 22.12+.
+Requires Node 26+ and pnpm 12.
 
 ## Scripts
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Dev server on port 3000 |
-| `npm run plan` | Rebuilds `src/data/plan.json` from the course content and schedule rules |
-| `npm run plan -- --ics` | Same, plus writes `exports/*.ics` and import instructions |
-| `npm run build` / `npm start` | Production build (Nitro) and Node server from `.output/` |
-| `npm run typecheck` | `tsc --noEmit` |
+| `pnpm run dev` | Dev server on port 3000 |
+| `pnpm run plan` | Rebuilds `src/data/plan.json` from the course content and schedule rules |
+| `pnpm run plan --ics` | Same, plus writes `exports/*.ics` and import instructions |
+| `pnpm run build` / `pnpm start` | Production build (Nitro) and Node server from `.output/` |
+| `pnpm run typecheck` | `tsc --noEmit` |
 
 ## How the plan is made
 
@@ -30,15 +30,15 @@ Requires Node 22.12+.
    - Certificates: weekdays 12:00–14:00 from 23 Nov; a 2 h challenge lab always starts at 12:00.
    - From 4 Jan: 11:00 HF LLM → Practical Python, 12:00 HF Agents, Mon/Wed 13:00 Practical Python.
    - Saturday 10:00–12:00 buffer (free time), gym Tue/Thu 08:30–10:30 (recurring).
-3. **Database** — `npm run plan` writes `src/data/plan.json`. The app, the API and the export all read this file.
+3. **Database** — `pnpm run plan` writes `src/data/plan.json`. The app, the API and the export all read this file.
    The script warns if any week goes over the budget.
 
-To change the plan: edit content or rules → `npm run plan` → check it in the viewer → export.
+To change the plan: edit content or rules → `pnpm run plan` → check it in the viewer → export.
 You can also open any `plan.json` in the viewer ("Открыть файл плана") without changing the project.
 
 ## Importing into a calendar
 
-Use **Экспорт в календарь** in the viewer (zip or one `.ics` per calendar), or `npm run plan -- --ics`.
+Use **Экспорт в календарь** in the viewer (zip or one `.ics` per calendar), or `pnpm run plan --ics`.
 
 1. Create the calendars marked "создать календарь" (Gemini Certs, Practical Python, Личное).
 2. Delete old future events from existing calendars, otherwise you get duplicates.
