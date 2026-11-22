@@ -37,14 +37,19 @@ export function DashboardPage({ plan, headerAside, now: fixed }: Props) {
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   return (
     <div className="mx-auto grid max-w-[1240px] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <header className="flex flex-col gap-3 md:flex-row md:items-end">
+      {/* Stays at the top while the charts scroll, so the other sections are always at hand. The negative margins
+          take the bar to the edges of the page padding. On a narrow screen only the sections stay: the header
+          dissolves into the page grid there, or the title would take a fifth of the screen with it. */}
+      <header className="max-md:contents md:sticky md:top-0 md:z-20 md:-mx-5 md:-mt-5 md:flex md:items-end md:gap-3 md:border-b md:border-line-soft md:bg-bg/90 md:px-5 md:py-3.5 md:backdrop-blur-md">
         <div className="min-w-0 flex-1">
           <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
           <p className="mt-1 text-[14px] text-muted">
             {plan.meta.title} · {m.dash_until({ date: fmtDay(parseLocal(plan.meta.planEnd)) })}
           </p>
         </div>
-        <div className="order-first md:order-none">{headerAside}</div>
+        <div className="max-md:sticky max-md:top-0 max-md:z-20 max-md:order-first max-md:-mx-3 max-md:-mt-3.5 max-md:border-b max-md:border-line-soft max-md:bg-bg/90 max-md:px-3 max-md:py-2.5 max-md:backdrop-blur-md">
+          {headerAside}
+        </div>
       </header>
 
       <StatTiles plan={plan} stats={stats} now={now} />
