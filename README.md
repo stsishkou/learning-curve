@@ -72,6 +72,11 @@ a Husky `commit-msg` hook checks them with commitlint.
   session counts as planned. From that the planner works out a pace per course (real hours per planned hour) and
   the dashboard's `Forecast at your pace` shows when the rest of each course will really be finished and how
   that sits against the certificate deadline.
+- **Goals and the week review**: under the weekly budget the side panel lists the goals the schedule implies:
+  the modules whose last session falls in the week on screen, what the month asks of each course, and how far
+  the certificates are. They tick themselves as sessions are marked done. `Week review` sums the week up: hours
+  done against the plan, the time they really took, goals met, sessions missed (with a way to catch up) and the
+  goals of the next week.
 - **Catching up**: when sessions in the past are not done, a bar above the calendar offers to mark them done or
   to catch up. `Catch up` (also in the `⋮` menu) compares whole scenarios side by side: leave the plan, push
   every open session to the next study days (same weekly load, later end), or make the missed sessions up in the

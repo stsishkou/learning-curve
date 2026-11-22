@@ -374,5 +374,19 @@
   "catchup_unplaced": "No room was found for {count} sessions",
   "catchup_manual": "Shift by days by hand…",
   "catchup_apply": "Apply",
-  "history_replanned": "Plan rearranged: {count} sessions"
+  "history_replanned": "Plan rearranged: {count} sessions",
+  "goals_week": "Goals of the week",
+  "goals_week_none": "No module ends this week.",
+  "goals_course_ends": "the course ends",
+  "goals_modules": "{done}/{total} modules",
+  "goals_deadline": "By {date}: certificates {percent}% done",
+  "review_open": "Week review",
+  "review_title": "Week review",
+  "review_hours": "Hours done",
+  "review_spent": "Time spent",
+  "review_sessions": "Sessions",
+  "review_goals": "Goals met",
+  "review_missed": "Sessions missed: {count}",
+  "review_next": "Goals of the next week",
+  "review_go_next": "To the next week"
 }

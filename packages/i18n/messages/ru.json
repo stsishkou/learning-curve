@@ -384,5 +384,19 @@
   "catchup_unplaced": "Не хватило места для занятий: {count}",
   "catchup_manual": "Сдвинуть на дни вручную…",
   "catchup_apply": "Применить",
-  "history_replanned": "План перестроен, занятий: {count}"
+  "history_replanned": "План перестроен, занятий: {count}",
+  "goals_week": "Цели недели",
+  "goals_week_none": "На этой неделе ни один модуль не заканчивается.",
+  "goals_course_ends": "курс заканчивается",
+  "goals_modules": "{done}/{total} мод.",
+  "goals_deadline": "К {date}: сертификаты готовы на {percent}%",
+  "review_open": "Итоги недели",
+  "review_title": "Итоги недели",
+  "review_hours": "Часов выполнено",
+  "review_spent": "Потрачено",
+  "review_sessions": "Занятий",
+  "review_goals": "Целей достигнуто",
+  "review_missed": "Пропущено занятий: {count}",
+  "review_next": "Цели следующей недели",
+  "review_go_next": "К следующей неделе"
 }

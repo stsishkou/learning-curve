@@ -33,6 +33,7 @@ import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
 import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
+import { WeekReviewDialog } from '../../../features/week-review'
 import { useModKey, useNow } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
 import { MonthGrid } from '../../../widgets/month-grid'
@@ -105,6 +106,7 @@ export function PlannerPage({
   const [historyOpen, setHistoryOpen] = useState(false)
   const [shiftFrom, setShiftFrom] = useState<string | null>(null)
   const [catchUpOpen, setCatchUpOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [overdueHidden, setOverdueHidden] = useState(false)
   const datePicker = useRef<HTMLInputElement>(null)
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
@@ -231,6 +233,7 @@ export function PlannerPage({
     { id: 'list', group: m.view(), label: m.view_list(), keys: 'L', run: () => go.view('list') },
     { id: 'full-day', group: m.view(), label: m.full_day_hint(), keys: 'F', run: go.fullDay },
     { id: 'expand', group: m.view(), label: expanded ? m.collapse() : m.expand_hint(), keys: 'E', run: go.expand },
+    { id: 'review', group: m.view(), label: m.review_open(), run: () => setReviewOpen(true) },
     ...(canEdit
       ? [
           { id: 'new-event', group: m.palette_plan(), label: m.new_event(), keys: 'N', run: () => newEvent() },
@@ -560,6 +563,7 @@ export function PlannerPage({
               now={now}
               weekStart={weekStart}
               onSelect={select}
+              onReview={() => setReviewOpen(true)}
               onPickWeek={(monday) => onSearchChange({ week: ymd(monday), view: view === 'list' ? 'week' : view })}
             />
           </aside>
@@ -590,6 +594,14 @@ export function PlannerPage({
         onClose={() => setCalendarsOpen(false)}
       />
       <ShiftDialog plan={plan} from={shiftFrom} onChange={session.change} onClose={() => setShiftFrom(null)} />
+      <WeekReviewDialog
+        plan={plan}
+        monday={reviewOpen ? weekStart : null}
+        now={now}
+        onCatchUp={canEdit ? () => setCatchUpOpen(true) : undefined}
+        onNextWeek={() => setWeek(weekStart + 7 * DAY)}
+        onClose={() => setReviewOpen(false)}
+      />
       <CatchUpDialog
         plan={plan}
         open={catchUpOpen}

@@ -40,6 +40,15 @@ export {
 export { movePatch, weekdaysOf } from './recurrence'
 export { paceForecast, type PaceForecast } from './forecast'
 export {
+  goalsBetween,
+  moduleGoals,
+  monthGoals,
+  weekReview,
+  type CourseGoal,
+  type ModuleGoal,
+  type WeekReview,
+} from './goals'
+export {
   catchUpScenarios,
   planOutlook,
   withMoves,

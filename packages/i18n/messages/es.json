@@ -374,5 +374,19 @@
   "catchup_unplaced": "No hubo sitio para {count} sesiones",
   "catchup_manual": "Desplazar por días a mano…",
   "catchup_apply": "Aplicar",
-  "history_replanned": "Plan reorganizado: {count} sesiones"
+  "history_replanned": "Plan reorganizado: {count} sesiones",
+  "goals_week": "Objetivos de la semana",
+  "goals_week_none": "Ningún módulo termina esta semana.",
+  "goals_course_ends": "el curso termina",
+  "goals_modules": "{done}/{total} mód.",
+  "goals_deadline": "Para el {date}: certificados al {percent}%",
+  "review_open": "Resumen de la semana",
+  "review_title": "Resumen de la semana",
+  "review_hours": "Horas hechas",
+  "review_spent": "Tiempo real",
+  "review_sessions": "Sesiones",
+  "review_goals": "Objetivos cumplidos",
+  "review_missed": "Sesiones perdidas: {count}",
+  "review_next": "Objetivos de la semana siguiente",
+  "review_go_next": "A la semana siguiente"
 }

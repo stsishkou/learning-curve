@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 import { useFillHeight } from '../../../shared/lib'
 import { BudgetPanel } from '../../../widgets/budget-panel'
 import { CourseProgress } from '../../../widgets/course-progress'
+import { GoalLadder } from '../../../widgets/goal-ladder'
 import { PlanMap } from '../../../widgets/plan-map'
 
 type Tab = 'week' | 'courses' | 'map'
@@ -18,10 +19,11 @@ interface Props {
   weekStart: number
   onSelect: (e: PlanEvent) => void
   onPickWeek: (monday: number) => void
+  onReview: () => void
 }
 
 /** One card, three looks at the plan: this week's budget, progress per course, the map of all weeks. */
-export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect, onPickWeek }: Props) {
+export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect, onPickWeek, onReview }: Props) {
   const [tab, setTab] = useState<Tab>('week')
   const body = useRef<HTMLDivElement>(null)
   // 961 is the `lg` breakpoint; the gap is the page's bottom padding plus the card's own.
@@ -42,7 +44,14 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
       </div>
       {/* Capped on a wide screen so a long course list scrolls inside the card instead of stretching the page. */}
       <div ref={body} className="[scrollbar-width:thin] lg:overflow-y-auto" style={{ maxHeight }}>
-        {tab === 'week' && <BudgetPanel plan={plan} weekItems={weekItems} />}
+        {tab === 'week' && (
+          <>
+            <BudgetPanel plan={plan} weekItems={weekItems} />
+            <div className="mt-4 border-t border-line-soft pt-3.5">
+              <GoalLadder plan={plan} weekStart={weekStart} onReview={onReview} />
+            </div>
+          </>
+        )}
         {tab === 'courses' && <CourseProgress plan={plan} onSelect={onSelect} />}
         {tab === 'map' && (
           <PlanMap plan={plan} hidden={hidden} now={now} weekStart={weekStart} onPickWeek={onPickWeek} />
