@@ -19,8 +19,8 @@ export function useHiddenCalendars() {
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set())
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? '[]') as string[]
-      if (saved.length) setHidden(new Set(saved))
+      const saved: unknown = JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? '[]')
+      if (Array.isArray(saved) && saved.length) setHidden(new Set(saved.filter((id) => typeof id === 'string')))
     } catch {
       // storage unavailable: start with everything visible
     }

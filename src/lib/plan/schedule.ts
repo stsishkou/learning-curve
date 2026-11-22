@@ -34,9 +34,10 @@ export const DEFAULT_CONFIG: ScheduleConfig = {
 const pad = (n: number) => String(n).padStart(2, '0')
 const at = (day: string, h: number, m = 0) => `${day}T${pad(h)}:${pad(m)}`
 
+const dow = (s: string) => weekday(parseLocal(s))
+
 export function buildPlan(config: ScheduleConfig = DEFAULT_CONFIG, generated = new Date().toISOString().slice(0, 10)): Plan {
   const holidays = new Set(config.holidays)
-  const dow = (s: string) => weekday(parseLocal(s))
   const isWorkday = (s: string) => dow(s) >= 1 && dow(s) <= 5 && !holidays.has(s)
 
   const events: PlanEvent[] = []

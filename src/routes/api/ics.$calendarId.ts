@@ -1,9 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import planData from '#/data/plan.json'
+import { bundledPlan as plan } from '#/lib/plan/bundled'
 import { buildICS, icsFileName } from '#/lib/plan/ics'
-import type { Plan } from '#/lib/plan/types'
-
-const plan = planData as Plan
 
 /**
  * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`).

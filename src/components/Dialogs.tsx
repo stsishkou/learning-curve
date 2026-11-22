@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { downloadBlob, zipBlob } from '#/lib/client'
 import { fmtDay } from '#/lib/format'
 import { hm, parseLocal } from '#/lib/plan/dates'
@@ -20,6 +20,8 @@ function Modal({ open, onClose, children }: { open: boolean; onClose: () => void
     if (!open && dlg.open) dlg.close()
   }, [open])
   return (
+    // A click on the backdrop closes the dialog; the keyboard path is the native Esc handling.
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={ref}
       // m-auto: Tailwind's reset zeroes the margin that centers a modal dialog
@@ -37,6 +39,7 @@ function Modal({ open, onClose, children }: { open: boolean; onClose: () => void
 const linkify = (text: string) =>
   text.split(/(https?:\/\/\S+)/g).map((part, i) =>
     /^https?:\/\//.test(part) ? (
+      // oxlint-disable-next-line react/no-array-index-key -- the parts of one description never reorder
       <a key={i} className="text-focus underline" href={part} target="_blank" rel="noreferrer">
         {part}
       </a>
@@ -82,7 +85,10 @@ export function EventDialog({ plan, event, onClose }: { plan: Plan; event: PlanE
 }
 
 export function ExportDialog({ plan, hidden, open, onClose }: { plan: Plan; hidden: ReadonlySet<string>; open: boolean; onClose: () => void }) {
-  const counts = Object.fromEntries(plan.calendars.map((c) => [c.id, plan.events.filter((e) => e.calendar === c.id).length]))
+  const counts = useMemo(
+    () => Object.fromEntries(plan.calendars.map((c) => [c.id, plan.events.filter((e) => e.calendar === c.id).length])),
+    [plan],
+  )
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [status, setStatus] = useState('')
   useEffect(() => {
@@ -90,7 +96,7 @@ export function ExportDialog({ plan, hidden, open, onClose }: { plan: Plan; hidd
       setSelected(new Set(plan.calendars.filter((c) => counts[c.id] && !hidden.has(c.id)).map((c) => c.id)))
       setStatus('')
     }
-  }, [open, plan, hidden])
+  }, [open, plan, hidden, counts])
 
   const toggle = (id: string) =>
     setSelected((prev) => {

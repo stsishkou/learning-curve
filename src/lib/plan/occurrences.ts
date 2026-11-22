@@ -30,7 +30,7 @@ export function occurrences(plan: Plan, from: number, to: number, hidden: Readon
       out.push({ ...ev, s, e })
     }
   }
-  return out.sort((a, b) => a.s - b.s)
+  return out.toSorted((a, b) => a.s - b.s)
 }
 
 export const durationHours = (o: Occurrence) => (o.e - o.s) / HOUR

@@ -1,10 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import JSZip from 'jszip'
-import planData from '#/data/plan.json'
+import { bundledPlan as plan } from '#/lib/plan/bundled'
 import { buildICS, icsFileName, IMPORT_HOWTO } from '#/lib/plan/ics'
-import type { Plan } from '#/lib/plan/types'
-
-const plan = planData as Plan
 
 /** GET /api/ics-zip — every calendar with events as .ics, plus import instructions, in one archive. */
 export const Route = createFileRoute('/api/ics-zip')({

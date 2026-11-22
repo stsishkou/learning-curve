@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import planData from '#/data/plan.json'
 import { AgendaList } from '#/components/AgendaList'
 import { BudgetPanel } from '#/components/BudgetPanel'
 import { EventDialog, ExportDialog } from '#/components/Dialogs'
@@ -10,6 +9,7 @@ import { Button, Dot, Segmented, calendarColor } from '#/components/ui'
 import { WeekGrid } from '#/components/WeekGrid'
 import { useHiddenCalendars, useNow } from '#/lib/client'
 import { fmtDay, fmtShort } from '#/lib/format'
+import { bundledPlan, isPlan } from '#/lib/plan/bundled'
 import { DAY, mondayOf, nowMinsk, parseLocal, ymd } from '#/lib/plan/dates'
 import { occurrences, planStart } from '#/lib/plan/occurrences'
 import type { Plan, PlanEvent } from '#/lib/plan/types'
@@ -21,8 +21,6 @@ interface Search {
   week?: string
   view?: View
 }
-
-const bundledPlan = planData as Plan
 
 const WEEK_STEP = 'grid size-9 place-items-center rounded-[10px] border border-line bg-surface'
 
@@ -63,14 +61,14 @@ function PlanPage() {
 
   async function openFile(file: File) {
     try {
-      const next = JSON.parse(await file.text()) as Plan
-      if (!next?.meta || !Array.isArray(next.calendars) || !Array.isArray(next.events)) throw new Error(m.file_missing_fields())
+      const next: unknown = JSON.parse(await file.text())
+      if (!isPlan(next)) throw new Error(m.file_missing_fields())
       setPlan(next)
       reset()
       setFileError('')
-      navigate({ search: (prev) => ({ ...prev, week: undefined }) })
+      void navigate({ search: (prev) => ({ ...prev, week: undefined }) })
     } catch (err) {
-      setFileError(m.file_invalid({ reason: (err as Error).message }))
+      setFileError(m.file_invalid({ reason: err instanceof Error ? err.message : String(err) }))
     }
   }
 
