@@ -12,6 +12,9 @@ const config = defineConfig({
     paraglideVitePlugin({
       project: '../../packages/i18n/project.inlang',
       outdir: '../../packages/i18n/src/paraglide',
+      // Real files, as the CLI writes: the plugin's default leaves stubs that only this Vite server can
+      // resolve, and the component stand and the type check read the same folder without the plugin.
+      outputStructure: 'message-modules',
     }),
     tailwindcss(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
