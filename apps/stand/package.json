@@ -37,6 +37,9 @@
       "scope:stand"
     ],
     "targets": {
+      "build": {
+        "parallelism": false
+      },
       "dev": {
         "dependsOn": [
           "^i18n"
