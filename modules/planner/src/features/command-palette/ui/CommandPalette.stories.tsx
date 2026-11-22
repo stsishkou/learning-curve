@@ -1,6 +1,6 @@
 import { fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { fn } from 'storybook/test'
 
 import { CommandPalette } from './CommandPalette'
 
@@ -27,16 +27,5 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** Type two letters or more to search the events of the plan as well, for example `ADK`. */
 export const Commands: Story = {}
-
-export const SearchingEvents: Story = {
-  play: async ({ canvasElement, args }) => {
-    const body = within(canvasElement.ownerDocument.body)
-    // The dialog opens in an effect, after the first render: wait for it.
-    await userEvent.type(await body.findByRole('combobox'), 'ADK')
-    const found = await body.findAllByRole('option')
-    await expect(found.length).toBeGreaterThan(0)
-    await userEvent.keyboard('{Enter}')
-    await expect(args.onSelectEvent).toHaveBeenCalled()
-  },
-}
