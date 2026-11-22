@@ -12,7 +12,7 @@ import {
   type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
-import { Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
+import { Button, calendarColor, Check, Copy, Dot, ExternalLink, FOOT, META, Modal, TITLE, Trash2, X } from '@lc/ui'
 import { useState } from 'react'
 
 import { EventForm } from './EventForm'
@@ -147,7 +147,20 @@ export function EventDialog({
       )}
       {event && !editing && (
         <>
-          <h3 className={`${TITLE} ${event.done ? 'text-muted line-through decoration-done' : ''}`}>{event.title}</h3>
+          <div className="flex items-start gap-3">
+            <h3 className={`${TITLE} min-w-0 flex-1 ${event.done ? 'text-muted line-through decoration-done' : ''}`}>
+              {event.title}
+            </h3>
+            <button
+              type="button"
+              className="-mt-1 -mr-1.5 grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-ink"
+              aria-label={m.close()}
+              title={m.close()}
+              onClick={close}
+            >
+              <X size={18} aria-hidden />
+            </button>
+          </div>
           <div className={META} style={calendarColor(calendar?.color)}>
             <Dot className="size-2.5" />
             {calendar?.name}, {when}
@@ -193,11 +206,13 @@ export function EventDialog({
             <span className="mr-auto flex flex-wrap gap-2">
               {canEdit && (
                 <Button
+                  className="grid place-items-center px-2.5 text-today-ink"
                   disabled={busy}
-                  title={m.delete_event_hint()}
+                  aria-label={event.rrule ? m.delete_series() : m.delete_event()}
+                  title={`${event.rrule ? m.delete_series() : m.delete_event()}. ${m.delete_event_hint()}`}
                   onClick={() => void run({ type: 'event.remove', uid: event.uid }, 'close')}
                 >
-                  {event.rrule ? m.delete_series() : m.delete_event()}
+                  <Trash2 size={16} aria-hidden />
                 </Button>
               )}
               {canEdit && event.rrule && day && (
@@ -220,7 +235,10 @@ export function EventDialog({
               )}
               {canEdit && !event.rrule && !event.allDay && (
                 <Button
+                  className="grid place-items-center px-2.5"
                   disabled={busy}
+                  aria-label={m.duplicate()}
+                  title={m.duplicate()}
                   onClick={() =>
                     void run(
                       {
@@ -238,27 +256,28 @@ export function EventDialog({
                     )
                   }
                 >
-                  {m.duplicate()}
+                  <Copy size={16} aria-hidden />
                 </Button>
               )}
               {courseUrl && (
                 <a
-                  className="rounded-[10px] border border-line bg-surface px-3.5 py-2 font-medium shadow-card hover:bg-surface-2"
+                  className="flex items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3.5 py-2 font-medium shadow-card transition-colors duration-150 hover:bg-surface-2"
                   href={courseUrl}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  {m.open_course()} ↗
+                  {m.open_course()} <ExternalLink size={14} aria-hidden />
                 </a>
               )}
             </span>
             {canEdit && isSession(event) && (
               <Button
-                className={event.done ? '' : 'border-done text-done-ink'}
+                className={`flex items-center gap-1.5 ${event.done ? '' : 'border-done text-done-ink'}`}
                 disabled={busy}
                 onClick={() => void run({ type: 'event.patch', uid: event.uid, patch: { done: !event.done } })}
               >
-                {event.done ? m.mark_not_done() : `✓ ${m.mark_done()}`}
+                {!event.done && <Check size={15} aria-hidden />}
+                {event.done ? m.mark_not_done() : m.mark_done()}
               </Button>
             )}
             {canEdit && (
@@ -266,7 +285,6 @@ export function EventDialog({
                 {m.edit()}
               </Button>
             )}
-            <Button onClick={close}>{m.close()}</Button>
           </div>
         </>
       )}

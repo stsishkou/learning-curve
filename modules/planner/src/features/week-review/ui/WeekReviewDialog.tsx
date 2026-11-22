@@ -1,7 +1,7 @@
 import { fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, goalsBetween, weekReview, type ModuleGoal, type Plan } from '@lc/plan-domain'
-import { Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
+import { ArrowRight, Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
 import type { ReactNode } from 'react'
 
 interface Props {
@@ -112,7 +112,9 @@ function Review({ plan, monday, now, onCatchUp, onNextWeek, onClose }: Props & {
       )}
 
       <div className={FOOT}>
-        <Button onClick={() => (onClose(), onNextWeek())}>{m.review_go_next()} →</Button>
+        <Button className="flex items-center gap-1.5" onClick={() => (onClose(), onNextWeek())}>
+          {m.review_go_next()} <ArrowRight size={15} aria-hidden />
+        </Button>
         <Button primary onClick={onClose}>
           {m.close()}
         </Button>

@@ -31,7 +31,7 @@ interface Props {
 }
 
 const TRIGGER =
-  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-[18px]/[1] shadow-card hover:bg-surface-2'
+  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-[18px]/[1] shadow-card transition-[background-color,transform] duration-150 hover:bg-surface-2 active:scale-[0.96]'
 const ROW =
   'flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[13.5px] whitespace-nowrap hover:bg-surface-2 focus-visible:bg-surface-2 disabled:opacity-40'
 

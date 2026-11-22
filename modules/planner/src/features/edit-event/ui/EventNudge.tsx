@@ -11,6 +11,8 @@ import {
   type EventPatch,
   type PlanEvent,
 } from '@lc/plan-domain'
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Minus, Plus } from '@lc/ui'
+import type { ReactNode } from 'react'
 
 const STEP = HOUR / 2
 const KEY =
@@ -48,7 +50,7 @@ export function EventNudge({ event, day, disabled, onMove }: Props) {
     onMove(movePatch(event, from, s, e), ymd(s))
   }
 
-  const key = (label: string, sign: string, run: () => void, off = false) => (
+  const key = (label: string, sign: ReactNode, run: () => void, off = false) => (
     <button type="button" className={KEY} aria-label={label} title={label} disabled={disabled || off} onClick={run}>
       {sign}
     </button>
@@ -58,20 +60,20 @@ export function EventNudge({ event, day, disabled, onMove }: Props) {
     <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted">
       <span className="flex items-center gap-1.5">
         {m.nudge_day()}
-        {key(m.nudge_day_back(), '‹', () => dayStep(-1), !canChangeDay)}
-        {key(m.nudge_day_forward(), '›', () => dayStep(1), !canChangeDay)}
+        {key(m.nudge_day_back(), <ChevronLeft size={15} aria-hidden />, () => dayStep(-1), !canChangeDay)}
+        {key(m.nudge_day_forward(), <ChevronRight size={15} aria-hidden />, () => dayStep(1), !canChangeDay)}
       </span>
       {!event.allDay && (
         <>
           <span className="flex items-center gap-1.5">
             {m.nudge_time()}
-            {key(m.nudge_earlier(), '↑', () => nudge(-STEP))}
-            {key(m.nudge_later(), '↓', () => nudge(STEP))}
+            {key(m.nudge_earlier(), <ArrowUp size={15} aria-hidden />, () => nudge(-STEP))}
+            {key(m.nudge_later(), <ArrowDown size={15} aria-hidden />, () => nudge(STEP))}
           </span>
           <span className="flex items-center gap-1.5">
             {m.nudge_length()}
-            {key(m.nudge_shorter(), '−', () => nudge(0, -STEP))}
-            {key(m.nudge_longer(), '+', () => nudge(0, STEP))}
+            {key(m.nudge_shorter(), <Minus size={15} aria-hidden />, () => nudge(0, -STEP))}
+            {key(m.nudge_longer(), <Plus size={15} aria-hidden />, () => nudge(0, STEP))}
           </span>
         </>
       )}

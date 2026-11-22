@@ -128,7 +128,10 @@ export function Runway({ plan, now, onSelect }: Props) {
           </div>
         )}
         <div className="absolute inset-x-0 top-16 flex justify-between text-[12px] text-muted">
-          <span>{fmtDay(start)}</span>
+          {/* Today's own label stands in the same place during the first days. */}
+          <span className={now !== null && now >= start && now - start < (end - start) / 8 ? 'invisible' : ''}>
+            {fmtDay(start)}
+          </span>
           <span>{m.deadline_on({ date: fmtDay(deadline) })}</span>
         </div>
       </div>

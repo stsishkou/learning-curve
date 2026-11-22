@@ -14,7 +14,7 @@ import {
   toLocalString,
   ymd,
 } from '@lc/plan-domain'
-import { calendarColor } from '@lc/ui'
+import { calendarColor, Repeat } from '@lc/ui'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 
 import { useFillHeight } from '../../../shared/lib'
@@ -488,11 +488,7 @@ export function WeekGrid({
                       <small className="text-muted tabular-nums">
                         {hm(s)}–{hm(e)}
                       </small>
-                      {o.rrule && (
-                        <span aria-hidden className="absolute top-1 right-1.5 text-[11px] text-muted">
-                          ↻
-                        </span>
-                      )}
+                      {o.rrule && <Repeat aria-hidden size={11} className="absolute top-1.5 right-1.5 text-muted" />}
                       {onMove && (
                         <>
                           <span

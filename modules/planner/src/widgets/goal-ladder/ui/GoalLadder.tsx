@@ -10,7 +10,7 @@ import {
   type ModuleGoal,
   type Plan,
 } from '@lc/plan-domain'
-import { calendarColor, Dot } from '@lc/ui'
+import { ArrowRight, calendarColor, Dot } from '@lc/ui'
 
 interface Props {
   plan: Plan
@@ -95,8 +95,12 @@ export function GoalLadder({ plan, weekStart, onReview }: Props) {
           })}
         </p>
       )}
-      <button type="button" className="justify-self-start font-semibold text-focus hover:underline" onClick={onReview}>
-        {m.review_open()} →
+      <button
+        type="button"
+        className="flex items-center gap-1 justify-self-start font-semibold text-focus hover:underline"
+        onClick={onReview}
+      >
+        {m.review_open()} <ArrowRight size={14} aria-hidden />
       </button>
     </div>
   )

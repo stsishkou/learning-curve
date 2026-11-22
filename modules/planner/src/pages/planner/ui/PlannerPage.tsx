@@ -88,7 +88,7 @@ interface Props {
 
 const PRESSED = 'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg'
 const STEP =
-  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap disabled:opacity-40'
+  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap transition-[background-color,transform] duration-150 hover:bg-surface-2 active:scale-[0.96] disabled:opacity-40 disabled:hover:bg-surface disabled:active:scale-100'
 const NO_CALENDARS: ReadonlySet<string> = new Set()
 
 function defaultWeek(plan: Plan) {
