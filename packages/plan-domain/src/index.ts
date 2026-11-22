@@ -3,6 +3,7 @@ export {
   HOUR,
   addDays,
   hm,
+  isoWeek,
   mondayOf,
   nowMinsk,
   parseLocal,
@@ -12,6 +13,7 @@ export {
   toMinsk,
   weekday,
   ymd,
+  zoneShift,
 } from './dates'
 export {
   PlanChangeError,

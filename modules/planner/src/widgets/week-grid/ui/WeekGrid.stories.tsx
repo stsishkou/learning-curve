@@ -78,3 +78,6 @@ export const OneDay: Story = {
 export const WorkWeekZoomed: Story = {
   args: { dayCount: 5, hourHeight: 84, items: week(fixtureWeek).filter((o) => o.s < fixtureWeek + 5 * DAY) },
 }
+
+/** A second clock in the hour column: here Warsaw, two hours behind the plan's Minsk time. */
+export const SecondZone: Story = { args: { secondZone: { label: 'Warsaw', shift: -2 * 3_600_000 } } }

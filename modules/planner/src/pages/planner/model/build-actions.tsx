@@ -5,6 +5,7 @@ import {
   Calendar,
   CalendarClock,
   Clock,
+  Globe,
   History,
   Keyboard,
   Maximize2,
@@ -18,7 +19,7 @@ import {
 import type { PlannerAction } from './planner-actions'
 import type { PlannerViewState } from './use-planner-view'
 
-export type DialogName = 'calendars' | 'trash' | 'history' | 'catchUp' | 'review' | 'palette' | 'shortcuts'
+export type DialogName = 'calendars' | 'trash' | 'history' | 'catchUp' | 'review' | 'palette' | 'shortcuts' | 'zone'
 
 interface Context {
   nav: PlannerViewState
@@ -27,6 +28,8 @@ interface Context {
   /** How many calendars are switched off */
   hiddenCount: number
   history: { cursor: number; total: number; canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
+  /** Name of the second time zone of the hour column, when one is chosen */
+  secondZone?: string
   trashCount: number
   overdueCount: number
   open: (dialog: DialogName) => void
@@ -165,6 +168,15 @@ export function buildActions(ctx: Context): PlannerAction[] {
       checked: nav.expanded,
       menu: 'narrow',
       run: nav.toggleExpanded,
+    },
+    {
+      id: 'second-zone',
+      group: view,
+      label: m.second_zone(),
+      icon: <Globe {...ICON} />,
+      badge: ctx.secondZone,
+      menu: 'always',
+      run: () => ctx.open('zone'),
     },
     { id: 'review', group: view, label: m.review_open(), run: () => ctx.open('review') },
     ...(ctx.canEdit ? editing : []),

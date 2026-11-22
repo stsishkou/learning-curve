@@ -37,3 +37,34 @@ export const addDays = (s: string, n: number) => ymd(parseLocal(s) + n * DAY)
 /** An instant as Minsk wall-clock ms, for the date helpers and formatters. */
 export const toMinsk = (instant: number) => instant + MINSK_OFFSET
 export const nowMinsk = () => toMinsk(Date.now())
+
+/** ISO 8601 week number: week 1 is the week that holds the year's first Thursday. */
+export function isoWeek(t: number): number {
+  const thursday = mondayOf(t) + 3 * DAY
+  const firstThursday = mondayOf(Date.UTC(new Date(thursday).getUTCFullYear(), 0, 4)) + 3 * DAY
+  return 1 + Math.round((thursday - firstThursday) / (7 * DAY))
+}
+
+/**
+ * What to add to a Minsk wall-clock time to read the clock of another IANA time zone at that moment, in ms.
+ * null when the zone is not known here.
+ */
+export function zoneShift(zone: string, wall: number): number | null {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: zone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    }).formatToParts(wall - MINSK_OFFSET)
+    const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value)
+    const there = Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute'))
+    // The formatter drops the seconds: compare whole minutes.
+    return there - (wall - (wall % 60_000))
+  } catch {
+    return null
+  }
+}

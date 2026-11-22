@@ -46,6 +46,8 @@ interface Props {
   onCreate?: (start: string, end?: string) => void
   /** An event that is not stored yet, drawn dashed in its slot while its form is open */
   draft?: DraftSlot | null
+  /** A second clock in the hour column: `label` names it, `shift` is what it is ahead of the plan's clock, in ms */
+  secondZone?: { label: string; shift: number } | null
   /** `eventKey` of the occurrence whose dialog is open: it gets a ring */
   selectedKey?: string | null
 }
@@ -63,6 +65,8 @@ const DEFAULT_HOUR_HEIGHT = 56
 /** Narrowest a day column gets before the grid scrolls sideways, in px */
 const MIN_COLUMN = 101
 const GUTTER = 52
+/** With a second clock next to the plan's own */
+const GUTTER_TWO_ZONES = 100
 /** The `lg` breakpoint: from here the page puts the side panel next to the grid. */
 const TWO_COLUMNS = 961
 const SNAP = HOUR / 2
@@ -135,6 +139,7 @@ export function WeekGrid({
   onRemove,
   onCreate,
   draft = null,
+  secondZone = null,
   selectedKey = null,
 }: Props) {
   const timed = items.filter((o) => !o.allDay)
@@ -157,6 +162,7 @@ export function WeekGrid({
   }
   const height = (maxH - minH) * hourHeight
   const hours = Array.from({ length: maxH - minH - 1 }, (_, i) => minH + 1 + i)
+  const gutter = secondZone ? GUTTER_TWO_ZONES : GUTTER
   const days = Array.from({ length: dayCount }, (_, i) => weekStart + i * DAY)
   const today = now === null ? null : startOfDay(now)
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
@@ -170,8 +176,8 @@ export function WeekGrid({
   const maxHeight = useFillHeight(scroller, true, { minWidth: fullDay ? 0 : TWO_COLUMNS })
   useEffect(() => {
     const column = today === null ? null : scroller.current?.querySelector<HTMLElement>(`[data-day="${ymd(today)}"]`)
-    if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - GUTTER
-  }, [today, weekStart])
+    if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - gutter
+  }, [today, weekStart, gutter])
   // The full day opens at the first hour that has something, not at midnight.
   // Only on opening the full day, another week or another time scale: an edit that changes the first hour must
   // not move the view.
@@ -371,18 +377,29 @@ export function WeekGrid({
     <div className="relative">
       <div
         ref={scroller}
-        className={`snap-x scroll-pl-[52px] overflow-auto rounded-2xl ${fullDay ? 'max-h-[70dvh]' : ''}`}
-        style={{ maxHeight }}
+        className={`snap-x overflow-auto rounded-2xl ${fullDay ? 'max-h-[70dvh]' : ''}`}
+        style={{ maxHeight, scrollPaddingLeft: gutter }}
       >
         <div
           className="grid"
           style={{
-            gridTemplateColumns: `${GUTTER}px repeat(${dayCount}, minmax(0, 1fr))`,
+            gridTemplateColumns: `${gutter}px repeat(${dayCount}, minmax(0, 1fr))`,
             // A single day always fits; more of them scroll sideways on a narrow screen.
-            minWidth: dayCount > 1 ? GUTTER + dayCount * MIN_COLUMN : undefined,
+            minWidth: dayCount > 1 ? gutter + dayCount * MIN_COLUMN : undefined,
           }}
         >
-          <div className={`${HEAD} ${PINNED} top-0 z-6 rounded-tl-2xl`} />
+          <div
+            className={`${HEAD} ${PINNED} top-0 z-6 flex items-end justify-end gap-2 rounded-tl-2xl pr-2 pb-2 text-[10.5px]`}
+          >
+            {secondZone && (
+              <>
+                <span className="min-w-0 flex-1 truncate pl-1.5 text-right" title={secondZone.label}>
+                  {secondZone.label}
+                </span>
+                <span className="font-semibold text-ink">{m.plan_zone()}</span>
+              </>
+            )}
+          </div>
           {days.map((d) => {
             const off = plan.meta.holidays.includes(ymd(d))
             return (
@@ -441,10 +458,15 @@ export function WeekGrid({
             {hours.map((h) => (
               <span
                 key={h}
-                className="absolute right-2 -translate-y-1/2 text-[11.5px] text-muted tabular-nums"
+                className="absolute right-2 flex -translate-y-1/2 gap-2 text-[11.5px] text-muted tabular-nums"
                 style={{ top: (h - minH) * hourHeight }}
               >
-                {String(h).padStart(2, '0')}:00
+                {secondZone && (
+                  <span className="w-[38px] text-right">{hm(weekStart + h * HOUR + secondZone.shift)}</span>
+                )}
+                <span className={secondZone ? 'w-[38px] text-right font-medium text-ink' : ''}>
+                  {String(h).padStart(2, '0')}:00
+                </span>
               </span>
             ))}
           </div>

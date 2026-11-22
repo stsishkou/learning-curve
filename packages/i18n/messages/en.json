@@ -418,5 +418,15 @@
   "zoom_in": "Zoom in: more room per hour",
   "zoom_out": "Zoom out: more hours on screen",
   "year_less": "Less",
-  "year_more": "More"
+  "year_more": "More",
+  "tab_dates": "Dates",
+  "week_short": "Wk",
+  "week_number": "Week of the year",
+  "week_of_year": "Week {number}",
+  "plan_zone": "Minsk",
+  "second_zone": "Second time zone",
+  "second_zone_hint": "The plan keeps Minsk time. The hour column can show the clock of another zone next to it, such as the one you are in.",
+  "second_zone_label": "Time zone",
+  "second_zone_none": "None",
+  "second_zone_mine": "My zone: {zone}"
 }

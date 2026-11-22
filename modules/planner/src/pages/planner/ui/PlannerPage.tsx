@@ -1,6 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import {
   DAY,
+  HOUR,
   isSession,
   mondayOf,
   moveOccurrence,
@@ -11,6 +12,7 @@ import {
   removeOccurrence,
   startOfDay,
   ymd,
+  zoneShift,
   type Occurrence,
   type Plan,
   type PlanChange,
@@ -26,6 +28,7 @@ import { HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
+import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
 import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
@@ -97,6 +100,12 @@ export function PlannerPage({
   const dialogs = useDialogFlags<DialogName>()
   const drafting = useEventDraft({ plan, hidden, now, first: nav.grid.start, days: nav.grid.days, canEdit })
 
+  const [zone, setZone] = useSecondZone()
+  const zoneAhead = zone ? zoneShift(zone, nav.grid.start + 12 * HOUR) : null
+  // The city is enough to tell the clocks apart: `Europe/Warsaw` reads as Warsaw.
+  const secondZone =
+    zone && zoneAhead !== null ? { label: zone.split('/').at(-1)!.replaceAll('_', ' '), shift: zoneAhead } : null
+
   const [shiftFrom, setShiftFrom] = useState<string | null>(null)
   const [overdueHidden, setOverdueHidden] = useState(false)
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
@@ -161,6 +170,7 @@ export function PlannerPage({
     calendars: plan.calendars,
     hiddenCount: hidden.size,
     history: { cursor, total: steps.length, ...quiet },
+    secondZone: secondZone?.label,
     trashCount,
     overdueCount: overdue.length,
     open: dialogs.show,
@@ -274,6 +284,7 @@ export function PlannerPage({
               onRemove={canEdit ? (o) => quiet.change(removeOccurrence(o)) : undefined}
               onCreate={canEdit ? drafting.begin : undefined}
               draft={drafting.slot}
+              secondZone={secondZone}
               selectedKey={selectedKey}
             />
           )}
@@ -312,6 +323,8 @@ export function PlannerPage({
               hidden={hidden}
               now={now}
               weekStart={weekStart}
+              shown={nav.grid}
+              onPickDay={nav.goTo}
               onSelect={select}
               onReview={() => dialogs.show('review')}
               onPickWeek={(monday) =>
@@ -382,6 +395,12 @@ export function PlannerPage({
         now={now}
         onTravel={session.travel}
         onClose={() => dialogs.hide('history')}
+      />
+      <SecondZoneDialog
+        open={dialogs.isOpen('zone')}
+        zone={zone}
+        onChoose={setZone}
+        onClose={() => dialogs.hide('zone')}
       />
       <CommandPalette
         open={dialogs.isOpen('palette')}

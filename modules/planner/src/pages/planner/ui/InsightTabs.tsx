@@ -7,9 +7,10 @@ import { useFillHeight } from '../../../shared/lib'
 import { BudgetPanel } from '../../../widgets/budget-panel'
 import { CourseProgress } from '../../../widgets/course-progress'
 import { GoalLadder } from '../../../widgets/goal-ladder'
+import { MiniMonth } from '../../../widgets/mini-month'
 import { PlanMap } from '../../../widgets/plan-map'
 
-type Tab = 'week' | 'courses' | 'map'
+type Tab = 'week' | 'courses' | 'map' | 'dates'
 
 interface Props {
   plan: Plan
@@ -17,13 +18,30 @@ interface Props {
   hidden: ReadonlySet<string>
   now: number | null
   weekStart: number
+  /** The days the calendar shows now */
+  shown: { start: number; days: number }
   onSelect: (e: PlanEvent) => void
   onPickWeek: (monday: number) => void
+  onPickDay: (day: number) => void
   onReview: () => void
 }
 
-/** One card, three looks at the plan: this week's budget, progress per course, the map of all weeks. */
-export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect, onPickWeek, onReview }: Props) {
+/**
+ * One card, four looks at the plan: this week's budget, progress per course, the map of all weeks, and a month
+ * to jump to a date with.
+ */
+export function InsightTabs({
+  plan,
+  weekItems,
+  hidden,
+  now,
+  weekStart,
+  shown,
+  onSelect,
+  onPickWeek,
+  onPickDay,
+  onReview,
+}: Props) {
   const [tab, setTab] = useState<Tab>('week')
   const body = useRef<HTMLDivElement>(null)
   // 961 is the `lg` breakpoint; the gap is the page's bottom padding plus the card's own.
@@ -38,6 +56,7 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
             { value: 'week', label: m.tab_week() },
             { value: 'courses', label: m.tab_courses() },
             { value: 'map', label: m.tab_map() },
+            { value: 'dates', label: m.tab_dates() },
           ]}
           onChange={setTab}
         />
@@ -52,6 +71,18 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
         {tab === 'courses' && <CourseProgress plan={plan} onSelect={onSelect} />}
         {tab === 'map' && (
           <PlanMap plan={plan} hidden={hidden} now={now} weekStart={weekStart} onPickWeek={onPickWeek} />
+        )}
+        {tab === 'dates' && (
+          <MiniMonth
+            // Back to the month on screen whenever the calendar moves.
+            key={shown.start}
+            plan={plan}
+            hidden={hidden}
+            now={now}
+            shown={shown}
+            onPickDay={onPickDay}
+            onPickWeek={onPickWeek}
+          />
         )}
       </div>
     </section>
