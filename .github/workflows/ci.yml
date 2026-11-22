@@ -26,3 +26,5 @@ jobs:
       - uses: nrwl/nx-set-shas@v4
       - run: pnpm exec oxfmt --check
       - run: pnpm run affected
+      - run: pnpm --filter @lc/stand exec playwright install --with-deps chromium
+      - run: pnpm run stand:test

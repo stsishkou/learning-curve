@@ -57,12 +57,18 @@ What Storybook costs: it is the heaviest option (96 packages added on install) a
 - **Prop docs use `react-docgen`.** The other generator, `react-docgen-typescript`, calls the TypeScript
   compiler API, which TypeScript 7 does not have. `react-docgen` parses each component file on its own. The
   limit: it documents the props declared in that file. Props that come from another type are not expanded, so
-  `Button` lists `primary` but not the native `<button>` attributes it also accepts.
+  `Button` on its own lists `primary` but not the native `<button>` attributes it also accepts. A component
+  that forwards native attributes says so in its story file: `packages/ui/src/button.stories.tsx` names the
+  element in the description and lists the common attributes in `argTypes` under their own category.
 - **Telemetry is off** (`core.disableTelemetry` in `apps/stand/.storybook/main.ts`). Storybook otherwise
   reports anonymous usage data.
-- **No test runner yet.** Stories with a `play` function run in the browser and show their steps in the
-  Interactions panel. Running them in CI needs `@storybook/addon-vitest` with Vitest and a Playwright browser;
-  that was left out to keep the first version small.
+- **Every story is a test.** `pnpm run stand:test` runs `@storybook/addon-vitest`: Vitest opens each story
+  in headless Chromium (Playwright), fails it when it does not render, when its `play` function fails or when
+  axe finds an accessibility violation. The whole run takes about five seconds. The browser is installed once
+  with `pnpm --filter @lc/stand exec playwright install chromium`.
+- **Known accessibility findings are marked, not hidden.** A story file whose component has a finding sets
+  `parameters.a11y.test` to `'todo'` with a comment naming it: the Accessibility panel still shows the
+  violation, the test run does not fail on it. Remove the parameter when the component is fixed.
 
 ## How it is put together
 
@@ -71,6 +77,7 @@ apps/stand/
   .storybook/main.ts          where stories are found, addons, docgen
   .storybook/preview.tsx      the theme and language toolbar, the docs theme
   .storybook/preview-head.html  the fonts and <meta name="color-scheme">
+  vitest.config.ts            the story tests: every story in headless Chromium
   src/styles.css              Tailwind and the theme, the stand's copy of apps/web/src/styles.css
   src/docs/*.mdx              written pages: Introduction, Design tokens
 packages/ui/src/*.stories.tsx                       stories live next to their components
@@ -130,6 +137,12 @@ Rules that keep `pnpm run check` green:
 - A dialog covers the whole document. Give its stories their own frame on the docs page:
   `parameters: { docs: { story: { inline: false, iframeHeight: 520 } } }`. A dialog opens in an effect, so a
   `play` function waits for it with `findByRole`, not `getByRole`.
+- A story that starts as an open dialog also sets `parameters: { dialog: true }`. Esc or a click on the
+  backdrop closes a native dialog while the `open` arg stays true; with the parameter the stand then shows an
+  "Open the dialog again" button that mounts the story anew (`apps/stand/src/reopen.tsx`).- In a `play` function, fill a text field with `fireEvent.change(input, { target: { value } })`, not
+  `userEvent.type`. With React 19 the user-event build inside `storybook/test` writes the value through the
+  tracker React keeps on a controlled input, so React sees no change and `onChange` never runs. Clicks and
+  `userEvent.keyboard` work.
 - Use React hooks in a story, not Storybook's (`useArgs`): the language switch renders the story again
   outside Storybook's hook context.
 - Turn the control off for big objects (`plan`, `items`): `argTypes: { plan: { control: false } }`.

@@ -10,6 +10,7 @@ const meta = {
   title: 'Dashboard/Widgets/StatTiles',
   component: StatTiles,
   args: { plan: fixturePlan, stats, now: fixtureNow },
+  argTypes: { plan: { control: false }, stats: { control: false } },
 } satisfies Meta<typeof StatTiles>
 
 export default meta

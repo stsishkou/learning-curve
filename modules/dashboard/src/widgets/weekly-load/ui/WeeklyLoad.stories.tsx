@@ -10,6 +10,7 @@ const meta = {
   title: 'Dashboard/Widgets/WeeklyLoad',
   component: WeeklyLoad,
   args: { plan: fixturePlan, stats, now: fixtureNow },
+  argTypes: { plan: { control: false }, stats: { control: false } },
 } satisfies Meta<typeof WeeklyLoad>
 
 export default meta

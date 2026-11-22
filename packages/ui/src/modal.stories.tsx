@@ -8,6 +8,7 @@ const meta = {
   title: 'UI kit/Modal',
   component: Modal,
   parameters: {
+    dialog: true,
     docs: {
       description: {
         component:

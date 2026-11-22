@@ -7,7 +7,7 @@ import { PlanFileReader } from './PlanFileReader'
 const meta = {
   title: 'Planner/Features/PlanFileReader',
   component: PlanFileReader,
-  parameters: { layout: 'fullscreen', docs: { story: { inline: false, iframeHeight: 720 } } },
+  parameters: { dialog: true, layout: 'fullscreen', docs: { story: { inline: false, iframeHeight: 720 } } },
   args: {
     open: true,
     shown: { name: 'plan.json', plan: fixturePlan },

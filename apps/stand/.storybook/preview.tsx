@@ -6,6 +6,7 @@ import { addons } from 'storybook/preview-api'
 import { themes } from 'storybook/theming'
 
 import { applyGlobals, askPage, getLocale, getTheme, subscribe } from '../src/globals'
+import { Reopenable } from '../src/reopen'
 
 // oxlint-disable-next-line import/no-unassigned-import -- a stylesheet is imported for its effect
 import '../src/styles.css'
@@ -27,12 +28,18 @@ function Localized({ children }: PropsWithChildren) {
   return <Fragment key={locale}>{children}</Fragment>
 }
 
-const withToolbar: Decorator = (Story, { globals }) => {
+const withToolbar: Decorator = (Story, { globals, parameters }) => {
   applyGlobals(globals)
   askPage()
   return (
     <Localized>
-      <Story />
+      {parameters.dialog ? (
+        <Reopenable>
+          <Story />
+        </Reopenable>
+      ) : (
+        <Story />
+      )}
     </Localized>
   )
 }
@@ -76,6 +83,8 @@ const preview: Preview = {
   parameters: {
     layout: 'padded',
     controls: { expanded: true },
+    // An accessibility violation fails the story's test (`pnpm run stand:test`), not only the panel.
+    a11y: { test: 'error' },
     docs: { container: ThemedDocs },
     options: {
       storySort: {
@@ -85,6 +94,8 @@ const preview: Preview = {
           'UI kit',
           'Planner',
           ['Page', 'Widgets', 'Features'],
+          'Dashboard',
+          ['Page', 'Widgets'],
           'Calendar export',
         ],
       },

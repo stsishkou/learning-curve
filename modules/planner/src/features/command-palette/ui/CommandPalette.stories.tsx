@@ -1,13 +1,13 @@
 import { fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { fn } from 'storybook/test'
+import { expect, fireEvent, fn, within } from 'storybook/test'
 
 import { CommandPalette } from './CommandPalette'
 
 const meta = {
   title: 'Planner/Features/CommandPalette',
   component: CommandPalette,
-  parameters: { docs: { story: { inline: false, iframeHeight: 520 } } },
+  parameters: { dialog: true, docs: { story: { inline: false, iframeHeight: 520 } } },
   args: {
     open: true,
     plan: fixturePlan,
@@ -27,5 +27,21 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Type two letters or more to search the events of the plan as well, for example `ADK`. */
 export const Commands: Story = {}
+
+/** Two letters or more also search the events of the plan; Enter opens the first match. */
+export const SearchingEvents: Story = {
+  play: async ({ canvasElement, args }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    // The dialog opens in an effect, after the first render: wait for it.
+    const input = await body.findByRole('combobox')
+    // Not `userEvent.type`: here it writes through the value tracker React keeps on the input, so React sees
+    // no change and `onChange` never runs. `fireEvent.change` sets the value the way the browser does.
+    await fireEvent.change(input, { target: { value: 'ADK' } })
+    const [first] = await body.findAllByRole('option')
+    await expect(first).toHaveTextContent('ADK')
+    // Sent to the input itself: on a docs page the story sits in a frame that may not have the focus.
+    await fireEvent.keyDown(input, { key: 'Enter' })
+    await expect(args.onSelectEvent).toHaveBeenCalledWith(expect.objectContaining({ calendar: 'certs' }))
+  },
+}
