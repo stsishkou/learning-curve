@@ -12,7 +12,8 @@
     "lint": "oxlint -c ../../.oxlintrc.json"
   },
   "dependencies": {
-    "@lc/plan-domain": "workspace:*"
+    "@lc/plan-domain": "workspace:*",
+    "ical.js": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -57,6 +57,13 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Second time zone**: `⋮` → `Second time zone` puts the clock of another zone next to the plan's Minsk time in
   the hour column. The choice is kept in the browser.
 - **Dates**: the `Dates` tab of the side card is a month to jump with: a day or an ISO week number opens it.
+- **Your real calendar behind the plan**: `⋮` → `My calendar behind the plan` takes the secret iCal address of a
+  work or personal calendar (Google: calendar settings → `Secret address in iCal format`; Outlook: `Publish` a
+  calendar and copy the ICS link). Its busy time is then drawn in grey behind the week and day views, and the
+  overlap warning names it. Nothing of it is stored in the plan or exported. The address is kept in the untracked
+  `packages/plan-data/data/local.json`, or set with `BUSY_ICS_URL` on a host without a writable checkout; the
+  browser only ever learns its host. The compact grid keeps the plan's hours: `24 hours` shows the whole day.
+  Titles of that calendar are shown to anyone who can open the planner, so set it only where that is you.
 - **Reminders**: `⋮` → `Reminders` shows a system notification ten minutes before each start, while the planner
   is open in a tab.
 - **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs

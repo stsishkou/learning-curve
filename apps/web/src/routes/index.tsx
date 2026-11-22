@@ -4,6 +4,7 @@ import { locales, setLocale } from '@lc/i18n/runtime'
 import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planner'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
+import { getBusy, getBusyFeed, saveBusyFeed } from '#/server/busy'
 import { getPlanState, savePlanChange, travelPlanHistory } from '#/server/plan'
 import { ShellAside, STAND_URL } from '#/shell/ShellAside'
 import { setTheme } from '#/shell/theme'
@@ -11,7 +12,10 @@ import { setTheme } from '#/shell/theme'
 /** The planner module rendered at `/`; the route only wires it to the URL, the server functions and the other modules. */
 export const Route = createFileRoute('/')({
   validateSearch: parsePlannerSearch,
-  loader: () => getPlanState(),
+  loader: async () => {
+    const [state, feed] = await Promise.all([getPlanState(), getBusyFeed()])
+    return { state, feed }
+  },
   component: PlannerRoute,
 })
 
@@ -36,9 +40,10 @@ const shellCommands = (open: (to: '/dashboard' | '/focus') => void): PlannerComm
 function PlannerRoute() {
   const navigate = Route.useNavigate()
   const router = useRouter()
+  const { state, feed } = Route.useLoaderData()
   return (
     <PlannerPage
-      state={Route.useLoaderData()}
+      state={state}
       search={Route.useSearch()}
       // The same page with another week, view or open event: the router would otherwise scroll it back to the top.
       onSearchChange={(patch) => void navigate({ search: (prev) => ({ ...prev, ...patch }), resetScroll: false })}
@@ -52,6 +57,16 @@ function PlannerRoute() {
       }}
       headerAside={<ShellAside />}
       renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}
+      busy={{
+        host: feed.host,
+        load: (from, to) => getBusy({ data: { from, to } }),
+        save: feed.canSet
+          ? async (url) => {
+              await saveBusyFeed({ data: url })
+              await router.invalidate()
+            }
+          : undefined,
+      }}
       onFocus={(session) => void router.navigate({ to: '/focus', search: { session } })}
       commands={shellCommands((to) => void router.navigate({ to }))}
     />

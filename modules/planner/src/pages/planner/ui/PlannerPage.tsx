@@ -21,6 +21,7 @@ import {
 } from '@lc/plan-domain'
 import { useMemo, useState, type ReactNode } from 'react'
 
+import { BusyFeedDialog, useBusy, type BusySource } from '../../../features/busy-overlay'
 import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
@@ -73,6 +74,8 @@ interface Props {
   renderActions?: (shown: { plan: Plan; hidden: ReadonlySet<string> }) => ReactNode
   /** Present when the host has a focus page: called with the uid of the session to time there */
   onFocus?: (uid: string) => void
+  /** Present when the host can read the person's own calendar: its busy time is drawn behind the plan */
+  busy?: BusySource
   /** Host actions listed in the command palette, such as the theme */
   commands?: Command[]
 }
@@ -93,6 +96,7 @@ export function PlannerPage({
   headerAside,
   renderActions,
   onFocus,
+  busy,
   commands,
 }: Props) {
   const now = useNow()
@@ -111,6 +115,12 @@ export function PlannerPage({
   // The city is enough to tell the clocks apart: `Europe/Warsaw` reads as Warsaw.
   const secondZone =
     zone && zoneAhead !== null ? { label: zone.split('/').at(-1)!.replaceAll('_', ' '), shift: zoneAhead } : null
+
+  // What the calendar shows: a week, or the weeks of the month grid.
+  const shownFrom = view === 'month' ? nav.monthGridStart : weekStart
+  const taken = useBusy(busy, shownFrom, shownFrom + (view === 'month' ? nav.monthWeeks : 1) * 7 * DAY)
+  // A calendar that is connected but cannot be changed here has nothing to open.
+  const busyAction = busy && (busy.save || busy.host) ? { host: busy.host } : undefined
 
   const [shiftFrom, setShiftFrom] = useState<string | null>(null)
   const [overdueHidden, setOverdueHidden] = useState(false)
@@ -184,6 +194,7 @@ export function PlannerPage({
     hiddenCount: hidden.size,
     history: { cursor, total: steps.length, ...quiet },
     secondZone: secondZone?.label,
+    busy: busyAction,
     reminders: reminders.supported ? reminders : undefined,
     trashCount,
     overdueCount: overdue.length,
@@ -282,6 +293,11 @@ export function PlannerPage({
           {m.reminders_blocked()}
         </p>
       )}
+      {taken.error && (
+        <p className="mb-3 text-[13px] text-today-ink" role="alert">
+          {m.busy_failed({ reason: taken.error })}
+        </p>
+      )}
       {quiet.saveError && (
         <p className="mb-3 text-[13px] text-today-ink" role="alert">
           {quiet.saveError}
@@ -313,6 +329,7 @@ export function PlannerPage({
               onCreate={canEdit ? drafting.begin : undefined}
               draft={drafting.slot}
               secondZone={secondZone}
+              busy={taken.blocks}
               selectedKey={selectedKey}
             />
           )}
@@ -381,6 +398,7 @@ export function PlannerPage({
           if (search.event) onSearchChange({ event: undefined })
         }}
         onDraftChange={drafting.show}
+        busy={taken.blocks}
         anchor={dialogAnchor}
       />
       <CalendarsDialog
@@ -429,6 +447,12 @@ export function PlannerPage({
         zone={zone}
         onChoose={setZone}
         onClose={() => dialogs.hide('zone')}
+      />
+      <BusyFeedDialog
+        open={dialogs.isOpen('busy')}
+        host={busy?.host ?? null}
+        onSave={busy?.save}
+        onClose={() => dialogs.hide('busy')}
       />
       <CommandPalette
         open={dialogs.isOpen('palette')}

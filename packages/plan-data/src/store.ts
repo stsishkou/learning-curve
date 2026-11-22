@@ -33,6 +33,9 @@ const EDITS_FILE = join(dataDir(), 'edits.json')
 // Local to a checkout: a record of what was done here, not part of the plan.
 const HISTORY_FILE = join(dataDir(), 'history.json')
 
+// Local to a checkout and never committed: it holds a secret address.
+const LOCAL_FILE = join(dataDir(), 'local.json')
+
 const readJson = (file: string): unknown => JSON.parse(readFileSync(file, 'utf8'))
 const writeJson = (file: string, value: unknown) => writeFileSync(file, JSON.stringify(value, null, 2) + '\n')
 
@@ -45,6 +48,21 @@ export function readHistory(): PlanHistory {
 }
 
 export const writeHistory = (history: PlanHistory) => writeJson(HISTORY_FILE, history)
+
+/**
+ * The secret iCal address of the person's own calendar, whose busy time is shown behind the plan. Kept in the
+ * untracked `data/local.json`; `BUSY_ICS_URL` sets it on a host that has no writable checkout.
+ */
+export function readBusyFeed(): string | null {
+  if (process.env.BUSY_ICS_URL) return process.env.BUSY_ICS_URL
+  if (!existsSync(LOCAL_FILE)) return null
+  const local = readJson(LOCAL_FILE)
+  return typeof local === 'object' && local !== null && 'busyFeed' in local && typeof local.busyFeed === 'string'
+    ? local.busyFeed
+    : null
+}
+
+export const writeBusyFeed = (url: string | null) => writeJson(LOCAL_FILE, url ? { busyFeed: url } : {})
 
 /** The plan on disk, so edits saved since the last build are visible; the bundled copy when the repo is not around. */
 export function readPlan(): Plan {

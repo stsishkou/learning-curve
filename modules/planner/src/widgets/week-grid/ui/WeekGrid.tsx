@@ -7,6 +7,7 @@ import {
   hm,
   HOUR,
   layoutLanes,
+  type BusyBlock,
   type Occurrence,
   type Plan,
   type PlanEvent,
@@ -48,6 +49,11 @@ interface Props {
   draft?: DraftSlot | null
   /** A second clock in the hour column: `label` names it, `shift` is what it is ahead of the plan's clock, in ms */
   secondZone?: { label: string; shift: number } | null
+  /**
+   * Busy time of the person's own calendar, drawn in grey behind the events. It cannot be opened or moved, and the
+   * hours of the grid do not grow to hold it: it matters where the plan is.
+   */
+  busy?: BusyBlock[]
   /** `eventKey` of the occurrence whose dialog is open: it gets a ring */
   selectedKey?: string | null
 }
@@ -90,6 +96,7 @@ const EVENT_FREE =
 // A done event is toned down through its colours, not opacity: its text has to stay readable.
 const EVENT_DONE =
   'border-[color-mix(in_srgb,var(--c)_45%,var(--surface))] bg-[color-mix(in_srgb,var(--c)_6%,var(--surface))] text-muted hover:bg-[color-mix(in_srgb,var(--c)_14%,var(--surface))]'
+const BUSY_FILL = 'bg-[repeating-linear-gradient(135deg,var(--line)_0_2px,var(--surface-2)_2px_7px)]'
 const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
 // A long press picks an event up: it must not select text or open the system menu instead.
 const TOUCH_QUIET = 'select-none [-webkit-touch-callout:none]'
@@ -119,6 +126,8 @@ interface Drag {
 }
 
 const keyOf = eventKey
+const NO_BUSY: BusyBlock[] = []
+const busyLabel = (b: BusyBlock) => b.title || m.busy_block()
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
 /**
@@ -140,10 +149,13 @@ export function WeekGrid({
   onCreate,
   draft = null,
   secondZone = null,
+  busy = NO_BUSY,
   selectedKey = null,
 }: Props) {
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
+  const busyDays = busy.filter((b) => b.allDay)
+  const busyTimed = busy.filter((b) => !b.allDay)
   let minH = 8
   let maxH = 15
   for (const o of timed) {
@@ -423,7 +435,7 @@ export function WeekGrid({
             )
           })}
 
-          {allDay.length > 0 && (
+          {(allDay.length > 0 || busyDays.some((b) => b.s < weekStart + dayCount * DAY && b.e > weekStart)) && (
             <>
               <div className={`${HEAD} ${PINNED} px-2 py-1.5 text-[11px]`}>{m.all_day()}</div>
               {days.map((d) => (
@@ -432,6 +444,18 @@ export function WeekGrid({
                   data-day={ymd(d)}
                   className="grid min-w-0 content-start gap-1 border-b border-line-soft p-1"
                 >
+                  {busyDays
+                    .filter((b) => b.s <= d && d < b.e)
+                    .map((b) => (
+                      <span
+                        key={`${b.s}-${b.title}`}
+                        data-busy
+                        className={`${BUSY_FILL} truncate rounded-md px-1.5 py-[3px] text-[12px] text-muted`}
+                        title={m.busy_from_calendar({ title: busyLabel(b), time: m.all_day() })}
+                      >
+                        <span className="rounded-sm bg-surface px-1">{busyLabel(b)}</span>
+                      </span>
+                    ))}
                   {allDay
                     .filter((o) => o.s === d)
                     .map((o) => {
@@ -500,6 +524,28 @@ export function WeekGrid({
                     style={{ top: (h - minH) * hourHeight }}
                   />
                 ))}
+                {busyTimed
+                  .filter((b) => b.s < d + maxH * HOUR && b.e > d + minH * HOUR)
+                  .map((b) => {
+                    const top = ((Math.max(b.s, d + minH * HOUR) - d) / HOUR - minH) * hourHeight
+                    const bottom = ((Math.min(b.e, d + maxH * HOUR) - d) / HOUR - minH) * hourHeight
+                    const label = m.busy_from_calendar({ title: busyLabel(b), time: `${hm(b.s)}–${hm(b.e)}` })
+                    return (
+                      <div key={`${b.s}-${b.e}-${b.title}`} data-busy title={label}>
+                        <div
+                          className={`${BUSY_FILL} absolute inset-x-0.5 overflow-hidden rounded-md px-1.5 py-0.5 text-[11px]/[1.3] text-muted`}
+                          style={{ top: top + 1, height: Math.max(8, bottom - top - 2) }}
+                        >
+                          <span className="rounded-sm bg-surface px-1">{busyLabel(b)}</span>
+                        </div>
+                        {/* Over the events: a block they cover is still seen at the edge of the day. */}
+                        <i
+                          className="pointer-events-none absolute right-0 z-1 w-1 rounded-l-sm bg-muted"
+                          style={{ top: top + 1, height: Math.max(8, bottom - top - 2) }}
+                        />
+                      </div>
+                    )
+                  })}
                 {dayItems.map((o) => {
                   const dragged = drag?.key === keyOf(o) ? drag : null
                   const s = dragged?.s ?? o.s

@@ -115,6 +115,10 @@ src/
   `modules/**` already refuses every `@lc/*` package except the shared ones, so nothing is added there.
 - **A route**: a file in `apps/web/src/routes` that renders a module's page. Keep logic out of route files.
 - **A server function**: `apps/web/src/server/`, using `@lc/plan-data`; pass the result into the module as props.
+- **Something read from outside the plan** (the person's own calendar): fetched and parsed in `plan-data`
+  (`busy.ts`), offered by a server function, and passed to the module as a prop with a `load` callback. It never
+  becomes a `PlanChange`; a local setting such as its address lives in the untracked `data/local.json`, written by
+  `store.ts`.
 - **A shared dependency version**: the `catalog` in `pnpm-workspace.yaml`, referenced as `catalog:`.
 
 ## Trunk-based flow

@@ -1,3 +1,4 @@
+export type { BusyBlock } from './busy'
 export {
   DAY,
   HOUR,

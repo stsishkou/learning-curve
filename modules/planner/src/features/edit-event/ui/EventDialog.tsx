@@ -9,6 +9,7 @@ import {
   parseLocal,
   skipDay,
   toLocalString,
+  type BusyBlock,
   type NewEvent,
   type Plan,
   type PlanChange,
@@ -19,7 +20,7 @@ import { useState } from 'react'
 
 import { EventForm } from './EventForm'
 import { EventNudge } from './EventNudge'
-import { OverlapNote } from './OverlapNote'
+import { OverlapNote, type Overlap } from './OverlapNote'
 import { SpentTime } from './SpentTime'
 
 const URL_PATTERN = /(https?:\/\/\S+)/g
@@ -35,6 +36,8 @@ const linkify = (text: string) =>
       part
     ),
   )
+
+const NO_BUSY: BusyBlock[] = []
 
 interface Props {
   plan: Plan
@@ -55,6 +58,8 @@ interface Props {
   onClose: () => void
   /** Called with the fields of the new event while its form is filled in */
   onDraftChange?: (draft: NewEvent) => void
+  /** Busy time of the person's own calendar around the event: the overlap warning names it too */
+  busy?: BusyBlock[]
   /** Returns the element that shows the event on the page: the dialog opens beside it */
   anchor?: () => Element | null
 }
@@ -75,6 +80,7 @@ export function EventDialog({
   onChange,
   onClose,
   onDraftChange,
+  busy: taken = NO_BUSY,
   anchor,
 }: Props) {
   const [editing, setEditing] = useState(false)
@@ -112,8 +118,15 @@ export function EventDialog({
         : `${fmtDay(s)} ${hm(s)}–${hm(e)}`
   }
   const courseUrl = event?.description.match(URL_PATTERN)?.[0]
-  const overlaps = (start: string, end: string) =>
-    overlapping(plan, { s: parseLocal(start), e: parseLocal(end) }, event?.uid)
+  const overlaps = (start: string, end: string): Overlap[] => {
+    const slot = { s: parseLocal(start), e: parseLocal(end) }
+    return [
+      ...overlapping(plan, slot, event?.uid),
+      ...taken
+        .filter((b) => !b.allDay && b.s < slot.e && slot.s < b.e)
+        .map((b) => ({ title: b.title || m.busy_block(), s: b.s, e: b.e })),
+    ]
+  }
   // Of a repeating event, the repeat that was opened.
   const shownDay = event && (event.rrule && day ? day : event.start.slice(0, 10))
   const ownOverlaps =

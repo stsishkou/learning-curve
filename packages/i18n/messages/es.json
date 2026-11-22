@@ -471,5 +471,16 @@
   "history_reviews": "Repasos planificados: {name}",
   "export_alarms": "Añadir un aviso {minutes} minutos antes de cada inicio",
   "export_alarms_google": "Al importar, Google Calendar sustituye el aviso del archivo por la notificación predeterminada del calendario de destino. Ajústala en la configuración del calendario.",
-  "overlaps_with": "A la misma hora:"
+  "overlaps_with": "A la misma hora:",
+  "busy_calendar": "Mi calendario detrás del plan",
+  "busy_hint": "El tiempo ocupado de tu calendario personal o de trabajo se dibuja en gris detrás del plan, y el aviso de solapamiento lo nombra. Nunca se guarda en el plan ni se exporta.",
+  "busy_address": "Dirección secreta del calendario en formato iCal",
+  "busy_where": "Google: Configuración → el calendario → «Dirección secreta en formato iCal». Outlook: Configuración → Calendario → Calendarios compartidos → Publicar → el enlace ICS. La dirección se guarda solo en este equipo, en un archivo que git no sigue.",
+  "busy_connected": "Conectado a un calendario en {host}",
+  "busy_connect": "Conectar",
+  "busy_replace": "Reemplazar",
+  "busy_disconnect": "Desconectar",
+  "busy_failed": "No se pudo leer el calendario: {reason}",
+  "busy_block": "Ocupado",
+  "busy_from_calendar": "De mi calendario: {title}, {time}"
 }

@@ -10,6 +10,7 @@ export {
   Briefcase,
   Calendar,
   CalendarClock,
+  CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,

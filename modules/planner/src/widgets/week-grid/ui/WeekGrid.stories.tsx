@@ -81,3 +81,19 @@ export const WorkWeekZoomed: Story = {
 
 /** A second clock in the hour column: here Warsaw, two hours behind the plan's Minsk time. */
 export const SecondZone: Story = { args: { secondZone: { label: 'Warsaw', shift: -2 * 3_600_000 } } }
+
+/**
+ * Busy time of the person's own calendar, passed as `busy`: grey hatched blocks behind the events, with a strip at
+ * the edge of the day where an event covers one, and a chip in the all-day row for a day that is taken whole.
+ */
+export const OwnCalendar: Story = {
+  args: {
+    fullDay: true,
+    busy: [
+      { title: 'Standup', s: fixtureWeek + 9.5 * 3_600_000, e: fixtureWeek + 10 * 3_600_000 },
+      { title: 'Planning', s: fixtureWeek + DAY + 18 * 3_600_000, e: fixtureWeek + DAY + 20 * 3_600_000 },
+      { title: '', s: fixtureWeek + 2 * DAY + 13 * 3_600_000, e: fixtureWeek + 2 * DAY + 14.5 * 3_600_000 },
+      { title: 'Day off', s: fixtureWeek + 3 * DAY, e: fixtureWeek + 4 * DAY, allDay: true },
+    ],
+  },
+}

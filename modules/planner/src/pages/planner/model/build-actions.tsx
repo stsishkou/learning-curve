@@ -5,6 +5,7 @@ import {
   Briefcase,
   Calendar,
   CalendarClock,
+  CalendarDays,
   Clock,
   Globe,
   History,
@@ -20,7 +21,16 @@ import {
 import type { PlannerAction } from './planner-actions'
 import type { PlannerViewState } from './use-planner-view'
 
-export type DialogName = 'calendars' | 'trash' | 'history' | 'catchUp' | 'review' | 'palette' | 'shortcuts' | 'zone'
+export type DialogName =
+  | 'calendars'
+  | 'trash'
+  | 'history'
+  | 'catchUp'
+  | 'review'
+  | 'palette'
+  | 'shortcuts'
+  | 'zone'
+  | 'busy'
 
 interface Context {
   nav: PlannerViewState
@@ -31,6 +41,8 @@ interface Context {
   history: { cursor: number; total: number; canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
   /** Name of the second time zone of the hour column, when one is chosen */
   secondZone?: string
+  /** Present when the host can read the person's own calendar: `host` is where the connected one lives */
+  busy?: { host: string | null }
   /** Present where the browser can show notifications */
   reminders?: { on: boolean; toggle: () => void }
   trashCount: number
@@ -181,6 +193,19 @@ export function buildActions(ctx: Context): PlannerAction[] {
       menu: 'always',
       run: () => ctx.open('zone'),
     },
+    ...(ctx.busy
+      ? [
+          {
+            id: 'busy',
+            group: plan,
+            label: m.busy_calendar(),
+            icon: <CalendarDays {...ICON} />,
+            badge: ctx.busy.host ?? undefined,
+            menu: 'always' as const,
+            run: () => ctx.open('busy'),
+          },
+        ]
+      : []),
     ...(ctx.reminders
       ? [
           {

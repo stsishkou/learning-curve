@@ -227,6 +227,9 @@ catalogs:
     '@vitest/browser-playwright':
       specifier: 5.1.1
       version: 5.1.1
+    ical.js:
+      specifier: 2.2.1
+      version: 2.2.1
     lucide-react:
       specifier: 1.77.0
       version: 1.77.0
@@ -547,6 +550,9 @@ importers:
       '@lc/plan-domain':
         specifier: workspace:*
         version: link:../plan-domain
+      ical.js:
+        specifier: 'catalog:'
+        version: 2.2.1
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -3065,6 +3071,9 @@ packages:
     resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
     engines: {node: '>=18'}
     hasBin: true
+
+  ical.js@2.2.1:
+    resolution: {integrity: sha512-yK/UlPbEs316igb/tjRgbFA8ZV75rCsBJp/hWOatpyaPNlgw0dGDmU+FoicOcwX4xXkeXOkYiOmCqNPFpNPkQg==}
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -6265,6 +6274,8 @@ snapshots:
       function-bind: 1.1.2
 
   husky@9.1.7: {}
+
+  ical.js@2.2.1: {}
 
   ieee754@1.2.1: {}
 

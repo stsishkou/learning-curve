@@ -471,5 +471,16 @@
   "history_reviews": "Reviews planned: {name}",
   "export_alarms": "Add a reminder {minutes} minutes before each start",
   "export_alarms_google": "On import Google Calendar replaces the reminder from the file with the default notification of the calendar you import into. Set that one in the calendar settings.",
-  "overlaps_with": "At the same time:"
+  "overlaps_with": "At the same time:",
+  "busy_calendar": "My calendar behind the plan",
+  "busy_hint": "Busy time from your work or personal calendar is drawn in grey behind the plan, and the overlap warning names it. It is never written to the plan or exported.",
+  "busy_address": "Secret iCal address of the calendar",
+  "busy_where": "Google: Settings → the calendar → “Secret address in iCal format”. Outlook: Settings → Calendar → Shared calendars → Publish → the ICS link. The address is kept on this computer only, in a file git does not track.",
+  "busy_connected": "Connected to a calendar at {host}",
+  "busy_connect": "Connect",
+  "busy_replace": "Replace",
+  "busy_disconnect": "Disconnect",
+  "busy_failed": "Could not read the calendar: {reason}",
+  "busy_block": "Busy",
+  "busy_from_calendar": "From my calendar: {title}, {time}"
 }
