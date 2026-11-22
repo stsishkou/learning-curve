@@ -121,5 +121,19 @@
   "deadline_today": "la fecha límite es hoy",
   "deadline_passed": "la fecha límite ya pasó",
   "reserve": "Reserva",
-  "deadline_on": "Fecha límite: {date}"
+  "deadline_on": "Fecha límite: {date}",
+  "edit": "Editar",
+  "save": "Guardar",
+  "cancel": "Cancelar",
+  "field_title": "Título",
+  "field_description": "Descripción",
+  "field_date": "Fecha",
+  "field_start": "Inicio",
+  "field_end": "Fin",
+  "event_edited": "editado a mano",
+  "reset_event": "Restaurar la versión del plan",
+  "recurring_hint": "El cambio se aplica a todas las repeticiones.",
+  "error_title_required": "Escribe un título.",
+  "error_time_order": "El fin debe ser posterior al inicio.",
+  "save_failed": "No se pudo guardar: {reason}"
 }

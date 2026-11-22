@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useMemo, useRef, useState } from 'react'
 
 import { AgendaList } from '#/components/AgendaList'
 import { BudgetPanel } from '#/components/BudgetPanel'
-import { EventDialog, ExportDialog } from '#/components/Dialogs'
+import { EventDialog } from '#/components/EventDialog'
+import { ExportDialog } from '#/components/ExportDialog'
 import { LanguageSwitcher } from '#/components/LanguageSwitcher'
 import { Runway } from '#/components/Runway'
 import { Button, Dot, Segmented, calendarColor } from '#/components/ui'
@@ -11,8 +12,9 @@ import { WeekGrid } from '#/components/WeekGrid'
 import { useHiddenCalendars, useNow } from '#/lib/client'
 import { fmtDay, fmtShort } from '#/lib/format'
 import { DAY, mondayOf, nowMinsk, parseLocal, ymd } from '#/lib/plan/dates'
+import { applyEdits, type EventPatch } from '#/lib/plan/edits'
 import { occurrences, planStart } from '#/lib/plan/occurrences'
-import { getPlanState } from '#/lib/plan/server'
+import { getPlanState, saveEventEdit } from '#/lib/plan/server'
 import { isPlan, type Plan, type PlanEvent } from '#/lib/plan/types'
 import { m } from '#/paraglide/messages.js'
 
@@ -48,8 +50,17 @@ function PlanPage() {
   const project = Route.useLoaderData()
   // A plan file opened from disk replaces the project plan until it is dismissed.
   const [opened, setOpened] = useState<Plan | null>(null)
-  const plan = opened ?? project.plan
-  const [selected, setSelected] = useState<PlanEvent | null>(null)
+  // Changes on their way to the server, shown at once so a dragged event does not jump back while saving.
+  const [pending, setPending] = useState<Record<string, EventPatch>>({})
+  const plan = useMemo(() => {
+    const base = opened ?? project.plan
+    return Object.keys(pending).length ? applyEdits(base, { version: 1, events: pending }).plan : base
+  }, [opened, project.plan, pending])
+  const canEdit = project.canEdit && !opened
+  const router = useRouter()
+  const [selectedUid, setSelectedUid] = useState<string | null>(null)
+  const selected = plan.events.find((e) => e.uid === selectedUid) ?? null
+  const select = (e: PlanEvent) => setSelectedUid(e.uid)
   const [exportOpen, setExportOpen] = useState(false)
   const [fileError, setFileError] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
@@ -63,6 +74,16 @@ function PlanPage() {
     () => (view === 'list' ? occurrences(plan, planStart(plan), parseLocal(plan.meta.planEnd) + 8 * DAY, hidden) : []),
     [plan, hidden, view],
   )
+
+  async function saveEdit(uid: string, patch: EventPatch | null) {
+    if (patch) setPending((prev) => ({ ...prev, [uid]: patch }))
+    try {
+      await saveEventEdit({ data: { uid, patch } })
+      await router.invalidate()
+    } finally {
+      setPending((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => key !== uid)))
+    }
+  }
 
   async function openFile(file: File) {
     try {
@@ -125,7 +146,7 @@ function PlanPage() {
         </div>
       </header>
 
-      <Runway plan={plan} now={now} onSelect={setSelected} />
+      <Runway plan={plan} now={now} onSelect={select} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2.5">
         {view === 'week' && (
@@ -183,15 +204,22 @@ function PlanPage() {
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_260px]">
         <section className="rounded-2xl border border-line bg-surface">
           {view === 'week' ? (
-            <WeekGrid plan={plan} weekStart={weekStart} items={weekItems} now={now} onSelect={setSelected} />
+            <WeekGrid plan={plan} weekStart={weekStart} items={weekItems} now={now} onSelect={select} />
           ) : (
-            <AgendaList plan={plan} items={allItems} now={now} onSelect={setSelected} />
+            <AgendaList plan={plan} items={allItems} now={now} onSelect={select} />
           )}
         </section>
         <BudgetPanel plan={plan} weekItems={weekItems} />
       </div>
 
-      <EventDialog plan={plan} event={selected} onClose={() => setSelected(null)} />
+      <EventDialog
+        plan={plan}
+        event={selected}
+        edited={selected !== null && project.edited.includes(selected.uid)}
+        canEdit={canEdit}
+        onSave={saveEdit}
+        onClose={() => setSelectedUid(null)}
+      />
       <ExportDialog plan={plan} hidden={hidden} open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   )

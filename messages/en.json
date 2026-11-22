@@ -121,5 +121,19 @@
   "deadline_today": "the deadline is today",
   "deadline_passed": "the deadline has passed",
   "reserve": "Reserve",
-  "deadline_on": "Deadline: {date}"
+  "deadline_on": "Deadline: {date}",
+  "edit": "Edit",
+  "save": "Save",
+  "cancel": "Cancel",
+  "field_title": "Title",
+  "field_description": "Description",
+  "field_date": "Date",
+  "field_start": "Start",
+  "field_end": "End",
+  "event_edited": "edited manually",
+  "reset_event": "Restore the planned version",
+  "recurring_hint": "The change applies to every repeat.",
+  "error_title_required": "Enter a title.",
+  "error_time_order": "The end must be after the start.",
+  "save_failed": "Could not save: {reason}"
 }
