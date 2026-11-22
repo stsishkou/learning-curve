@@ -4,7 +4,7 @@ import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 /** Fields of an event that can be changed in the viewer. Times are Europe/Minsk wall-clock strings. */
 export type EventPatch = Partial<
-  Pick<PlanEvent, 'title' | 'description' | 'start' | 'end' | 'calendar' | 'done' | 'rrule' | 'skip'>
+  Pick<PlanEvent, 'title' | 'description' | 'start' | 'end' | 'calendar' | 'done' | 'actual' | 'rrule' | 'skip'>
 >
 
 /** A calendar's look. For a generated calendar it overrides the content; an unknown id adds a calendar. */
@@ -56,6 +56,11 @@ export function parsePatch(value: unknown): EventPatch | null {
     if (typeof value.done !== 'boolean') return null
     patch.done = value.done
   }
+  if (value.actual !== undefined) {
+    const { actual } = value
+    if (typeof actual !== 'number' || !Number.isInteger(actual) || actual < 5 || actual > 24 * 60) return null
+    patch.actual = actual
+  }
   if (value.rrule !== undefined) {
     if (typeof value.rrule !== 'string' || !WEEKLY_RULE.test(value.rrule) || !value.rrule.includes('BYDAY=')) {
       return null
@@ -92,10 +97,12 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
     start,
     end,
     description: patch.description ?? '',
-    kind: value.availability === 'free' ? 'personal' : 'study',
+    // A repeat moved out of a personal series stays personal: it is not a study session.
+    kind: value.availability === 'free' || value.kind === 'personal' ? 'personal' : 'study',
     availability: value.availability === 'free' ? 'free' : 'busy',
   }
   if (patch.done) event.done = true
+  if (patch.done && patch.actual) event.actual = patch.actual
   return patchProblem(event, {}) ? null : event
 }
 
@@ -162,7 +169,10 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
       const patch = edits.events[event.uid]
       if (!patch || patchProblem(event, patch)) return event
       const next = { ...event, ...patch }
-      if (!next.done) delete next.done
+      if (!next.done) {
+        delete next.done
+        delete next.actual
+      }
       if (!next.skip?.length) delete next.skip
       return calendarIds.has(next.calendar) ? next : { ...next, calendar: event.calendar }
     }),

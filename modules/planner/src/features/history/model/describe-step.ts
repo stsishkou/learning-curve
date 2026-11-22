@@ -34,6 +34,7 @@ export function describeStep({ change, subject }: HistoryStep): string {
   if (patch.done !== undefined) {
     return patch.done ? m.history_done({ name: subject }) : m.history_not_done({ name: subject })
   }
+  if (patch.actual !== undefined) return m.history_spent({ name: subject })
   if (patch.skip) return m.history_skipped({ name: subject })
   const onlyTime = Object.keys(patch).every((key) => key === 'start' || key === 'end' || key === 'rrule')
   return onlyTime ? m.history_moved({ name: subject }) : m.changed_event({ title: subject })

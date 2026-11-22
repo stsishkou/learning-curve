@@ -68,6 +68,10 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **History**: every change is a step you can take back and redo: `↶` `↷` in the toolbar, `Ctrl/⌘ Z` and
   `Ctrl/⌘ Shift Z`, or the `History` window (`H`), where any point of the timeline can be picked. The last 100
   steps are kept in `packages/plan-data/data/history.json`, which is local and not committed.
+- **Real pace**: a session marked done shows `Time spent` in its card, in quarter-hour steps; without it the
+  session counts as planned. From that the planner works out a pace per course (real hours per planned hour) and
+  the dashboard's `Forecast at your pace` shows when the rest of each course will really be finished and how
+  that sits against the certificate deadline.
 - **Catching up**: when sessions in the past are not done, a bar above the calendar offers to mark them done or
   to shift the plan. `Shift the plan` (also in the `⋮` menu) moves every session that is not done, from a chosen
   day and optionally in one calendar, by a number of days; it is one history step. An event can be duplicated

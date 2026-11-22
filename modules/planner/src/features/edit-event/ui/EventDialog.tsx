@@ -17,6 +17,7 @@ import { useState } from 'react'
 
 import { EventForm } from './EventForm'
 import { EventNudge } from './EventNudge'
+import { SpentTime } from './SpentTime'
 
 const URL_PATTERN = /(https?:\/\/\S+)/g
 
@@ -167,6 +168,13 @@ export function EventDialog({
                 onDayChange?.(landed)
                 void run({ type: 'event.patch', uid: event.uid, patch })
               }}
+            />
+          )}
+          {canEdit && event.done && isSession(event) && (
+            <SpentTime
+              event={event}
+              disabled={busy}
+              onLog={(actual) => void run({ type: 'event.patch', uid: event.uid, patch: { actual } })}
             />
           )}
           {error && (

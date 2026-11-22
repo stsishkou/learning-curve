@@ -178,7 +178,10 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
         if (!patch) return next
         const { rrule: _rule, skip: _skip, ...fields } = patch
         const merged: PlanEvent = { ...next.added[addedIndex], ...fields }
-        if (!merged.done) delete merged.done
+        if (!merged.done) {
+          delete merged.done
+          delete merged.actual
+        }
         if (patchProblem(merged, {})) fail('The event must end after it starts')
         next.added[addedIndex] = merged
         return next
@@ -193,6 +196,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       for (const key of ['title', 'description', 'start', 'end', 'calendar', 'rrule'] as const) {
         if (merged[key] === original[key]) delete merged[key]
       }
+      if (!(merged.done ?? original.done)) delete merged.actual
       if (!merged.done === !original.done) delete merged.done
       if (!merged.skip?.length || !original.rrule) delete merged.skip
       if (!original.rrule) delete merged.rrule

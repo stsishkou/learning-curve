@@ -37,6 +37,7 @@ export function CourseProgress({ plan, onSelect }: Props) {
               <span className="block text-[12px] text-muted tabular-nums">
                 {m.progress_sessions({ done: c.doneSessions, total: c.sessions })} ·{' '}
                 {m.progress_finish({ date: fmtShort(parseLocal(c.finish)) })}
+                {Math.abs(c.pace - 1) >= 0.05 && ` · ${m.pace_note({ pace: c.pace.toFixed(1) })}`}
               </span>
               {c.next && (
                 <button

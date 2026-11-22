@@ -31,6 +31,8 @@ export interface PlanEvent {
   skip?: string[]
   /** The session is finished: set by hand in the viewer */
   done?: boolean
+  /** Minutes the finished session really took, when that was logged; otherwise it counts as planned */
+  actual?: number
 }
 
 export interface PlanMeta {

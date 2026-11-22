@@ -38,6 +38,7 @@ export {
   type PlanHistory,
 } from './history'
 export { movePatch, weekdaysOf } from './recurrence'
+export { paceForecast, type PaceForecast } from './forecast'
 export {
   TRASH_DAYS,
   emptyTrash,
@@ -67,7 +68,7 @@ export {
   type Lane,
   type Occurrence,
 } from './occurrences'
-export { courseProgress, isSession, type CourseProgress } from './progress'
+export { courseProgress, isSession, plannedHours, spentHours, type CourseProgress } from './progress'
 export { planStats, type PlanStats, type WeekStats } from './stats'
 export { DEFAULT_CONFIG, buildPlan, weeklyHours, type ScheduleConfig } from './schedule'
 export {
