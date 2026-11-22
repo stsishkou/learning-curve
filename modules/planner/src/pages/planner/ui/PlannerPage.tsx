@@ -59,7 +59,7 @@ import { PlanTitle } from '../../../features/rename-plan'
 import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
-import { useModKey, useNow } from '../../../shared/lib'
+import { eventKey, useModKey, useNow } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
 import { MonthGrid } from '../../../widgets/month-grid'
 import { NowNext } from '../../../widgets/now-next'
@@ -252,16 +252,19 @@ export function PlannerPage({
     title: drafted.title,
     calendar: drafted.calendar,
   }
-  // The dialog keeps to the half of the week the event is not in, so a change shows next to the form.
-  const shownStart =
-    draftSlot?.s ??
-    (selected ? parseLocal(pickedDay ? `${pickedDay}T${selected.start.slice(11, 16)}` : selected.start) : null)
-  const dialogSide =
-    view !== 'week' || shownStart === null || shownStart < weekStart || shownStart >= weekStart + 7 * DAY
-      ? undefined
-      : shownStart < weekStart + 4 * DAY
-        ? ('right' as const)
-        : ('left' as const)
+  // One repeat of a series, not all of them: the one that was opened, or the first on screen after a reload.
+  const selectedShown = selected
+    ? (view === 'month' ? monthItems : weekItems).find(
+        (o) => o.uid === selected.uid && (!pickedDay || ymd(o.s) === pickedDay),
+      )
+    : undefined
+  const selectedKey = selectedShown ? eventKey(selectedShown) : null
+  const dialogAnchor = () =>
+    draft
+      ? document.querySelector('[data-draft]')
+      : selectedKey
+        ? document.querySelector(`[data-key="${CSS.escape(selectedKey)}"]`)
+        : null
 
   const go = {
     today: () => onSearchChange({ week: undefined }),
@@ -673,7 +676,7 @@ export function PlannerPage({
               onRemove={canEdit ? remove : undefined}
               onCreate={canEdit ? newEvent : undefined}
               draft={draftSlot}
-              selectedUid={selected?.uid ?? null}
+              selectedKey={selectedKey}
             />
           )}
           {view === 'month' && (
@@ -724,7 +727,7 @@ export function PlannerPage({
           if (search.event) onSearchChange({ event: undefined })
         }}
         onDraftChange={setDraftShown}
-        side={dialogSide}
+        anchor={dialogAnchor}
       />
       <CalendarsDialog
         plan={plan}

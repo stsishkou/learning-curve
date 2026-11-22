@@ -57,4 +57,10 @@ export const Drafting: Story = {
 }
 
 /** The event whose dialog is open carries a ring, so it can be found next to the docked dialog. */
-export const SelectedEvent: Story = { args: { selectedUid: week(fixtureWeek).find((o) => !o.allDay)?.uid } }
+export const SelectedEvent: Story = {
+  args: {
+    selectedKey: week(fixtureWeek)
+      .filter((o) => !o.allDay)
+      .map((o) => `${o.uid}-${o.s}`)[0],
+  },
+}

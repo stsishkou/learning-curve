@@ -17,7 +17,7 @@ import {
 import { calendarColor, Repeat } from '@lc/ui'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 
-import { useFillHeight } from '../../../shared/lib'
+import { eventKey, useFillHeight } from '../../../shared/lib'
 
 interface Props {
   plan: Plan
@@ -42,8 +42,8 @@ interface Props {
   onCreate?: (start: string, end?: string) => void
   /** An event that is not stored yet, drawn dashed in its slot while its form is open */
   draft?: DraftSlot | null
-  /** uid of the event whose dialog is open: it gets a ring */
-  selectedUid?: string | null
+  /** `eventKey` of the occurrence whose dialog is open: it gets a ring */
+  selectedKey?: string | null
 }
 
 export interface DraftSlot {
@@ -107,7 +107,7 @@ interface Drag {
   shiftX: number
 }
 
-const keyOf = (o: Occurrence) => `${o.uid}-${o.s}`
+const keyOf = eventKey
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
 /**
@@ -126,7 +126,7 @@ export function WeekGrid({
   onRemove,
   onCreate,
   draft = null,
-  selectedUid = null,
+  selectedKey = null,
 }: Props) {
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
@@ -470,7 +470,7 @@ export function WeekGrid({
                     <button
                       key={keyOf(o)}
                       type="button"
-                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : o.uid === selectedUid ? 'z-3 ring-2 ring-focus' : ''}`}
+                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : keyOf(o) === selectedKey ? 'z-3 ring-2 ring-focus' : ''}`}
                       style={{
                         ...calendarColor(colorOf(o.calendar)),
                         top: ((s - startOfDay(s)) / HOUR - minH) * PX_PER_HOUR + 1,

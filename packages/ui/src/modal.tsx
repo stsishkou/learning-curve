@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, type MouseEvent, type ReactNode } from 'react'
 
 export const TITLE = 'mb-1 text-[18px]/[1.3] font-semibold'
 export const META = 'flex flex-wrap items-center gap-2 text-[13.5px] text-muted'
@@ -16,11 +16,33 @@ interface Props {
   /** Sticks to the top of the window instead of the middle, for a search box whose results change height */
   top?: boolean
   /**
-   * Docks the dialog to one side of a wide window and leaves the page behind it readable, for a form whose result
-   * shows on the page while it is filled in
+   * Returns the element the dialog is about. On a wide window the dialog then opens beside that element, on the
+   * side with more room, and leaves the page behind it readable; without an element it stays in the middle.
    */
-  side?: 'left' | 'right'
+  anchor?: () => Element | null
   children: ReactNode
+}
+
+/** Below this width a dialog beside its element would cover it anyway. */
+const ANCHOR_FROM = 768
+const GAP = 12
+const EDGE = 16
+
+/** Puts the dialog beside `target`: right of it when it fits, otherwise left, kept inside the window. */
+function placeBeside(dlg: HTMLDialogElement, target: Element | null) {
+  if (!target || window.innerWidth < ANCHOR_FROM) {
+    dlg.style.margin = dlg.style.left = dlg.style.top = ''
+    return
+  }
+  const at = target.getBoundingClientRect()
+  const { width, height } = dlg.getBoundingClientRect()
+  const right = at.right + GAP
+  const left = at.left - GAP - width
+  const fits = right + width <= window.innerWidth - EDGE
+  const x = fits || left < EDGE ? right : left
+  dlg.style.margin = '0'
+  dlg.style.left = `${Math.max(EDGE, Math.min(x, window.innerWidth - EDGE - width))}px`
+  dlg.style.top = `${Math.max(EDGE, Math.min(at.top, window.innerHeight - EDGE - height))}px`
 }
 
 const SIZE = {
@@ -34,15 +56,9 @@ const SIZE = {
  * click on the backdrop close it. `TITLE`, `META` and `FOOT`, exported next to it, are the class strings for its
  * heading, the line under the heading and the button row.
  */
-export function Modal({ open, onClose, label, size = 'normal', top = false, side, children }: Props) {
-  const place = top
-    ? 'mx-auto mt-[12vh] mb-auto'
-    : side === 'left'
-      ? 'm-auto md:ml-4'
-      : side === 'right'
-        ? 'm-auto md:mr-4'
-        : 'm-auto'
-  const backdrop = side
+export function Modal({ open, onClose, label, size = 'normal', top = false, anchor, children }: Props) {
+  const place = top ? 'mx-auto mt-[12vh] mb-auto' : 'm-auto'
+  const backdrop = anchor
     ? 'backdrop:bg-[rgb(10_16_30/0.12)]'
     : 'backdrop:bg-[rgb(10_16_30/0.45)] backdrop:backdrop-blur-[2px]'
   const ref = useRef<HTMLDialogElement>(null)
@@ -51,6 +67,28 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, side
     if (!dlg) return
     if (open && !dlg.open) dlg.showModal()
     if (!open && dlg.open) dlg.close()
+  }, [open])
+
+  const latestAnchor = useRef(anchor)
+  // After every render: the element moves when the event it shows is edited, and the dialog changes height.
+  useLayoutEffect(() => {
+    latestAnchor.current = anchor
+    if (ref.current && open) placeBeside(ref.current, anchor?.() ?? null)
+  })
+  useEffect(() => {
+    const dlg = ref.current
+    if (!dlg || !open) return undefined
+    const settle = () => placeBeside(dlg, latestAnchor.current?.() ?? null)
+    const resized = new ResizeObserver(settle)
+    resized.observe(dlg)
+    window.addEventListener('resize', settle)
+    // Capturing: the page and the panes inside it scroll under an open dialog.
+    window.addEventListener('scroll', settle, true)
+    return () => {
+      resized.disconnect()
+      window.removeEventListener('resize', settle)
+      window.removeEventListener('scroll', settle, true)
+    }
   }, [open])
 
   // Browsers without `closedby` (Safari) get the backdrop click by hand: a click whose target is the dialog

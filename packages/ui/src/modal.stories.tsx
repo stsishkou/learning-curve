@@ -53,7 +53,7 @@ export const Top: Story = {
 }
 
 /**
- * Docked to one side of a wide window with the page behind left readable: for a form whose result shows on the page
- * while it is filled in, such as a new event drawn on the calendar.
+ * Beside the element it is about, with the page behind left readable: for a form whose result shows on the page
+ * while it is filled in, such as a new event drawn on the calendar. Here the element is the page's first button.
  */
-export const Docked: Story = { args: { side: 'right' } }
+export const Anchored: Story = { args: { anchor: () => document.querySelector('button') } }

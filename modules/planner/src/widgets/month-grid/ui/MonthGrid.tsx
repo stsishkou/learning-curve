@@ -4,7 +4,7 @@ import { DAY, hm, startOfDay, ymd, type Occurrence, type Plan, type PlanEvent } 
 import { calendarColor, Dot } from '@lc/ui'
 import { useRef, useState, type PointerEvent } from 'react'
 
-import { useFillHeight } from '../../../shared/lib'
+import { eventKey, useFillHeight } from '../../../shared/lib'
 
 const SHOWN = 3
 /** Pointer travel in px before a press counts as a drag instead of a click */
@@ -44,7 +44,7 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
     p.moved = true
     const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-month-day]')
     const target = cell ? Number(cell.dataset.monthDay) : startOfDay(o.s)
-    setDrag({ key: `${o.uid}-${o.s}`, target })
+    setDrag({ key: eventKey(o), target })
   }
 
   function pointerUp(o: Occurrence) {
@@ -102,9 +102,10 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
               <div className="grid gap-0.5">
                 {list.slice(0, SHOWN).map((o) => (
                   <button
-                    key={`${o.uid}-${o.s}`}
+                    key={eventKey(o)}
+                    data-key={eventKey(o)}
                     type="button"
-                    className={`flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-px text-left text-[11.5px]/[1.5] select-none hover:bg-surface-2 ${o.done ? 'text-muted' : ''} ${onMove ? 'cursor-grab' : ''} ${drag?.key === `${o.uid}-${o.s}` ? 'cursor-grabbing opacity-50' : ''}`}
+                    className={`flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-px text-left text-[11.5px]/[1.5] select-none hover:bg-surface-2 ${o.done ? 'text-muted' : ''} ${onMove ? 'cursor-grab' : ''} ${drag?.key === eventKey(o) ? 'cursor-grabbing opacity-50' : ''}`}
                     style={calendarColor(colorOf(o.calendar))}
                     onPointerDown={(e) => {
                       if (!onMove || e.button !== 0 || e.pointerType === 'touch') return
