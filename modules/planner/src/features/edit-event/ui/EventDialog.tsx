@@ -5,6 +5,7 @@ import {
   hm,
   isCustomEvent,
   isSession,
+  overlapping,
   parseLocal,
   skipDay,
   toLocalString,
@@ -18,6 +19,7 @@ import { useState } from 'react'
 
 import { EventForm } from './EventForm'
 import { EventNudge } from './EventNudge'
+import { OverlapNote } from './OverlapNote'
 import { SpentTime } from './SpentTime'
 
 const URL_PATTERN = /(https?:\/\/\S+)/g
@@ -110,6 +112,14 @@ export function EventDialog({
         : `${fmtDay(s)} ${hm(s)}–${hm(e)}`
   }
   const courseUrl = event?.description.match(URL_PATTERN)?.[0]
+  const overlaps = (start: string, end: string) =>
+    overlapping(plan, { s: parseLocal(start), e: parseLocal(end) }, event?.uid)
+  // Of a repeating event, the repeat that was opened.
+  const shownDay = event && (event.rrule && day ? day : event.start.slice(0, 10))
+  const ownOverlaps =
+    event && shownDay && !event.allDay && event.availability !== 'free'
+      ? overlaps(`${shownDay}T${event.start.slice(11, 16)}`, `${shownDay}T${event.end.slice(11, 16)}`)
+      : []
 
   return (
     <Modal open={!!event || !!draft} anchor={anchor} onClose={close}>
@@ -121,6 +131,7 @@ export function EventDialog({
           initial={draft}
           calendars={plan.calendars}
           chooseAvailability
+          overlaps={overlaps}
           busy={busy}
           error={error}
           onCancel={close}
@@ -137,6 +148,7 @@ export function EventDialog({
           calendars={plan.calendars}
           allDay={event.allDay}
           recurring={!!event.rrule}
+          overlaps={event.availability === 'free' ? undefined : overlaps}
           busy={busy}
           error={error}
           onCancel={() => (setEditing(false), setError(''))}
@@ -175,6 +187,11 @@ export function EventDialog({
               </span>
             )}
           </div>
+          {ownOverlaps.length > 0 && (
+            <div className="mt-2.5">
+              <OverlapNote overlaps={ownOverlaps} />
+            </div>
+          )}
           {event.description && (
             <pre className="mt-3.5 rounded-[10px] bg-surface-2 px-3.5 py-3 font-sans text-[14px]/[1.55] wrap-anywhere whitespace-pre-wrap">
               {linkify(event.description)}

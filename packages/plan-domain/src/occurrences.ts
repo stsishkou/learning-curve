@@ -33,6 +33,17 @@ export function occurrences(plan: Plan, from: number, to: number, hidden: Readon
   return out.toSorted((a, b) => a.s - b.s)
 }
 
+const NO_CALENDARS: ReadonlySet<string> = new Set()
+
+/**
+ * The busy, timed events that share time with a slot (wall-clock ms), in every calendar. `exceptUid` leaves the
+ * event itself out when the slot is its own. Free time and all-day events block nothing, so they are not listed.
+ */
+export const overlapping = (plan: Plan, slot: { s: number; e: number }, exceptUid?: string): Occurrence[] =>
+  occurrences(plan, slot.s, slot.e, NO_CALENDARS).filter(
+    (o) => o.uid !== exceptUid && !o.allDay && o.availability !== 'free' && o.s < slot.e && slot.s < o.e,
+  )
+
 export const durationHours = (o: Occurrence) => (o.e - o.s) / HOUR
 
 /** Study time that counts toward the weekly budget: busy, timed, not personal. */

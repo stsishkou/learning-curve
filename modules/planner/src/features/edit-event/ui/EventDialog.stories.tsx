@@ -1,7 +1,7 @@
 import { isSession, parseLocal, type PlanEvent } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 
 import { EventDialog } from './EventDialog'
 
@@ -58,6 +58,28 @@ export const NewEvent: Story = {
       description: '',
       availability: 'busy',
     },
+  },
+}
+
+/**
+ * A new event on a slot that is taken: the form names what is planned for the same time. It is a warning, the
+ * event can still be saved. The card of a stored event shows the same line.
+ */
+export const Overlapping: Story = {
+  args: {
+    event: null,
+    draft: {
+      calendar: 'pypy',
+      title: 'Dentist',
+      start: upcoming.start,
+      end: upcoming.end,
+      description: '',
+      availability: 'busy',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByText(new RegExp(upcoming.title.slice(0, 12)))).toBeVisible()
   },
 }
 

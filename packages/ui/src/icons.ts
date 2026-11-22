@@ -38,6 +38,7 @@ export {
   Search,
   Timer,
   Trash2,
+  TriangleAlert,
   Undo2,
   X,
   ZoomIn,

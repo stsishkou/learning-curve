@@ -96,6 +96,7 @@ export {
   durationHours,
   layoutLanes,
   occurrences,
+  overlapping,
   planStart,
   type Lane,
   type Occurrence,

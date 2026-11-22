@@ -470,5 +470,6 @@
   ],
   "history_reviews": "Repasos planificados: {name}",
   "export_alarms": "Añadir un aviso {minutes} minutos antes de cada inicio",
-  "export_alarms_google": "Al importar, Google Calendar sustituye el aviso del archivo por la notificación predeterminada del calendario de destino. Ajústala en la configuración del calendario."
+  "export_alarms_google": "Al importar, Google Calendar sustituye el aviso del archivo por la notificación predeterminada del calendario de destino. Ajústala en la configuración del calendario.",
+  "overlaps_with": "A la misma hora:"
 }

@@ -470,5 +470,6 @@
   ],
   "history_reviews": "Reviews planned: {name}",
   "export_alarms": "Add a reminder {minutes} minutes before each start",
-  "export_alarms_google": "On import Google Calendar replaces the reminder from the file with the default notification of the calendar you import into. Set that one in the calendar settings."
+  "export_alarms_google": "On import Google Calendar replaces the reminder from the file with the default notification of the calendar you import into. Set that one in the calendar settings.",
+  "overlaps_with": "At the same time:"
 }

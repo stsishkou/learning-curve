@@ -3,6 +3,8 @@ import type { PlanCalendar } from '@lc/plan-domain'
 import { Button, FIELD, FOOT, INPUT, TITLE } from '@lc/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 
+import { OverlapNote, type Overlap } from './OverlapNote'
+
 export interface EventFormValues {
   title: string
   description: string
@@ -27,6 +29,8 @@ interface Props {
   onCancel: () => void
   onSubmit: (values: EventFormValues) => void
   onProblem: (message: string) => void
+  /** What a timed, busy event in this slot would overlap, `YYYY-MM-DDTHH:MM` to the same: shown as a warning */
+  overlaps?: (start: string, end: string) => Overlap[]
   /** Called with the fields as they stand after every change, so the page can show the event before it is saved */
   onValues?: (values: EventFormValues) => void
 }
@@ -43,6 +47,7 @@ export function EventForm({
   onCancel,
   onSubmit,
   onProblem,
+  overlaps,
   onValues,
 }: Props) {
   const [title, setTitle] = useState(initial.title)
@@ -130,6 +135,7 @@ export function EventForm({
           </>
         )}
       </div>
+      {!allDay && !free && to > from && <OverlapNote overlaps={overlaps?.(values.start, values.end) ?? []} />}
       {recurring && <p className="text-[13px] text-muted">{m.recurring_hint()}</p>}
       {chooseAvailability && (
         <label className="flex items-center gap-2 text-[13.5px]">
