@@ -50,8 +50,9 @@ a Husky `commit-msg` hook checks them with commitlint.
   and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the calendar the whole window.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
   `＋ Event` creates an event in any of them.
-- **Moving things**: every event can be dragged, in the week and in the month: a repeating one moves as a series
-  (another day replaces that weekday), an all-day one moves between days. Both edges resize. On a touch screen
+- **Moving things**: every event can be dragged, in the week and in the month: one repeat of a repeating event moves
+  alone and the other repeats stay (the event card's buttons and its form change the whole series), an all-day
+  one moves between days. Both edges resize. On a touch screen
   rest a finger on the event first. With the keyboard: `Alt` + arrows move the focused event, `Alt Shift ↑ ↓`
   change its length, `Delete` removes it; the event card has the same steps as buttons.
 - **Trash**: any event or calendar can be removed, and a calendar can be cleared. What is removed waits in the

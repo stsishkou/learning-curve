@@ -117,14 +117,16 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onClose }:
         id={listId}
         role="listbox"
         aria-label={m.palette_title()}
-        className="-mx-2 mt-3 max-h-[min(52vh,420px)] overflow-y-auto border-t border-line-soft pt-2"
+        className="-mx-2 mt-3 max-h-[min(52vh,420px)] [scrollbar-width:thin] overflow-y-auto border-t border-line pt-2"
       >
         {items.map((item, i) => (
           <Fragment key={item.key}>
             {(i === 0 || items[i - 1].group !== item.group) && (
               <div
                 role="presentation"
-                className="px-2 pt-2 pb-1 text-[11.5px] font-semibold tracking-wide text-muted uppercase"
+                className={`px-2 pb-1.5 text-[11px] font-semibold tracking-[0.08em] text-muted uppercase ${
+                  i === 0 ? 'pt-1.5' : 'mt-2.5 border-t border-line-soft pt-3.5'
+                }`}
               >
                 {item.group}
               </div>

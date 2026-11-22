@@ -22,6 +22,8 @@ export function describeStep({ change, subject }: HistoryStep): string {
         days: change.days > 0 ? `+${change.days}` : change.days,
         name: subject || m.shift_all(),
       })
+    case 'event.detach':
+      return m.history_moved({ name: subject })
     case 'events.done':
       return m.history_done_many({ count: change.uids.length })
     case 'event.patch':

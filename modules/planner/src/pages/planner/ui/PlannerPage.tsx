@@ -175,8 +175,19 @@ export function PlannerPage({
     run: () => session.travel(cursor - 1),
   }
 
+  /** A dragged repeat leaves its series and moves alone: the other repeats stay where they are. */
   const move = (o: Occurrence, slot: { s: number; e: number }) =>
-    void changeQuietly({ type: 'event.patch', uid: o.uid, patch: movePatch(o, o.s, slot.s, slot.e) })
+    void changeQuietly(
+      o.rrule
+        ? {
+            type: 'event.detach',
+            uid: o.uid,
+            day: ymd(o.s),
+            start: toLocalString(o.allDay ? startOfDay(slot.s) : slot.s),
+            end: toLocalString(o.allDay ? startOfDay(slot.s) + (parseLocal(o.end) - parseLocal(o.start)) : slot.e),
+          }
+        : { type: 'event.patch', uid: o.uid, patch: movePatch(o, o.s, slot.s, slot.e) },
+    )
   /** Delete on a focused event: one repeat of a series is skipped, anything else goes to the trash. */
   const remove = (o: Occurrence) =>
     void changeQuietly(

@@ -151,7 +151,7 @@ export function WeekGrid({
   const suppressClick = useRef(false)
   // An event moved with the keyboard is drawn anew in its slot, first as a preview and again when the change is
   // stored; each redraw can drop the focus, so it is given back for a short while after the key press.
-  const refocus = useRef<{ key: string; until: number } | null>(null)
+  const refocus = useRef<{ key: string; slot: string; until: number } | null>(null)
   useEffect(() => {
     const wanted = refocus.current
     if (!wanted) return
@@ -159,7 +159,10 @@ export function WeekGrid({
       refocus.current = null
       return
     }
-    const target = scroller.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(wanted.key)}"]`)
+    // A repeat moved out of its series comes back as a new event: it is found by its title and its slot.
+    const find = (name: string, value: string) =>
+      scroller.current?.querySelector<HTMLElement>(`[data-${name}="${CSS.escape(value)}"]`)
+    const target = find('key', wanted.key) ?? find('slot', wanted.slot)
     if (target && document.activeElement !== target) target.focus()
   })
 
@@ -276,12 +279,13 @@ export function WeekGrid({
     e.stopPropagation()
     const sameDay = o.allDay || startOfDay(end - 1) === startOfDay(s)
     if ((s === o.s && end === o.e) || end - s < SNAP || !sameDay) return
-    refocus.current = { key: `${o.uid}-${s}`, until: Date.now() + REFOCUS_FOR }
+    refocus.current = { key: `${o.uid}-${s}`, slot: `${o.title}@${s}`, until: Date.now() + REFOCUS_FOR }
     onMove(o, { s, e: end })
   }
 
   const handlers = (o: Occurrence, mode: Drag['mode']) => ({
     'data-key': keyOf(o),
+    'data-slot': `${o.title}@${o.s}`,
     onPointerDown: (ev: PointerEvent<HTMLElement>) => pointerDown(ev, o, mode),
     onPointerMove: (ev: PointerEvent<HTMLElement>) => pointerMove(ev, o),
     onPointerUp: () => pointerUp(o),

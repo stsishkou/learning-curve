@@ -1,5 +1,16 @@
 import { m } from '@lc/i18n/messages'
-import { DAY, HOUR, movePatch, parseLocal, startOfDay, ymd, type EventPatch, type PlanEvent } from '@lc/plan-domain'
+import {
+  DAY,
+  HOUR,
+  movePatch,
+  parseLocal,
+  startOfDay,
+  weekday,
+  weekdaysOf,
+  ymd,
+  type EventPatch,
+  type PlanEvent,
+} from '@lc/plan-domain'
 
 const STEP = HOUR / 2
 const KEY =
@@ -21,6 +32,14 @@ export function EventNudge({ event, day, disabled, onMove }: Props) {
   // Without the day of a repeat there is no telling which weekday of the series to move.
   const canChangeDay = !event.rrule || day !== null
 
+  /** A series steps over the weekdays it already repeats on: landing on one would merge the two repeats. */
+  function dayStep(direction: 1 | -1) {
+    const taken = new Set(event.rrule ? weekdaysOf(event.rrule) : [])
+    let shift = direction * DAY
+    while (taken.has(weekday(from + shift)) && Math.abs(shift) < 7 * DAY) shift += direction * DAY
+    nudge(shift)
+  }
+
   function nudge(shift: number, grow = 0) {
     const s = from + shift
     const e = s + length + grow
@@ -39,8 +58,8 @@ export function EventNudge({ event, day, disabled, onMove }: Props) {
     <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted">
       <span className="flex items-center gap-1.5">
         {m.nudge_day()}
-        {key(m.nudge_day_back(), '‹', () => nudge(-DAY), !canChangeDay)}
-        {key(m.nudge_day_forward(), '›', () => nudge(DAY), !canChangeDay)}
+        {key(m.nudge_day_back(), '‹', () => dayStep(-1), !canChangeDay)}
+        {key(m.nudge_day_forward(), '›', () => dayStep(1), !canChangeDay)}
       </span>
       {!event.allDay && (
         <>

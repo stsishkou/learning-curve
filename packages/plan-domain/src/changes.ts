@@ -31,6 +31,11 @@ export type PlanChange =
   | { type: 'event.add'; event: NewEvent }
   /** Moves the event to the trash */
   | { type: 'event.remove'; uid: string }
+  /**
+   * Moves one repeat of a series and leaves the others where they are: the repeat on `day` (`YYYY-MM-DD`) is
+   * skipped and an event of its own takes its place at `start`–`end`
+   */
+  | { type: 'event.detach'; uid: string; day: string; start: string; end: string }
   /** Without an id a new calendar is created */
   | { type: 'calendar.save'; id?: string; name: string; color: string }
   /** Moves the calendar and its events to the trash */
@@ -96,6 +101,12 @@ export function parseChange(input: unknown): PlanChange {
       if (!HEX_COLOR.test(color)) return fail('color must look like #1a2b3c')
       const id = typeof input.id === 'string' && input.id ? input.id : undefined
       return { type: 'calendar.save', id, name: text('name'), color }
+    }
+    case 'event.detach': {
+      const [day, start, end] = [text('day'), text('start'), text('end')]
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return fail('day must look like 2026-11-23')
+      if (!LOCAL_TIME.test(start) || !LOCAL_TIME.test(end)) return fail('Times must look like 2026-11-23T12:00')
+      return { type: 'event.detach', uid: text('uid'), day, start, end }
     }
     case 'calendar.remove':
       return { type: 'calendar.remove', id: text('id') }
@@ -202,6 +213,26 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       if (patchProblem(created, {})) fail('The event must end after it starts')
       next.added.push(created)
       break
+    }
+    case 'event.detach': {
+      const series = applyEdits(base, next).plan.events.find((e) => e.uid === change.uid && e.rrule)
+      if (!series) return fail(`Unknown repeating event "${change.uid}"`)
+      const { rrule: _rule, skip = [], done: _done, ...copy } = series
+      const single: PlanEvent = {
+        ...copy,
+        uid: `${newId('custom')}@learning-curve`,
+        start: change.start,
+        end: change.end,
+      }
+      if (patchProblem(single, {})) fail('The event must end after it starts')
+      const skipped = applyChange(
+        base,
+        next,
+        { type: 'event.patch', uid: series.uid, patch: { skip: [...new Set([...skip, change.day])] } },
+        now,
+      )
+      skipped.added.push(single)
+      return skipped
     }
     case 'event.remove': {
       const { uid } = change
