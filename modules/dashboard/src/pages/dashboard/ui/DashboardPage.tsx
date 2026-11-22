@@ -1,6 +1,6 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
+import { DAY, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
 import { useMemo, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
@@ -48,7 +48,7 @@ export function DashboardPage({ plan, headerAside, now: fixed }: Props) {
       </header>
 
       <StatTiles plan={plan} stats={stats} now={now} />
-      <BurnUp stats={stats} now={now} />
+      <BurnUp stats={stats} now={now} forecast={now === null ? null : paceForecast(plan, now).finish} />
       <PaceForecast plan={plan} now={now} />
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <WeeklyLoad plan={plan} stats={stats} now={now} />

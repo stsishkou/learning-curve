@@ -1,5 +1,5 @@
 import { DAY, HOUR, mondayOf, parseLocal, startOfDay, toLocalString, weekday, ymd } from './dates'
-import { isSession, plannedHours } from './progress'
+import { courseProgress, isSession, plannedHours } from './progress'
 import type { Plan, PlanEvent } from './types'
 
 /** One session in a new slot. Times are Europe/Minsk wall-clock strings. */
@@ -14,9 +14,12 @@ export interface CatchUpScenario {
    * `push`: every open session slides to a later study day, the weekly load stays and the plan ends later.
    * `squeeze`: only the missed sessions move, into the Saturday buffers and an extra hour after the sessions of
    * the coming days; the plan ends when it did and the weeks get heavier.
+   * `pace`: every session ahead gets the length it really takes at the pace of its course so far; the days stay.
    */
-  id: 'push' | 'squeeze'
+  id: 'push' | 'squeeze' | 'pace'
   moves: SessionMove[]
+  /** The moves set real lengths: the sessions are marked so that the pace is not applied to them twice */
+  paced?: boolean
   /** Missed sessions the scenario found no room for */
   unplaced: number
 }
@@ -151,11 +154,39 @@ function squeeze(plan: Plan, now: number): CatchUpScenario {
   return { id: 'squeeze', moves, unplaced: missed.length - next }
 }
 
+const QUARTER = HOUR / 4
+
 /**
- * Ways to get back on the plan after sessions were missed, each as the list of moves that does it. Empty when
- * nothing is missed.
+ * The sessions ahead resized to the pace of their course, a quarter of an hour at the least. A day's sessions
+ * keep their order and start one after another, so a longer one pushes the next instead of covering it.
+ */
+function atPace(plan: Plan, now: number): CatchUpScenario {
+  const paceOf = new Map(courseProgress(plan).map((c) => [c.calendar.id, c.pace]))
+  const moves: SessionMove[] = []
+  const busyUntil = new Map<string, number>()
+  for (const e of openSessions(plan)) {
+    const start = parseLocal(e.start)
+    if (start <= now || e.paced) continue
+    const length = parseLocal(e.end) - start
+    const real = Math.max(QUARTER, Math.round((length * (paceOf.get(e.calendar) ?? 1)) / QUARTER) * QUARTER)
+    const from = Math.max(start, busyUntil.get(dayOf(e)) ?? 0)
+    // A session that would run past midnight keeps its length: the day has no room for more.
+    const to = startOfDay(from + real - 1) === startOfDay(from) ? from + real : from + length
+    busyUntil.set(dayOf(e), to)
+    if (from !== start || to !== start + length) {
+      moves.push({ uid: e.uid, start: toLocalString(from), end: toLocalString(to) })
+    }
+  }
+  return { id: 'pace', moves, paced: true, unplaced: 0 }
+}
+
+/**
+ * Ways to bring the plan back in line with reality, each as the list of moves that does it: two for sessions
+ * that were missed, one for a pace that differs from the plan. Empty when neither is the case.
  */
 export function catchUpScenarios(plan: Plan, now: number): CatchUpScenario[] {
-  if (!openSessions(plan).some((e) => isMissed(e, now))) return []
-  return [push(plan, now), squeeze(plan, now)].filter((scenario) => scenario.moves.length > 0)
+  const behind = openSessions(plan).some((e) => isMissed(e, now))
+  return [...(behind ? [push(plan, now), squeeze(plan, now)] : []), atPace(plan, now)].filter(
+    (scenario) => scenario.moves.length > 0,
+  )
 }

@@ -45,12 +45,9 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
       {/* Capped on a wide screen so a long course list scrolls inside the card instead of stretching the page. */}
       <div ref={body} className="[scrollbar-width:thin] lg:overflow-y-auto" style={{ maxHeight }}>
         {tab === 'week' && (
-          <>
-            <BudgetPanel plan={plan} weekItems={weekItems} />
-            <div className="mt-4 border-t border-line-soft pt-3.5">
-              <GoalLadder plan={plan} weekStart={weekStart} onReview={onReview} />
-            </div>
-          </>
+          <BudgetPanel plan={plan} weekItems={weekItems}>
+            <GoalLadder plan={plan} weekStart={weekStart} onReview={onReview} />
+          </BudgetPanel>
         )}
         {tab === 'courses' && <CourseProgress plan={plan} onSelect={onSelect} />}
         {tab === 'map' && (

@@ -1,4 +1,4 @@
-import { DAY, parseLocal, startOfDay } from './dates'
+import { DAY, mondayOf, parseLocal, startOfDay } from './dates'
 import { courseProgress, isSession, plannedHours } from './progress'
 import type { Plan } from './types'
 
@@ -21,7 +21,8 @@ export interface PaceForecast {
 /**
  * When the work that is left will really be finished. Each open session is taken to need its planned length
  * times the pace of its course so far. That work is poured into the time the plan still holds, the slots of the
- * sessions ahead; what does not fit goes on after the last one at the weekly budget.
+ * sessions ahead; what does not fit goes on after the last one, week by week, in the part of the weekly budget
+ * that the other courses leave free.
  *
  * `calendar` limits the forecast to one course; `now` is wall-clock ms.
  */
@@ -47,7 +48,7 @@ export function paceForecast(plan: Plan, now: number, calendar?: string): PaceFo
   for (const event of open) {
     const hours = plannedHours(event)
     forecast.remaining += hours
-    forecast.needed += hours * (paceOf.get(event.calendar) ?? 1)
+    forecast.needed += hours * (event.paced ? 1 : (paceOf.get(event.calendar) ?? 1))
     if (parseLocal(event.end) <= now) forecast.missed += hours
   }
   const lastDay = startOfDay(parseLocal(open[open.length - 1].start))
@@ -62,7 +63,21 @@ export function paceForecast(plan: Plan, now: number, calendar?: string): PaceFo
       return forecast
     }
   }
-  const perDay = Math.max(plan.meta.weeklyBudgetHours, 1) / 7
-  forecast.finish = Math.max(lastDay, startOfDay(now)) + Math.ceil(left / perDay) * DAY
-  return forecast
+  const others = new Map<number, number>()
+  for (const event of plan.events) {
+    if (!isSession(event) || event.done || paceOf.has(event.calendar)) continue
+    const monday = mondayOf(parseLocal(event.start))
+    others.set(monday, (others.get(monday) ?? 0) + plannedHours(event))
+  }
+  const lastOther = Math.max(0, ...others.keys())
+  const budget = Math.max(plan.meta.weeklyBudgetHours, 1)
+  for (let monday = mondayOf(Math.max(lastDay, startOfDay(now))) + 7 * DAY; ; monday += 7 * DAY) {
+    // Weeks the other courses fill completely give nothing; once they are over the whole budget is free.
+    const free = monday > lastOther ? budget : Math.max(0, budget - (others.get(monday) ?? 0))
+    if (free >= left) {
+      forecast.finish = monday + Math.min(6, Math.ceil((left / free) * 7) - 1) * DAY
+      return forecast
+    }
+    left -= free
+  }
 }

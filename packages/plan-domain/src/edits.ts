@@ -4,7 +4,10 @@ import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 /** Fields of an event that can be changed in the viewer. Times are Europe/Minsk wall-clock strings. */
 export type EventPatch = Partial<
-  Pick<PlanEvent, 'title' | 'description' | 'start' | 'end' | 'calendar' | 'done' | 'actual' | 'rrule' | 'skip'>
+  Pick<
+    PlanEvent,
+    'title' | 'description' | 'start' | 'end' | 'calendar' | 'done' | 'actual' | 'paced' | 'rrule' | 'skip'
+  >
 >
 
 /** A calendar's look. For a generated calendar it overrides the content; an unknown id adds a calendar. */
@@ -56,6 +59,10 @@ export function parsePatch(value: unknown): EventPatch | null {
     if (typeof value.done !== 'boolean') return null
     patch.done = value.done
   }
+  if (value.paced !== undefined) {
+    if (value.paced !== true) return null
+    patch.paced = true
+  }
   if (value.actual !== undefined) {
     const { actual } = value
     if (typeof actual !== 'number' || !Number.isInteger(actual) || actual < 5 || actual > 24 * 60) return null
@@ -103,6 +110,7 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
   }
   if (patch.done) event.done = true
   if (patch.done && patch.actual) event.actual = patch.actual
+  if (patch.paced) event.paced = true
   return patchProblem(event, {}) ? null : event
 }
 

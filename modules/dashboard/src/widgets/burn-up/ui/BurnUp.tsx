@@ -15,10 +15,12 @@ interface Props {
   stats: PlanStats
   /** Wall-clock ms; null before the clock is known */
   now: number | null
+  /** The day the rest runs out at the real pace (`paceForecast`), wall-clock ms: drawn as a dashed line */
+  forecast?: number | null
 }
 
 /** Hours over time, added up: the plan as a line to the total, and what is done so far climbing toward it. */
-export function BurnUp({ stats, now }: Props) {
+export function BurnUp({ stats, now, forecast = null }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const width = useWidth(box)
   const [hover, setHover] = useState<number | null>(null)
@@ -36,20 +38,23 @@ export function BurnUp({ stats, now }: Props) {
   // The done line stops at the week that is running: the future has nothing to show yet.
   const doneUntil = Math.min(weeks.length, Math.ceil(elapsed))
 
+  // The forecast may end after the plan: the time axis then runs on to it.
+  const forecastAt = forecast === null || !weeks.length ? null : (forecast + DAY - start) / WEEK
+  const span = Math.max(weeks.length, Math.ceil(forecastAt ?? 0))
   const ticks = niceTicks(stats.planned)
   const peak = ticks.at(-1) ?? 1
   const plotW = Math.max(0, width - PAD.left - PAD.right)
   const plotH = HEIGHT - PAD.above - PAD.bottom
-  const x = (i: number) => PAD.left + (weeks.length ? (i / weeks.length) * plotW : 0)
+  const x = (i: number) => PAD.left + (span ? (i / span) * plotW : 0)
   const y = (hours: number) => PAD.above + plotH - (hours / peak) * plotH
   const path = (values: number[]) =>
     values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('')
-  const every = Math.max(1, Math.ceil(weeks.length / Math.max(1, Math.floor(plotW / 64))))
+  const every = Math.max(1, Math.ceil(span / Math.max(1, Math.floor(plotW / 64))))
 
   function pointerMove(e: PointerEvent<SVGSVGElement>) {
     if (!plotW || !weeks.length) return
     const px = e.clientX - e.currentTarget.getBoundingClientRect().x
-    setHover(Math.max(0, Math.min(weeks.length, Math.round(((px - PAD.left) / plotW) * weeks.length))))
+    setHover(Math.max(0, Math.min(weeks.length, Math.round(((px - PAD.left) / plotW) * span))))
   }
 
   const tip: Tip | null =
@@ -74,6 +79,7 @@ export function BurnUp({ stats, now }: Props) {
         <span className="flex gap-3.5">
           <LegendKey shape="line" color="var(--muted)" label={m.dash_planned()} />
           <LegendKey shape="line" color="var(--done)" label={m.dash_done()} />
+          {forecastAt !== null && <LegendKey shape="line" color="var(--focus)" label={m.dash_forecast_real()} />}
         </span>
       }
     >
@@ -135,6 +141,27 @@ export function BurnUp({ stats, now }: Props) {
                   strokeWidth={2}
                 />
               </>
+            )}
+            {forecastAt !== null && forecastAt > elapsed && stats.done < stats.planned && (
+              <g>
+                <line
+                  x1={x(elapsed)}
+                  y1={y(stats.done)}
+                  x2={x(forecastAt)}
+                  y2={y(stats.planned)}
+                  stroke="var(--focus)"
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                />
+                <text
+                  x={x(forecastAt) - 6}
+                  y={y(stats.planned) + 16}
+                  textAnchor="end"
+                  className="fill-muted text-[11px]"
+                >
+                  {fmtShort(forecast ?? 0)}
+                </text>
+              </g>
             )}
             {hover !== null && (
               <line x1={x(hover)} x2={x(hover)} y1={PAD.above} y2={PAD.above + plotH} stroke="var(--line)" />

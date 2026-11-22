@@ -1,4 +1,4 @@
-import { planStats } from '@lc/plan-domain'
+import { parseLocal, planStats } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
@@ -17,3 +17,6 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
+
+/** With a forecast past the last planned week the time axis runs on to it and a dashed line leads there. */
+export const WithForecast: Story = { args: { forecast: parseLocal('2027-04-06T00:00') } }

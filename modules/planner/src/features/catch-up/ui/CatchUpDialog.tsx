@@ -32,6 +32,7 @@ const TEXT: Record<Choice, { title: () => string; hint: () => string }> = {
   keep: { title: m.catchup_keep, hint: m.catchup_keep_hint },
   push: { title: m.catchup_push, hint: m.catchup_push_hint },
   squeeze: { title: m.catchup_squeeze, hint: m.catchup_squeeze_hint },
+  pace: { title: m.catchup_pace, hint: m.catchup_pace_hint },
 }
 
 /**
@@ -66,7 +67,7 @@ function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open'
   async function apply() {
     setBusy(true)
     try {
-      await onChange({ type: 'events.move', moves: chosen.moves })
+      await onChange({ type: 'events.move', moves: chosen.moves, paced: chosen.paced })
       onClose()
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
@@ -79,7 +80,11 @@ function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open'
     <>
       <h3 className={TITLE}>{m.catchup_title()}</h3>
       <div className={META}>
-        {options.length > 1 ? m.catchup_hint({ count: options[0].outlook.missed }) : m.catchup_nothing()}
+        {options.length === 1
+          ? m.catchup_nothing()
+          : options[0].outlook.missed
+            ? m.catchup_hint({ count: options[0].outlook.missed })
+            : m.catchup_hint_pace()}
       </div>
       <div className="mt-4 grid gap-2.5" role="radiogroup" aria-label={m.catchup_title()}>
         {options.map((option) => (

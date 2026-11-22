@@ -357,9 +357,9 @@
   "catchup": "Ponerse al día",
   "catchup_title": "Cómo ponerse al día",
   "catchup_hint": "Sesiones perdidas: {count}. Compara las opciones: cada una se aplica en un paso y se puede deshacer desde el historial.",
-  "catchup_nothing": "No hay sesiones perdidas: no hay nada que recuperar.",
+  "catchup_nothing": "No hay sesiones perdidas y tu ritmo coincide con el plan: no hay nada que cambiar.",
   "catchup_keep": "Dejar el plan como está",
-  "catchup_keep_hint": "Las sesiones perdidas quedan en el pasado, sin hacer.",
+  "catchup_keep_hint": "No cambia nada.",
   "catchup_push": "Retrasar todo el plan",
   "catchup_push_hint": "Todas las sesiones pendientes pasan a los siguientes días de estudio. La carga semanal se mantiene y el plan termina más tarde.",
   "catchup_squeeze": "Recuperar en las próximas semanas",
@@ -388,5 +388,8 @@
   "review_goals": "Objetivos cumplidos",
   "review_missed": "Sesiones perdidas: {count}",
   "review_next": "Objetivos de la semana siguiente",
-  "review_go_next": "A la semana siguiente"
+  "review_go_next": "A la semana siguiente",
+  "catchup_pace": "Dar a las sesiones el tiempo que llevan",
+  "catchup_pace_hint": "Cada sesión futura recibe la duración que pide el ritmo de su curso. Los días no cambian; las sesiones del día van seguidas.",
+  "catchup_hint_pace": "No hay sesiones perdidas, pero tu ritmo difiere del plan. La opción se aplica en un paso y se puede deshacer desde el historial."
 }

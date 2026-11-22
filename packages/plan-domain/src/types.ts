@@ -31,6 +31,8 @@ export interface PlanEvent {
   skip?: string[]
   /** The session is finished: set by hand in the viewer */
   done?: boolean
+  /** The session's length was already set to the real pace of its course: forecasts take it as it is */
+  paced?: boolean
   /** Minutes the finished session really took, when that was logged; otherwise it counts as planned */
   actual?: number
 }

@@ -2,16 +2,19 @@ import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { countsToBudget, durationHours, type Occurrence, parseLocal, type Plan } from '@lc/plan-domain'
 import { calendarColor, Dot } from '@lc/ui'
+import type { ReactNode } from 'react'
 
 interface Props {
   /** Gives the weekly budget and the calendars' names and colors */
   plan: Plan
   /** The occurrences of the week on screen; the ones outside the budget (gym, the buffer) are skipped */
   weekItems: Occurrence[]
+  /** Shown between the numbers and the closing note */
+  children?: ReactNode
 }
 
 /** Study hours in the visible week against the weekly budget. */
-export function BudgetPanel({ plan, weekItems }: Props) {
+export function BudgetPanel({ plan, weekItems, children }: Props) {
   const perCalendar: Record<string, number> = {}
   let total = 0
   for (const o of weekItems) {
@@ -60,6 +63,7 @@ export function BudgetPanel({ plan, weekItems }: Props) {
           <li>{m.no_study_events()}</li>
         )}
       </ul>
+      {children && <div className="mt-4 border-t border-line-soft pt-3.5">{children}</div>}
       <div className="mt-4 border-t border-line-soft pt-3.5 text-[12.5px] text-muted">
         {m.budget_note({ timezone: plan.meta.timezone, date: fmtDay(parseLocal(plan.meta.generated)) })}
       </div>

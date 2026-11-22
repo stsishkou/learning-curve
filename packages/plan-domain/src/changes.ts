@@ -53,7 +53,7 @@ export type PlanChange =
    */
   | { type: 'events.shift'; calendar?: string; from: string; days: number }
   /** Puts several sessions into new slots as one step: a catch-up scenario */
-  | { type: 'events.move'; moves: SessionMove[] }
+  | { type: 'events.move'; moves: SessionMove[]; paced?: boolean }
   /** Marks several sessions done or not done as one step */
   | { type: 'events.done'; uids: string[]; done: boolean }
 
@@ -159,6 +159,7 @@ export function parseChange(input: unknown): PlanChange {
           }
           return { uid, start, end }
         }),
+        paced: input.paced === true ? true : undefined,
       }
     }
     case 'events.done': {
@@ -318,7 +319,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     case 'events.move':
       return change.moves.reduce(
         (sofar, { uid, start, end }) =>
-          applyChange(base, sofar, { type: 'event.patch', uid, patch: { start, end } }, now),
+          applyChange(
+            base,
+            sofar,
+            { type: 'event.patch', uid, patch: change.paced ? { start, end, paced: true } : { start, end } },
+            now,
+          ),
         next,
       )
     case 'events.done': {

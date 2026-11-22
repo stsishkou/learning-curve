@@ -357,9 +357,9 @@
   "catchup": "Catch up",
   "catchup_title": "How to catch up",
   "catchup_hint": "Sessions missed: {count}. Compare the options: each is applied as one step and can be undone from the history.",
-  "catchup_nothing": "No sessions are missed: there is nothing to catch up.",
+  "catchup_nothing": "Nothing is missed and your pace matches the plan: there is nothing to change.",
   "catchup_keep": "Leave the plan as it is",
-  "catchup_keep_hint": "The missed sessions stay in the past, not done.",
+  "catchup_keep_hint": "Nothing changes.",
   "catchup_push": "Push the whole plan back",
   "catchup_push_hint": "Every open session slides to the next study days. The weekly load stays, the plan ends later.",
   "catchup_squeeze": "Make it up in the coming weeks",
@@ -388,5 +388,8 @@
   "review_goals": "Goals met",
   "review_missed": "Sessions missed: {count}",
   "review_next": "Goals of the next week",
-  "review_go_next": "To the next week"
+  "review_go_next": "To the next week",
+  "catchup_pace": "Give the sessions the time they really take",
+  "catchup_pace_hint": "Every session ahead gets the length its course's pace asks for. The days stay; a day's sessions follow one another.",
+  "catchup_hint_pace": "Nothing is missed, but your pace differs from the plan. The option is applied as one step and can be undone from the history."
 }
