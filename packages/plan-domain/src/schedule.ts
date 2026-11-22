@@ -145,7 +145,7 @@ export function buildPlan(
 
   return {
     meta: {
-      title: 'План обучения: AI Agent Engineer',
+      title: 'AI Agent Engineer',
       version: 1,
       timezone: config.timezone,
       generated,

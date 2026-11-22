@@ -1,7 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import type { PlanCalendar } from '@lc/plan-domain'
 import { Button, FIELD, FOOT, INPUT, TITLE } from '@lc/ui'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 
 export interface EventFormValues {
   title: string
@@ -27,6 +27,8 @@ interface Props {
   onCancel: () => void
   onSubmit: (values: EventFormValues) => void
   onProblem: (message: string) => void
+  /** Called with the fields as they stand after every change, so the page can show the event before it is saved */
+  onValues?: (values: EventFormValues) => void
 }
 
 export function EventForm({
@@ -41,6 +43,7 @@ export function EventForm({
   onCancel,
   onSubmit,
   onProblem,
+  onValues,
 }: Props) {
   const [title, setTitle] = useState(initial.title)
   const [description, setDescription] = useState(initial.description)
@@ -50,18 +53,31 @@ export function EventForm({
   const [to, setTo] = useState(initial.end.slice(11, 16))
   const [free, setFree] = useState(initial.availability === 'free')
 
+  const values: EventFormValues = {
+    title: title.trim(),
+    description,
+    calendar,
+    start: `${date}T${allDay ? '00:00' : from}`,
+    end: `${date}T${allDay ? '00:00' : to}`,
+    availability: free ? 'free' : 'busy',
+  }
+  useEffect(() => {
+    onValues?.({
+      title: title.trim(),
+      description,
+      calendar,
+      start: values.start,
+      end: values.end,
+      availability: values.availability,
+    })
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the fields are the trigger, not the callback's identity
+  }, [title, description, calendar, values.start, values.end, values.availability])
+
   function submit(e: FormEvent) {
     e.preventDefault()
     if (!title.trim()) return onProblem(m.error_title_required())
     if (!allDay && to <= from) return onProblem(m.error_time_order())
-    onSubmit({
-      title: title.trim(),
-      description,
-      calendar,
-      start: `${date}T${allDay ? '00:00' : from}`,
-      end: `${date}T${allDay ? '00:00' : to}`,
-      availability: free ? 'free' : 'busy',
-    })
+    onSubmit(values)
   }
 
   return (

@@ -156,6 +156,7 @@
   "expand_hint": "Calendar across the whole window: no header, runway or budget",
   "field_calendar": "Calendar",
   "field_free_time": "Free time: does not count toward the weekly budget",
+  "plan_label": "Study plan",
   "new_event": "New event",
   "new_event_hint": "New event. In the week grid, double-click an empty slot",
   "event": "Event",

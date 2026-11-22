@@ -124,6 +124,8 @@ export function PlannerPage({
   const { plan, canEdit } = session
 
   const [draft, setDraft] = useState<NewEvent | null>(null)
+  // The new event as its form has it now: the grid draws this, the form keeps the fields.
+  const [draftShown, setDraftShown] = useState<NewEvent | null>(null)
   const [calendarsOpen, setCalendarsOpen] = useState(false)
   const [trashOpen, setTrashOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -223,22 +225,41 @@ export function PlannerPage({
         : { type: 'event.remove', uid: o.uid },
     )
 
-  function newEvent(start?: string) {
+  function newEvent(start?: string, end?: string) {
     if (!canEdit) return
     // Without a slot: the next full hour when today is on screen, otherwise noon of the first visible day.
     const inWeek = now !== null && now >= weekStart && now < weekStart + 7 * DAY
     const begin = start ? parseLocal(start) : inWeek ? Math.ceil(now / HOUR) * HOUR : weekStart + 12 * HOUR
     const calendar = plan.calendars.find((c) => !hidden.has(c.id)) ?? plan.calendars[0]
     if (!calendar) return
+    setDraftShown(null)
     setDraft({
       calendar: calendar.id,
       title: '',
       description: '',
       start: toLocalString(begin),
-      end: toLocalString(begin + HOUR),
+      end: end ?? toLocalString(begin + HOUR),
       availability: 'busy',
     })
   }
+
+  const drafted = draft ? (draftShown ?? draft) : null
+  const draftSlot = drafted && {
+    s: parseLocal(drafted.start),
+    e: parseLocal(drafted.end),
+    title: drafted.title,
+    calendar: drafted.calendar,
+  }
+  // The dialog keeps to the half of the week the event is not in, so a change shows next to the form.
+  const shownStart =
+    draftSlot?.s ??
+    (selected ? parseLocal(pickedDay ? `${pickedDay}T${selected.start.slice(11, 16)}` : selected.start) : null)
+  const dialogSide =
+    view !== 'week' || shownStart === null || shownStart < weekStart || shownStart >= weekStart + 7 * DAY
+      ? undefined
+      : shownStart < weekStart + 4 * DAY
+        ? ('right' as const)
+        : ('left' as const)
 
   const go = {
     today: () => onSearchChange({ week: undefined }),
@@ -419,6 +440,7 @@ export function PlannerPage({
         <>
           <header className="flex flex-col gap-3 md:flex-row md:items-end md:gap-2">
             <div className="min-w-0 md:mr-auto">
+              <p className="text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">{m.plan_label()}</p>
               <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{plan.meta.title}</h1>
               <p className="mt-1 text-[14px] text-muted">
                 {m.plan_summary({
@@ -645,6 +667,8 @@ export function PlannerPage({
               onMove={canEdit ? move : undefined}
               onRemove={canEdit ? remove : undefined}
               onCreate={canEdit ? newEvent : undefined}
+              draft={draftSlot}
+              selectedUid={selected?.uid ?? null}
             />
           )}
           {view === 'month' && (
@@ -691,8 +715,11 @@ export function PlannerPage({
         onChange={session.change}
         onClose={() => {
           setDraft(null)
+          setDraftShown(null)
           if (search.event) onSearchChange({ event: undefined })
         }}
+        onDraftChange={setDraftShown}
+        side={dialogSide}
       />
       <CalendarsDialog
         plan={plan}

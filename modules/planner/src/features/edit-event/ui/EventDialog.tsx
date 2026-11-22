@@ -50,6 +50,10 @@ interface Props {
   /** Stores one change. Rejects with the reason when it cannot be stored: the dialog shows it */
   onChange: (change: PlanChange) => Promise<void>
   onClose: () => void
+  /** Called with the fields of the new event while its form is filled in */
+  onDraftChange?: (draft: NewEvent) => void
+  /** The side of the window the dialog keeps to, so the event stays in sight on the other one */
+  side?: 'left' | 'right'
 }
 
 /**
@@ -67,6 +71,8 @@ export function EventDialog({
   canEdit,
   onChange,
   onClose,
+  onDraftChange,
+  side,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
@@ -105,7 +111,7 @@ export function EventDialog({
   const courseUrl = event?.description.match(URL_PATTERN)?.[0]
 
   return (
-    <Modal open={!!event || !!draft} onClose={close}>
+    <Modal open={!!event || !!draft} side={side} onClose={close}>
       {draft && !event && (
         <EventForm
           // A fresh form per slot, so fields never carry over from the previous one.
@@ -119,6 +125,7 @@ export function EventDialog({
           onCancel={close}
           onSubmit={(values) => void run({ type: 'event.add', event: values }, 'close')}
           onProblem={setError}
+          onValues={onDraftChange}
         />
       )}
       {event && editing && (

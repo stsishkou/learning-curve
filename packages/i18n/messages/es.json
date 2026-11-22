@@ -156,6 +156,7 @@
   "expand_hint": "El calendario ocupa toda la ventana: sin cabecera, línea de tiempo ni presupuesto",
   "field_calendar": "Calendario",
   "field_free_time": "Tiempo libre: no cuenta para el presupuesto semanal",
+  "plan_label": "Plan de estudio",
   "new_event": "Nuevo evento",
   "new_event_hint": "Nuevo evento. En la semana, doble clic en un hueco libre",
   "event": "Evento",

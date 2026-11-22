@@ -43,7 +43,7 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
         />
       </div>
       {/* Capped on a wide screen so a long course list scrolls inside the card instead of stretching the page. */}
-      <div ref={body} className="lg:overflow-y-auto" style={{ maxHeight }}>
+      <div ref={body} className="lg:overflow-y-auto lg:pr-3" style={{ maxHeight }}>
         {tab === 'week' && (
           <BudgetPanel plan={plan} weekItems={weekItems}>
             <GoalLadder plan={plan} weekStart={weekStart} onReview={onReview} />

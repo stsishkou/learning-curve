@@ -35,8 +35,24 @@ interface Props {
   onMove?: (o: Occurrence, slot: { s: number; e: number }) => void
   /** Called when Delete is pressed on a focused event */
   onRemove?: (o: Occurrence) => void
-  /** Present when events can be added: called with the slot that was double-clicked, `YYYY-MM-DDTHH:MM` */
-  onCreate?: (start: string) => void
+  /**
+   * Present when events can be added: called with the slot that was double-clicked, or with the start and the end
+   * of the stretch drawn with the pointer on an empty part of a day, `YYYY-MM-DDTHH:MM`
+   */
+  onCreate?: (start: string, end?: string) => void
+  /** An event that is not stored yet, drawn dashed in its slot while its form is open */
+  draft?: DraftSlot | null
+  /** uid of the event whose dialog is open: it gets a ring */
+  selectedUid?: string | null
+}
+
+export interface DraftSlot {
+  /** wall-clock ms */
+  s: number
+  e: number
+  title: string
+  /** id of the calendar it takes its color from */
+  calendar: string
 }
 
 const PX_PER_HOUR = 56
@@ -109,6 +125,8 @@ export function WeekGrid({
   onMove,
   onRemove,
   onCreate,
+  draft = null,
+  selectedUid = null,
 }: Props) {
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
@@ -119,6 +137,11 @@ export function WeekGrid({
     maxH = Math.max(maxH, Math.ceil((o.e - startOfDay(o.e)) / HOUR) || 24)
   }
   const firstBusyHour = minH
+  // The hours grow to hold the event being created, so its block is never cut off by the last row.
+  if (draft && draft.e > draft.s && draft.s >= weekStart && draft.s < weekStart + 7 * DAY) {
+    minH = Math.min(minH, new Date(draft.s).getUTCHours())
+    maxH = Math.max(maxH, Math.ceil((draft.e - startOfDay(draft.e)) / HOUR) || 24)
+  }
   if (fullDay) {
     minH = 0
     maxH = 24
@@ -151,6 +174,38 @@ export function WeekGrid({
   }, [fullDay, weekStart])
 
   const [drag, setDrag] = useState<Drag | null>(null)
+  // A stretch being drawn on an empty part of a day: `anchor` is where the pointer went down.
+  const [drawn, setDrawn] = useState<{ anchor: number; s: number; e: number } | null>(null)
+  const drawing = useRef<{ y: number; columnY: number; day: number; anchor: number } | null>(null)
+  const slotAt = (day: number, y: number) => day + Math.round(((y / PX_PER_HOUR + minH) * HOUR) / SNAP) * SNAP
+
+  function drawStart(e: PointerEvent<HTMLDivElement>, day: number) {
+    // A finger scrolls the grid; it adds an event with a double tap or the toolbar button.
+    if (!onCreate || e.button !== 0 || e.pointerType === 'touch') return
+    if (e.target instanceof Element && e.target.closest('button')) return
+    const columnY = e.currentTarget.getBoundingClientRect().y
+    drawing.current = { y: e.clientY, columnY, day, anchor: slotAt(day, e.clientY - columnY) }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  function drawMove(e: PointerEvent<HTMLDivElement>) {
+    const d = drawing.current
+    if (!d || (!drawn && Math.abs(e.clientY - d.y) < DRAG_THRESHOLD)) return
+    const at = clamp(slotAt(d.day, e.clientY - d.columnY), d.day + minH * HOUR, d.day + maxH * HOUR)
+    setDrawn({ anchor: d.anchor, s: Math.min(d.anchor, at), e: Math.max(d.anchor, at) })
+  }
+
+  function drawEnd() {
+    const stretch = drawn
+    drawing.current = null
+    if (!stretch) return
+    const end = Math.max(stretch.e, stretch.s + 2 * SNAP)
+    // After the click that ends this press: it would land outside the dialog that opens and close it at once.
+    window.setTimeout(() => {
+      setDrawn(null)
+      onCreate?.(toLocalString(stretch.s), toLocalString(end))
+    }, 50)
+  }
   const press = useRef<Press | null>(null)
   // The click that follows a drag must not open the event dialog.
   const suppressClick = useRef(false)
@@ -386,8 +441,12 @@ export function WeekGrid({
               <div
                 key={d}
                 data-day={ymd(d)}
-                className="relative border-r border-line-soft last:border-r-0"
+                className="relative border-r border-line-soft select-none last:border-r-0"
                 style={{ height }}
+                onPointerDown={(e) => drawStart(e, d)}
+                onPointerMove={drawMove}
+                onPointerUp={drawEnd}
+                onPointerCancel={() => ((drawing.current = null), setDrawn(null))}
                 onDoubleClick={(e) => {
                   if (!onCreate || (e.target instanceof Element && e.target.closest('button'))) return
                   const y = e.clientY - e.currentTarget.getBoundingClientRect().y
@@ -411,7 +470,7 @@ export function WeekGrid({
                     <button
                       key={keyOf(o)}
                       type="button"
-                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''}`}
+                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : o.uid === selectedUid ? 'z-3 ring-2 ring-focus' : ''}`}
                       style={{
                         ...calendarColor(colorOf(o.calendar)),
                         top: ((s - startOfDay(s)) / HOUR - minH) * PX_PER_HOUR + 1,
@@ -451,6 +510,25 @@ export function WeekGrid({
                     </button>
                   )
                 })}
+                {[drawn && { ...drawn, title: '', calendar: '' }, draft]
+                  .filter((slot) => slot !== null && slot.e > slot.s && startOfDay(slot.s) === d)
+                  .slice(0, 1)
+                  .map((slot) => (
+                    <div
+                      key="draft"
+                      data-draft
+                      className="pointer-events-none absolute inset-x-1 z-4 overflow-hidden rounded-lg border-2 border-dashed border-focus bg-[color-mix(in_srgb,var(--focus)_16%,transparent)] px-[7px] py-[3px] text-[12px]/[1.3]"
+                      style={{
+                        top: ((slot!.s - d) / HOUR - minH) * PX_PER_HOUR + 1,
+                        height: Math.max(22, ((slot!.e - slot!.s) / HOUR) * PX_PER_HOUR - 3),
+                      }}
+                    >
+                      <b className="block truncate font-semibold">{slot!.title || m.new_event()}</b>
+                      <small className="text-muted tabular-nums">
+                        {hm(slot!.s)}–{hm(slot!.e)}
+                      </small>
+                    </div>
+                  ))}
                 {now !== null && startOfDay(now) === d && (now - d) / HOUR >= minH && (now - d) / HOUR <= maxH && (
                   <div
                     className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-['']"

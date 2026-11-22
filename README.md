@@ -46,7 +46,8 @@ a Husky `commit-msg` hook checks them with commitlint.
 
 ## What the viewer does
 
-- **Views**: week grid (drag to move, drag the bottom edge to resize, double-click an empty slot to add), month,
+- **Views**: week grid (drag to move, drag the bottom edge to resize; drag across an empty part of a day to draw a
+  new event, or double-click a slot: the form opens beside it and the dashed block follows what you type), month,
   and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the calendar the whole window.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
   `＋ Event` creates an event in any of them.

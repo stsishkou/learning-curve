@@ -15,6 +15,11 @@ interface Props {
   size?: 'normal' | 'wide' | 'full'
   /** Sticks to the top of the window instead of the middle, for a search box whose results change height */
   top?: boolean
+  /**
+   * Docks the dialog to one side of a wide window and leaves the page behind it readable, for a form whose result
+   * shows on the page while it is filled in
+   */
+  side?: 'left' | 'right'
   children: ReactNode
 }
 
@@ -29,7 +34,17 @@ const SIZE = {
  * click on the backdrop close it. `TITLE`, `META` and `FOOT`, exported next to it, are the class strings for its
  * heading, the line under the heading and the button row.
  */
-export function Modal({ open, onClose, label, size = 'normal', top = false, children }: Props) {
+export function Modal({ open, onClose, label, size = 'normal', top = false, side, children }: Props) {
+  const place = top
+    ? 'mx-auto mt-[12vh] mb-auto'
+    : side === 'left'
+      ? 'm-auto md:ml-4'
+      : side === 'right'
+        ? 'm-auto md:mr-4'
+        : 'm-auto'
+  const backdrop = side
+    ? 'backdrop:bg-[rgb(10_16_30/0.12)]'
+    : 'backdrop:bg-[rgb(10_16_30/0.45)] backdrop:backdrop-blur-[2px]'
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const dlg = ref.current
@@ -57,7 +72,7 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, chil
       {...{ closedby: 'any' }}
       aria-label={label}
       // m-auto / mx-auto: Tailwind's reset zeroes the margin that centers a modal dialog
-      className={`${SIZE[size]} ${top ? 'mx-auto mt-[12vh] mb-auto' : 'm-auto'} max-h-[calc(100dvh-32px)] overflow-y-auto rounded-2xl border border-line bg-surface text-ink shadow-[0_24px_60px_rgb(10_16_30/0.25)] backdrop:bg-[rgb(10_16_30/0.45)] backdrop:backdrop-blur-[2px]`}
+      className={`${SIZE[size]} ${place} ${backdrop} max-h-[calc(100dvh-32px)] overflow-y-auto rounded-2xl border border-line bg-surface text-ink shadow-[0_24px_60px_rgb(10_16_30/0.25)]`}
       onClose={onClose}
       onClick={backdropClick}
     >
