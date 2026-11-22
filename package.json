@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nx run @lc/web:dev",
-    "build": "nx run-many -t build",
+    "build": "nx run-many -t build --output-style=stream",
     "start": "nx run @lc/web:start",
     "plan": "nx run @lc/plan-data:plan",
     "i18n": "nx run-many -t i18n",
@@ -15,8 +15,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "check:i18n": "nx run-many -t check:i18n",
-    "check": "nx run-many -t typecheck lint lint:fsd check:i18n && oxfmt --check",
-    "affected": "nx affected -t typecheck lint lint:fsd check:i18n build",
+    "check": "nx run-many -t typecheck lint lint:fsd check:i18n --output-style=stream && oxfmt --check",
+    "affected": "nx affected -t typecheck lint lint:fsd check:i18n build --output-style=stream",
     "graph": "nx graph",
     "prepare": "husky && nx run-many -t i18n"
   },
