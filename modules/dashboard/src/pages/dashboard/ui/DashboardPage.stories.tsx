@@ -19,7 +19,7 @@ const meta = {
     },
   },
   args: { plan: fixturePlan },
-  argTypes: { plan: { control: false } },
+  argTypes: { plan: { control: false }, headerAside: { control: false } },
 } satisfies Meta<typeof DashboardPage>
 
 export default meta

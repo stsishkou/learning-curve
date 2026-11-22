@@ -94,6 +94,8 @@ const preview: Preview = {
           'UI kit',
           'Planner',
           ['Page', 'Widgets', 'Features'],
+          'Dashboard',
+          ['Page', 'Widgets'],
           'Calendar export',
         ],
       },

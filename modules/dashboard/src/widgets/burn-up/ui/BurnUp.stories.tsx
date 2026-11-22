@@ -10,6 +10,7 @@ const meta = {
   title: 'Dashboard/Widgets/BurnUp',
   component: BurnUp,
   args: { stats, now: fixtureNow },
+  argTypes: { stats: { control: false } },
 } satisfies Meta<typeof BurnUp>
 
 export default meta

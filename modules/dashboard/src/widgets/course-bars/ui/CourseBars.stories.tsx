@@ -7,6 +7,7 @@ const meta = {
   title: 'Dashboard/Widgets/CourseBars',
   component: CourseBars,
   args: { plan: fixturePlan },
+  argTypes: { plan: { control: false } },
 } satisfies Meta<typeof CourseBars>
 
 export default meta
