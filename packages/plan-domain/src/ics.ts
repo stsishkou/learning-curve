@@ -26,9 +26,17 @@ function nextDate(day: string): string {
   return d.toISOString().slice(0, 10).replace(/-/g, '')
 }
 
+const fileStem = (name: string) =>
+  name
+    .replace(/[:/\\]/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+
 /** File name used for downloads and the zip, e.g. `Gemini_Certs.ics` */
-export const icsFileName = (calendar: PlanCalendar) =>
-  `${calendar.name.replace(/[:/\\]/g, '').replace(/\s+/g, '_')}.ics`
+export const icsFileName = (calendar: PlanCalendar) => `${fileStem(calendar.name)}.ics`
+
+/** File name of the plan itself when it is downloaded: it follows the plan's title, e.g. `AI_Agent_Engineer.json` */
+export const planFileName = (plan: Plan) => `${fileStem(plan.meta.title) || 'plan'}.json`
 
 export interface IcsOptions {
   /** Done sessions get a ✓ before the title and stop blocking their time: a VEVENT has no "completed" state */

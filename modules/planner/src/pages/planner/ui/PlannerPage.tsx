@@ -9,6 +9,7 @@ import {
   nowMinsk,
   occurrences,
   parseLocal,
+  planFileName,
   planStart,
   startOfDay,
   startOfMonth,
@@ -54,6 +55,7 @@ import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
+import { PlanTitle } from '../../../features/rename-plan'
 import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
@@ -441,7 +443,10 @@ export function PlannerPage({
           <header className="flex flex-col gap-3 md:flex-row md:items-end md:gap-2">
             <div className="min-w-0 md:mr-auto">
               <p className="text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">{m.plan_label()}</p>
-              <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{plan.meta.title}</h1>
+              <PlanTitle
+                title={plan.meta.title}
+                onRename={canEdit ? (title) => void session.change({ type: 'plan.rename', title }) : undefined}
+              />
               <p className="mt-1 text-[14px] text-muted">
                 {m.plan_summary({
                   events: m.events_count({ count: plan.events.length }),
@@ -454,7 +459,7 @@ export function PlannerPage({
             <div className="order-first md:order-none">{headerAside}</div>
             <div className="flex gap-2 *:flex-1 md:*:flex-none">
               <OpenPlanFile
-                shown={{ name: session.file?.name ?? 'plan.json', plan }}
+                shown={{ name: session.file?.name ?? planFileName(plan), plan }}
                 project={state.plan}
                 onOpen={(file) => {
                   session.openFile(file.name, file.plan)

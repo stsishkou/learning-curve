@@ -49,6 +49,8 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Views**: week grid (drag to move, drag the bottom edge to resize; drag across an empty part of a day to draw a
   new event, or double-click a slot: the form opens beside it and the dashed block follows what you type), month,
   and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the calendar the whole window.
+- **The plan's name**: click the title to rename the plan (Enter saves, Escape cancels). It is one history step,
+  and the plan's own download (`<Title>.json`) and the combined `.ics` are named after it.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
   `＋ Event` creates an event in any of them.
 - **One calendar at a time**: a click on a calendar chip hides or shows it; the eye that appears on the chip

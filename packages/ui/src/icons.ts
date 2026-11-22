@@ -25,6 +25,7 @@ export {
   Minimize2,
   Minus,
   MoveHorizontal,
+  Pencil,
   Plus,
   Redo2,
   Repeat,

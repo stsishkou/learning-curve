@@ -7,6 +7,7 @@ import {
   emptyTrash,
   historyEdits,
   historyView,
+  planFileName,
   recordChange,
   trashOf,
   travel,
@@ -129,6 +130,7 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel }: Host
       setJustChanged(false)
     ),
     closeFile: () => (setFile(null), setJustChanged(false)),
-    downloadFile: () => downloadText(file?.name ?? 'plan.json', JSON.stringify(plan, null, 2), 'application/json'),
+    downloadFile: () =>
+      downloadText(file?.name ?? planFileName(plan), JSON.stringify(plan, null, 2), 'application/json'),
   }
 }

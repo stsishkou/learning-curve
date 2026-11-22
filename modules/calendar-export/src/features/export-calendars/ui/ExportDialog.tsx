@@ -1,5 +1,13 @@
 import { m } from '@lc/i18n/messages'
-import { calendarICS, combinedCalendar, combinedICS, icsFileName, IMPORT_HOWTO, type Plan } from '@lc/plan-domain'
+import {
+  calendarICS,
+  combinedCalendar,
+  combinedICS,
+  icsFileName,
+  IMPORT_HOWTO,
+  planFileName,
+  type Plan,
+} from '@lc/plan-domain'
 import { Button, calendarColor, Dot, FOOT, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -172,7 +180,7 @@ export function ExportDialog({
         {status}
       </p>
       <div className={FOOT}>
-        <Button onClick={() => downloadBlob('plan.json', JSON.stringify(plan, null, 2), 'application/json')}>
+        <Button onClick={() => downloadBlob(planFileName(plan), JSON.stringify(plan, null, 2), 'application/json')}>
           {m.download_plan_json()}
         </Button>
         {mode === 'separate' ? (

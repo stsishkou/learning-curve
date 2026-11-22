@@ -66,6 +66,7 @@ export {
   type TrashedEvent,
 } from './trash'
 export {
+  TITLE_MAX,
   applyEdits,
   emptyEdits,
   parseEdits,
@@ -75,7 +76,16 @@ export {
   type EventPatch,
   type PlanEdits,
 } from './edits'
-export { IMPORT_HOWTO, buildICS, calendarICS, combinedCalendar, combinedICS, icsFileName, type IcsOptions } from './ics'
+export {
+  IMPORT_HOWTO,
+  buildICS,
+  calendarICS,
+  combinedCalendar,
+  combinedICS,
+  icsFileName,
+  planFileName,
+  type IcsOptions,
+} from './ics'
 export {
   countsToBudget,
   durationHours,

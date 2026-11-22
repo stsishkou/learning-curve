@@ -95,7 +95,7 @@
   "howto_google": "Google Calendar: Settings → Import & export → select the .ics → choose the calendar with the same name.",
   "howto_outlook": "Outlook: Add calendar → Upload from file → select the .ics and the calendar.",
   "howto_duplicates": "Before importing again, delete the old events from these calendars, otherwise you will get duplicates.",
-  "download_plan_json": "Download plan.json",
+  "download_plan_json": "Download the plan (.json)",
   "download_zip": "Download .zip with .ics",
   "runway_label": "Certificates before the deadline",
   "days_to_deadline": [
@@ -156,6 +156,9 @@
   "expand_hint": "Calendar across the whole window: no header, runway or budget",
   "field_calendar": "Calendar",
   "field_free_time": "Free time: does not count toward the weekly budget",
+  "history_renamed": "Plan renamed: {name}",
+  "rename_plan": "Rename the plan",
+  "plan_title": "Plan title",
   "plan_label": "Study plan",
   "new_event": "New event",
   "new_event_hint": "New event. In the week grid, double-click an empty slot",

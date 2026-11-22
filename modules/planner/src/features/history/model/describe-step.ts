@@ -28,6 +28,8 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return m.history_replanned({ count: change.moves.length })
     case 'events.done':
       return m.history_done_many({ count: change.uids.length })
+    case 'plan.rename':
+      return m.history_renamed({ name: subject })
     case 'event.patch':
       break
   }

@@ -2,6 +2,7 @@ import { DAY, parseLocal, toLocalString } from './dates'
 import {
   HEX_COLOR,
   LOCAL_TIME,
+  TITLE_MAX,
   applyEdits,
   isRecord,
   parsePatch,
@@ -56,6 +57,8 @@ export type PlanChange =
   | { type: 'events.move'; moves: SessionMove[]; paced?: boolean }
   /** Marks several sessions done or not done as one step */
   | { type: 'events.done'; uids: string[]; done: boolean }
+  /** Gives the plan another name: the heading of the viewer and the names of the files it downloads */
+  | { type: 'plan.rename'; title: string }
 
 /** A change that cannot be applied; `message` is safe to show. */
 export class PlanChangeError extends Error {}
@@ -99,6 +102,8 @@ export function parseChange(input: unknown): PlanChange {
     }
     case 'event.remove':
       return { type: 'event.remove', uid: text('uid') }
+    case 'plan.rename':
+      return { type: 'plan.rename', title: text('title').slice(0, TITLE_MAX) }
     case 'calendar.save': {
       const color = text('color')
       if (!HEX_COLOR.test(color)) return fail('color must look like #1a2b3c')
@@ -187,6 +192,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     calendars: { ...edits.calendars },
     added: [...edits.added],
     removed: { events: { ...edits.removed.events }, calendars: { ...edits.removed.calendars } },
+    ...(edits.title ? { title: edits.title } : {}),
   }
   const { removed } = next
   const removedAt = new Date(now).toISOString()
@@ -304,6 +310,11 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     }
     case 'trash.empty':
       return purgeTrash(base, next, Infinity)
+    case 'plan.rename':
+      // The generated name again is no edit at all.
+      if (change.title === base.meta.title) delete next.title
+      else next.title = change.title
+      break
     case 'events.shift': {
       if (change.calendar && !calendarExists(change.calendar)) fail(`Unknown calendar "${change.calendar}"`)
       const moved = shiftTargets(applyEdits(base, next).plan, change)

@@ -27,6 +27,8 @@ export interface PlanEdits {
    * restore it has passed. A removed calendar hides its events too.
    */
   removed: { events: Record<string, string | null>; calendars: Record<string, string | null> }
+  /** The plan's own name, when it was changed in the viewer */
+  title?: string
 }
 
 export const emptyEdits = (): PlanEdits => ({
@@ -37,6 +39,8 @@ export const emptyEdits = (): PlanEdits => ({
   removed: { events: {}, calendars: {} },
 })
 
+/** Longest plan title that is kept */
+export const TITLE_MAX = 80
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 export const LOCAL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
 export const HEX_COLOR = /^#[0-9a-f]{6}$/i
@@ -144,6 +148,7 @@ export function parseEdits(value: unknown): PlanEdits {
       }
     }
   }
+  if (typeof value.title === 'string' && value.title.trim()) edits.title = value.title.trim().slice(0, TITLE_MAX)
   return edits
 }
 
@@ -196,5 +201,6 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
     plan.meta.planEnd,
   )
   const shown = calendars.filter((c) => !(c.id in gone.calendars))
-  return { plan: { ...plan, meta: { ...plan.meta, planEnd: lastDay }, calendars: shown, events }, orphans }
+  const meta = { ...plan.meta, planEnd: lastDay, title: edits.title ?? plan.meta.title }
+  return { plan: { ...plan, meta, calendars: shown, events }, orphans }
 }
