@@ -76,6 +76,8 @@ const preview: Preview = {
   parameters: {
     layout: 'padded',
     controls: { expanded: true },
+    // An accessibility violation fails the story's test (`pnpm run stand:test`), not only the panel.
+    a11y: { test: 'error' },
     docs: { container: ThemedDocs },
     options: {
       storySort: {

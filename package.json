@@ -9,6 +9,7 @@
     "start": "nx run @lc/web:start",
     "stand": "nx run @lc/stand:dev",
     "stand:build": "nx run @lc/stand:build --output-style=stream",
+    "stand:test": "nx run @lc/stand:test --output-style=stream",
     "plan": "nx run @lc/plan-data:plan --output-style=stream",
     "i18n": "nx run-many -t i18n",
     "typecheck": "nx run-many -t typecheck",

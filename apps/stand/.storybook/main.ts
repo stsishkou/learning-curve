@@ -8,7 +8,7 @@ const config: StorybookConfig = {
     '../../../packages/ui/src/**/*.stories.tsx',
     '../../../modules/*/src/**/*.stories.tsx',
   ],
-  addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
+  addons: ['@storybook/addon-docs', '@storybook/addon-a11y', '@storybook/addon-vitest'],
   core: {
     disableTelemetry: true,
     disableWhatsNewNotifications: true,
