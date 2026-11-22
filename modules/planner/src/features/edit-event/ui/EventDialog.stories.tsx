@@ -13,9 +13,6 @@ const meta = {
   component: EventDialog,
   parameters: {
     dialog: true,
-    // Known findings in the component, not the story: the green "done" text (color-contrast).
-    // `todo` keeps them in the panel and reports them as warnings instead of failing the test run.
-    a11y: { test: 'todo' },
     docs: {
       description: {
         component:

@@ -120,7 +120,7 @@ export function PlanFileReader({ open, shown, project, onOpen, onClose }: Props)
         </div>
 
         {doc.problem && (
-          <p className="mt-3 rounded-xl border border-today px-3 py-2 text-[13.5px] text-today" role="alert">
+          <p className="mt-3 rounded-xl border border-today px-3 py-2 text-[13.5px] text-today-ink" role="alert">
             {m.file_invalid({ reason: doc.problem })}
           </p>
         )}

@@ -74,7 +74,7 @@ export function ReaderSource({ text }: { text: string }) {
         </Button>
         <Button onClick={() => void copy()}>{m.copy()}</Button>
         {/* Outside the button: a live region inside one is not announced reliably. */}
-        <span className={`text-[12.5px] ${copied === 'failed' ? 'text-today' : 'text-done'}`} role="status">
+        <span className={`text-[12.5px] ${copied === 'failed' ? 'text-today-ink' : 'text-done-ink'}`} role="status">
           {copied === 'yes' ? m.copied() : copied === 'failed' ? m.copy_failed() : ''}
         </span>
       </div>

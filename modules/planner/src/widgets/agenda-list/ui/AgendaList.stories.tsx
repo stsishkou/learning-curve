@@ -8,11 +8,7 @@ import { AgendaList } from './AgendaList'
 const meta = {
   title: 'Planner/Widgets/AgendaList',
   component: AgendaList,
-  parameters: {
-    // Known findings in the component, not the story: the red heading of today (color-contrast).
-    // `todo` keeps them in the panel and reports them as warnings instead of failing the test run.
-    a11y: { test: 'todo' },
-  },
+  parameters: {},
   args: {
     plan: fixturePlan,
     items: occurrences(fixturePlan, fixtureWeek - 7 * DAY, fixtureWeek + 21 * DAY, new Set()),

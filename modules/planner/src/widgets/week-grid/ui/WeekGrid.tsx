@@ -300,11 +300,11 @@ export function WeekGrid({
                   </small>
                 )}
                 <b
-                  className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today' : 'text-ink'}`}
+                  className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today-ink' : 'text-ink'}`}
                 >
                   {new Date(d).getUTCDate()}
                 </b>
-                {off && <small className="mt-0.5 block text-[11px] text-today">{m.day_off()}</small>}
+                {off && <small className="mt-0.5 block text-[11px] text-today-ink">{m.day_off()}</small>}
               </div>
             )
           })}
@@ -326,7 +326,7 @@ export function WeekGrid({
                         <button
                           key={o.uid}
                           type="button"
-                          className={`${TOUCH_QUIET} truncate rounded-md bg-[color-mix(in_srgb,var(--today)_14%,var(--surface))] px-1.5 py-[3px] text-left text-[12px] font-semibold text-today ${onMove ? 'cursor-grab' : ''} ${dragged ? 'relative z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''}`}
+                          className={`${TOUCH_QUIET} truncate rounded-md bg-[color-mix(in_srgb,var(--today)_14%,var(--surface))] px-1.5 py-[3px] text-left text-[12px] font-semibold text-today-ink ${onMove ? 'cursor-grab' : ''} ${dragged ? 'relative z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''}`}
                           style={{ transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined }}
                           title={`${fmtDay(o.s)}: ${o.title}`}
                           {...handlers(o, 'day')}
@@ -398,7 +398,7 @@ export function WeekGrid({
                       {...handlers(o, 'move')}
                     >
                       <b className={`block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
-                        {o.done && <span className="mr-1 inline-block text-done no-underline">✓</span>}
+                        {o.done && <span className="mr-1 inline-block text-done-ink no-underline">✓</span>}
                         {shortTitle(o)}
                       </b>
                       <small className="text-muted tabular-nums">

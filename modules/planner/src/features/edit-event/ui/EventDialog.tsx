@@ -138,7 +138,7 @@ export function EventDialog({
             {calendar?.name}, {when}
             {event.availability === 'free' ? `, ${m.event_free()}` : ''}
             {event.done && (
-              <span className="rounded-md border border-current px-[5px] text-[11.5px] text-done">{m.done()}</span>
+              <span className="rounded-md border border-current px-[5px] text-[11.5px] text-done-ink">{m.done()}</span>
             )}
             {edited && (
               <span className="rounded-md border border-current px-[5px] text-[11.5px] text-focus">
@@ -163,7 +163,7 @@ export function EventDialog({
             />
           )}
           {error && (
-            <p className="mt-2 text-[13px] text-today" role="alert">
+            <p className="mt-2 text-[13px] text-today-ink" role="alert">
               {error}
             </p>
           )}
@@ -232,7 +232,7 @@ export function EventDialog({
             </span>
             {canEdit && isSession(event) && (
               <Button
-                className={event.done ? '' : 'border-done text-done'}
+                className={event.done ? '' : 'border-done text-done-ink'}
                 disabled={busy}
                 onClick={() => void run({ type: 'event.patch', uid: event.uid, patch: { done: !event.done } })}
               >

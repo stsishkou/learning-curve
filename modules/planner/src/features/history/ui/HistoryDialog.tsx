@@ -89,7 +89,7 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
       )}
 
       {error && (
-        <p className="mt-2 text-[13px] text-today" role="alert">
+        <p className="mt-2 text-[13px] text-today-ink" role="alert">
           {error}
         </p>
       )}

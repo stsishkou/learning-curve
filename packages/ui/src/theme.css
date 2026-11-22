@@ -10,8 +10,11 @@
   --line: #d4dbe5;
   --line-soft: #e6ebf1;
   --today: #d8473b;
+  /* Text in the accent colours: the fills are too light to read as text on a light surface. */
+  --today-ink: #b93026;
   --focus: #2f5bea;
   --done: #1f9d6b;
+  --done-ink: #14704b;
   --shadow: 0 1px 0 rgb(23 32 51 / 0.06);
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -27,8 +30,10 @@
     --line: #2c3547;
     --line-soft: #242d3d;
     --today: #ff6b5e;
+    --today-ink: #ff6b5e;
     --focus: #7c9bff;
     --done: #46c692;
+    --done-ink: #46c692;
     --shadow: 0 0 #0000;
   }
 }
@@ -42,8 +47,10 @@
   --line: #2c3547;
   --line-soft: #242d3d;
   --today: #ff6b5e;
+  --today-ink: #ff6b5e;
   --focus: #7c9bff;
   --done: #46c692;
+  --done-ink: #46c692;
   --shadow: 0 0 #0000;
 }
 
@@ -65,10 +72,12 @@
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
   --color-today: var(--today);
+  --color-today-ink: var(--today-ink);
   --color-focus: var(--focus);
   /* --c is the calendar color, set inline on the element that owns the event, chip or legend row */
   --color-cal: var(--c);
   --color-done: var(--done);
+  --color-done-ink: var(--done-ink);
   --shadow-card: var(--shadow);
 }
 

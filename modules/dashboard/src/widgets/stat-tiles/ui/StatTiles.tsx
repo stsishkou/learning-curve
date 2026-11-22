@@ -44,7 +44,7 @@ export function StatTiles({ plan, stats, now }: Props) {
         }
       >
         {/* The arrow and the sign carry the meaning; the color only repeats it. */}
-        <span className={Math.abs(lead) < 0.25 ? '' : lead > 0 ? 'text-done' : 'text-today'}>
+        <span className={Math.abs(lead) < 0.25 ? '' : lead > 0 ? 'text-done-ink' : 'text-today-ink'}>
           {Math.abs(lead) < 0.25 ? '✓' : lead > 0 ? '▲ +' : '▼ −'}
           {Math.abs(lead) < 0.25 ? '' : fmtHours(Math.abs(lead))}
         </span>

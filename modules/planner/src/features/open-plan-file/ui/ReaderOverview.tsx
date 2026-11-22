@@ -62,13 +62,18 @@ export function ReaderOverview({ plan, compareWith }: Props) {
         <p className="text-[13.5px] text-muted">{m.file_same()}</p>
       ) : (
         <div className="grid gap-2">
-          <Group tone="text-done" sign="+" label={m.file_added({ count: diff.added.length })} count={diff.added.length}>
+          <Group
+            tone="text-done-ink"
+            sign="+"
+            label={m.file_added({ count: diff.added.length })}
+            count={diff.added.length}
+          >
             {diff.added.slice(0, SHOWN).map((e) => (
               <Row key={e.uid} color={colorOf(plan, e.calendar)} title={e.title} detail={when(e)} />
             ))}
           </Group>
           <Group
-            tone="text-today"
+            tone="text-today-ink"
             sign="−"
             label={m.file_removed({ count: diff.removed.length })}
             count={diff.removed.length}

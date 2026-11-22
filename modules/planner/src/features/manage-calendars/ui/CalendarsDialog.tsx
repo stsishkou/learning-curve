@@ -63,7 +63,7 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
         onSave={(name, color) => run({ type: 'calendar.save', name, color })}
       />
       {error && (
-        <p className="mt-2 text-[13px] text-today" role="alert">
+        <p className="mt-2 text-[13px] text-today-ink" role="alert">
           {error}
         </p>
       )}

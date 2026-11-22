@@ -85,7 +85,7 @@ function ShiftForm({ plan, from: initial, onChange, onClose }: Props & { from: s
         {m.shift_count({ count })}
       </p>
       {error && (
-        <p className="text-[13px] text-today" role="alert">
+        <p className="text-[13px] text-today-ink" role="alert">
           {error}
         </p>
       )}

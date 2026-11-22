@@ -120,7 +120,7 @@ export function Runway({ plan, now, onSelect }: Props) {
         )}
         {now !== null && now >= start && now < end && (
           <div className="absolute top-7 bottom-[22px] -ml-px w-0.5 bg-today" style={{ left: x(now) }}>
-            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[11.5px] font-semibold whitespace-nowrap text-today">
+            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[11.5px] font-semibold whitespace-nowrap text-today-ink">
               {m.today()}
             </span>
           </div>

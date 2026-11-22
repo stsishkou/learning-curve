@@ -91,7 +91,7 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
               >
                 {new Date(d).getUTCDate()}
               </button>
-              {off && <small className="mb-1 block text-[11px] text-today">{m.day_off()}</small>}
+              {off && <small className="mb-1 block text-[11px] text-today-ink">{m.day_off()}</small>}
               <div className="grid gap-0.5">
                 {list.slice(0, SHOWN).map((o) => (
                   <button

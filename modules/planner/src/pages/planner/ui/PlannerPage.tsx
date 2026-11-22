@@ -445,7 +445,7 @@ export function PlannerPage({
           <span className="min-w-0 flex-1">{m.overdue({ count: overdue.length })}</span>
           <button
             type="button"
-            className="font-semibold text-done hover:underline"
+            className="font-semibold text-done-ink hover:underline"
             onClick={() => void changeQuietly({ type: 'events.done', uids: overdue.map((e) => e.uid), done: true })}
           >
             ✓ {m.overdue_mark()}
@@ -469,7 +469,7 @@ export function PlannerPage({
       )}
 
       {saveError && (
-        <p className="mb-3 text-[13px] text-today" role="alert">
+        <p className="mb-3 text-[13px] text-today-ink" role="alert">
           {saveError}
         </p>
       )}

@@ -41,7 +41,7 @@ export function AgendaList({ plan, items, now, onSelect }: Props) {
         <h3
           key={`d-${d}`}
           ref={d === anchor ? todayRef : undefined}
-          className={`sticky top-0 z-1 bg-surface px-[18px] pt-3.5 pb-1.5 text-[13px]/[1.3] font-semibold ${d === today ? 'text-today' : 'text-muted'}`}
+          className={`sticky top-0 z-1 bg-surface px-[18px] pt-3.5 pb-1.5 text-[13px]/[1.3] font-semibold ${d === today ? 'text-today-ink' : 'text-muted'}`}
         >
           {fmtDay(d)}
           {d === today ? ` — ${m.today()}` : ''}
@@ -64,7 +64,7 @@ export function AgendaList({ plan, items, now, onSelect }: Props) {
         >
           <Dot className="size-[9px] -translate-y-px" />
           {o.title}
-          {o.done && <span className="text-done no-underline">✓</span>}
+          {o.done && <span className="text-done-ink no-underline">✓</span>}
         </span>
       </button>,
     )

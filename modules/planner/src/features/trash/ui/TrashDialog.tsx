@@ -71,7 +71,7 @@ export function TrashDialog({ plan, trash, open, onChange, onClose }: Props) {
       )}
 
       {error && (
-        <p className="mt-2 text-[13px] text-today" role="alert">
+        <p className="mt-2 text-[13px] text-today-ink" role="alert">
           {error}
         </p>
       )}
@@ -80,8 +80,8 @@ export function TrashDialog({ plan, trash, open, onChange, onClose }: Props) {
           <span className="mr-auto flex flex-wrap items-center gap-2">
             {confirming ? (
               <>
-                <span className="text-[13px] text-today">{m.trash_empty_confirm()}</span>
-                <Button className="border-today text-today" onClick={() => void run({ type: 'trash.empty' })}>
+                <span className="text-[13px] text-today-ink">{m.trash_empty_confirm()}</span>
+                <Button className="border-today text-today-ink" onClick={() => void run({ type: 'trash.empty' })}>
                   {m.trash_empty_now()}
                 </Button>
                 <Button onClick={() => setConfirming(false)}>{m.cancel()}</Button>
@@ -129,7 +129,7 @@ function Row({ color, title, detail, daysLeft, onRestore }: RowProps) {
         <small className="block truncate text-[12.5px] text-muted tabular-nums">{detail}</small>
       </span>
       <em
-        className={`flex-none text-[12.5px] whitespace-nowrap not-italic tabular-nums ${daysLeft <= 3 ? 'text-today' : 'text-muted'}`}
+        className={`flex-none text-[12.5px] whitespace-nowrap not-italic tabular-nums ${daysLeft <= 3 ? 'text-today-ink' : 'text-muted'}`}
       >
         {m.trash_days_left({ count: daysLeft })}
       </em>
