@@ -1,4 +1,5 @@
-import { DAY, HOUR, parseLocal, startOfDay, weekday } from './dates'
+import { DAY, HOUR, parseLocal, startOfDay, weekday, ymd } from './dates'
+import { weekdaysOf } from './recurrence'
 import type { Plan, PlanEvent } from './types'
 
 export interface Occurrence extends PlanEvent {
@@ -6,8 +7,6 @@ export interface Occurrence extends PlanEvent {
   s: number
   e: number
 }
-
-const BYDAY: Record<string, number> = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 }
 
 /** Events (including weekly RRULE repeats and all-day items) that overlap [from, to). */
 export function occurrences(plan: Plan, from: number, to: number, hidden: ReadonlySet<string>): Occurrence[] {
@@ -17,11 +16,12 @@ export function occurrences(plan: Plan, from: number, to: number, hidden: Readon
     const s = parseLocal(ev.start)
     const e = parseLocal(ev.end)
     if (ev.rrule) {
-      const days = new Set((ev.rrule.match(/BYDAY=([A-Z,]+)/)?.[1] ?? '').split(',').map((d) => BYDAY[d]))
+      const days = new Set(weekdaysOf(ev.rrule))
       const duration = e - s
       const timeOfDay = s - startOfDay(s)
       for (let d = Math.max(startOfDay(from), startOfDay(s)); d < to; d += DAY) {
-        if (days.has(weekday(d))) out.push({ ...ev, s: d + timeOfDay, e: d + timeOfDay + duration })
+        if (days.has(weekday(d)) && !ev.skip?.includes(ymd(d)))
+          out.push({ ...ev, s: d + timeOfDay, e: d + timeOfDay + duration })
       }
     } else if (ev.allDay) {
       const d = startOfDay(s)

@@ -27,6 +27,8 @@ export interface PlanEvent {
   allDay?: boolean
   /** RFC 5545 RRULE without the `RRULE:` prefix, e.g. `FREQ=WEEKLY;BYDAY=TU,TH` */
   rrule?: string
+  /** Days a repeating event does not happen, `YYYY-MM-DD`: set by hand in the viewer */
+  skip?: string[]
   /** The session is finished: set by hand in the viewer */
   done?: boolean
 }

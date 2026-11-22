@@ -1,12 +1,16 @@
+import { m } from '@lc/i18n/messages'
 import {
   applyChange,
   applyEdits,
   editedUids,
   emptyEdits,
+  emptyTrash,
+  trashOf,
   type EventPatch,
   type Plan,
   type PlanChange,
   type PlanEdits,
+  type PlanTrash,
 } from '@lc/plan-domain'
 import { useCallback, useMemo, useState } from 'react'
 
@@ -18,6 +22,8 @@ export interface PlannerState {
   canEdit: boolean
   /** uids of events that differ from the generated schedule */
   edited: string[]
+  /** Removed events and calendars that can still be restored */
+  trash: PlanTrash
 }
 
 interface OpenFile {
@@ -26,12 +32,54 @@ interface OpenFile {
   base: Plan
   /** What was changed since, kept in the browser only */
   edits: PlanEdits
+  trash: PlanTrash
 }
 
 export interface Undo {
-  /** Title of the event the last change touched */
-  title: string
+  /** What the last change did, ready to show */
+  label: string
   run: () => Promise<void>
+}
+
+/** The change that takes `change` back, with the text of the undo bar; null when there is nothing to take back. */
+function inverse(plan: Plan, change: PlanChange): { label: string; change: PlanChange } | null {
+  switch (change.type) {
+    case 'event.patch': {
+      const event = plan.events.find((e) => e.uid === change.uid)
+      if (!event || !change.patch) return null
+      const before: EventPatch = {}
+      for (const key of ['title', 'description', 'start', 'end', 'calendar', 'rrule'] as const) {
+        if (key in change.patch) before[key] = event[key]
+      }
+      if ('done' in change.patch) before.done = !!event.done
+      if ('skip' in change.patch) before.skip = event.skip ?? []
+      return {
+        label: m.changed_event({ title: event.title }),
+        change: { type: 'event.patch', uid: event.uid, patch: before },
+      }
+    }
+    case 'event.remove': {
+      const event = plan.events.find((e) => e.uid === change.uid)
+      return event
+        ? { label: m.trashed({ name: event.title }), change: { type: 'trash.restore', events: [event.uid] } }
+        : null
+    }
+    case 'calendar.clear': {
+      const calendar = plan.calendars.find((c) => c.id === change.id)
+      const events = plan.events.filter((e) => e.calendar === change.id).map((e) => e.uid)
+      return calendar && events.length
+        ? { label: m.calendar_cleared({ name: calendar.name }), change: { type: 'trash.restore', events } }
+        : null
+    }
+    case 'calendar.remove': {
+      const calendar = plan.calendars.find((c) => c.id === change.id)
+      return calendar
+        ? { label: m.trashed({ name: calendar.name }), change: { type: 'trash.restore', calendars: [calendar.id] } }
+        : null
+    }
+    default:
+      return null
+  }
 }
 
 /**
@@ -61,7 +109,8 @@ export function usePlanSession(state: PlannerState, onChange: (change: PlanChang
   const apply = useCallback(
     async (change: PlanChange) => {
       if (file) {
-        setFile({ ...file, edits: applyChange(file.base, file.edits, change) })
+        const edits = applyChange(file.base, file.edits, change)
+        setFile({ ...file, edits, trash: trashOf(file.base, edits) })
         return
       }
       setPending((prev) => [...prev, change])
@@ -74,24 +123,20 @@ export function usePlanSession(state: PlannerState, onChange: (change: PlanChang
     [file, onChange],
   )
 
-  /** Applies a change and remembers how to take it back when it edits an existing event. */
+  /** Applies a change and remembers how to take it back when it edits or removes something. */
   const change = useCallback(
     async (next: PlanChange) => {
-      const event = next.type === 'event.patch' ? plan.events.find((e) => e.uid === next.uid) : undefined
+      const back = inverse(plan, next)
       await apply(next)
-      if (next.type !== 'event.patch' || !next.patch || !event) return setUndo(null)
-      const before: EventPatch = {}
-      for (const key of ['title', 'description', 'start', 'end', 'calendar'] as const) {
-        if (key in next.patch) before[key] = event[key]
-      }
-      if ('done' in next.patch) before.done = !!event.done
-      setUndo({
-        title: event.title,
-        run: async () => {
-          setUndo(null)
-          await apply({ type: 'event.patch', uid: event.uid, patch: before })
+      setUndo(
+        back && {
+          label: back.label,
+          run: async () => {
+            setUndo(null)
+            await apply(back.change)
+          },
         },
-      })
+      )
     },
     [apply, plan],
   )
@@ -103,11 +148,15 @@ export function usePlanSession(state: PlannerState, onChange: (change: PlanChang
     /** A file is always editable: its changes never leave the browser. */
     canEdit: file ? true : state.canEdit,
     edited,
+    trash: file ? file.trash : state.trash,
     change,
     undo,
     dismissUndo: () => setUndo(null),
     file: file ? { name: file.name, changes: edited.size + Object.keys(file.edits.calendars).length } : null,
-    openFile: (name: string, base: Plan) => (setFile({ name, base, edits: emptyEdits() }), setUndo(null)),
+    openFile: (name: string, base: Plan) => (
+      setFile({ name, base, edits: emptyEdits(), trash: emptyTrash() }),
+      setUndo(null)
+    ),
     closeFile: () => (setFile(null), setUndo(null)),
     downloadFile: () => downloadText(file?.name ?? 'plan.json', JSON.stringify(plan, null, 2), 'application/json'),
   }

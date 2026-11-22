@@ -1,5 +1,5 @@
 import { canWrite, readEdits, readPlan, writePlan } from '@lc/plan-data'
-import { applyChange, buildPlan, editedUids, parseChange, type Plan } from '@lc/plan-domain'
+import { applyChange, buildPlan, editedUids, parseChange, trashOf, type Plan, type PlanTrash } from '@lc/plan-domain'
 import { createServerFn } from '@tanstack/react-start'
 
 export interface PlanState {
@@ -8,9 +8,14 @@ export interface PlanState {
   canEdit: boolean
   /** uids of events that differ from the generated schedule */
   edited: string[]
+  /** Removed events and calendars that can still be restored */
+  trash: PlanTrash
 }
 
-const state = (plan: Plan): PlanState => ({ plan, canEdit: canWrite(), edited: editedUids(readEdits()) })
+function state(plan: Plan): PlanState {
+  const edits = readEdits()
+  return { plan, canEdit: canWrite(), edited: editedUids(edits), trash: trashOf(buildPlan(), edits) }
+}
 
 export const getPlanState = createServerFn({ method: 'GET' }).handler((): PlanState => state(readPlan()))
 

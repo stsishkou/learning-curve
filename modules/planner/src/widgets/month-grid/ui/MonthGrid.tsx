@@ -2,8 +2,11 @@ import { dowShort, fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, hm, startOfDay, ymd, type Occurrence, type Plan, type PlanEvent } from '@lc/plan-domain'
 import { calendarColor, Dot } from '@lc/ui'
+import { useRef, useState, type PointerEvent } from 'react'
 
 const SHOWN = 3
+/** Pointer travel in px before a press counts as a drag instead of a click */
+const DRAG_THRESHOLD = 5
 
 interface Props {
   plan: Plan
@@ -17,10 +20,39 @@ interface Props {
   onSelect: (e: PlanEvent) => void
   /** Opens the week view on that day */
   onPickDay: (day: number) => void
+  /** Present when the plan can be edited: called with the new slot (wall-clock ms) of an event dropped on a day */
+  onMove?: (o: Occurrence, slot: { s: number; e: number }) => void
 }
 
 /** A month at a glance: every day with its first events; the day number opens that week. */
-export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSelect, onPickDay }: Props) {
+export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSelect, onPickDay, onMove }: Props) {
+  const [drag, setDrag] = useState<{ key: string; target: number } | null>(null)
+  const press = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  // The click that follows a drag must not open the event dialog.
+  const suppressClick = useRef(false)
+
+  function pointerMove(e: PointerEvent<HTMLElement>, o: Occurrence) {
+    const p = press.current
+    if (!p) return
+    if (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) < DRAG_THRESHOLD) return
+    p.moved = true
+    const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-month-day]')
+    const target = cell ? Number(cell.dataset.monthDay) : startOfDay(o.s)
+    setDrag({ key: `${o.uid}-${o.s}`, target })
+  }
+
+  function pointerUp(o: Occurrence) {
+    const moved = press.current?.moved
+    const target = drag?.target
+    press.current = null
+    setDrag(null)
+    if (!moved) return
+    suppressClick.current = true
+    window.setTimeout(() => (suppressClick.current = false), 50)
+    const shift = (target ?? startOfDay(o.s)) - startOfDay(o.s)
+    if (shift) onMove?.(o, { s: o.s + shift, e: o.e + shift })
+  }
+
   const today = now === null ? null : startOfDay(now)
   const month = new Date(monthStart).getUTCMonth()
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
@@ -46,7 +78,8 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
           return (
             <div
               key={d}
-              className={`min-h-[104px] min-w-0 overflow-hidden border-r border-b border-line-soft p-1.5 nth-[7n]:border-r-0 ${outside ? 'bg-surface-2/60' : ''}`}
+              data-month-day={d}
+              className={`min-h-[104px] min-w-0 overflow-hidden border-r border-b border-line-soft p-1.5 nth-[7n]:border-r-0 ${outside ? 'bg-surface-2/60' : ''} ${drag?.target === d ? 'bg-[color-mix(in_srgb,var(--focus)_12%,var(--surface))] shadow-[inset_0_0_0_2px_var(--focus)]' : ''}`}
             >
               <button
                 type="button"
@@ -64,9 +97,20 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
                   <button
                     key={`${o.uid}-${o.s}`}
                     type="button"
-                    className={`flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-px text-left text-[11.5px]/[1.5] hover:bg-surface-2 ${o.done ? 'opacity-55' : ''}`}
+                    className={`flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-px text-left text-[11.5px]/[1.5] select-none hover:bg-surface-2 ${o.done ? 'opacity-55' : ''} ${onMove ? 'cursor-grab' : ''} ${drag?.key === `${o.uid}-${o.s}` ? 'cursor-grabbing opacity-50' : ''}`}
                     style={calendarColor(colorOf(o.calendar))}
-                    onClick={() => onSelect(o)}
+                    onPointerDown={(e) => {
+                      if (!onMove || e.button !== 0 || e.pointerType === 'touch') return
+                      e.currentTarget.setPointerCapture(e.pointerId)
+                      press.current = { x: e.clientX, y: e.clientY, moved: false }
+                    }}
+                    onPointerMove={(e) => pointerMove(e, o)}
+                    onPointerUp={() => pointerUp(o)}
+                    onPointerCancel={() => ((press.current = null), setDrag(null))}
+                    onClick={() => {
+                      if (suppressClick.current) suppressClick.current = false
+                      else onSelect(o)
+                    }}
                   >
                     <Dot className="size-[7px]" />
                     {!o.allDay && <span className="flex-none text-muted tabular-nums">{hm(o.s)}</span>}

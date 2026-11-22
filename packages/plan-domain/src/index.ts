@@ -23,6 +23,16 @@ export {
   type PlanChange,
 } from './changes'
 export { diffPlans, type PlanDiff } from './diff'
+export { movePatch, weekdaysOf } from './recurrence'
+export {
+  TRASH_DAYS,
+  emptyTrash,
+  purgeTrash,
+  trashOf,
+  type PlanTrash,
+  type TrashedCalendar,
+  type TrashedEvent,
+} from './trash'
 export {
   applyEdits,
   emptyEdits,

@@ -1,34 +1,23 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { diffPlans, HOUR, hm, parseLocal, type Plan, type PlanEvent } from '@lc/plan-domain'
-import { Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
+import { calendarColor, Dot } from '@lc/ui'
 import type { ReactNode } from 'react'
-
-import type { OpenedFile } from './OpenPlanFile'
 
 const SHOWN = 8
 
 interface Props {
-  file: OpenedFile | null
-  current: Plan
-  onCancel: () => void
-  onOpen: (file: OpenedFile) => void
+  plan: Plan
+  /** The project plan to compare with; null when the document is the project plan itself */
+  compareWith: Plan | null
 }
 
 const colorOf = (p: Plan, id: string) => p.calendars.find((c) => c.id === id)?.color
 const when = (e: PlanEvent) => `${fmtDay(parseLocal(e.start))} ${hm(parseLocal(e.start))}–${hm(parseLocal(e.end))}`
 
-/** What is in the chosen file and how it differs from the plan on screen, before it is opened. */
-export function PlanFileReview({ file, current, onCancel, onOpen }: Props) {
-  return (
-    <Modal open={!!file} size="wide" onClose={onCancel}>
-      {file && <Review file={file} current={current} onCancel={onCancel} onOpen={onOpen} />}
-    </Modal>
-  )
-}
-
-function Review({ file, current, onCancel, onOpen }: Props & { file: OpenedFile }) {
-  const { plan } = file
+/** What a plan document holds and, for a file from disk, how it differs from the project plan. */
+export function ReaderOverview({ plan, compareWith }: Props) {
+  const current = compareWith ?? plan
   const diff = diffPlans(current, plan)
   const same = !diff.added.length && !diff.removed.length && !diff.changed.length
   const hours = plan.events.reduce(
@@ -39,13 +28,7 @@ function Review({ file, current, onCancel, onOpen }: Props & { file: OpenedFile 
 
   return (
     <>
-      <h3 className={TITLE}>{plan.meta.title || file.name}</h3>
-      <div className={META}>
-        {file.name}
-        {plan.meta.generated ? ` · ${m.file_generated({ date: fmtDay(parseLocal(plan.meta.generated)) })}` : ''}
-      </div>
-
-      <dl className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Stat label={m.stat_events()} value={plan.events.length} />
         <Stat label={m.calendars()} value={plan.calendars.length} />
         <Stat label={m.stat_hours()} value={fmtHours(hours)} />
@@ -73,7 +56,9 @@ function Review({ file, current, onCancel, onOpen }: Props & { file: OpenedFile 
       </ul>
 
       <h4 className="mt-5 mb-2 text-[14px] font-semibold">{m.file_compare()}</h4>
-      {same ? (
+      {!compareWith ? (
+        <p className="text-[13.5px] text-muted">{m.reader_is_project()}</p>
+      ) : same ? (
         <p className="text-[13.5px] text-muted">{m.file_same()}</p>
       ) : (
         <div className="grid gap-2">
@@ -113,14 +98,6 @@ function Review({ file, current, onCancel, onOpen }: Props & { file: OpenedFile 
           </Group>
         </div>
       )}
-
-      <div className={FOOT}>
-        <Button onClick={onCancel}>{m.cancel()}</Button>
-        {/* oxlint-disable-next-line jsx-a11y/no-autofocus -- the dialog exists to confirm this */}
-        <Button primary autoFocus onClick={() => onOpen(file)}>
-          {m.file_open_in_viewer()}
-        </Button>
-      </div>
     </>
   )
 }

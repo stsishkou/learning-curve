@@ -9,14 +9,18 @@ interface Props {
   onClose: () => void
   /** Accessible name, when the content has no heading to point at */
   label?: string
-  /** `wide` for dialogs that hold a list or a comparison */
-  size?: 'normal' | 'wide'
+  /** `wide` for dialogs that hold a list or a comparison, `full` for a document that fills the window */
+  size?: 'normal' | 'wide' | 'full'
   /** Sticks to the top of the window instead of the middle, for a search box whose results change height */
   top?: boolean
   children: ReactNode
 }
 
-const SIZE = { normal: 'w-[min(560px,calc(100vw-32px))]', wide: 'w-[min(760px,calc(100vw-32px))]' }
+const SIZE = {
+  normal: 'w-[min(560px,calc(100vw-32px))]',
+  wide: 'w-[min(760px,calc(100vw-32px))]',
+  full: 'h-[calc(100dvh-32px)] w-[min(1120px,calc(100vw-32px))]',
+}
 
 export function Modal({ open, onClose, label, size = 'normal', top = false, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -50,7 +54,7 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, chil
       onClose={onClose}
       onClick={backdropClick}
     >
-      <div className="px-[22px] py-5">{children}</div>
+      <div className={`px-[22px] py-5 ${size === 'full' ? 'h-full' : ''}`}>{children}</div>
     </dialog>
   )
 }

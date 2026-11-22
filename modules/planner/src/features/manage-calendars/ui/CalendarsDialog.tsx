@@ -11,11 +11,16 @@ interface Props {
   open: boolean
   /** Rejects with the reason when the change cannot be stored */
   onChange: (change: PlanChange) => Promise<void>
+  /** The last change that can be taken back, shown here because the dialog covers the page's undo bar */
+  undo: { label: string; run: () => Promise<void> } | null
+  /** How many things wait in the trash, and the way to open it */
+  trashCount: number
+  onOpenTrash: () => void
   onClose: () => void
 }
 
-/** Rename and recolor any calendar, add new ones, remove the ones added here. */
-export function CalendarsDialog({ plan, open, onChange, onClose }: Props) {
+/** Rename and recolor any calendar, add new ones, clear or remove any of them: what is removed goes to the trash. */
+export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpenTrash, onClose }: Props) {
   const [error, setError] = useState('')
   const counts = new Map<string, number>()
   for (const e of plan.events) counts.set(e.calendar, (counts.get(e.calendar) ?? 0) + 1)
@@ -44,7 +49,8 @@ export function CalendarsDialog({ plan, open, onChange, onClose }: Props) {
               calendar={c}
               events={counts.get(c.id) ?? 0}
               onSave={(name, color) => run({ type: 'calendar.save', id: c.id, name, color })}
-              onRemove={c.custom ? () => run({ type: 'calendar.remove', id: c.id }) : undefined}
+              onClear={counts.get(c.id) ? () => run({ type: 'calendar.clear', id: c.id }) : undefined}
+              onRemove={plan.calendars.length > 1 ? () => run({ type: 'calendar.remove', id: c.id }) : undefined}
             />
           </li>
         ))}
@@ -61,7 +67,25 @@ export function CalendarsDialog({ plan, open, onChange, onClose }: Props) {
           {error}
         </p>
       )}
+      {undo && (
+        <p className="mt-3 flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2 text-[13.5px]" role="status">
+          <span className="min-w-0 flex-1 truncate">{undo.label}</span>
+          <button
+            type="button"
+            className="font-semibold text-focus hover:underline"
+            onClick={() => void undo.run().catch((err: unknown) => setError(String(err)))}
+          >
+            {m.undo()}
+          </button>
+        </p>
+      )}
       <div className={FOOT}>
+        <span className="mr-auto flex items-center gap-2.5 text-[12.5px] text-muted">
+          <Button onClick={onOpenTrash}>
+            {m.trash()}
+            {trashCount > 0 && <em className="ml-1.5 text-muted not-italic tabular-nums">{trashCount}</em>}
+          </Button>
+        </span>
         <Button onClick={onClose}>{m.close()}</Button>
       </div>
     </Modal>
@@ -73,10 +97,11 @@ interface RowProps {
   /** null for the row that adds a calendar */
   events: number | null
   onSave: (name: string, color: string) => Promise<void>
+  onClear?: () => Promise<void>
   onRemove?: () => Promise<void>
 }
 
-function CalendarRow({ calendar, events, onSave, onRemove }: RowProps) {
+function CalendarRow({ calendar, events, onSave, onClear, onRemove }: RowProps) {
   const [name, setName] = useState(calendar.name)
   const [color, setColor] = useState(calendar.color)
   const adding = events === null
@@ -114,8 +139,17 @@ function CalendarRow({ calendar, events, onSave, onRemove }: RowProps) {
           {adding ? m.add() : m.save()}
         </Button>
       )}
+      {onClear && !dirty && (
+        <Button title={m.clear_calendar_hint()} onClick={() => void onClear()}>
+          {m.clear_calendar()}
+        </Button>
+      )}
       {onRemove && !dirty && (
-        <Button aria-label={m.delete_calendar({ name: calendar.name })} onClick={() => void onRemove()}>
+        <Button
+          aria-label={m.delete_calendar({ name: calendar.name })}
+          title={m.delete_calendar({ name: calendar.name })}
+          onClick={() => void onRemove()}
+        >
           ✕
         </Button>
       )}

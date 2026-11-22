@@ -1,8 +1,11 @@
 import { parseLocal } from './dates'
+import { WEEKLY_RULE } from './recurrence'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 /** Fields of an event that can be changed in the viewer. Times are Europe/Minsk wall-clock strings. */
-export type EventPatch = Partial<Pick<PlanEvent, 'title' | 'description' | 'start' | 'end' | 'calendar' | 'done'>>
+export type EventPatch = Partial<
+  Pick<PlanEvent, 'title' | 'description' | 'start' | 'end' | 'calendar' | 'done' | 'rrule' | 'skip'>
+>
 
 /** A calendar's look. For a generated calendar it overrides the content; an unknown id adds a calendar. */
 export type CalendarPatch = Pick<PlanCalendar, 'name' | 'color'>
@@ -16,10 +19,22 @@ export interface PlanEdits {
   calendars: Record<string, CalendarPatch>
   /** Events created in the viewer */
   added: PlanEvent[]
+  /**
+   * The trash, by event uid and calendar id: when each was removed (an ISO instant), or `null` once the time to
+   * restore it has passed. A removed calendar hides its events too.
+   */
+  removed: { events: Record<string, string | null>; calendars: Record<string, string | null> }
 }
 
-export const emptyEdits = (): PlanEdits => ({ version: 1, events: {}, calendars: {}, added: [] })
+export const emptyEdits = (): PlanEdits => ({
+  version: 1,
+  events: {},
+  calendars: {},
+  added: [],
+  removed: { events: {}, calendars: {} },
+})
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/
 export const LOCAL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
 export const HEX_COLOR = /^#[0-9a-f]{6}$/i
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -41,6 +56,18 @@ export function parsePatch(value: unknown): EventPatch | null {
     if (typeof value.done !== 'boolean') return null
     patch.done = value.done
   }
+  if (value.rrule !== undefined) {
+    if (typeof value.rrule !== 'string' || !WEEKLY_RULE.test(value.rrule) || !value.rrule.includes('BYDAY=')) {
+      return null
+    }
+    patch.rrule = value.rrule
+  }
+  if (value.skip !== undefined) {
+    if (!Array.isArray(value.skip)) return null
+    const days = value.skip.filter((day): day is string => typeof day === 'string' && DATE.test(day))
+    if (days.length !== value.skip.length) return null
+    patch.skip = [...new Set(days)].toSorted()
+  }
   return patch
 }
 
@@ -55,6 +82,8 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
   const patch = parsePatch(value)
   if (!isRecord(value) || !patch || typeof value.uid !== 'string' || !value.uid) return null
   const { title, start, end, calendar } = patch
+  // A repeat is a property of generated events only.
+  if (patch.rrule || patch.skip) return null
   if (!title || !start || !end || !calendar) return null
   const event: PlanEvent = {
     uid: value.uid,
@@ -91,6 +120,15 @@ export function parseEdits(value: unknown): PlanEdits {
       if (event) edits.added.push(event)
     }
   }
+  if (isRecord(value.removed)) {
+    for (const key of ['events', 'calendars'] as const) {
+      const marks = value.removed[key]
+      if (!isRecord(marks)) continue
+      for (const [id, at] of Object.entries(marks)) {
+        if (at === null || (typeof at === 'string' && !Number.isNaN(Date.parse(at)))) edits.removed[key][id] = at
+      }
+    }
+  }
   return edits
 }
 
@@ -117,6 +155,7 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
       .map(([id, patch]) => ({ id, ...patch, isNew: true, custom: true })),
   ]
   const calendarIds = new Set(calendars.map((c) => c.id))
+  const gone = edits.removed
 
   const events = [
     ...plan.events.map((event) => {
@@ -124,10 +163,13 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
       if (!patch || patchProblem(event, patch)) return event
       const next = { ...event, ...patch }
       if (!next.done) delete next.done
+      if (!next.skip?.length) delete next.skip
       return calendarIds.has(next.calendar) ? next : { ...next, calendar: event.calendar }
     }),
     ...edits.added.filter((event) => calendarIds.has(event.calendar) && !known.has(event.uid)),
-  ].toSorted((a, b) => a.start.localeCompare(b.start) || a.calendar.localeCompare(b.calendar))
+  ]
+    .filter((event) => !(event.uid in gone.events) && !(event.calendar in gone.calendars))
+    .toSorted((a, b) => a.start.localeCompare(b.start) || a.calendar.localeCompare(b.calendar))
 
   // An event moved or added past the generated end must still be inside the range the list view shows.
   const touched = new Set([...Object.keys(edits.events), ...edits.added.map((e) => e.uid)])
@@ -135,5 +177,6 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
     (max, e) => (touched.has(e.uid) && !e.rrule && e.start.slice(0, 10) > max ? e.start.slice(0, 10) : max),
     plan.meta.planEnd,
   )
-  return { plan: { ...plan, meta: { ...plan.meta, planEnd: lastDay }, calendars, events }, orphans }
+  const shown = calendars.filter((c) => !(c.id in gone.calendars))
+  return { plan: { ...plan, meta: { ...plan.meta, planEnd: lastDay }, calendars: shown, events }, orphans }
 }

@@ -4,6 +4,7 @@ import {
   DAY,
   HOUR,
   mondayOf,
+  movePatch,
   nowMinsk,
   occurrences,
   parseLocal,
@@ -11,8 +12,10 @@ import {
   startOfDay,
   startOfMonth,
   toLocalString,
+  TRASH_DAYS,
   ymd,
   type NewEvent,
+  type Occurrence,
   type Plan,
   type PlanChange,
   type PlanEvent,
@@ -26,6 +29,7 @@ import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-cal
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
+import { TrashDialog } from '../../../features/trash'
 import { useModKey, useNow } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
 import { MonthGrid } from '../../../widgets/month-grid'
@@ -75,13 +79,19 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
 
   const [draft, setDraft] = useState<NewEvent | null>(null)
   const [calendarsOpen, setCalendarsOpen] = useState(false)
+  const [trashOpen, setTrashOpen] = useState(false)
+  // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
+  const [pickedDay, setPickedDay] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
-  const [fileError, setFileError] = useState('')
   const [saveError, setSaveError] = useState('')
 
   const selected = plan.events.find((e) => e.uid === search.event) ?? null
-  const select = (e: PlanEvent) => onSearchChange({ event: e.uid })
+  const select = (e: PlanEvent | Occurrence) => {
+    setPickedDay('s' in e ? ymd(e.s) : null)
+    onSearchChange({ event: e.uid })
+  }
+  const trashCount = session.trash.events.length + session.trash.calendars.length
 
   const view: PlannerView = search.view ?? 'week'
   const expanded = search.expanded === true
@@ -117,6 +127,16 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
       setSaveError(errorText(err))
     }
   }
+
+  const move = (o: Occurrence, slot: { s: number; e: number }) =>
+    void changeQuietly({ type: 'event.patch', uid: o.uid, patch: movePatch(o, o.s, slot.s, slot.e) })
+  /** Delete on a focused event: one repeat of a series is skipped, anything else goes to the trash. */
+  const remove = (o: Occurrence) =>
+    void changeQuietly(
+      o.rrule
+        ? { type: 'event.patch', uid: o.uid, patch: { skip: [...(o.skip ?? []), ymd(o.s)] } }
+        : { type: 'event.remove', uid: o.uid },
+    )
 
   function newEvent(start?: string) {
     if (!canEdit) return
@@ -161,6 +181,7 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
             keys: 'C',
             run: () => setCalendarsOpen(true),
           },
+          { id: 'trash', group: m.palette_plan(), label: m.trash(), run: () => setTrashOpen(true) },
         ]
       : []),
     { id: 'shortcuts', group: m.palette_plan(), label: m.shortcuts(), keys: '?', run: () => setShortcutsOpen(true) },
@@ -198,22 +219,17 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
                   date: fmtDay(parseLocal(plan.meta.planEnd)),
                 })}
               </p>
-              {fileError && (
-                <p className="mt-1.5 text-[13px] text-today" role="alert">
-                  {fileError}
-                </p>
-              )}
             </div>
             {headerAside}
             <div className="col-span-2 flex gap-2 *:flex-1 md:*:flex-none">
               <OpenPlanFile
-                current={state.plan}
+                shown={{ name: session.file?.name ?? 'plan.json', plan }}
+                project={state.plan}
                 onOpen={(file) => {
                   session.openFile(file.name, file.plan)
                   reset()
                   onSearchChange({ week: undefined, event: undefined })
                 }}
-                onError={setFileError}
               />
               {renderActions?.({ plan, hidden })}
             </div>
@@ -265,6 +281,11 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
             ＋ {m.event()}
           </Button>
         )}
+        {canEdit && trashCount > 0 && (
+          <Button title={m.trash_hint({ days: TRASH_DAYS })} onClick={() => setTrashOpen(true)}>
+            {m.trash()} <em className="ml-1 text-muted not-italic tabular-nums">{trashCount}</em>
+          </Button>
+        )}
         <Button className={PRESSED} aria-pressed={expanded} title={m.expand_hint()} onClick={go.expand}>
           {expanded ? m.collapse() : m.expand()}
         </Button>
@@ -298,7 +319,7 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
           className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13.5px]"
           role="status"
         >
-          <span className="min-w-0 flex-1 truncate">{m.changed_event({ title: session.undo.title })}</span>
+          <span className="min-w-0 flex-1 truncate">{session.undo.label}</span>
           <button
             type="button"
             className="font-semibold text-focus hover:underline"
@@ -327,9 +348,8 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
               items={weekItems}
               now={now}
               onSelect={select}
-              onMove={
-                canEdit ? (e, slot) => void changeQuietly({ type: 'event.patch', uid: e.uid, patch: slot }) : undefined
-              }
+              onMove={canEdit ? move : undefined}
+              onRemove={canEdit ? remove : undefined}
               onCreate={canEdit ? newEvent : undefined}
             />
           )}
@@ -343,6 +363,7 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
               now={now}
               onSelect={select}
               onPickDay={(day) => onSearchChange({ view: 'week', week: ymd(mondayOf(day)) })}
+              onMove={canEdit ? move : undefined}
             />
           )}
           {view === 'list' && <AgendaList plan={plan} items={allItems} now={now} onSelect={select} />}
@@ -367,6 +388,8 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
       <EventDialog
         plan={plan}
         event={selected}
+        day={pickedDay}
+        onDayChange={setPickedDay}
         draft={draft}
         edited={selected !== null && session.edited.has(selected.uid)}
         canEdit={canEdit}
@@ -380,7 +403,17 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
         plan={plan}
         open={calendarsOpen}
         onChange={session.change}
+        undo={session.undo}
+        trashCount={trashCount}
+        onOpenTrash={() => (setCalendarsOpen(false), setTrashOpen(true))}
         onClose={() => setCalendarsOpen(false)}
+      />
+      <TrashDialog
+        plan={plan}
+        trash={session.trash}
+        open={trashOpen}
+        onChange={session.change}
+        onClose={() => setTrashOpen(false)}
       />
       <CommandPalette
         open={paletteOpen}
@@ -394,6 +427,13 @@ export function PlannerPage({ state, search, onSearchChange, onChange, headerAsi
         rows={[
           { keys: `${mod} K`, label: m.search() },
           ...actions.flatMap((a) => (a.keys ? [{ keys: a.keys, label: a.label }] : [])),
+          ...(canEdit
+            ? [
+                { keys: 'Alt ← ↑ ↓ →', label: m.shortcut_move_event() },
+                { keys: 'Alt Shift ↑ ↓', label: m.shortcut_resize_event() },
+                { keys: 'Delete', label: m.shortcut_delete_event() },
+              ]
+            : []),
         ]}
         onClose={() => setShortcutsOpen(false)}
       />

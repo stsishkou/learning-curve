@@ -3,7 +3,7 @@
 import { accessSync, constants, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { applyEdits, buildPlan, isPlan, parseEdits, type Plan, type PlanEdits } from '@lc/plan-domain'
+import { applyEdits, buildPlan, isPlan, parseEdits, purgeTrash, type Plan, type PlanEdits } from '@lc/plan-domain'
 
 import { bundledPlan } from './bundled'
 
@@ -46,10 +46,12 @@ export function canWrite(): boolean {
   }
 }
 
-/** Regenerates the schedule, applies `edits`, and writes both files. */
+/** Regenerates the schedule, applies `edits` without what has outstayed the trash, and writes both files. */
 export function writePlan(edits: PlanEdits): { plan: Plan; orphans: string[] } {
-  const result = applyEdits(buildPlan(), edits)
-  writeJson(EDITS_FILE, edits)
+  const base = buildPlan()
+  const kept = purgeTrash(base, edits)
+  const result = applyEdits(base, kept)
+  writeJson(EDITS_FILE, kept)
   writeJson(PLAN_FILE, result.plan)
   return result
 }

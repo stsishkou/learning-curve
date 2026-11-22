@@ -63,6 +63,7 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
       lines.push(`DTSTART;TZID=${tz}:${compact(e.start)}`, `DTEND;TZID=${tz}:${compact(e.end)}`)
     }
     if (e.rrule) lines.push(`RRULE:${e.rrule}`)
+    for (const day of e.skip ?? []) lines.push(`EXDATE;TZID=${tz}:${compact(`${day}T${e.start.slice(11, 16)}`)}`)
     lines.push(`SUMMARY:${escapeText(e.title)}`)
     if (e.description) lines.push(`DESCRIPTION:${escapeText(e.description)}`)
     const url = e.description.match(/Module: (\S+)/)?.[1]

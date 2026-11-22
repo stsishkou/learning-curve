@@ -47,16 +47,23 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Views**: week grid (drag to move, drag the bottom edge to resize, double-click an empty slot to add), month,
   and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the calendar the whole window.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
-  `＋ Event` creates an event in any of them. Events you add can be deleted, generated ones can be restored.
+  `＋ Event` creates an event in any of them.
+- **Moving things**: every event can be dragged, in the week and in the month: a repeating one moves as a series
+  (another day replaces that weekday), an all-day one moves between days. Both edges resize. On a touch screen
+  rest a finger on the event first. With the keyboard: `Alt` + arrows move the focused event, `Alt Shift ↑ ↓`
+  change its length, `Delete` removes it; the event card has the same steps as buttons.
+- **Trash**: any event or calendar can be removed, and a calendar can be cleared. What is removed waits in the
+  trash for 30 days and can be restored; one repeat of a series can be skipped instead of deleting the series.
 - **Progress**: mark a session done in its card. The side panel shows the session in progress or the next one
   with a countdown, the week's budget, a ring per course, and a map of all weeks (red bar = over the budget).
-- **Plan files**: `Open plan file` first shows what the file holds and how it differs from the project plan, then
-  opens it for viewing and editing. Changes stay in the browser until you download the file.
+- **Plan files**: `Plan file` opens a reader on the plan: an overview, every event with search, and the file
+  itself as text with line numbers and find. Choose or drop another `plan.json` to read it, see how it differs
+  from the project plan, and open it for editing. Those changes stay in the browser until you download the file.
 - **Keyboard**: `Ctrl/⌘ K` or `/` searches events and commands (including the theme and the language), `?` lists
   the shortcuts. The last change to an event can be undone from the bar above the calendar.
 
 Everything changed in the viewer is stored in `packages/plan-data/data/edits.json` (event patches, calendars,
-added events) and applied on top of the generated schedule, so `pnpm run plan` never loses it.
+added events, the trash) and applied on top of the generated schedule, so `pnpm run plan` never loses it.
 
 ## Languages
 

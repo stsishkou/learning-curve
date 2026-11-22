@@ -15,7 +15,7 @@ import {
   ymd,
 } from '@lc/plan-domain'
 import { calendarColor } from '@lc/ui'
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 
 import { useFillHeight } from '../../../shared/lib'
 
@@ -27,8 +27,10 @@ interface Props {
   items: Occurrence[]
   now: number | null
   onSelect: (e: PlanEvent) => void
-  /** Present when the plan can be edited: called after an event is dragged or resized. */
-  onMove?: (e: PlanEvent, slot: { start: string; end: string }) => void
+  /** Present when the plan can be edited: called with the new slot (wall-clock ms) of a dragged or resized event */
+  onMove?: (o: Occurrence, slot: { s: number; e: number }) => void
+  /** Called when Delete is pressed on a focused event */
+  onRemove?: (o: Occurrence) => void
   /** Present when events can be added: called with the slot that was double-clicked, `YYYY-MM-DDTHH:MM` */
   onCreate?: (start: string) => void
 }
@@ -37,6 +39,10 @@ const PX_PER_HOUR = 56
 const SNAP = HOUR / 2
 /** Pointer travel in px before a press counts as a drag instead of a click */
 const DRAG_THRESHOLD = 5
+/** How long a finger rests on an event before it is picked up, in ms */
+const LONG_PRESS = 350
+/** How long the focus is given back to an event moved with the keyboard, in ms */
+const REFOCUS_FOR = 3000
 
 const HEAD = 'border-b border-line text-muted'
 // The hour column stays in place while the days scroll sideways on a narrow screen.
@@ -49,13 +55,26 @@ const EVENT_BUSY =
 const EVENT_FREE =
   'border-dashed bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_10%,var(--surface))_0_6px,var(--surface)_6px_12px)]'
 const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
+// A long press picks an event up: it must not select text or open the system menu instead.
+const TOUCH_QUIET = 'select-none [-webkit-touch-callout:none]'
 
 const shortTitle = (o: Occurrence) =>
   o.kind === 'study' || o.kind === 'lab' ? o.title.replace(/^[^—]+— /, '') : o.title
 
+interface Press {
+  x: number
+  y: number
+  columnWidth: number
+  moved: boolean
+  /** false while a finger waits out the long press */
+  armed: boolean
+  timer?: number
+}
+
 interface Drag {
   key: string
-  mode: 'move' | 'resize'
+  /** `day` moves an all-day event between columns */
+  mode: 'move' | 'resize' | 'resize-start' | 'day'
   /** new wall-clock ms while the pointer is down */
   s: number
   e: number
@@ -66,7 +85,17 @@ interface Drag {
 const keyOf = (o: Occurrence) => `${o.uid}-${o.s}`
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
-export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelect, onMove, onCreate }: Props) {
+export function WeekGrid({
+  plan,
+  weekStart,
+  fullDay = false,
+  items,
+  now,
+  onSelect,
+  onMove,
+  onRemove,
+  onCreate,
+}: Props) {
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
   let minH = 8
@@ -101,29 +130,74 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
   }, [fullDay, firstBusyHour, weekStart])
 
   const [drag, setDrag] = useState<Drag | null>(null)
-  const press = useRef<{ x: number; y: number; columnWidth: number; moved: boolean } | null>(null)
+  const press = useRef<Press | null>(null)
   // The click that follows a drag must not open the event dialog.
   const suppressClick = useRef(false)
+  // An event moved with the keyboard is drawn anew in its slot, first as a preview and again when the change is
+  // stored; each redraw can drop the focus, so it is given back for a short while after the key press.
+  const refocus = useRef<{ key: string; until: number } | null>(null)
+  useEffect(() => {
+    const wanted = refocus.current
+    if (!wanted) return
+    if (Date.now() > wanted.until) {
+      refocus.current = null
+      return
+    }
+    const target = scroller.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(wanted.key)}"]`)
+    if (target && document.activeElement !== target) target.focus()
+  })
 
-  // A repeating event is one series: its time is changed in the dialog. Touch keeps scrolling the grid.
-  const draggable = (o: Occurrence, e: PointerEvent) =>
-    onMove !== undefined && !o.rrule && e.pointerType !== 'touch' && e.button === 0
+  // A finger that has picked an event up must move it, not scroll the grid: only a non-passive listener can say so.
+  useEffect(() => {
+    const element = scroller.current
+    if (!element) return undefined
+    const hold = (e: TouchEvent) => {
+      if (press.current?.armed) e.preventDefault()
+    }
+    element.addEventListener('touchmove', hold, { passive: false })
+    return () => element.removeEventListener('touchmove', hold)
+  }, [])
 
-  function pointerDown(e: PointerEvent<HTMLElement>, o: Occurrence, mode: Drag['mode']) {
-    if (!draggable(o, e)) return
+  function pointerDown(e: PointerEvent<HTMLElement>, o: Occurrence, wanted: Drag['mode']) {
+    if (!onMove || e.button !== 0) return
     const column = e.currentTarget.closest('[data-day]')
     if (!column) return
     e.stopPropagation()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    press.current = { x: e.clientX, y: e.clientY, columnWidth: column.getBoundingClientRect().width, moved: false }
-    setDrag({ key: keyOf(o), mode, s: o.s, e: o.e, shiftX: 0 })
+    const touch = e.pointerType === 'touch'
+    // The edges are too thin for a finger: there it always moves, and the length is changed in the event card.
+    const mode = touch && wanted !== 'day' ? 'move' : wanted
+    const begin = () => setDrag({ key: keyOf(o), mode, s: o.s, e: o.e, shiftX: 0 })
+    const next: Press = {
+      x: e.clientX,
+      y: e.clientY,
+      columnWidth: column.getBoundingClientRect().width,
+      moved: false,
+      armed: !touch,
+    }
+    press.current = next
+    if (!touch) {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      begin()
+      return
+    }
+    // A finger scrolls the grid; it picks an event up only after resting on it.
+    next.timer = window.setTimeout(() => {
+      next.armed = true
+      navigator.vibrate?.(8)
+      begin()
+    }, LONG_PRESS)
   }
 
   function pointerMove(e: PointerEvent<HTMLElement>, o: Occurrence) {
     const p = press.current
-    if (!p || !drag || drag.key !== keyOf(o)) return
+    if (!p) return
     const dx = e.clientX - p.x
     const dy = e.clientY - p.y
+    if (!p.armed) {
+      if (Math.hypot(dx, dy) > DRAG_THRESHOLD) release()
+      return
+    }
+    if (!drag || drag.key !== keyOf(o)) return
     if (!p.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return
     p.moved = true
     const day = startOfDay(o.s)
@@ -134,24 +208,74 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
       setDrag({ ...drag, e: clamp(o.e + shift, o.s + SNAP, last) })
       return
     }
-    const length = o.e - o.s
-    const s = clamp(o.s + shift, first, last - length)
+    if (drag.mode === 'resize-start') {
+      setDrag({ ...drag, s: clamp(o.s + shift, first, o.e - SNAP) })
+      return
+    }
     const dayIndex = (day - weekStart) / DAY
     const dayShift = clamp(Math.round(dx / p.columnWidth), -dayIndex, 6 - dayIndex)
+    const length = o.e - o.s
+    const s = drag.mode === 'day' ? o.s : clamp(o.s + shift, first, last - length)
     setDrag({ ...drag, s: s + dayShift * DAY, e: s + length + dayShift * DAY, shiftX: dayShift * p.columnWidth })
+  }
+
+  function release() {
+    window.clearTimeout(press.current?.timer)
+    press.current = null
+    setDrag(null)
   }
 
   function pointerUp(o: Occurrence) {
     const p = press.current
-    press.current = null
-    if (!p || !drag) return
-    setDrag(null)
-    if (!p.moved) return
+    const dropped = drag
+    release()
+    if (!p?.moved || !dropped) return
     suppressClick.current = true
     // Cleared on a timer too, in case the browser sends no click after this drag.
     window.setTimeout(() => (suppressClick.current = false), 50)
-    if (drag.s !== o.s || drag.e !== o.e) onMove?.(o, { start: toLocalString(drag.s), end: toLocalString(drag.e) })
+    if (dropped.s !== o.s || dropped.e !== o.e) onMove?.(o, { s: dropped.s, e: dropped.e })
   }
+
+  /** Alt + arrows move the focused event, with Shift they change its length, Delete removes it. */
+  function keyDown(e: KeyboardEvent<HTMLElement>, o: Occurrence) {
+    if (!onMove) return
+    let { s, e: end } = o
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (!onRemove) return
+      onRemove(o)
+    } else if (!e.altKey) {
+      return
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const shift = e.key === 'ArrowLeft' ? -DAY : DAY
+      s += shift
+      end += shift
+    } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !o.allDay) {
+      const shift = e.key === 'ArrowUp' ? -SNAP : SNAP
+      if (!e.shiftKey) s += shift
+      end += shift
+    } else {
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    const sameDay = o.allDay || startOfDay(end - 1) === startOfDay(s)
+    if ((s === o.s && end === o.e) || end - s < SNAP || !sameDay) return
+    refocus.current = { key: `${o.uid}-${s}`, until: Date.now() + REFOCUS_FOR }
+    onMove(o, { s, e: end })
+  }
+
+  const handlers = (o: Occurrence, mode: Drag['mode']) => ({
+    'data-key': keyOf(o),
+    onPointerDown: (ev: PointerEvent<HTMLElement>) => pointerDown(ev, o, mode),
+    onPointerMove: (ev: PointerEvent<HTMLElement>) => pointerMove(ev, o),
+    onPointerUp: () => pointerUp(o),
+    onPointerCancel: release,
+    onKeyDown: (ev: KeyboardEvent<HTMLElement>) => keyDown(ev, o),
+    onClick: () => {
+      if (suppressClick.current) suppressClick.current = false
+      else onSelect(o)
+    },
+  })
 
   return (
     <>
@@ -188,18 +312,31 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
           {allDay.length > 0 && (
             <>
               <div className={`${HEAD} ${PINNED} px-2 py-1.5 text-[11px]`}>{m.all_day()}</div>
-              <div className="col-[2/-1] flex flex-wrap gap-1.5 border-b border-line-soft px-2 py-1.5">
-                {allDay.map((o) => (
-                  <button
-                    key={o.uid}
-                    type="button"
-                    className="rounded-md bg-[color-mix(in_srgb,var(--today)_14%,var(--surface))] px-2 py-[3px] text-[12px] font-semibold text-today"
-                    onClick={() => onSelect(o)}
-                  >
-                    {fmtDay(o.s)}: {o.title}
-                  </button>
-                ))}
-              </div>
+              {days.map((d) => (
+                <div
+                  key={d}
+                  data-day={ymd(d)}
+                  className="grid min-w-0 content-start gap-1 border-b border-line-soft p-1"
+                >
+                  {allDay
+                    .filter((o) => o.s === d)
+                    .map((o) => {
+                      const dragged = drag?.key === keyOf(o) ? drag : null
+                      return (
+                        <button
+                          key={o.uid}
+                          type="button"
+                          className={`${TOUCH_QUIET} truncate rounded-md bg-[color-mix(in_srgb,var(--today)_14%,var(--surface))] px-1.5 py-[3px] text-left text-[12px] font-semibold text-today ${onMove ? 'cursor-grab' : ''} ${dragged ? 'relative z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''}`}
+                          style={{ transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined }}
+                          title={`${fmtDay(o.s)}: ${o.title}`}
+                          {...handlers(o, 'day')}
+                        >
+                          {o.title}
+                        </button>
+                      )
+                    })}
+                </div>
+              ))}
             </>
           )}
 
@@ -245,12 +382,11 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
                   const s = dragged?.s ?? o.s
                   const e = dragged?.e ?? o.e
                   const { lane, lanes: count } = lanes.get(o) ?? { lane: 0, lanes: 1 }
-                  const canDrag = onMove !== undefined && !o.rrule
                   return (
                     <button
                       key={keyOf(o)}
                       type="button"
-                      className={`${EVENT} ${o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 select-none' : ''} ${o.done ? 'opacity-55' : ''}`}
+                      className={`${EVENT} ${TOUCH_QUIET} ${o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''} ${o.done ? 'opacity-55' : ''}`}
                       style={{
                         ...calendarColor(colorOf(o.calendar)),
                         top: ((s - startOfDay(s)) / HOUR - minH) * PX_PER_HOUR + 1,
@@ -259,14 +395,7 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
                         width: `calc(${100 / count}% - 8px)`,
                         transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined,
                       }}
-                      onPointerDown={(ev) => pointerDown(ev, o, 'move')}
-                      onPointerMove={(ev) => pointerMove(ev, o)}
-                      onPointerUp={() => pointerUp(o)}
-                      onPointerCancel={() => ((press.current = null), setDrag(null))}
-                      onClick={() => {
-                        if (suppressClick.current) suppressClick.current = false
-                        else onSelect(o)
-                      }}
+                      {...handlers(o, 'move')}
                     >
                       <b className={`block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
                         {o.done && <span className="mr-1 inline-block text-done no-underline">✓</span>}
@@ -275,12 +404,24 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
                       <small className="text-muted tabular-nums">
                         {hm(s)}–{hm(e)}
                       </small>
-                      {canDrag && (
-                        <span
-                          aria-hidden
-                          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
-                          onPointerDown={(ev) => pointerDown(ev, o, 'resize')}
-                        />
+                      {o.rrule && (
+                        <span aria-hidden className="absolute top-1 right-1.5 text-[11px] text-muted">
+                          ↻
+                        </span>
+                      )}
+                      {onMove && (
+                        <>
+                          <span
+                            aria-hidden
+                            className="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize"
+                            onPointerDown={(ev) => pointerDown(ev, o, 'resize-start')}
+                          />
+                          <span
+                            aria-hidden
+                            className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+                            onPointerDown={(ev) => pointerDown(ev, o, 'resize')}
+                          />
+                        </>
                       )}
                     </button>
                   )

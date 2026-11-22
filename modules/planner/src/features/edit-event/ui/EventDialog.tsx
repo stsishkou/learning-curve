@@ -14,6 +14,7 @@ import { Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
 import { useState } from 'react'
 
 import { EventForm } from './EventForm'
+import { EventNudge } from './EventNudge'
 
 const URL_PATTERN = /(https?:\/\/\S+)/g
 
@@ -32,6 +33,10 @@ const linkify = (text: string) =>
 interface Props {
   plan: Plan
   event: PlanEvent | null
+  /** For a repeating event: the day of the repeat that was opened, `YYYY-MM-DD` */
+  day?: string | null
+  /** Called when the opened repeat is moved to another day */
+  onDayChange?: (day: string) => void
   /** A new event to create: the dialog opens as a form filled with these values */
   draft: NewEvent | null
   /** true when the event already differs from the generated schedule */
@@ -42,7 +47,17 @@ interface Props {
   onClose: () => void
 }
 
-export function EventDialog({ plan, event, draft, edited, canEdit, onChange, onClose }: Props) {
+export function EventDialog({
+  plan,
+  event,
+  day = null,
+  onDayChange,
+  draft,
+  edited,
+  canEdit,
+  onChange,
+  onClose,
+}: Props) {
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -134,6 +149,17 @@ export function EventDialog({ plan, event, draft, edited, canEdit, onChange, onC
               {linkify(event.description)}
             </pre>
           )}
+          {canEdit && (
+            <EventNudge
+              event={event}
+              day={day}
+              disabled={busy}
+              onMove={(patch, landed) => {
+                onDayChange?.(landed)
+                void run({ type: 'event.patch', uid: event.uid, patch })
+              }}
+            />
+          )}
           {error && (
             <p className="mt-2 text-[13px] text-today" role="alert">
               {error}
@@ -141,9 +167,26 @@ export function EventDialog({ plan, event, draft, edited, canEdit, onChange, onC
           )}
           <div className={FOOT}>
             <span className="mr-auto flex flex-wrap gap-2">
-              {canEdit && isCustomEvent(event) && (
-                <Button disabled={busy} onClick={() => void run({ type: 'event.remove', uid: event.uid }, 'close')}>
-                  {m.delete_event()}
+              {canEdit && (
+                <Button
+                  disabled={busy}
+                  title={m.delete_event_hint()}
+                  onClick={() => void run({ type: 'event.remove', uid: event.uid }, 'close')}
+                >
+                  {event.rrule ? m.delete_series() : m.delete_event()}
+                </Button>
+              )}
+              {canEdit && event.rrule && day && (
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      { type: 'event.patch', uid: event.uid, patch: { skip: [...(event.skip ?? []), day] } },
+                      'close',
+                    )
+                  }
+                >
+                  {m.skip_day({ date: fmtDay(parseLocal(day)) })}
                 </Button>
               )}
               {canEdit && edited && !isCustomEvent(event) && (

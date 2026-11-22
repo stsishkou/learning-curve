@@ -8,6 +8,7 @@ import {
   type EventPatch,
   type PlanEdits,
 } from './edits'
+import { purgeTrash } from './trash'
 import type { Plan, PlanEvent } from './types'
 
 /** What a new event needs; the uid is assigned when the change is applied. */
@@ -26,12 +27,18 @@ export type PlanChange =
   /** `null` drops the manual changes of a generated event */
   | { type: 'event.patch'; uid: string; patch: EventPatch | null }
   | { type: 'event.add'; event: NewEvent }
-  /** Only events created in the viewer can be removed */
+  /** Moves the event to the trash */
   | { type: 'event.remove'; uid: string }
   /** Without an id a new calendar is created */
   | { type: 'calendar.save'; id?: string; name: string; color: string }
-  /** Only calendars created in the viewer can be removed; their events go with them */
+  /** Moves the calendar and its events to the trash */
   | { type: 'calendar.remove'; id: string }
+  /** Moves every event of the calendar to the trash and keeps the calendar */
+  | { type: 'calendar.clear'; id: string }
+  /** Brings back the listed events and calendars, or the whole trash when neither is given */
+  | { type: 'trash.restore'; events?: string[]; calendars?: string[] }
+  /** Removes everything in the trash for good */
+  | { type: 'trash.empty' }
 
 /** A change that cannot be applied; `message` is safe to show. */
 export class PlanChangeError extends Error {}
@@ -83,6 +90,20 @@ export function parseChange(input: unknown): PlanChange {
     }
     case 'calendar.remove':
       return { type: 'calendar.remove', id: text('id') }
+    case 'calendar.clear':
+      return { type: 'calendar.clear', id: text('id') }
+    case 'trash.restore': {
+      const ids = (key: string) => {
+        const value = input[key]
+        if (value === undefined) return undefined
+        return Array.isArray(value) && value.every((id) => typeof id === 'string')
+          ? value
+          : fail(`${key} must be a list of ids`)
+      }
+      return { type: 'trash.restore', events: ids('events'), calendars: ids('calendars') }
+    }
+    case 'trash.empty':
+      return { type: 'trash.empty' }
     default:
       return fail(`Unknown change "${input.type}"`)
   }
@@ -94,14 +115,18 @@ const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.ra
  * The edits after one change. `base` is the plan without any edits: the generated schedule, or an opened file.
  * Throws `PlanChangeError` when the change does not fit the plan.
  */
-export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange): PlanEdits {
+export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, now = Date.now()): PlanEdits {
   const next: PlanEdits = {
     version: 1,
     events: { ...edits.events },
     calendars: { ...edits.calendars },
     added: [...edits.added],
+    removed: { events: { ...edits.removed.events }, calendars: { ...edits.removed.calendars } },
   }
-  const calendarExists = (id: string) => id in next.calendars || base.calendars.some((c) => c.id === id)
+  const { removed } = next
+  const removedAt = new Date(now).toISOString()
+  const calendarExists = (id: string) =>
+    !(id in removed.calendars) && (id in next.calendars || base.calendars.some((c) => c.id === id))
 
   switch (change.type) {
     case 'event.patch': {
@@ -110,7 +135,8 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange): P
       const addedIndex = next.added.findIndex((e) => e.uid === uid)
       if (addedIndex !== -1) {
         if (!patch) return next
-        const merged: PlanEvent = { ...next.added[addedIndex], ...patch }
+        const { rrule: _rule, skip: _skip, ...fields } = patch
+        const merged: PlanEvent = { ...next.added[addedIndex], ...fields }
         if (!merged.done) delete merged.done
         if (patchProblem(merged, {})) fail('The event must end after it starts')
         next.added[addedIndex] = merged
@@ -123,10 +149,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange): P
       }
       const merged: EventPatch = { ...next.events[uid], ...patch }
       // Keep only what differs from the original event, so the edits list real changes.
-      for (const key of ['title', 'description', 'start', 'end', 'calendar'] as const) {
+      for (const key of ['title', 'description', 'start', 'end', 'calendar', 'rrule'] as const) {
         if (merged[key] === original[key]) delete merged[key]
       }
       if (!merged.done === !original.done) delete merged.done
+      if (!merged.skip?.length || !original.rrule) delete merged.skip
+      if (!original.rrule) delete merged.rrule
       if (patchProblem(original, merged)) fail('The event must end after it starts')
       if (Object.keys(merged).length) next.events[uid] = merged
       else delete next.events[uid]
@@ -146,8 +174,11 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange): P
       break
     }
     case 'event.remove': {
-      if (!next.added.some((e) => e.uid === change.uid)) fail('Only events created in the viewer can be removed')
-      next.added = next.added.filter((e) => e.uid !== change.uid)
+      const { uid } = change
+      if (!next.added.some((e) => e.uid === uid) && !base.events.some((e) => e.uid === uid)) {
+        fail(`Unknown event "${uid}"`)
+      }
+      removed.events[uid] = removedAt
       break
     }
     case 'calendar.save': {
@@ -158,22 +189,37 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange): P
     }
     case 'calendar.remove': {
       const { id } = change
-      if (base.calendars.some((c) => c.id === id)) fail('A calendar from the course content cannot be removed')
-      delete next.calendars[id]
-      next.added = next.added.filter((e) => e.calendar !== id)
-      for (const [uid, patch] of Object.entries(next.events)) {
-        if (patch.calendar !== id) continue
-        const { calendar: _moved, ...rest } = patch
-        if (Object.keys(rest).length) next.events[uid] = rest
-        else delete next.events[uid]
+      if (!calendarExists(id)) fail(`Unknown calendar "${id}"`)
+      if (applyEdits(base, next).plan.calendars.length < 2) fail('The last calendar cannot be removed')
+      removed.calendars[id] = removedAt
+      break
+    }
+    case 'calendar.clear': {
+      const { id } = change
+      if (!calendarExists(id)) fail(`Unknown calendar "${id}"`)
+      for (const event of applyEdits(base, next).plan.events) {
+        if (event.calendar === id) removed.events[event.uid] = removedAt
       }
       break
     }
+    case 'trash.restore': {
+      const everything = !change.events && !change.calendars
+      // A `null` mark is past restoring: the trash no longer lists it.
+      for (const uid of everything ? Object.keys(removed.events) : (change.events ?? [])) {
+        if (removed.events[uid]) delete removed.events[uid]
+      }
+      for (const id of everything ? Object.keys(removed.calendars) : (change.calendars ?? [])) {
+        if (removed.calendars[id]) delete removed.calendars[id]
+      }
+      break
+    }
+    case 'trash.empty':
+      return purgeTrash(base, next, Infinity)
   }
   return next
 }
 
-/** True for an event created in the viewer: it can be removed, a generated one cannot. */
+/** True for an event created in the viewer, not generated from the course content. */
 export const isCustomEvent = (event: PlanEvent) => event.uid.startsWith('custom-')
 
 /** Uids that differ from `base` after `edits`: patched or created. */
