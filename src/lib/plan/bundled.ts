@@ -1,4 +1,5 @@
 import planData from '#/data/plan.json'
+
 import type { Plan } from './types'
 
 /** Shape check for a plan read from JSON: the bundled database or a file the user opens. */

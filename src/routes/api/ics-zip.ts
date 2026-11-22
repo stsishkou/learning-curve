@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import JSZip from 'jszip'
+
 import { bundledPlan as plan } from '#/lib/plan/bundled'
 import { buildICS, icsFileName, IMPORT_HOWTO } from '#/lib/plan/ics'
 
@@ -10,7 +11,15 @@ export const Route = createFileRoute('/api/ics-zip')({
       GET: async () => {
         const zip = new JSZip()
         const used = plan.calendars.filter((c) => plan.events.some((e) => e.calendar === c.id))
-        for (const c of used) zip.file(icsFileName(c), buildICS(c, plan.events.filter((e) => e.calendar === c.id), plan.meta.timezone))
+        for (const c of used)
+          zip.file(
+            icsFileName(c),
+            buildICS(
+              c,
+              plan.events.filter((e) => e.calendar === c.id),
+              plan.meta.timezone,
+            ),
+          )
         zip.file('Как импортировать.txt', IMPORT_HOWTO(used.filter((c) => c.isNew).map((c) => c.name)))
         const body = await zip.generateAsync({ type: 'arraybuffer' })
         return new Response(body, {

@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+
 import planData from '#/data/plan.json'
 
 /** GET /api/plan — the plan database as JSON. */

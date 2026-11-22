@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
+import { useMemo, useRef, useState } from 'react'
+
 import { AgendaList } from '#/components/AgendaList'
 import { BudgetPanel } from '#/components/BudgetPanel'
 import { EventDialog, ExportDialog } from '#/components/Dialogs'
@@ -125,16 +126,28 @@ function PlanPage() {
       <div className="mb-3 flex flex-wrap items-center gap-2.5">
         {view === 'week' && (
           <div className="flex items-center gap-1.5">
-            <button type="button" className={WEEK_STEP} aria-label={m.previous_week()} onClick={() => setWeek(weekStart - 7 * DAY)}>
+            <button
+              type="button"
+              className={WEEK_STEP}
+              aria-label={m.previous_week()}
+              onClick={() => setWeek(weekStart - 7 * DAY)}
+            >
               ‹
             </button>
             <h2 className="mx-1.5 text-[16px]/[1.2] font-semibold md:min-w-[170px]">
               {fmtShort(weekStart)} – {fmtShort(weekStart + 6 * DAY)} {new Date(weekStart + 6 * DAY).getUTCFullYear()}
             </h2>
-            <button type="button" className={WEEK_STEP} aria-label={m.next_week()} onClick={() => setWeek(weekStart + 7 * DAY)}>
+            <button
+              type="button"
+              className={WEEK_STEP}
+              aria-label={m.next_week()}
+              onClick={() => setWeek(weekStart + 7 * DAY)}
+            >
               ›
             </button>
-            <Button onClick={() => navigate({ search: (prev) => ({ ...prev, week: undefined }) })}>{m.go_today()}</Button>
+            <Button onClick={() => navigate({ search: (prev) => ({ ...prev, week: undefined }) })}>
+              {m.go_today()}
+            </Button>
           </div>
         )}
         <Segmented

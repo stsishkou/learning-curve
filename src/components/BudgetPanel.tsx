@@ -3,6 +3,7 @@ import { parseLocal } from '#/lib/plan/dates'
 import { countsToBudget, durationHours, type Occurrence } from '#/lib/plan/occurrences'
 import type { Plan } from '#/lib/plan/types'
 import { m } from '#/paraglide/messages.js'
+
 import { Dot, calendarColor } from './ui'
 
 interface Props {
@@ -28,7 +29,9 @@ export function BudgetPanel({ plan, weekItems }: Props) {
       <div className="tabular-nums">
         <div className="font-display text-[30px] leading-none font-bold tracking-[-0.02em]">
           {fmtHours(total)}
-          <small className="ml-1 font-sans text-[14px] leading-normal font-medium text-muted">{m.budget_of({ budget: fmtHours(budget) })}</small>
+          <small className="ml-1 font-sans text-[14px] leading-normal font-medium text-muted">
+            {m.budget_of({ budget: fmtHours(budget) })}
+          </small>
         </div>
         <div
           className={`mt-2.5 mb-1 flex h-2 overflow-hidden rounded bg-line-soft ${total > budget ? 'outline-2 outline-offset-1 outline-today' : ''}`}
@@ -36,7 +39,11 @@ export function BudgetPanel({ plan, weekItems }: Props) {
           aria-label={m.budget_progress({ total, budget })}
         >
           {rows.map((c) => (
-            <i key={c.id} className="block h-full" style={{ background: c.color, width: `${(perCalendar[c.id] / Math.max(budget, total)) * 100}%` }} />
+            <i
+              key={c.id}
+              className="block h-full"
+              style={{ background: c.color, width: `${(perCalendar[c.id] / Math.max(budget, total)) * 100}%` }}
+            />
           ))}
         </div>
       </div>

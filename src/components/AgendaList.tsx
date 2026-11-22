@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
+
 import { fmtDay } from '#/lib/format'
 import { hm, startOfDay } from '#/lib/plan/dates'
 import type { Occurrence } from '#/lib/plan/occurrences'
 import type { Plan, PlanEvent } from '#/lib/plan/types'
 import { m } from '#/paraglide/messages.js'
+
 import { Dot, calendarColor } from './ui'
 
 interface Props {
@@ -53,7 +55,9 @@ export function AgendaList({ plan, items, now, onSelect }: Props) {
         style={calendarColor(colorOf(o.calendar))}
         onClick={() => onSelect(o)}
       >
-        <time className="text-[13.5px] text-muted tabular-nums">{o.allDay ? m.all_day() : `${hm(o.s)}–${hm(o.e)}`}</time>
+        <time className="text-[13.5px] text-muted tabular-nums">
+          {o.allDay ? m.all_day() : `${hm(o.s)}–${hm(o.e)}`}
+        </time>
         <span className={`flex items-baseline gap-2 ${o.availability === 'free' ? 'text-muted' : ''}`}>
           <Dot className="size-[9px] -translate-y-px" />
           {o.title}

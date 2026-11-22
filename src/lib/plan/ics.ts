@@ -27,7 +27,8 @@ function nextDate(day: string): string {
 }
 
 /** File name used for downloads and the zip, e.g. `Gemini_Certs.ics` */
-export const icsFileName = (calendar: PlanCalendar) => `${calendar.name.replace(/[:/\\]/g, '').replace(/\s+/g, '_')}.ics`
+export const icsFileName = (calendar: PlanCalendar) =>
+  `${calendar.name.replace(/[:/\\]/g, '').replace(/\s+/g, '_')}.ics`
 
 /**
  * One VCALENDAR per target calendar. Google Calendar and Outlook import it into the calendar the user picks.

@@ -97,7 +97,10 @@ export function Runway({ plan, now, onSelect }: Props) {
                   key={lab.uid}
                   type="button"
                   className={`absolute top-[35px] -ml-[11px] grid size-[22px] place-items-center rounded-full border-[3px] border-current text-[10px] leading-none font-bold ${done ? LAB_DONE : 'bg-surface'}`}
-                  style={{ left: x(parseLocal(lab.start) + 12 * HOUR), color: i ? `color-mix(in srgb, ${color} 60%, var(--ink))` : color }}
+                  style={{
+                    left: x(parseLocal(lab.start) + 12 * HOUR),
+                    color: i ? `color-mix(in srgb, ${color} 60%, var(--ink))` : color,
+                  }}
                   title={`${lab.title} — ${fmtDay(parseLocal(lab.start))}`}
                   aria-label={`${lab.title}, ${fmtDay(parseLocal(lab.start))}`}
                   onClick={() => onSelect(lab)}
@@ -118,7 +121,9 @@ export function Runway({ plan, now, onSelect }: Props) {
         )}
         {now !== null && now >= start && now < end && (
           <div className="absolute top-7 bottom-[22px] -ml-px w-0.5 bg-today" style={{ left: x(now) }}>
-            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[11.5px] font-semibold whitespace-nowrap text-today">{m.today()}</span>
+            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[11.5px] font-semibold whitespace-nowrap text-today">
+              {m.today()}
+            </span>
           </div>
         )}
         <div className="absolute inset-x-0 top-16 flex justify-between text-[12px] text-muted">

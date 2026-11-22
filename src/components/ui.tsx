@@ -9,7 +9,11 @@ declare module 'react' {
 /** Sets the calendar color that `bg-cal`, `border-cal` and the `var(--c)` gradients read. */
 export const calendarColor = (color: string | undefined): CSSProperties => ({ '--c': color })
 
-export function Button({ primary = false, className = '', ...props }: ComponentProps<'button'> & { primary?: boolean }) {
+export function Button({
+  primary = false,
+  className = '',
+  ...props
+}: ComponentProps<'button'> & { primary?: boolean }) {
   return (
     <button
       type="button"
@@ -34,7 +38,11 @@ interface SegmentedProps<T extends string> {
 
 export function Segmented<T extends string>({ label, value, options, onChange }: SegmentedProps<T>) {
   return (
-    <div className="inline-flex overflow-hidden rounded-[10px] border border-line bg-surface" role="group" aria-label={label}>
+    <div
+      className="inline-flex overflow-hidden rounded-[10px] border border-line bg-surface"
+      role="group"
+      aria-label={label}
+    >
       {options.map((o) => (
         <button
           key={o.value}

@@ -2,12 +2,15 @@
 //   pnpm run plan            → writes src/data/plan.json
 //   pnpm run plan --ics   → also writes exports/*.ics
 import { mkdirSync, writeFileSync } from 'node:fs'
+
 import { buildICS, icsFileName, IMPORT_HOWTO } from '../src/lib/plan/ics'
 import { buildPlan, weeklyHours } from '../src/lib/plan/schedule'
 
 const plan = buildPlan()
 writeFileSync('src/data/plan.json', JSON.stringify(plan, null, 2) + '\n')
-console.log(`src/data/plan.json: ${plan.events.length} events, certificates done ${plan.meta.lastCertDay}, plan ends ${plan.meta.planEnd}`)
+console.log(
+  `src/data/plan.json: ${plan.events.length} events, certificates done ${plan.meta.lastCertDay}, plan ends ${plan.meta.planEnd}`,
+)
 
 const over = Object.entries(weeklyHours(plan)).filter(([, h]) => h > plan.meta.weeklyBudgetHours)
 if (over.length) console.warn('Weeks over budget:', over.map(([w, h]) => `${w}: ${h} h`).join(', '))

@@ -1,6 +1,7 @@
 {
   "name": "learning-curve",
   "private": true,
+  "description": "Personal study plan: schedule database, viewer and .ics export",
   "type": "module",
   "imports": {
     "#/*": "./src/*"
@@ -48,7 +49,6 @@
     "typescript": "7.0.2",
     "vite": "8.3.8"
   },
-  "description": "Personal study plan: schedule database, viewer and .ics export",
   "engines": {
     "node": ">=26"
   },

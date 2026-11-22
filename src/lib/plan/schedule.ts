@@ -36,7 +36,10 @@ const at = (day: string, h: number, m = 0) => `${day}T${pad(h)}:${pad(m)}`
 
 const dow = (s: string) => weekday(parseLocal(s))
 
-export function buildPlan(config: ScheduleConfig = DEFAULT_CONFIG, generated = new Date().toISOString().slice(0, 10)): Plan {
+export function buildPlan(
+  config: ScheduleConfig = DEFAULT_CONFIG,
+  generated = new Date().toISOString().slice(0, 10),
+): Plan {
   const holidays = new Set(config.holidays)
   const isWorkday = (s: string) => dow(s) >= 1 && dow(s) <= 5 && !holidays.has(s)
 
@@ -82,12 +85,20 @@ export function buildPlan(config: ScheduleConfig = DEFAULT_CONFIG, generated = n
       lastCertDay = day
     }
   }
-  if (certQueue.length) throw new Error(`Certificates do not fit before ${config.certEnd}: ${certQueue.length} sessions left`)
+  if (certQueue.length)
+    throw new Error(`Certificates do not fit before ${config.certEnd}: ${certQueue.length} sessions left`)
   push(
     'certs',
-    { title: 'Дедлайн: оба сертификата Google Partner', hours: 1, kind: 'milestone', availability: 'free',
-      description: 'Оба сертификата (3 + 3 challenge-лабы) должны быть получены до этой даты.' },
-    at(config.certDeadline, 0), at(config.certDeadline, 0), { allDay: true },
+    {
+      title: 'Дедлайн: оба сертификата Google Partner',
+      hours: 1,
+      kind: 'milestone',
+      availability: 'free',
+      description: 'Оба сертификата (3 + 3 challenge-лабы) должны быть получены до этой даты.',
+    },
+    at(config.certDeadline, 0),
+    at(config.certDeadline, 0),
+    { allDay: true },
   )
 
   // ---- Courses: 11:00 HF LLM → Practical Python; 12:00 HF Agents; 13:00 Mon/Wed Practical Python ----
@@ -107,13 +118,28 @@ export function buildPlan(config: ScheduleConfig = DEFAULT_CONFIG, generated = n
   // ---- Saturday buffer: free time, does not block and does not count toward the budget ----
   for (let s = config.bufferStart; s <= addDays(lastDay, 6); s = addDays(s, 7)) {
     if (s > config.certEnd && s < config.coursesStart) continue
-    push('journey', { title: 'Буфер — догнать отставание', hours: 2, kind: 'buffer', availability: 'free',
-      description: 'Резерв на случай отставания. Если всё по плану — свободное время.' }, at(s, 10), at(s, 12))
+    push(
+      'journey',
+      {
+        title: 'Буфер — догнать отставание',
+        hours: 2,
+        kind: 'buffer',
+        availability: 'free',
+        description: 'Резерв на случай отставания. Если всё по плану — свободное время.',
+      },
+      at(s, 10),
+      at(s, 12),
+    )
   }
 
   // ---- Personal: gym, recurring ----
-  push('personal', { title: 'Спортзал', hours: 2, kind: 'personal', description: '' },
-    at(config.gymStart, 8, 30), at(config.gymStart, 10, 30), { rrule: 'FREQ=WEEKLY;BYDAY=TU,TH' })
+  push(
+    'personal',
+    { title: 'Спортзал', hours: 2, kind: 'personal', description: '' },
+    at(config.gymStart, 8, 30),
+    at(config.gymStart, 10, 30),
+    { rrule: 'FREQ=WEEKLY;BYDAY=TU,TH' },
+  )
 
   events.sort((a, b) => a.start.localeCompare(b.start) || a.calendar.localeCompare(b.calendar))
 

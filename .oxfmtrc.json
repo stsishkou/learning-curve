@@ -5,5 +5,13 @@
   "singleQuote": true,
   "sortImports": true,
   "sortTailwindcss": { "stylesheet": "./src/styles.css" },
-  "ignorePatterns": ["src/data/plan.json", "src/routeTree.gen.ts", "messages/", "pnpm-lock.yaml", "*.md", ".idea/"]
+  "ignorePatterns": [
+    "src/data/plan.json",
+    "src/lib/plan/content.ts",
+    "src/routeTree.gen.ts",
+    "messages/",
+    "pnpm-lock.yaml",
+    "*.md",
+    ".idea/"
+  ]
 }

@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Color tokens live on :root so the dark values below swap them without a `dark:` variant on every class. */
 :root {
@@ -17,7 +17,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme='light']) {
     color-scheme: dark;
     --bg: #121722;
     --surface: #1a2130;
@@ -31,7 +31,7 @@
     --shadow: 0 0 #0000;
   }
 }
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   color-scheme: dark;
   --bg: #121722;
   --surface: #1a2130;
@@ -50,8 +50,8 @@
   --breakpoint-*: initial;
   --breakpoint-md: 701px;
   --breakpoint-lg: 961px;
-  --font-sans: "Golos Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-  --font-display: "Unbounded", "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --font-sans: 'Golos Text', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  --font-display: 'Unbounded', 'Golos Text', 'Segoe UI', system-ui, sans-serif;
 }
 
 @theme inline {

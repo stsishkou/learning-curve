@@ -3,6 +3,7 @@ import { DAY, HOUR, hm, startOfDay, ymd } from '#/lib/plan/dates'
 import { durationHours, type Occurrence } from '#/lib/plan/occurrences'
 import type { Plan, PlanEvent } from '#/lib/plan/types'
 import { m } from '#/paraglide/messages.js'
+
 import { calendarColor } from './ui'
 
 interface Props {
@@ -17,8 +18,10 @@ const PX_PER_HOUR = 56
 
 const HEAD = 'border-b border-line text-muted'
 const DAY_OFF = 'bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line-soft)_6px_8px)]'
-const EVENT = 'absolute inset-x-1 overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink'
-const EVENT_BUSY = 'bg-[color-mix(in_srgb,var(--c)_16%,var(--surface))] hover:bg-[color-mix(in_srgb,var(--c)_26%,var(--surface))]'
+const EVENT =
+  'absolute inset-x-1 overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink'
+const EVENT_BUSY =
+  'bg-[color-mix(in_srgb,var(--c)_16%,var(--surface))] hover:bg-[color-mix(in_srgb,var(--c)_26%,var(--surface))]'
 const EVENT_FREE =
   'border-dashed bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_10%,var(--surface))_0_6px,var(--surface)_6px_12px)]'
 const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
@@ -51,7 +54,9 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect }: Props) {
             return (
               <div key={d} className={`${HEAD} px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''}`}>
                 {dowShort(d)}
-                <b className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today' : 'text-ink'}`}>
+                <b
+                  className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today' : 'text-ink'}`}
+                >
                   {new Date(d).getUTCDate()}
                 </b>
                 {off && <small className="mt-0.5 block text-[11px] text-today">{m.day_off()}</small>}
@@ -92,7 +97,11 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect }: Props) {
           {days.map((d) => (
             <div key={d} className="relative border-r border-line-soft last:border-r-0" style={{ height }}>
               {hours.map((h) => (
-                <div key={h} className="absolute inset-x-0 border-t border-line-soft" style={{ top: (h - minH) * PX_PER_HOUR }} />
+                <div
+                  key={h}
+                  className="absolute inset-x-0 border-t border-line-soft"
+                  style={{ top: (h - minH) * PX_PER_HOUR }}
+                />
               ))}
               {timed
                 .filter((o) => startOfDay(o.s) === d)
