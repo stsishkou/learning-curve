@@ -27,7 +27,7 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
   const [tab, setTab] = useState<Tab>('week')
   const body = useRef<HTMLDivElement>(null)
   // 961 is the `lg` breakpoint; the gap is the page's bottom padding plus the card's own.
-  const maxHeight = useFillHeight(body, true, { minWidth: 961, minHeight: 120, bottomGap: 66 })
+  const maxHeight = useFillHeight(body, true, { minWidth: 961, minHeight: 80, bottomGap: 66 })
   return (
     <section className="min-w-0 rounded-2xl border border-line bg-surface p-4">
       <div className="mb-3.5 text-[13px]">
@@ -43,7 +43,7 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
         />
       </div>
       {/* Capped on a wide screen so a long course list scrolls inside the card instead of stretching the page. */}
-      <div ref={body} className="[scrollbar-width:thin] lg:overflow-y-auto" style={{ maxHeight }}>
+      <div ref={body} className="lg:overflow-y-auto" style={{ maxHeight }}>
         {tab === 'week' && (
           <BudgetPanel plan={plan} weekItems={weekItems}>
             <GoalLadder plan={plan} weekStart={weekStart} onReview={onReview} />

@@ -1,6 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react'
 
-const MIN_HEIGHT = 320
+const MIN_HEIGHT = 240
 /** The page's bottom padding plus the card border around the box, so the box ends where the page does. */
 const BOTTOM_GAP = 50
 

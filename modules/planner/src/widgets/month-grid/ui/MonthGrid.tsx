@@ -4,6 +4,8 @@ import { DAY, hm, startOfDay, ymd, type Occurrence, type Plan, type PlanEvent } 
 import { calendarColor, Dot } from '@lc/ui'
 import { useRef, useState, type PointerEvent } from 'react'
 
+import { useFillHeight } from '../../../shared/lib'
+
 const SHOWN = 3
 /** Pointer travel in px before a press counts as a drag instead of a click */
 const DRAG_THRESHOLD = 5
@@ -31,6 +33,7 @@ interface Props {
 export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSelect, onPickDay, onMove }: Props) {
   const [drag, setDrag] = useState<{ key: string; target: number } | null>(null)
   const press = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const box = useRef<HTMLDivElement>(null)
   // The click that follows a drag must not open the event dialog.
   const suppressClick = useRef(false)
 
@@ -57,6 +60,7 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
   }
 
   const today = now === null ? null : startOfDay(now)
+  const maxHeight = useFillHeight(box, true, { minWidth: 961 })
   const month = new Date(monthStart).getUTCMonth()
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
   const byDay = new Map<number, Occurrence[]>()
@@ -67,10 +71,10 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
   const days = Array.from({ length: weeks * 7 }, (_, i) => gridStart + i * DAY)
 
   return (
-    <div className="overflow-x-auto">
+    <div ref={box} className="overflow-auto rounded-2xl" style={{ maxHeight }}>
       <div className="grid min-w-[640px] grid-cols-[repeat(7,minmax(0,1fr))]">
         {days.slice(0, 7).map((d) => (
-          <div key={d} className="border-b border-line px-2 py-2 text-[12.5px] text-muted">
+          <div key={d} className="sticky top-0 z-1 border-b border-line bg-surface px-2 py-2 text-[12.5px] text-muted">
             {dowShort(d)}
           </div>
         ))}

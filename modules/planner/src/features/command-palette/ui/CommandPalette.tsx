@@ -117,7 +117,7 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onClose }:
         id={listId}
         role="listbox"
         aria-label={m.palette_title()}
-        className="-mx-2 mt-3 max-h-[min(52vh,420px)] [scrollbar-width:thin] overflow-y-auto border-t border-line pt-2"
+        className="-mx-2 mt-3 max-h-[min(52vh,420px)] overflow-y-auto border-t border-line pt-2"
       >
         {items.map((item, i) => (
           <Fragment key={item.key}>

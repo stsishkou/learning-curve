@@ -16,6 +16,8 @@
   --done: #1f9d6b;
   --done-ink: #14704b;
   --shadow: 0 1px 0 rgb(23 32 51 / 0.06);
+  /* At least 3:1 against every surface it is drawn on: the track is transparent. */
+  --scroll-thumb: #7d899b;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -35,6 +37,7 @@
     --done: #46c692;
     --done-ink: #46c692;
     --shadow: 0 0 #0000;
+    --scroll-thumb: #7f8a9c;
   }
 }
 :root:has(> head > meta[name='color-scheme'][content='dark']) {
@@ -52,6 +55,7 @@
   --done: #46c692;
   --done-ink: #46c692;
   --shadow: 0 0 #0000;
+  --scroll-thumb: #7f8a9c;
 }
 
 @theme {
@@ -84,6 +88,28 @@
 @layer base {
   html {
     scroll-padding-top: env(safe-area-inset-top, 0px);
+    /* Where scrollbars take room, the page keeps its width when its scrollbar comes and goes. */
+    scrollbar-gutter: stable;
+  }
+  * {
+    scrollbar-color: var(--scroll-thumb) transparent;
+    scrollbar-width: thin;
+  }
+  @supports not (scrollbar-color: auto) {
+    * {
+      scrollbar-width: auto;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      border-radius: 4px;
+      background: var(--scroll-thumb);
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
   body {
     background: var(--bg);

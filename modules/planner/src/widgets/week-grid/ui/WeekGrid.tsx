@@ -298,10 +298,10 @@ export function WeekGrid({
   })
 
   return (
-    <>
+    <div className="relative">
       <div
         ref={scroller}
-        className={`snap-x scroll-pl-[52px] [scrollbar-width:thin] overflow-auto rounded-2xl ${fullDay ? 'max-h-[70dvh]' : ''}`}
+        className={`snap-x scroll-pl-[52px] overflow-auto rounded-2xl ${fullDay ? 'max-h-[70dvh]' : ''}`}
         style={{ maxHeight }}
       >
         <div className="grid min-w-[760px] grid-cols-[52px_repeat(7,minmax(96px,1fr))]">
@@ -457,7 +457,12 @@ export function WeekGrid({
           })}
         </div>
       </div>
-      {!items.length && <div className="px-[18px] py-10 text-center text-muted">{m.no_events_this_week()}</div>}
-    </>
+      {/* Over the grid, not under it: the grid already ends where the window does. */}
+      {!items.length && (
+        <div className="pointer-events-none absolute inset-x-4 top-24 mx-auto w-fit max-w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-center text-[13.5px] text-muted shadow-card">
+          {m.no_events_this_week()}
+        </div>
+      )}
+    </div>
   )
 }
