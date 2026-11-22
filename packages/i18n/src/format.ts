@@ -3,13 +3,14 @@
 import { m } from './paraglide/messages.js'
 import { getLocale } from './paraglide/runtime.js'
 
-type Style = 'day' | 'short' | 'weekday' | 'month' | 'monthShort'
+type Style = 'day' | 'short' | 'weekday' | 'month' | 'monthName' | 'monthShort'
 
 const OPTIONS: Record<Style, Intl.DateTimeFormatOptions> = {
   day: { weekday: 'short', day: 'numeric', month: 'short' },
   short: { day: 'numeric', month: 'short' },
   weekday: { weekday: 'short' },
   month: { month: 'long', year: 'numeric' },
+  monthName: { month: 'long' },
   monthShort: { month: 'short' },
 }
 
@@ -35,6 +36,8 @@ export const fmtShort = (t: number) => format('short', t)
 export const dowShort = (t: number) => format('weekday', t)
 /** `Ноябрь 2026 г` / `November 2026` / `Noviembre de 2026` */
 export const fmtMonth = (t: number) => format('month', t)
+/** `Ноябрь` / `November` / `Noviembre` */
+export const fmtMonthName = (t: number) => format('monthName', t)
 export const fmtMonthShort = (t: number) => format('monthShort', t)
 
 export const fmtHours = (h: number) =>

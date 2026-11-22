@@ -35,6 +35,7 @@ import { MonthGrid } from '../../../widgets/month-grid'
 import { NowNext } from '../../../widgets/now-next'
 import { Runway } from '../../../widgets/runway'
 import { WeekGrid } from '../../../widgets/week-grid'
+import { YearGrid } from '../../../widgets/year-grid'
 import { buildActions, type DialogName } from '../model/build-actions'
 import { toCommands, toMenuItems, toShortcutRows, toShortcuts } from '../model/planner-actions'
 import type { PlannerSearch } from '../model/search'
@@ -94,7 +95,7 @@ export function PlannerPage({
   const { view, expanded, weekStart } = nav
   const quiet = useQuietChange(session)
   const dialogs = useDialogFlags<DialogName>()
-  const drafting = useEventDraft({ plan, hidden, now, weekStart, canEdit })
+  const drafting = useEventDraft({ plan, hidden, now, first: nav.grid.start, days: nav.grid.days, canEdit })
 
   const [shiftFrom, setShiftFrom] = useState<string | null>(null)
   const [overdueHidden, setOverdueHidden] = useState(false)
@@ -111,6 +112,11 @@ export function PlannerPage({
   const weekItems = useMemo(() => occurrences(plan, weekStart, weekStart + 7 * DAY, hidden), [plan, weekStart, hidden])
   const monthItems =
     view === 'month' ? occurrences(plan, nav.monthGridStart, nav.monthGridStart + nav.monthWeeks * 7 * DAY, hidden) : []
+  const gridItems = weekItems.filter((o) => o.s >= nav.grid.start && o.s < nav.grid.start + nav.grid.days * DAY)
+  const yearItems = useMemo(
+    () => (view === 'year' ? occurrences(plan, Date.UTC(nav.year, 0, 1), Date.UTC(nav.year + 1, 0, 1), hidden) : []),
+    [plan, hidden, view, nav.year],
+  )
   const allItems = useMemo(
     () => (view === 'list' ? occurrences(plan, planStart(plan), parseLocal(plan.meta.planEnd) + 8 * DAY, hidden) : []),
     [plan, hidden, view],
@@ -129,7 +135,7 @@ export function PlannerPage({
 
   // One repeat of a series, not all of them: the one that was opened, or the first on screen after a reload.
   const selectedShown = selected
-    ? (view === 'month' ? monthItems : weekItems).find(
+    ? (view === 'month' ? monthItems : gridItems).find(
         (o) => o.uid === selected.uid && (!pickedDay || ymd(o.s) === pickedDay),
       )
     : undefined
@@ -171,6 +177,8 @@ export function PlannerPage({
     ...toShortcuts(actions),
     'mod+z': quiet.undo,
     'mod+shift+z': quiet.redo,
+    // The same key as `+` without Shift.
+    '=': nav.zoomIn,
     arrowleft: () => nav.step(-1),
     arrowright: () => nav.step(1),
   })
@@ -252,12 +260,14 @@ export function PlannerPage({
 
       <div className={`grid grid-cols-1 items-start gap-4 ${expanded ? '' : 'lg:grid-cols-[1fr_280px]'}`}>
         <section className="min-w-0 rounded-2xl border border-line bg-surface">
-          {view === 'week' && (
+          {(view === 'week' || view === 'day') && (
             <WeekGrid
               plan={plan}
-              weekStart={weekStart}
+              weekStart={nav.grid.start}
+              dayCount={nav.grid.days}
+              hourHeight={nav.hourHeight}
               fullDay={nav.fullDay}
-              items={weekItems}
+              items={gridItems}
               now={now}
               onSelect={select}
               onMove={canEdit ? (o, slot) => quiet.change(moveOccurrence(o, slot)) : undefined}
@@ -276,8 +286,18 @@ export function PlannerPage({
               items={monthItems}
               now={now}
               onSelect={select}
-              onPickDay={(day) => onSearchChange({ view: 'week', week: ymd(mondayOf(day)) })}
+              onPickDay={nav.showWeek}
               onMove={canEdit ? (o, slot) => quiet.change(moveOccurrence(o, slot)) : undefined}
+            />
+          )}
+          {view === 'year' && (
+            <YearGrid
+              plan={plan}
+              year={nav.year}
+              items={yearItems}
+              now={now}
+              onPickDay={nav.showWeek}
+              onPickMonth={(month) => onSearchChange({ view: 'month', week: ymd(mondayOf(month + 6 * DAY)) })}
             />
           )}
           {view === 'list' && <AgendaList plan={plan} items={allItems} now={now} onSelect={select} />}
@@ -294,7 +314,13 @@ export function PlannerPage({
               weekStart={weekStart}
               onSelect={select}
               onReview={() => dialogs.show('review')}
-              onPickWeek={(monday) => onSearchChange({ week: ymd(monday), view: view === 'list' ? 'week' : view })}
+              onPickWeek={(monday) =>
+                onSearchChange({
+                  week: ymd(monday),
+                  day: undefined,
+                  view: view === 'week' || view === 'month' ? view : 'week',
+                })
+              }
             />
           </aside>
         )}
@@ -331,7 +357,7 @@ export function PlannerPage({
         monday={dialogs.isOpen('review') ? weekStart : null}
         now={now}
         onCatchUp={canEdit ? () => dialogs.show('catchUp') : undefined}
-        onNextWeek={() => nav.setWeek(weekStart + 7 * DAY)}
+        onNextWeek={() => nav.showWeek(weekStart + 7 * DAY)}
         onClose={() => dialogs.hide('review')}
       />
       <CatchUpDialog

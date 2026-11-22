@@ -64,3 +64,17 @@ export const SelectedEvent: Story = {
       .map((o) => `${o.uid}-${o.s}`)[0],
   },
 }
+
+/** One day as a single wide column: `weekStart` is that day and `dayCount` is 1. */
+export const OneDay: Story = {
+  args: {
+    weekStart: fixtureWeek + DAY,
+    dayCount: 1,
+    items: week(fixtureWeek).filter((o) => o.s >= fixtureWeek + DAY && o.s < fixtureWeek + 2 * DAY),
+  },
+}
+
+/** Monday to Friday on a larger time scale: 84 px to the hour instead of 56. */
+export const WorkWeekZoomed: Story = {
+  args: { dayCount: 5, hourHeight: 84, items: week(fixtureWeek).filter((o) => o.s < fixtureWeek + 5 * DAY) },
+}

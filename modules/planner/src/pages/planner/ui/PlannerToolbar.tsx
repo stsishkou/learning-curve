@@ -1,6 +1,7 @@
 import { m } from '@lc/i18n/messages'
-import { mondayOf, parseLocal, ymd } from '@lc/plan-domain'
+import { parseLocal, ymd } from '@lc/plan-domain'
 import {
+  Briefcase,
   Button,
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,8 @@ import {
   Search,
   Segmented,
   Undo2,
+  ZoomIn,
+  ZoomOut,
   type MenuItem,
 } from '@lc/ui'
 import { useRef, type ReactNode } from 'react'
@@ -42,6 +45,7 @@ const STEP =
 /** Two rows above the calendar: which view and period, search and editing; then the calendars and how they show. */
 export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, children }: Props) {
   const datePicker = useRef<HTMLInputElement>(null)
+  const timeGrid = nav.view === 'week' || nav.view === 'day'
   return (
     // The single column may not grow with its content: the calendar chips scroll inside their row instead.
     <div className="mb-3 grid grid-cols-[minmax(0,1fr)] gap-2.5">
@@ -50,8 +54,10 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
           label={m.view()}
           value={nav.view}
           options={[
+            { value: 'day', label: m.view_day() },
             { value: 'week', label: m.view_week() },
             { value: 'month', label: m.view_month() },
+            { value: 'year', label: m.view_year() },
             { value: 'list', label: m.view_list() },
           ]}
           onChange={nav.show}
@@ -81,8 +87,8 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
                 tabIndex={-1}
                 aria-label={m.jump_to_date()}
                 className="pointer-events-none absolute bottom-0 left-1/2 size-px opacity-0"
-                value={ymd(nav.weekStart)}
-                onChange={(e) => e.target.value && nav.setWeek(mondayOf(parseLocal(`${e.target.value}T00:00`)))}
+                value={ymd(nav.anchorDay)}
+                onChange={(e) => e.target.value && nav.goTo(parseLocal(`${e.target.value}T00:00`))}
               />
             </h2>
             <button type="button" className={STEP} aria-label={m.next_period()} onClick={() => nav.step(1)}>
@@ -130,7 +136,41 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
       <div className="flex flex-wrap items-center gap-2">
         {children}
         <div role="group" aria-label={m.view()} className="ml-auto hidden gap-1.5 md:flex">
+          {timeGrid && (
+            <div role="group" aria-label={m.time_scale()} className="flex gap-1.5">
+              <button
+                type="button"
+                className={STEP}
+                aria-label={m.zoom_out()}
+                title={m.zoom_out()}
+                disabled={!nav.canZoomOut}
+                onClick={nav.zoomOut}
+              >
+                <ZoomOut size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={STEP}
+                aria-label={m.zoom_in()}
+                title={m.zoom_in()}
+                disabled={!nav.canZoomIn}
+                onClick={nav.zoomIn}
+              >
+                <ZoomIn size={16} aria-hidden />
+              </button>
+            </div>
+          )}
           {nav.view === 'week' && (
+            <Button
+              className={`flex items-center gap-1.5 ${PRESSED}`}
+              aria-pressed={nav.workWeek}
+              title={m.work_week_hint()}
+              onClick={nav.toggleWorkWeek}
+            >
+              <Briefcase size={15} aria-hidden /> {m.work_week()}
+            </Button>
+          )}
+          {timeGrid && (
             <Button
               className={`flex items-center gap-1.5 ${PRESSED}`}
               aria-pressed={nav.fullDay}

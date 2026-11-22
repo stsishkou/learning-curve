@@ -21,8 +21,12 @@ import { eventKey, useFillHeight } from '../../../shared/lib'
 
 interface Props {
   plan: Plan
-  /** Monday of the week, Minsk wall-clock ms */
+  /** The first day shown, Minsk wall-clock ms: the Monday of a week, or the one day of the day view */
   weekStart: number
+  /** How many day columns: 7 for a week, 5 for a work week, 1 for a day */
+  dayCount?: number
+  /** Height of one hour in px: the time scale */
+  hourHeight?: number
   /** All 24 hours in a scrolling grid; otherwise only the hours around the week's events */
   fullDay?: boolean
   /** The occurrences of that week, with the hidden calendars already left out */
@@ -55,7 +59,10 @@ export interface DraftSlot {
   calendar: string
 }
 
-const PX_PER_HOUR = 56
+const DEFAULT_HOUR_HEIGHT = 56
+/** Narrowest a day column gets before the grid scrolls sideways, in px */
+const MIN_COLUMN = 101
+const GUTTER = 52
 /** The `lg` breakpoint: from here the page puts the side panel next to the grid. */
 const TWO_COLUMNS = 961
 const SNAP = HOUR / 2
@@ -111,13 +118,15 @@ const keyOf = eventKey
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
 /**
- * Seven day columns with the events of one week. With `onMove`, `onRemove` and `onCreate` it is an editor: drag an
+ * Day columns with the events of a week, a work week or one day. With `onMove`, `onRemove` and `onCreate` it is an editor: drag an
  * event to move it, drag its edge to resize, double-click an empty slot to add one, or do the same from the
  * keyboard. On a touch screen a long press picks an event up.
  */
 export function WeekGrid({
   plan,
   weekStart,
+  dayCount = 7,
+  hourHeight = DEFAULT_HOUR_HEIGHT,
   fullDay = false,
   items,
   now,
@@ -138,7 +147,7 @@ export function WeekGrid({
   }
   const firstBusyHour = minH
   // The hours grow to hold the event being created, so its block is never cut off by the last row.
-  if (draft && draft.e > draft.s && draft.s >= weekStart && draft.s < weekStart + 7 * DAY) {
+  if (draft && draft.e > draft.s && draft.s >= weekStart && draft.s < weekStart + dayCount * DAY) {
     minH = Math.min(minH, new Date(draft.s).getUTCHours())
     maxH = Math.max(maxH, Math.ceil((draft.e - startOfDay(draft.e)) / HOUR) || 24)
   }
@@ -146,9 +155,9 @@ export function WeekGrid({
     minH = 0
     maxH = 24
   }
-  const height = (maxH - minH) * PX_PER_HOUR
+  const height = (maxH - minH) * hourHeight
   const hours = Array.from({ length: maxH - minH - 1 }, (_, i) => minH + 1 + i)
-  const days = Array.from({ length: 7 }, (_, i) => weekStart + i * DAY)
+  const days = Array.from({ length: dayCount }, (_, i) => weekStart + i * DAY)
   const today = now === null ? null : startOfDay(now)
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
   const studyHours = (day: number) =>
@@ -161,23 +170,24 @@ export function WeekGrid({
   const maxHeight = useFillHeight(scroller, true, { minWidth: fullDay ? 0 : TWO_COLUMNS })
   useEffect(() => {
     const column = today === null ? null : scroller.current?.querySelector<HTMLElement>(`[data-day="${ymd(today)}"]`)
-    if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - 52
+    if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - GUTTER
   }, [today, weekStart])
   // The full day opens at the first hour that has something, not at midnight.
-  // Only on opening the full day or another week: an edit that changes the first hour must not move the view.
+  // Only on opening the full day, another week or another time scale: an edit that changes the first hour must
+  // not move the view.
   const openAt = useRef(firstBusyHour)
   useEffect(() => {
     openAt.current = firstBusyHour
   }, [firstBusyHour])
   useEffect(() => {
-    if (fullDay && scroller.current) scroller.current.scrollTop = openAt.current * PX_PER_HOUR
-  }, [fullDay, weekStart])
+    if (fullDay && scroller.current) scroller.current.scrollTop = openAt.current * hourHeight
+  }, [fullDay, weekStart, hourHeight])
 
   const [drag, setDrag] = useState<Drag | null>(null)
   // A stretch being drawn on an empty part of a day: `anchor` is where the pointer went down.
   const [drawn, setDrawn] = useState<{ anchor: number; s: number; e: number } | null>(null)
   const drawing = useRef<{ y: number; columnY: number; day: number; anchor: number } | null>(null)
-  const slotAt = (day: number, y: number) => day + Math.round(((y / PX_PER_HOUR + minH) * HOUR) / SNAP) * SNAP
+  const slotAt = (day: number, y: number) => day + Math.round(((y / hourHeight + minH) * HOUR) / SNAP) * SNAP
 
   function drawStart(e: PointerEvent<HTMLDivElement>, day: number) {
     // A finger scrolls the grid; it adds an event with a double tap or the toolbar button.
@@ -282,7 +292,7 @@ export function WeekGrid({
     const day = startOfDay(o.s)
     const first = day + minH * HOUR
     const last = day + maxH * HOUR
-    const shift = Math.round(((dy / PX_PER_HOUR) * HOUR) / SNAP) * SNAP
+    const shift = Math.round(((dy / hourHeight) * HOUR) / SNAP) * SNAP
     if (drag.mode === 'resize') {
       setDrag({ ...drag, e: clamp(o.e + shift, o.s + SNAP, last) })
       return
@@ -292,7 +302,7 @@ export function WeekGrid({
       return
     }
     const dayIndex = (day - weekStart) / DAY
-    const dayShift = clamp(Math.round(dx / p.columnWidth), -dayIndex, 6 - dayIndex)
+    const dayShift = clamp(Math.round(dx / p.columnWidth), -dayIndex, dayCount - 1 - dayIndex)
     const length = o.e - o.s
     const s = drag.mode === 'day' ? o.s : clamp(o.s + shift, first, last - length)
     setDrag({ ...drag, s: s + dayShift * DAY, e: s + length + dayShift * DAY, shiftX: dayShift * p.columnWidth })
@@ -364,14 +374,21 @@ export function WeekGrid({
         className={`snap-x scroll-pl-[52px] overflow-auto rounded-2xl ${fullDay ? 'max-h-[70dvh]' : ''}`}
         style={{ maxHeight }}
       >
-        <div className="grid min-w-[760px] grid-cols-[52px_repeat(7,minmax(96px,1fr))]">
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: `${GUTTER}px repeat(${dayCount}, minmax(0, 1fr))`,
+            // A single day always fits; more of them scroll sideways on a narrow screen.
+            minWidth: dayCount > 1 ? GUTTER + dayCount * MIN_COLUMN : undefined,
+          }}
+        >
           <div className={`${HEAD} ${PINNED} top-0 z-6 rounded-tl-2xl`} />
           {days.map((d) => {
             const off = plan.meta.holidays.includes(ymd(d))
             return (
               <div
                 key={d}
-                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''} ${d === days[6] ? 'rounded-tr-2xl' : ''}`}
+                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''} ${d === days.at(-1) ? 'rounded-tr-2xl' : ''}`}
               >
                 {dowShort(d)}
                 {studyHours(d) > 0 && (
@@ -425,7 +442,7 @@ export function WeekGrid({
               <span
                 key={h}
                 className="absolute right-2 -translate-y-1/2 text-[11.5px] text-muted tabular-nums"
-                style={{ top: (h - minH) * PX_PER_HOUR }}
+                style={{ top: (h - minH) * hourHeight }}
               >
                 {String(h).padStart(2, '0')}:00
               </span>
@@ -450,7 +467,7 @@ export function WeekGrid({
                 onDoubleClick={(e) => {
                   if (!onCreate || (e.target instanceof Element && e.target.closest('button'))) return
                   const y = e.clientY - e.currentTarget.getBoundingClientRect().y
-                  const slot = Math.floor(((y / PX_PER_HOUR + minH) * HOUR) / SNAP) * SNAP
+                  const slot = Math.floor(((y / hourHeight + minH) * HOUR) / SNAP) * SNAP
                   onCreate(toLocalString(d + clamp(slot, 0, DAY - HOUR)))
                 }}
               >
@@ -458,7 +475,7 @@ export function WeekGrid({
                   <div
                     key={h}
                     className="absolute inset-x-0 border-t border-line-soft"
-                    style={{ top: (h - minH) * PX_PER_HOUR }}
+                    style={{ top: (h - minH) * hourHeight }}
                   />
                 ))}
                 {dayItems.map((o) => {
@@ -473,8 +490,8 @@ export function WeekGrid({
                       className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : keyOf(o) === selectedKey ? 'z-3 ring-2 ring-focus' : ''}`}
                       style={{
                         ...calendarColor(colorOf(o.calendar)),
-                        top: ((s - startOfDay(s)) / HOUR - minH) * PX_PER_HOUR + 1,
-                        height: Math.max(22, ((e - s) / HOUR) * PX_PER_HOUR - 3),
+                        top: ((s - startOfDay(s)) / HOUR - minH) * hourHeight + 1,
+                        height: Math.max(22, ((e - s) / HOUR) * hourHeight - 3),
                         left: `calc(${(lane / count) * 100}% + 4px)`,
                         width: `calc(${100 / count}% - 8px)`,
                         transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined,
@@ -515,8 +532,8 @@ export function WeekGrid({
                       data-draft
                       className="pointer-events-none absolute inset-x-1 z-4 overflow-hidden rounded-lg border-2 border-dashed border-focus bg-[color-mix(in_srgb,var(--focus)_16%,transparent)] px-[7px] py-[3px] text-[12px]/[1.3]"
                       style={{
-                        top: ((slot!.s - d) / HOUR - minH) * PX_PER_HOUR + 1,
-                        height: Math.max(22, ((slot!.e - slot!.s) / HOUR) * PX_PER_HOUR - 3),
+                        top: ((slot!.s - d) / HOUR - minH) * hourHeight + 1,
+                        height: Math.max(22, ((slot!.e - slot!.s) / HOUR) * hourHeight - 3),
                       }}
                     >
                       <b className="block truncate font-semibold">{slot!.title || m.new_event()}</b>
@@ -528,7 +545,7 @@ export function WeekGrid({
                 {now !== null && startOfDay(now) === d && (now - d) / HOUR >= minH && (now - d) / HOUR <= maxH && (
                   <div
                     className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-['']"
-                    style={{ top: ((now - d) / HOUR - minH) * PX_PER_HOUR }}
+                    style={{ top: ((now - d) / HOUR - minH) * hourHeight }}
                   />
                 )}
               </div>

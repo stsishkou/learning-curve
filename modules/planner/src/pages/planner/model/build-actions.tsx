@@ -1,6 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import type { PlanCalendar } from '@lc/plan-domain'
 import {
+  Briefcase,
   Calendar,
   CalendarClock,
   Clock,
@@ -43,6 +44,7 @@ export function buildActions(ctx: Context): PlannerAction[] {
   const go = m.palette_navigate()
   const view = m.view()
   const plan = m.palette_plan()
+  const timeGrid = nav.view === 'week' || nav.view === 'day'
 
   const editing: PlannerAction[] = [
     {
@@ -124,8 +126,10 @@ export function buildActions(ctx: Context): PlannerAction[] {
     { id: 'today', group: go, label: m.go_today(), keys: 'T', run: nav.today },
     { id: 'previous', group: go, label: m.previous_period(), keys: '←', run: () => nav.step(-1) },
     { id: 'next', group: go, label: m.next_period(), keys: '→', run: () => nav.step(1) },
+    { id: 'day', group: view, label: m.view_day(), keys: 'D', run: () => nav.show('day') },
     { id: 'week', group: view, label: m.view_week(), keys: 'W', run: () => nav.show('week') },
     { id: 'month', group: view, label: m.view_month(), keys: 'M', run: () => nav.show('month') },
+    { id: 'year', group: view, label: m.view_year(), keys: 'Y', run: () => nav.show('year') },
     { id: 'list', group: view, label: m.view_list(), keys: 'L', run: () => nav.show('list') },
     {
       id: 'full-day',
@@ -135,9 +139,22 @@ export function buildActions(ctx: Context): PlannerAction[] {
       keys: 'F',
       icon: <Clock {...ICON} />,
       checked: nav.fullDay,
-      menu: nav.view === 'week' ? 'narrow' : undefined,
+      menu: timeGrid ? 'narrow' : undefined,
       run: nav.toggleFullDay,
     },
+    {
+      id: 'work-week',
+      group: view,
+      label: m.work_week_hint(),
+      menuLabel: m.work_week(),
+      keys: '5',
+      icon: <Briefcase {...ICON} />,
+      checked: nav.workWeek,
+      menu: nav.view === 'week' ? 'narrow' : undefined,
+      run: nav.toggleWorkWeek,
+    },
+    { id: 'zoom-in', group: view, label: m.zoom_in(), keys: '+', run: nav.zoomIn },
+    { id: 'zoom-out', group: view, label: m.zoom_out(), keys: '-', run: nav.zoomOut },
     {
       id: 'expand',
       group: view,

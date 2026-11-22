@@ -409,5 +409,14 @@
   "review_go_next": "To the next week",
   "catchup_pace": "Give the sessions the time they really take",
   "catchup_pace_hint": "Every session ahead gets the length its course's pace asks for. The days stay; a day's sessions follow one another.",
-  "catchup_hint_pace": "Nothing is missed, but your pace differs from the plan. The option is applied as one step and can be undone from the history."
+  "catchup_hint_pace": "Nothing is missed, but your pace differs from the plan. The option is applied as one step and can be undone from the history.",
+  "view_day": "Day",
+  "view_year": "Year",
+  "work_week": "Work week",
+  "work_week_hint": "Show Monday to Friday only",
+  "time_scale": "Time scale",
+  "zoom_in": "Zoom in: more room per hour",
+  "zoom_out": "Zoom out: more hours on screen",
+  "year_less": "Less",
+  "year_more": "More"
 }

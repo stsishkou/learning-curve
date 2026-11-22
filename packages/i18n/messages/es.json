@@ -409,5 +409,14 @@
   "review_go_next": "A la semana siguiente",
   "catchup_pace": "Dar a las sesiones el tiempo que llevan",
   "catchup_pace_hint": "Cada sesión futura recibe la duración que pide el ritmo de su curso. Los días no cambian; las sesiones del día van seguidas.",
-  "catchup_hint_pace": "No hay sesiones perdidas, pero tu ritmo difiere del plan. La opción se aplica en un paso y se puede deshacer desde el historial."
+  "catchup_hint_pace": "No hay sesiones perdidas, pero tu ritmo difiere del plan. La opción se aplica en un paso y se puede deshacer desde el historial.",
+  "view_day": "Día",
+  "view_year": "Año",
+  "work_week": "Semana laboral",
+  "work_week_hint": "Mostrar solo de lunes a viernes",
+  "time_scale": "Escala de tiempo",
+  "zoom_in": "Ampliar: más espacio por hora",
+  "zoom_out": "Reducir: más horas en pantalla",
+  "year_less": "Menos",
+  "year_more": "Más"
 }
