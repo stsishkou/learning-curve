@@ -45,6 +45,20 @@ export interface Plan {
   events: PlanEvent[]
 }
 
+/** Shape check for a plan read from JSON: the bundled database or a file the user opens. */
+export function isPlan(value: unknown): value is Plan {
+  if (typeof value !== 'object' || value === null) return false
+  return (
+    'meta' in value &&
+    typeof value.meta === 'object' &&
+    value.meta !== null &&
+    'calendars' in value &&
+    Array.isArray(value.calendars) &&
+    'events' in value &&
+    Array.isArray(value.events)
+  )
+}
+
 /** A course session before it gets a date. */
 export interface QueueItem {
   title: string

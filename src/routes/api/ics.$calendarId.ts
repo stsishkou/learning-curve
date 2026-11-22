@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { bundledPlan as plan } from '#/lib/plan/bundled'
 import { buildICS, icsFileName } from '#/lib/plan/ics'
+import { readPlan } from '#/lib/plan/store'
 
 /**
  * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`).
@@ -12,6 +12,7 @@ export const Route = createFileRoute('/api/ics/$calendarId')({
   server: {
     handlers: {
       GET: ({ params, request }) => {
+        const plan = readPlan()
         const id = params.calendarId.replace(/\.ics$/, '')
         const calendar = plan.calendars.find((c) => c.id === id)
         if (!calendar)

@@ -10,10 +10,10 @@ import { Button, Dot, Segmented, calendarColor } from '#/components/ui'
 import { WeekGrid } from '#/components/WeekGrid'
 import { useHiddenCalendars, useNow } from '#/lib/client'
 import { fmtDay, fmtShort } from '#/lib/format'
-import { bundledPlan, isPlan } from '#/lib/plan/bundled'
 import { DAY, mondayOf, nowMinsk, parseLocal, ymd } from '#/lib/plan/dates'
 import { occurrences, planStart } from '#/lib/plan/occurrences'
-import type { Plan, PlanEvent } from '#/lib/plan/types'
+import { getPlanState } from '#/lib/plan/server'
+import { isPlan, type Plan, type PlanEvent } from '#/lib/plan/types'
 import { m } from '#/paraglide/messages.js'
 
 type View = 'week' | 'list'
@@ -30,6 +30,7 @@ export const Route = createFileRoute('/')({
     week: typeof search.week === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search.week) ? search.week : undefined,
     view: search.view === 'list' || search.view === 'week' ? search.view : undefined,
   }),
+  loader: () => getPlanState(),
   component: PlanPage,
 })
 
@@ -44,7 +45,10 @@ function PlanPage() {
   const navigate = Route.useNavigate()
   const now = useNow()
   const { hidden, toggle, reset } = useHiddenCalendars()
-  const [plan, setPlan] = useState<Plan>(bundledPlan)
+  const project = Route.useLoaderData()
+  // A plan file opened from disk replaces the project plan until it is dismissed.
+  const [opened, setOpened] = useState<Plan | null>(null)
+  const plan = opened ?? project.plan
   const [selected, setSelected] = useState<PlanEvent | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [fileError, setFileError] = useState('')
@@ -64,7 +68,7 @@ function PlanPage() {
     try {
       const next: unknown = JSON.parse(await file.text())
       if (!isPlan(next)) throw new Error(m.file_missing_fields())
-      setPlan(next)
+      setOpened(next)
       reset()
       setFileError('')
       void navigate({ search: (prev) => ({ ...prev, week: undefined }) })
@@ -84,11 +88,11 @@ function PlanPage() {
               calendars: m.in_calendars({ count: plan.calendars.length }),
               date: fmtDay(parseLocal(plan.meta.planEnd)),
             })}
-            {plan !== bundledPlan && (
+            {opened && (
               <>
                 {' '}
                 ({m.file_opened()},{' '}
-                <button type="button" className="text-focus underline" onClick={() => setPlan(bundledPlan)}>
+                <button type="button" className="text-focus underline" onClick={() => setOpened(null)}>
                   {m.restore_plan()}
                 </button>
                 )
