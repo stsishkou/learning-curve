@@ -7,7 +7,7 @@
     "dev": "nx run @lc/web:dev",
     "build": "nx run-many -t build --output-style=stream",
     "start": "nx run @lc/web:start",
-    "plan": "nx run @lc/plan-data:plan",
+    "plan": "nx run @lc/plan-data:plan --output-style=stream",
     "i18n": "nx run-many -t i18n",
     "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint lint:fsd",
