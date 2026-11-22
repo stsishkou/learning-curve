@@ -21,7 +21,7 @@ export function NowNext({ plan, upcoming, now, onSelect }: Props) {
 
   return (
     <section className="min-w-0 rounded-2xl border border-line bg-surface p-4" style={calendarColor(color)}>
-      <h4 className="flex items-center gap-2 text-[12px] font-semibold tracking-wide text-muted uppercase">
+      <h2 className="flex items-center gap-2 text-[12px] font-semibold tracking-wide text-muted uppercase">
         {current && <i className="size-2 animate-pulse rounded-full bg-today" />}
         {current ? m.now_label() : m.next_label()}
         {shown && (
@@ -31,7 +31,7 @@ export function NowNext({ plan, upcoming, now, onSelect }: Props) {
               : m.starts_in({ time: fmtDuration(shown.s - now) })}
           </em>
         )}
-      </h4>
+      </h2>
       {shown ? (
         <button type="button" className="mt-2 block w-full text-left" onClick={() => onSelect(shown)}>
           <b className="flex items-baseline gap-2 text-[14.5px]/[1.35] font-semibold">

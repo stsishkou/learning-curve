@@ -54,6 +54,9 @@ const EVENT_BUSY =
   'bg-[color-mix(in_srgb,var(--c)_16%,var(--surface))] hover:bg-[color-mix(in_srgb,var(--c)_26%,var(--surface))]'
 const EVENT_FREE =
   'border-dashed bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_10%,var(--surface))_0_6px,var(--surface)_6px_12px)]'
+// A done event is toned down through its colours, not opacity: its text has to stay readable.
+const EVENT_DONE =
+  'border-[color-mix(in_srgb,var(--c)_45%,var(--surface))] bg-[color-mix(in_srgb,var(--c)_6%,var(--surface))] text-muted hover:bg-[color-mix(in_srgb,var(--c)_14%,var(--surface))]'
 const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
 // A long press picks an event up: it must not select text or open the system menu instead.
 const TOUCH_QUIET = 'select-none [-webkit-touch-callout:none]'
@@ -386,7 +389,7 @@ export function WeekGrid({
                     <button
                       key={keyOf(o)}
                       type="button"
-                      className={`${EVENT} ${TOUCH_QUIET} ${o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''} ${o.done ? 'opacity-55' : ''}`}
+                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''}`}
                       style={{
                         ...calendarColor(colorOf(o.calendar)),
                         top: ((s - startOfDay(s)) / HOUR - minH) * PX_PER_HOUR + 1,

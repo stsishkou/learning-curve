@@ -13,6 +13,8 @@ interface Props {
   plan: Plan
   /** Shown next to the title: controls the host owns, such as navigation and the language switcher */
   headerAside?: ReactNode
+  /** Minsk wall-clock time to show the plan at, instead of the running clock */
+  now?: number
 }
 
 /** Each week with its hours and the running totals up to it. */
@@ -27,8 +29,9 @@ function tableRows(weeks: WeekStats[]) {
 }
 
 /** Progress of the plan in numbers and charts. Read-only: marks are made in the planner. */
-export function DashboardPage({ plan, headerAside }: Props) {
-  const now = useNow()
+export function DashboardPage({ plan, headerAside, now: fixed }: Props) {
+  const clock = useNow()
+  const now = fixed ?? clock
   const stats = useMemo(() => planStats(plan, now ?? 0), [plan, now])
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   return (

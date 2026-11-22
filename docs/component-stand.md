@@ -64,11 +64,12 @@ What Storybook costs: it is the heaviest option (96 packages added on install) a
   reports anonymous usage data.
 - **Every story is a test.** `pnpm run stand:test` runs `@storybook/addon-vitest`: Vitest opens each story
   in headless Chromium (Playwright), fails it when it does not render, when its `play` function fails or when
-  axe finds an accessibility violation. The whole run takes about five seconds. The browser is installed once
+  axe finds an accessibility violation. The stories run twice, in the light and in the dark theme
+  (`VITE_STAND_THEME=dark` sets the initial theme), about ten seconds in total. The browser is installed once
   with `pnpm --filter @lc/stand exec playwright install chromium`.
-- **Known accessibility findings are marked, not hidden.** A story file whose component has a finding sets
-  `parameters.a11y.test` to `'todo'` with a comment naming it: the Accessibility panel still shows the
-  violation, the test run does not fail on it. Remove the parameter when the component is fixed.
+- **No story is exempt from the accessibility check.** If a finding cannot be fixed at once, set
+  `parameters.a11y.test` to `'todo'` in the story file with a comment naming it: the panel still shows the
+  violation and the test run reports it as a warning. Remove the parameter with the fix.
 
 ## How it is put together
 

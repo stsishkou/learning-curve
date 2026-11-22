@@ -97,7 +97,7 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
                   <button
                     key={`${o.uid}-${o.s}`}
                     type="button"
-                    className={`flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-px text-left text-[11.5px]/[1.5] select-none hover:bg-surface-2 ${o.done ? 'opacity-55' : ''} ${onMove ? 'cursor-grab' : ''} ${drag?.key === `${o.uid}-${o.s}` ? 'cursor-grabbing opacity-50' : ''}`}
+                    className={`flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-px text-left text-[11.5px]/[1.5] select-none hover:bg-surface-2 ${o.done ? 'text-muted' : ''} ${onMove ? 'cursor-grab' : ''} ${drag?.key === `${o.uid}-${o.s}` ? 'cursor-grabbing opacity-50' : ''}`}
                     style={calendarColor(colorOf(o.calendar))}
                     onPointerDown={(e) => {
                       if (!onMove || e.button !== 0 || e.pointerType === 'touch') return
@@ -112,7 +112,7 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
                       else onSelect(o)
                     }}
                   >
-                    <Dot className="size-[7px]" />
+                    <Dot className={`size-[7px] ${o.done ? 'opacity-45' : ''}`} />
                     {!o.allDay && <span className="flex-none text-muted tabular-nums">{hm(o.s)}</span>}
                     <span className={`min-w-0 truncate ${o.done ? 'line-through decoration-done' : ''}`}>
                       {o.title.replace(/^[^—]+— /, '')}

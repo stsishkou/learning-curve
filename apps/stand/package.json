@@ -8,7 +8,7 @@
     "build": "storybook build --output-dir dist",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint -c ../../.oxlintrc.json",
-    "test": "vitest run"
+    "test": "vitest run && VITE_STAND_THEME=dark vitest run"
   },
   "dependencies": {
     "@lc/calendar-export": "workspace:*",

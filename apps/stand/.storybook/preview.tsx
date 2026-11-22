@@ -52,7 +52,8 @@ function ThemedDocs(props: PropsWithChildren<DocsContainerProps>) {
 const preview: Preview = {
   tags: ['autodocs'],
   decorators: [withToolbar],
-  initialGlobals: { theme: 'light', locale: 'ru' },
+  // `pnpm run stand:test` runs the stories a second time in the dark theme through this variable.
+  initialGlobals: { theme: import.meta.env.VITE_STAND_THEME === 'dark' ? 'dark' : 'light', locale: 'ru' },
   globalTypes: {
     theme: {
       description: 'Color scheme',

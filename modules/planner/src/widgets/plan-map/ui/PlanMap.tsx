@@ -108,9 +108,12 @@ export function PlanMap({ plan, hidden, now, weekStart, onPickWeek }: Props) {
                   />
                 )
               })}
-              <span className="h-3 text-left text-[9.5px]/[1] text-muted">
-                {monthChanges ? fmtMonthShort(week.monday) : ''}
-              </span>
+              {/* The month is drawn from an attribute: as text inside the button it would have to repeat in its label. */}
+              <span
+                aria-hidden
+                className="h-3 text-left text-[9.5px]/[1] text-muted before:content-[attr(data-month)]"
+                data-month={monthChanges ? fmtMonthShort(week.monday) : ''}
+              />
             </button>
           )
         })}

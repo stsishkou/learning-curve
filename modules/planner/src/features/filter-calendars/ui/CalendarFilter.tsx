@@ -25,7 +25,7 @@ export function CalendarFilter({ calendars, hidden, onToggle, onSolo, onManage }
         <button
           key={c.id}
           type="button"
-          className={`${CHIP} aria-[pressed=false]:opacity-45`}
+          className={`${CHIP} aria-[pressed=false]:border-line-soft aria-[pressed=false]:bg-transparent aria-[pressed=false]:text-muted`}
           style={calendarColor(c.color)}
           aria-pressed={!hidden.has(c.id)}
           title={m.calendar_chip_hint()}

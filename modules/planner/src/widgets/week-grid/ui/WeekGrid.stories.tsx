@@ -12,9 +12,6 @@ const meta = {
   title: 'Planner/Widgets/WeekGrid',
   component: WeekGrid,
   parameters: {
-    // Known findings in the component, not the story: the dimmed text of a done event and the red number of today (color-contrast).
-    // `todo` keeps them in the panel and reports them as warnings instead of failing the test run.
-    a11y: { test: 'todo' },
     docs: {
       description: {
         component:

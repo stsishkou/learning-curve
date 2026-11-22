@@ -27,9 +27,6 @@ const meta = {
   title: 'Planner/Features/CalendarFilter',
   component: CalendarFilter,
   parameters: {
-    // Known findings in the component, not the story: the dimmed chip of a hidden calendar (color-contrast).
-    // `todo` keeps them in the panel and reports them as warnings instead of failing the test run.
-    a11y: { test: 'todo' },
     docs: {
       description: {
         component:

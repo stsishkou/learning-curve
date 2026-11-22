@@ -38,14 +38,14 @@ export function AgendaList({ plan, items, now, onSelect }: Props) {
     if (d !== current) {
       current = d
       rows.push(
-        <h3
+        <h2
           key={`d-${d}`}
           ref={d === anchor ? todayRef : undefined}
           className={`sticky top-0 z-1 bg-surface px-[18px] pt-3.5 pb-1.5 text-[13px]/[1.3] font-semibold ${d === today ? 'text-today-ink' : 'text-muted'}`}
         >
           {fmtDay(d)}
           {d === today ? ` — ${m.today()}` : ''}
-        </h3>,
+        </h2>,
       )
     }
     rows.push(

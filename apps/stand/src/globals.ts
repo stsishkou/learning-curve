@@ -22,7 +22,11 @@ function set(nextTheme: Theme, nextLocale: Locale) {
   if (nextTheme === theme && nextLocale === locale) return
   theme = nextTheme
   locale = nextLocale
-  document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]')?.setAttribute('content', theme)
+  // The test runner serves the stories without preview-head.html, so the <meta> may not be there yet.
+  const meta =
+    document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]') ??
+    document.head.appendChild(Object.assign(document.createElement('meta'), { name: 'color-scheme' }))
+  meta.content = theme
   document.documentElement.lang = locale
   for (const listener of listeners) listener()
   for (const frame of document.querySelectorAll('iframe')) tell(frame)
