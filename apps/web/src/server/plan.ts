@@ -1,15 +1,10 @@
-import { canWrite, readEdits, readHistory, readPlan, writeHistory, writePlan } from '@lc/plan-data'
+import { canWrite, currentHistory, readEdits, readPlan, saveChanges, writeHistory, writePlan } from '@lc/plan-data'
 import {
-  applyChange,
-  applyEdits,
   buildPlan,
   editedUids,
-  emptyHistory,
   historyEdits,
   historyView,
-  inSync,
   parseChange,
-  recordChange,
   trashOf,
   travel,
   type HistoryView,
@@ -28,13 +23,6 @@ export interface PlanState {
   trash: PlanTrash
   /** The changes made in this checkout and how many of them are applied */
   history: HistoryView
-}
-
-/** The stored history, or an empty one starting now when the edits were changed past it. */
-function currentHistory() {
-  const edits = readEdits()
-  const history = readHistory()
-  return inSync(history, edits) ? history : emptyHistory(edits)
 }
 
 function state(plan: Plan): PlanState {
@@ -59,12 +47,7 @@ export const savePlanChange = createServerFn({ method: 'POST' })
   .validator(parseChange)
   .handler(({ data }): PlanState => {
     mustWrite()
-    const base = buildPlan()
-    const before = readEdits()
-    const history = currentHistory()
-    const written = writePlan(applyChange(base, before, data))
-    writeHistory(recordChange(history, applyEdits(base, before).plan, data, written.edits))
-    return state(written.plan)
+    return state(saveChanges([data]).plan)
   })
 
 /** Moves the plan to a point of the history: 0 is before the first change, the number of steps the latest. */

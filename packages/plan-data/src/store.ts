@@ -4,13 +4,18 @@ import { accessSync, constants, existsSync, readFileSync, writeFileSync } from '
 import { dirname, join } from 'node:path'
 
 import {
+  applyChange,
   applyEdits,
   buildPlan,
+  emptyHistory,
+  inSync,
   isPlan,
   parseEdits,
   parseHistory,
   purgeTrash,
+  recordChange,
   type Plan,
+  type PlanChange,
   type PlanEdits,
   type PlanHistory,
 } from '@lc/plan-domain'
@@ -90,4 +95,30 @@ export function writePlan(edits: PlanEdits): { plan: Plan; orphans: string[]; ed
   writeJson(EDITS_FILE, kept)
   writeJson(PLAN_FILE, result.plan)
   return { ...result, edits: kept }
+}
+
+/** The stored history, or an empty one starting now when the edits were changed past it. */
+export function currentHistory(): PlanHistory {
+  const edits = readEdits()
+  const history = readHistory()
+  return inSync(history, edits) ? history : emptyHistory(edits)
+}
+
+/**
+ * Stores changes in order, each as a step of the history, and regenerates the plan. All or nothing: when one
+ * change does not fit, `applyChange` throws and no file is touched.
+ */
+export function saveChanges(changes: PlanChange[]): { plan: Plan; edits: PlanEdits } {
+  const base = buildPlan()
+  let history = currentHistory()
+  // Purged first, as `writePlan` would do at the end: the last step then holds exactly the edits on disk.
+  let edits = purgeTrash(base, readEdits())
+  for (const change of changes) {
+    const before = applyEdits(base, edits).plan
+    edits = applyChange(base, edits, change)
+    history = recordChange(history, before, change, edits)
+  }
+  const written = writePlan(edits)
+  writeHistory(history)
+  return written
 }

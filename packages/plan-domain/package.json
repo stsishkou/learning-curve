@@ -9,7 +9,12 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../.oxlintrc.json"
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "ajv": "catalog:",
+    "vitest": "catalog:"
   },
   "nx": {
     "tags": [

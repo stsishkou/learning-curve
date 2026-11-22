@@ -12,6 +12,7 @@ catalog:
   '@codemirror/view': 6.43.15
   '@inlang/paraglide-js': 3.2.2
   '@lezer/highlight': 1.2.5
+  '@modelcontextprotocol/sdk': 1.32.2
   '@storybook/addon-a11y': 10.6.8
   '@storybook/addon-docs': 10.6.8
   '@storybook/addon-vitest': 10.6.8
@@ -23,6 +24,7 @@ catalog:
   '@vitejs/plugin-react': 6.3.0
   '@vitest/browser': 5.1.1
   '@vitest/browser-playwright': 5.1.1
+  ajv: 8.20.0
   ical.js: 2.2.1
   lucide-react: 1.77.0
   playwright: 1.65.1

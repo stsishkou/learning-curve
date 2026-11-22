@@ -14,6 +14,9 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as FocusRouteImport } from './routes/focus'
 import { Route as ApiIcsZipRouteImport } from './routes/api/ics-zip'
 import { Route as ApiPlanRouteImport } from './routes/api/plan'
+import { Route as ApiPlanGuideRouteImport } from './routes/api/plan-guide'
+import { Route as ApiPlanSchemaRouteImport } from './routes/api/plan-schema'
+import { Route as ApiPlanUpdateRouteImport } from './routes/api/plan-update'
 import { Route as ApiIcsCalendarIdRouteImport } from './routes/api/ics.$calendarId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +44,21 @@ const ApiPlanRoute = ApiPlanRouteImport.update({
   path: '/api/plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPlanGuideRoute = ApiPlanGuideRouteImport.update({
+  id: '/api/plan-guide',
+  path: '/api/plan-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPlanSchemaRoute = ApiPlanSchemaRouteImport.update({
+  id: '/api/plan-schema',
+  path: '/api/plan-schema',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPlanUpdateRoute = ApiPlanUpdateRouteImport.update({
+  id: '/api/plan-update',
+  path: '/api/plan-update',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiIcsCalendarIdRoute = ApiIcsCalendarIdRouteImport.update({
   id: '/api/ics/$calendarId',
   path: '/api/ics/$calendarId',
@@ -53,6 +71,9 @@ export interface FileRoutesByFullPath {
   '/focus': typeof FocusRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
+  '/api/plan-guide': typeof ApiPlanGuideRoute
+  '/api/plan-schema': typeof ApiPlanSchemaRoute
+  '/api/plan-update': typeof ApiPlanUpdateRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +82,9 @@ export interface FileRoutesByTo {
   '/focus': typeof FocusRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
+  '/api/plan-guide': typeof ApiPlanGuideRoute
+  '/api/plan-schema': typeof ApiPlanSchemaRoute
+  '/api/plan-update': typeof ApiPlanUpdateRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRoutesById {
@@ -70,6 +94,9 @@ export interface FileRoutesById {
   '/focus': typeof FocusRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
+  '/api/plan-guide': typeof ApiPlanGuideRoute
+  '/api/plan-schema': typeof ApiPlanSchemaRoute
+  '/api/plan-update': typeof ApiPlanUpdateRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +107,9 @@ export interface FileRouteTypes {
     | '/focus'
     | '/api/ics-zip'
     | '/api/plan'
+    | '/api/plan-guide'
+    | '/api/plan-schema'
+    | '/api/plan-update'
     | '/api/ics/$calendarId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +118,9 @@ export interface FileRouteTypes {
     | '/focus'
     | '/api/ics-zip'
     | '/api/plan'
+    | '/api/plan-guide'
+    | '/api/plan-schema'
+    | '/api/plan-update'
     | '/api/ics/$calendarId'
   id:
     | '__root__'
@@ -96,6 +129,9 @@ export interface FileRouteTypes {
     | '/focus'
     | '/api/ics-zip'
     | '/api/plan'
+    | '/api/plan-guide'
+    | '/api/plan-schema'
+    | '/api/plan-update'
     | '/api/ics/$calendarId'
   fileRoutesById: FileRoutesById
 }
@@ -105,6 +141,9 @@ export interface RootRouteChildren {
   FocusRoute: typeof FocusRoute
   ApiIcsZipRoute: typeof ApiIcsZipRoute
   ApiPlanRoute: typeof ApiPlanRoute
+  ApiPlanGuideRoute: typeof ApiPlanGuideRoute
+  ApiPlanSchemaRoute: typeof ApiPlanSchemaRoute
+  ApiPlanUpdateRoute: typeof ApiPlanUpdateRoute
   ApiIcsCalendarIdRoute: typeof ApiIcsCalendarIdRoute
 }
 
@@ -145,6 +184,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/plan-guide': {
+      id: '/api/plan-guide'
+      path: '/api/plan-guide'
+      fullPath: '/api/plan-guide'
+      preLoaderRoute: typeof ApiPlanGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/plan-schema': {
+      id: '/api/plan-schema'
+      path: '/api/plan-schema'
+      fullPath: '/api/plan-schema'
+      preLoaderRoute: typeof ApiPlanSchemaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/plan-update': {
+      id: '/api/plan-update'
+      path: '/api/plan-update'
+      fullPath: '/api/plan-update'
+      preLoaderRoute: typeof ApiPlanUpdateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ics/$calendarId': {
       id: '/api/ics/$calendarId'
       path: '/api/ics/$calendarId'
@@ -161,6 +221,9 @@ const rootRouteChildren: RootRouteChildren = {
   FocusRoute: FocusRoute,
   ApiIcsZipRoute: ApiIcsZipRoute,
   ApiPlanRoute: ApiPlanRoute,
+  ApiPlanGuideRoute: ApiPlanGuideRoute,
+  ApiPlanSchemaRoute: ApiPlanSchemaRoute,
+  ApiPlanUpdateRoute: ApiPlanUpdateRoute,
   ApiIcsCalendarIdRoute: ApiIcsCalendarIdRoute,
 }
 export const routeTree = rootRouteImport

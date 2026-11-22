@@ -9,10 +9,12 @@
   "scripts": {
     "plan": "tsx scripts/build-plan.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../.oxlintrc.json"
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "mcp": "tsx scripts/mcp.ts"
   },
   "dependencies": {
     "@lc/plan-domain": "workspace:*",
+    "@modelcontextprotocol/sdk": "catalog:",
     "ical.js": "catalog:"
   },
   "devDependencies": {
