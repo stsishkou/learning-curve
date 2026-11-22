@@ -5,6 +5,16 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { downloadBlob, zipBlob } from '../../../shared/lib'
 
+type Provider = 'google' | 'outlook' | 'apple' | 'other'
+const PROVIDERS: readonly Provider[] = ['google', 'outlook', 'apple', 'other']
+const PROVIDER_KEY = 'learning-curve:export-provider'
+const HOWTO: Record<Provider, () => string> = {
+  google: m.howto_google,
+  outlook: m.howto_outlook,
+  apple: m.howto_apple,
+  other: m.howto_other,
+}
+
 export function ExportDialog({
   plan,
   hidden,
@@ -23,6 +33,24 @@ export function ExportDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [status, setStatus] = useState('')
   const [mode, setMode] = useState<'separate' | 'single'>('separate')
+  const [provider, setProvider] = useState<Provider>('google')
+  const [markDone, setMarkDone] = useState(false)
+  useEffect(() => {
+    try {
+      const saved = PROVIDERS.find((p) => p === localStorage.getItem(PROVIDER_KEY))
+      if (saved) setProvider(saved)
+    } catch {
+      // storage unavailable: the first provider stays
+    }
+  }, [])
+  function pickProvider(next: Provider) {
+    setProvider(next)
+    try {
+      localStorage.setItem(PROVIDER_KEY, next)
+    } catch {
+      // ignore
+    }
+  }
   useEffect(() => {
     if (open) {
       setSelected(new Set(plan.calendars.filter((c) => counts[c.id] && !hidden.has(c.id)).map((c) => c.id)))
@@ -46,7 +74,7 @@ export function ExportDialog({
     const files: Record<string, string> = {
       'Как импортировать.txt': IMPORT_HOWTO(calendars.filter((c) => c.isNew).map((c) => c.name)),
     }
-    for (const c of calendars) files[icsFileName(c)] = calendarICS(plan, c)
+    for (const c of calendars) files[icsFileName(c)] = calendarICS(plan, c, { markDone })
     downloadBlob(`plan-ics-${plan.meta.generated}.zip`, await zipBlob(files))
     setStatus(m.export_done({ count: calendars.length }))
   }
@@ -55,13 +83,13 @@ export function ExportDialog({
     const calendars = chosen()
     if (!calendars.length) return setStatus(m.export_select_calendar())
     const name = icsFileName(combinedCalendar(plan))
-    downloadBlob(name, combinedICS(plan, new Set(calendars.map((c) => c.id))), 'text/calendar')
+    downloadBlob(name, combinedICS(plan, new Set(calendars.map((c) => c.id)), { markDone }), 'text/calendar')
     setStatus(m.export_done_single({ name }))
   }
 
   function downloadOne(id: string) {
     const c = plan.calendars.find((it) => it.id === id)!
-    downloadBlob(icsFileName(c), calendarICS(plan, c), 'text/calendar')
+    downloadBlob(icsFileName(c), calendarICS(plan, c, { markDone }), 'text/calendar')
   }
 
   return (
@@ -116,15 +144,28 @@ export function ExportDialog({
           </label>
         ))}
       </div>
+      <label className="flex items-center gap-2.5 px-2 py-[7px] text-[13.5px]">
+        <input type="checkbox" checked={markDone} onChange={(e) => setMarkDone(e.target.checked)} />
+        {m.export_mark_done()}
+      </label>
+      <div className="mt-2.5 text-[13px]">
+        <Segmented
+          label={m.export_where()}
+          value={provider}
+          options={[
+            { value: 'google', label: m.provider_google() },
+            { value: 'outlook', label: m.provider_outlook() },
+            { value: 'apple', label: m.provider_apple() },
+            { value: 'other', label: m.provider_other() },
+          ]}
+          onChange={pickProvider}
+        />
+      </div>
       <ol className="mt-2.5 list-decimal pl-[18px] text-[13px] text-muted *:my-[3px]">
-        {mode === 'separate' ? (
-          <>
-            <li>{m.howto_google()}</li>
-            <li>{m.howto_outlook()}</li>
-          </>
-        ) : (
-          <li>{m.howto_single()}</li>
-        )}
+        {mode === 'separate' && <li>{m.howto_unzip()}</li>}
+        {mode === 'separate' && chosen().some((c) => c.isNew) && <li>{m.howto_create_first()}</li>}
+        <li>{HOWTO[provider]()}</li>
+        {mode === 'single' && <li>{m.howto_single()}</li>}
         <li>{m.howto_duplicates()}</li>
       </ol>
       <p className="mt-2 min-h-[1.4em] text-[13px] text-muted" role="status">

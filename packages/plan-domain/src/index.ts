@@ -75,7 +75,7 @@ export {
   type EventPatch,
   type PlanEdits,
 } from './edits'
-export { IMPORT_HOWTO, buildICS, calendarICS, combinedCalendar, combinedICS, icsFileName } from './ics'
+export { IMPORT_HOWTO, buildICS, calendarICS, combinedCalendar, combinedICS, icsFileName, type IcsOptions } from './ics'
 export {
   countsToBudget,
   durationHours,

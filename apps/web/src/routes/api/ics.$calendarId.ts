@@ -5,7 +5,7 @@ import { createFileRoute } from '@tanstack/react-router'
 /**
  * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`);
  * `all` returns every calendar's events in one file.
- * Add `?download=1` to get it as an attachment. Once the app is deployed on a public URL,
+ * Add `?download=1` to get it as an attachment, `?done=1` to mark finished sessions with ✓ and free their time. Once the app is deployed on a public URL,
  * this address can be added in Google Calendar / Outlook as a subscription ("From URL").
  */
 export const Route = createFileRoute('/api/ics/$calendarId')({
@@ -21,11 +21,13 @@ export const Route = createFileRoute('/api/ics/$calendarId')({
           return new Response(`Unknown calendar "${id}". Known: all, ${plan.calendars.map((c) => c.id).join(', ')}`, {
             status: 404,
           })
+        const query = new URL(request.url).searchParams
+        const options = { markDone: query.has('done'), source: request.url }
         const body =
           id === 'all'
-            ? combinedICS(plan, new Set(only ?? plan.calendars.map((c) => c.id)))
-            : calendarICS(plan, calendar)
-        const download = new URL(request.url).searchParams.has('download')
+            ? combinedICS(plan, new Set(only ?? plan.calendars.map((c) => c.id)), options)
+            : calendarICS(plan, calendar, options)
+        const download = query.has('download')
         return new Response(body, {
           headers: {
             'Content-Type': 'text/calendar; charset=utf-8',

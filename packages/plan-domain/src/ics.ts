@@ -30,11 +30,18 @@ function nextDate(day: string): string {
 export const icsFileName = (calendar: PlanCalendar) =>
   `${calendar.name.replace(/[:/\\]/g, '').replace(/\s+/g, '_')}.ics`
 
+export interface IcsOptions {
+  /** Done sessions get a ✓ before the title and stop blocking their time: a VEVENT has no "completed" state */
+  markDone?: boolean
+  /** The address the file is served from, for a client that subscribed to it (RFC 7986 SOURCE) */
+  source?: string
+}
+
 /**
  * One VCALENDAR per target calendar. Google Calendar and Outlook import it into the calendar the user picks.
  * The fixed Europe/Minsk VTIMEZONE (+03:00, no DST) keeps times correct in both.
  */
-export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string): string {
+export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string, options: IcsOptions = {}): string {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')
   const lines = [
     'BEGIN:VCALENDAR',
@@ -42,8 +49,14 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
     'PRODID:-//learning-curve//study plan//RU',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
+    // The name and the refresh hint twice: RFC 7986 has the standard properties, older clients read the X- ones.
+    `NAME:${escapeText(calendar.name)}`,
     `X-WR-CALNAME:${escapeText(calendar.name)}`,
     `X-WR-TIMEZONE:${tz}`,
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+    'X-PUBLISHED-TTL:PT1H',
+    ...(/^#[0-9a-f]{6}$/i.test(calendar.color) ? [`X-APPLE-CALENDAR-COLOR:${calendar.color}`] : []),
+    ...(options.source ? [`SOURCE;VALUE=URI:${options.source}`] : []),
     'BEGIN:VTIMEZONE',
     `TZID:${tz}`,
     'BEGIN:STANDARD',
@@ -64,22 +77,28 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
     }
     if (e.rrule) lines.push(`RRULE:${e.rrule}`)
     for (const day of e.skip ?? []) lines.push(`EXDATE;TZID=${tz}:${compact(`${day}T${e.start.slice(11, 16)}`)}`)
-    lines.push(`SUMMARY:${escapeText(e.title)}`)
+    const finished = options.markDone === true && e.done === true
+    lines.push(`SUMMARY:${escapeText(finished ? `✓ ${e.title}` : e.title)}`)
     if (e.description) lines.push(`DESCRIPTION:${escapeText(e.description)}`)
     const url = e.description.match(/Module: (\S+)/)?.[1]
     if (url && /^https?:/.test(url)) lines.push(`URL:${url}`)
-    lines.push(`TRANSP:${e.availability === 'free' ? 'TRANSPARENT' : 'OPAQUE'}`, 'STATUS:CONFIRMED', 'END:VEVENT')
+    lines.push(
+      `TRANSP:${e.availability === 'free' || finished ? 'TRANSPARENT' : 'OPAQUE'}`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+    )
   }
   lines.push('END:VCALENDAR')
   return lines.map(fold).join('\r\n') + '\r\n'
 }
 
 /** Events of one calendar, ready for `buildICS`. */
-export const calendarICS = (plan: Plan, calendar: PlanCalendar) =>
+export const calendarICS = (plan: Plan, calendar: PlanCalendar, options?: IcsOptions) =>
   buildICS(
     calendar,
     plan.events.filter((e) => e.calendar === calendar.id),
     plan.meta.timezone,
+    options,
   )
 
 /** The stand-in calendar for a combined export: every chosen calendar's events in one file. */
@@ -91,11 +110,12 @@ export const combinedCalendar = (plan: Plan): PlanCalendar => ({
 })
 
 /** One VCALENDAR with the events of all `calendarIds`, for import into a single calendar. */
-export const combinedICS = (plan: Plan, calendarIds: ReadonlySet<string>) =>
+export const combinedICS = (plan: Plan, calendarIds: ReadonlySet<string>, options?: IcsOptions) =>
   buildICS(
     combinedCalendar(plan),
     plan.events.filter((e) => calendarIds.has(e.calendar)),
     plan.meta.timezone,
+    options,
   )
 
 export const IMPORT_HOWTO = (newCalendars: string[]) =>
@@ -104,6 +124,7 @@ export const IMPORT_HOWTO = (newCalendars: string[]) =>
     '',
     'Google Calendar (компьютер): Настройки → Импорт и экспорт → Импорт → выбрать файл → выбрать календарь → Импорт.',
     'Outlook: Календарь → Добавить календарь → Загрузить из файла → выбрать файл и календарь.',
+    'Календарь Apple: открыть файл (на Mac: Файл → Импортировать) и выбрать календарь.',
     '',
     newCalendars.length ? `Новые календари (создать заранее): ${newCalendars.join(', ')}.` : '',
     'Перед повторным импортом удалите старые события из этих календарей, иначе появятся дубли.',

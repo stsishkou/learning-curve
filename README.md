@@ -130,7 +130,9 @@ You can also open any `plan.json` in the viewer ("Открыть файл пла
 ## Importing into a calendar
 
 Use **Экспорт в календарь** in the viewer (separate calendars as a zip or one `.ics` each, or everything as one
-`.ics` for a single calendar), or `pnpm run plan --ics`.
+`.ics` for a single calendar), or `pnpm run plan --ics`. Pick the calendar app under `Where to` (Google Calendar, Outlook,
+Apple Calendar or another) and the dialog shows the import steps for it; the choice is remembered. `Mark finished
+sessions` puts a ✓ before the title of every done session and stops it blocking time.
 
 1. Create the calendars marked "создать календарь" (Gemini Certs, Practical Python, Личное).
 2. Delete old future events from existing calendars, otherwise you get duplicates.
@@ -143,7 +145,7 @@ Use **Экспорт в календарь** in the viewer (separate calendars a
 | Route | Response |
 |---|---|
 | `GET /api/plan` | The plan as JSON |
-| `GET /api/ics/:calendarId` | One calendar as `.ics` (`certs`, `hfllm`, `hfagents`, `pypy`, `journey`, `personal`); add `?download=1` for an attachment |
+| `GET /api/ics/:calendarId` | One calendar as `.ics` (`certs`, `hfllm`, `hfagents`, `pypy`, `journey`, `personal`); add `?download=1` for an attachment, `?done=1` to mark finished sessions |
 | `GET /api/ics/all` | Every calendar's events in one `.ics`; `?calendars=certs,hfllm` narrows it |
 | `GET /api/ics-zip` | All calendars in one zip |
 

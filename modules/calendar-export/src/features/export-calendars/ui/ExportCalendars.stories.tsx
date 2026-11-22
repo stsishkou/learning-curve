@@ -30,3 +30,13 @@ export const SomeCalendarsHidden: Story = {
   args: { hidden: new Set(['journey', 'personal']) },
   play: DialogOpen.play,
 }
+
+/** The steps under the list follow the calendar app picked in "Where to". */
+export const ForAppleCalendar: Story = {
+  play: async (context) => {
+    await DialogOpen.play?.(context)
+    const dialog = within(context.canvasElement.ownerDocument.body)
+    await userEvent.click(dialog.getByRole('button', { name: /Apple/ }))
+    await expect(dialog.getByText(/ Mac: /)).toBeInTheDocument()
+  },
+}
