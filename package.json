@@ -13,7 +13,12 @@
     "plan": "tsx scripts/build-plan.ts",
     "i18n": "paraglide-js compile --project ./project.inlang",
     "typecheck": "pnpm run i18n && tsc --noEmit",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
     "check:i18n": "inlang check --project ./project.inlang --source ./src/routes ./src/components ./src/lib/format.ts",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run fmt:check && pnpm run check:i18n",
     "prepare": "husky && pnpm run i18n"
   },
   "dependencies": {
@@ -36,6 +41,9 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
     "husky": "9.1.7",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
+    "oxlint-tsgolint": "7.0.2008",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.8"

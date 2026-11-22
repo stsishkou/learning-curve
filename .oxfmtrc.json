@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "semi": false,
+  "singleQuote": true,
+  "sortImports": true,
+  "sortTailwindcss": { "stylesheet": "./src/styles.css" },
+  "ignorePatterns": ["src/data/plan.json", "src/routeTree.gen.ts", "messages/", "pnpm-lock.yaml", "*.md", ".idea/"]
+}

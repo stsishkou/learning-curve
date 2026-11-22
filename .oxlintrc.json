@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "react", "jsx-a11y", "import", "promise", "unicorn", "oxc"],
+  "jsPlugins": [{ "name": "paraglide", "specifier": "@inlang/paraglide-js/eslint" }],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "options": {
+    "typeAware": true
+  },
+  "ignorePatterns": ["src/paraglide/**", "src/routeTree.gen.ts"],
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    // useNow and useHiddenCalendars set state after mount on purpose, so server and client markup match.
+    "react/set-state-in-effect": "off",
+    // Duplicates react/exhaustive-deps and rejects dependencies used only to re-run an effect.
+    "react/exhaustive-effect-dependencies": "off",
+    // Would turn the role="group" button rows into fieldsets and the budget meter into an <img>.
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "paraglide/no-dynamic-message-access": ["error", { "messageModuleDirectories": ["paraglide"] }]
+  }
+}

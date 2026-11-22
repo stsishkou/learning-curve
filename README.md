@@ -23,6 +23,9 @@ Requires Node 26+ and pnpm 12.
 | `pnpm run typecheck` | Compiles the messages, then `tsc --noEmit` |
 | `pnpm run i18n` | Compiles `messages/*.json` into `src/paraglide/` (also runs on install, dev and build) |
 | `pnpm run check:i18n` | Fails on missing or empty translations, mismatched variables, missing plural forms and unused messages |
+| `pnpm run lint` / `pnpm run lint:fix` | [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) with type-aware, React, accessibility and Paraglide rules (`.oxlintrc.json`) |
+| `pnpm run fmt` / `pnpm run fmt:check` | [Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html): formatting, import order and Tailwind class order (`.oxfmtrc.json`) |
+| `pnpm run check` | Typecheck, lint, format check and translation check in one go |
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix: …`, `build: …`);
 a Husky `commit-msg` hook checks them with commitlint.
