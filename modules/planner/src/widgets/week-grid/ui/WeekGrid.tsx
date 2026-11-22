@@ -36,6 +36,8 @@ interface Props {
 }
 
 const PX_PER_HOUR = 56
+/** The `lg` breakpoint: from here the page puts the side panel next to the grid. */
+const TWO_COLUMNS = 961
 const SNAP = HOUR / 2
 /** Pointer travel in px before a press counts as a drag instead of a click */
 const DRAG_THRESHOLD = 5
@@ -122,7 +124,9 @@ export function WeekGrid({
 
   // On a narrow screen only some days fit: start at today when it is in this week.
   const scroller = useRef<HTMLDivElement>(null)
-  const maxHeight = useFillHeight(scroller, fullDay)
+  // Next to the side panel the grid ends at the bottom of the screen and scrolls inside itself; the full day
+  // does so at any width, it is too tall for a page.
+  const maxHeight = useFillHeight(scroller, true, { minWidth: fullDay ? 0 : TWO_COLUMNS })
   useEffect(() => {
     const column = today === null ? null : scroller.current?.querySelector<HTMLElement>(`[data-day="${ymd(today)}"]`)
     if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - 52
@@ -284,7 +288,7 @@ export function WeekGrid({
     <>
       <div
         ref={scroller}
-        className={`snap-x scroll-pl-[52px] overflow-x-auto ${fullDay ? 'max-h-[70dvh] overflow-y-auto rounded-2xl' : ''}`}
+        className={`snap-x scroll-pl-[52px] [scrollbar-width:thin] overflow-auto rounded-2xl ${fullDay ? 'max-h-[70dvh]' : ''}`}
         style={{ maxHeight }}
       >
         <div className="grid min-w-[760px] grid-cols-[52px_repeat(7,minmax(96px,1fr))]">

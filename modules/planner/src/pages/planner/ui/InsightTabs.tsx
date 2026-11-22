@@ -1,8 +1,9 @@
 import { m } from '@lc/i18n/messages'
 import type { Occurrence, Plan, PlanEvent } from '@lc/plan-domain'
 import { Segmented } from '@lc/ui'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
+import { useFillHeight } from '../../../shared/lib'
 import { BudgetPanel } from '../../../widgets/budget-panel'
 import { CourseProgress } from '../../../widgets/course-progress'
 import { PlanMap } from '../../../widgets/plan-map'
@@ -22,6 +23,9 @@ interface Props {
 /** One card, three looks at the plan: this week's budget, progress per course, the map of all weeks. */
 export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect, onPickWeek }: Props) {
   const [tab, setTab] = useState<Tab>('week')
+  const body = useRef<HTMLDivElement>(null)
+  // 961 is the `lg` breakpoint; the gap is the page's bottom padding plus the card's own.
+  const maxHeight = useFillHeight(body, true, { minWidth: 961, minHeight: 120, bottomGap: 66 })
   return (
     <section className="min-w-0 rounded-2xl border border-line bg-surface p-4">
       <div className="mb-3.5 text-[13px]">
@@ -37,7 +41,7 @@ export function InsightTabs({ plan, weekItems, hidden, now, weekStart, onSelect,
         />
       </div>
       {/* Capped on a wide screen so a long course list scrolls inside the card instead of stretching the page. */}
-      <div className="lg:max-h-[max(260px,calc(100dvh-560px))] lg:overflow-y-auto">
+      <div ref={body} className="[scrollbar-width:thin] lg:overflow-y-auto" style={{ maxHeight }}>
         {tab === 'week' && <BudgetPanel plan={plan} weekItems={weekItems} />}
         {tab === 'courses' && <CourseProgress plan={plan} onSelect={onSelect} />}
         {tab === 'map' && (
