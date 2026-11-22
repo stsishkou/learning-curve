@@ -20,7 +20,15 @@ function Stateful(props: ComponentProps<typeof CalendarFilter>) {
     setHidden(new Set(alreadySolo ? [] : others))
     props.onSolo(id)
   }
-  return <CalendarFilter {...props} hidden={hidden} onToggle={toggle} onSolo={solo} />
+  return (
+    <CalendarFilter
+      {...props}
+      hidden={hidden}
+      onToggle={toggle}
+      onSolo={solo}
+      onShowAll={hidden.size ? () => setHidden(new Set()) : undefined}
+    />
+  )
 }
 
 const meta = {
@@ -53,3 +61,19 @@ export const SomeHidden: Story = { args: { hidden: new Set(['journey', 'personal
 
 /** Without `onManage` there is no button for the calendars dialog. */
 export const ReadOnly: Story = { args: { onManage: undefined } }
+
+/**
+ * The eye on a chip (it shows under the pointer or with the keyboard focus) leaves that calendar as the only one;
+ * the `Show all` chip that appears while anything is hidden brings the rest back.
+ */
+export const OnlyOne: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const eyes = canvasElement.querySelectorAll<HTMLButtonElement>('span > button + button')
+    await userEvent.click(eyes[1])
+    await expect(args.onSolo).toHaveBeenCalledWith(fixturePlan.calendars[1].id)
+    await expect(canvasElement.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1)
+    await userEvent.click(canvas.getByRole('button', { name: /Show all|Показать все|Mostrar todos/ }))
+    await expect(canvasElement.querySelectorAll('[aria-pressed="false"]')).toHaveLength(0)
+  },
+}

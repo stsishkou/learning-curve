@@ -40,3 +40,21 @@ export const ThreeCourses: Story = {
 
 /** Without the three edit callbacks an event can only be opened. */
 export const ReadOnly: Story = { args: { onMove: undefined, onRemove: undefined, onCreate: undefined } }
+
+/**
+ * An event that is being created: pressing on an empty part of a day and dragging draws it, and while its form is
+ * open the page passes it back as `draft`, so the dashed block follows the title and the times typed there.
+ */
+export const Drafting: Story = {
+  args: {
+    draft: {
+      s: fixtureWeek + 2 * DAY + 15 * 3_600_000,
+      e: fixtureWeek + 2 * DAY + 17 * 3_600_000,
+      title: 'Deep work',
+      calendar: 'personal',
+    },
+  },
+}
+
+/** The event whose dialog is open carries a ring, so it can be found next to the docked dialog. */
+export const SelectedEvent: Story = { args: { selectedUid: week(fixtureWeek).find((o) => !o.allDay)?.uid } }

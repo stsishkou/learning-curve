@@ -520,7 +520,7 @@ export function WeekGrid({
                       }}
                     >
                       <b className="block truncate font-semibold">{slot!.title || m.new_event()}</b>
-                      <small className="text-muted tabular-nums">
+                      <small className="text-ink tabular-nums">
                         {hm(slot!.s)}–{hm(slot!.e)}
                       </small>
                     </div>

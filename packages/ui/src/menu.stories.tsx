@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
+import { Calendar, History, MoveHorizontal, Trash2 } from './icons'
 import { Menu } from './menu'
 
 function WithSwitch(props: ComponentProps<typeof Menu>) {
@@ -28,10 +29,10 @@ const meta = {
   args: {
     label: 'More actions',
     items: [
-      { id: 'history', label: 'History', badge: 4, keys: 'H', run: history },
-      { id: 'trash', label: 'Trash', badge: 2, run: fn() },
-      { id: 'shift', label: 'Shift the plan', run: fn() },
-      { id: 'locked', label: 'Calendars', disabled: true, run: fn() },
+      { id: 'history', icon: <History size={16} aria-hidden />, label: 'History', badge: 4, keys: 'H', run: history },
+      { id: 'trash', icon: <Trash2 size={16} aria-hidden />, label: 'Trash', badge: 2, run: fn() },
+      { id: 'shift', icon: <MoveHorizontal size={16} aria-hidden />, label: 'Shift the plan', run: fn() },
+      { id: 'locked', icon: <Calendar size={16} aria-hidden />, label: 'Calendars', disabled: true, run: fn() },
     ],
   },
 } satisfies Meta<typeof Menu>

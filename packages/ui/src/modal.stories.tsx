@@ -51,3 +51,9 @@ export const Top: Story = {
     children: <input className="w-full bg-transparent text-[17px] outline-none" placeholder="Type to search…" />,
   },
 }
+
+/**
+ * Docked to one side of a wide window with the page behind left readable: for a form whose result shows on the page
+ * while it is filled in, such as a new event drawn on the calendar.
+ */
+export const Docked: Story = { args: { side: 'right' } }
