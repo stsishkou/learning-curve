@@ -12,8 +12,10 @@
     "lint": "oxlint -c ../../.oxlintrc.json"
   },
   "devDependencies": {
+    "@storybook/react-vite": "catalog:",
     "@types/react": "catalog:",
-    "react": "catalog:"
+    "react": "catalog:",
+    "storybook": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:"

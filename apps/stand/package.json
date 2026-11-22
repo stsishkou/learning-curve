@@ -1,0 +1,47 @@
+{
+  "name": "@lc/stand",
+  "private": true,
+  "description": "The component stand: a Storybook with every UI kit component, planner widget and feature, and their documentation",
+  "type": "module",
+  "scripts": {
+    "dev": "storybook dev --port 6006 --exact-port --no-open",
+    "build": "storybook build --output-dir dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json"
+  },
+  "dependencies": {
+    "@lc/calendar-export": "workspace:*",
+    "@lc/i18n": "workspace:*",
+    "@lc/plan-domain": "workspace:*",
+    "@lc/planner": "workspace:*",
+    "@lc/ui": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "catalog:",
+    "@storybook/addon-docs": "catalog:",
+    "@storybook/react-vite": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "storybook": "catalog:",
+    "tailwindcss": "catalog:",
+    "vite": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:stand"
+    ],
+    "targets": {
+      "dev": {
+        "dependsOn": [
+          "^i18n"
+        ]
+      }
+    }
+  }
+}

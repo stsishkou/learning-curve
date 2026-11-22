@@ -1,0 +1,62 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Introduction" />
+
+# The component stand
+
+Every component of the workspace, rendered on its own with fixed data, next to its documentation. Use it to
+see what already exists before building something new, to try a component in both themes and three
+languages, and to check a change without clicking through the app.
+
+## What is here
+
+| Section                | Source                         | What it holds                                                                                 |
+| ---------------------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
+| **Design tokens**      | `packages/ui/src/theme.css`    | Colors, typography, radii, breakpoints                                                        |
+| **UI kit**             | `packages/ui`                  | Button, Segmented, Modal, ProgressRing, Dot, Kbd, the field classes, `calendarColor`          |
+| **Planner / Page**     | `modules/planner/src/pages`    | The whole planner page with an in-memory host                                                 |
+| **Planner / Widgets**  | `modules/planner/src/widgets`  | Week grid, month grid, agenda, budget, course progress, plan map, now/next, runway            |
+| **Planner / Features** | `modules/planner/src/features` | Calendar filter, command palette, shortcuts, calendars, trash, event dialog, plan file reader |
+| **Calendar export**    | `modules/calendar-export`      | The export button and its dialog                                                              |
+
+Each component has a **Docs** page: its description and the table of props come from the JSDoc comments and
+the TypeScript types in the component's file, and every story is shown below them.
+
+## The toolbar
+
+- **Theme**: light or dark. It rewrites `<meta name="color-scheme">`, the same switch the app uses.
+- **Language**: ru, en, es. Interface text comes from `@lc/i18n`; the plan itself (event titles, course
+  names) stays Russian, as in the app.
+- **Accessibility** (panel at the bottom): axe checks of the story on screen.
+- **Interactions** (panel at the bottom): stories with a `play` function click through a scenario and assert
+  the result.
+
+## How the workspace is layered
+
+```
+apps/web, apps/stand ──▶ modules/* ──▶ packages/plan-domain
+   │                         └───────▶ packages/ui, packages/i18n
+   └── apps/web only ──▶ packages/plan-data ──▶ packages/plan-domain
+```
+
+- **`packages/ui`** knows nothing about the plan: plain controls and the theme.
+- **`packages/plan-domain`** is the plan in pure TypeScript: types, dates, schedule rules, edits.
+- **`modules/*`** are the product, split by Feature-Sliced layers. A **widget** shows a part of the plan and
+  reports what the person did through callbacks. A **feature** is one user action, usually a dialog. A
+  **page** composes them and owns the state.
+- **Apps** compose modules. A module never loads data or saves it: the app passes the plan in and receives
+  every edit as one `PlanChange` value.
+
+That last rule is why every component here works without a server: a story passes a plan and a callback,
+exactly as the app does. The full rules are in `docs/architecture.md`.
+
+## The data in the stories
+
+All stories share one plan from `@lc/plan-domain/fixtures`: the real schedule, built in memory by
+`buildPlan()`, with "now" fixed at Wednesday, 2 December 2026, 12:40. Nothing reads `packages/plan-data`,
+so the stories do not change when the plan is edited in the app. The page story is the exception for the
+clock: it uses the real time, like the app.
+
+## Adding a story
+
+Put `Name.stories.tsx` next to `Name.tsx`. See `docs/component-stand.md` for a template.
