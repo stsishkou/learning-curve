@@ -59,6 +59,9 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Plan files**: `Plan file` opens a reader on the plan: an overview, every event with search, and the file
   itself as text with line numbers and find. Choose or drop another `plan.json` to read it, see how it differs
   from the project plan, and open it for editing. Those changes stay in the browser until you download the file.
+- **Progress dashboard**: `/dashboard` (the `Progress` tab) shows how much is done, whether that is ahead of or
+  behind the plan, hours added up against the plan, the load of every week by calendar against the budget, and
+  a bar per course. Every chart has a hover readout and the same numbers as a table.
 - **History**: every change is a step you can take back and redo: `↶` `↷` in the toolbar, `Ctrl/⌘ Z` and
   `Ctrl/⌘ Shift Z`, or the `History` window (`H`), where any point of the timeline can be picked. The last 100
   steps are kept in `packages/plan-data/data/history.json`, which is local and not committed.

@@ -241,6 +241,9 @@ importers:
       '@lc/calendar-export':
         specifier: workspace:*
         version: link:../../modules/calendar-export
+      '@lc/dashboard':
+        specifier: workspace:*
+        version: link:../../modules/dashboard
       '@lc/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -311,6 +314,25 @@ importers:
       jszip:
         specifier: 3.10.2
         version: 3.10.2
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+
+  modules/dashboard:
+    dependencies:
+      '@lc/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@lc/plan-domain':
+        specifier: workspace:*
+        version: link:../../packages/plan-domain
+      '@lc/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
     devDependencies:
       '@types/react':
         specifier: 'catalog:'

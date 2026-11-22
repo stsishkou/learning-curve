@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ApiIcsZipRouteImport } from './routes/api/ics-zip'
 import { Route as ApiPlanRouteImport } from './routes/api/plan'
 import { Route as ApiIcsCalendarIdRouteImport } from './routes/api/ics.$calendarId'
@@ -17,6 +18,11 @@ import { Route as ApiIcsCalendarIdRouteImport } from './routes/api/ics.$calendar
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIcsZipRoute = ApiIcsZipRouteImport.update({
@@ -37,12 +43,14 @@ const ApiIcsCalendarIdRoute = ApiIcsCalendarIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
@@ -50,20 +58,29 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/ics-zip' | '/api/plan' | '/api/ics/$calendarId'
+  fullPaths:
+    '/' | '/dashboard' | '/api/ics-zip' | '/api/plan' | '/api/ics/$calendarId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/ics-zip' | '/api/plan' | '/api/ics/$calendarId'
-  id: '__root__' | '/' | '/api/ics-zip' | '/api/plan' | '/api/ics/$calendarId'
+  to: '/' | '/dashboard' | '/api/ics-zip' | '/api/plan' | '/api/ics/$calendarId'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/api/ics-zip'
+    | '/api/plan'
+    | '/api/ics/$calendarId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   ApiIcsZipRoute: typeof ApiIcsZipRoute
   ApiPlanRoute: typeof ApiPlanRoute
   ApiIcsCalendarIdRoute: typeof ApiIcsCalendarIdRoute
@@ -76,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ics-zip': {
@@ -104,6 +128,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   ApiIcsZipRoute: ApiIcsZipRoute,
   ApiPlanRoute: ApiPlanRoute,
   ApiIcsCalendarIdRoute: ApiIcsCalendarIdRoute,

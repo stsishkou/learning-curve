@@ -5,7 +5,7 @@ import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planne
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { getPlanState, savePlanChange, travelPlanHistory } from '#/server/plan'
-import { LanguageSwitcher } from '#/shell/LanguageSwitcher'
+import { ShellAside, STAND_URL } from '#/shell/ShellAside'
 import { setTheme } from '#/shell/theme'
 
 /** The planner module rendered at `/`; the route only wires it to the URL, the server functions and the other modules. */
@@ -16,7 +16,11 @@ export const Route = createFileRoute('/')({
 })
 
 /** What the shell owns and offers in the planner's command palette: the theme and the language. */
-const shellCommands = (): PlannerCommand[] => [
+const shellCommands = (openDashboard: () => void): PlannerCommand[] => [
+  { id: 'dashboard', group: m.nav(), label: m.dashboard(), run: openDashboard },
+  ...(STAND_URL
+    ? [{ id: 'stand', group: m.nav(), label: m.nav_components(), run: () => void window.open(STAND_URL, '_blank') }]
+    : []),
   { id: 'theme-system', group: m.theme(), label: m.theme_system(), run: () => setTheme('system') },
   { id: 'theme-light', group: m.theme(), label: m.theme_light(), run: () => setTheme('light') },
   { id: 'theme-dark', group: m.theme(), label: m.theme_dark(), run: () => setTheme('dark') },
@@ -44,9 +48,9 @@ function PlannerRoute() {
         await travelPlanHistory({ data: cursor })
         await router.invalidate()
       }}
-      headerAside={<LanguageSwitcher />}
+      headerAside={<ShellAside />}
       renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}
-      commands={shellCommands()}
+      commands={shellCommands(() => void router.navigate({ to: '/dashboard' }))}
     />
   )
 }

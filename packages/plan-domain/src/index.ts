@@ -67,6 +67,7 @@ export {
   type Occurrence,
 } from './occurrences'
 export { courseProgress, isSession, type CourseProgress } from './progress'
+export { planStats, type PlanStats, type WeekStats } from './stats'
 export { DEFAULT_CONFIG, buildPlan, weeklyHours, type ScheduleConfig } from './schedule'
 export {
   isPlan,

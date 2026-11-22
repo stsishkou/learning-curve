@@ -10,6 +10,7 @@ apps/
 modules/               microfrontends, composed at build time
   planner/             the planner page: week grid, agenda, budget, runway, event editing
   calendar-export/     the export button and dialog (.ics, zip, combined calendar)
+  dashboard/           the progress page at /dashboard: stat tiles and charts, read-only
 packages/
   plan-domain/         the domain: types, Minsk dates, schedule rules, edits, .ics. Pure TypeScript
   plan-data/           the database on disk (data/plan.json, data/edits.json) and `pnpm run plan`. Node only

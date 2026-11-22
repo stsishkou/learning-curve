@@ -54,7 +54,7 @@
                 "message": "Depend on the package and import it through its public entry, not by path."
               },
               {
-                "group": ["@lc/planner", "@lc/calendar-export", "@lc/web"],
+                "group": ["@lc/planner", "@lc/calendar-export", "@lc/dashboard", "@lc/web"],
                 "message": "A module never imports another module or the app: the app composes them through props and slots."
               },
               {
