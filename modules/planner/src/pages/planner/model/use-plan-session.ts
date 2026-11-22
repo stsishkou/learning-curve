@@ -134,3 +134,5 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel }: Host
       downloadText(file?.name ?? planFileName(plan), JSON.stringify(plan, null, 2), 'application/json'),
   }
 }
+
+export type PlanSession = ReturnType<typeof usePlanSession>

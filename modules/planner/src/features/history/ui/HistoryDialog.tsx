@@ -1,6 +1,6 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { hm, startOfDay, toMinsk, type HistoryView } from '@lc/plan-domain'
+import { hm, startOfDay, toMinsk, type HistoryView, type PlanChange } from '@lc/plan-domain'
 import { Button, FOOT, Kbd, META, Modal, Redo2, TITLE, Undo2 } from '@lc/ui'
 import { useState } from 'react'
 
@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void
 }
 
-const SIGN: Record<string, string> = {
+const SIGN: Partial<Record<PlanChange['type'], string>> = {
   'event.add': '＋',
   'event.remove': '−',
   'calendar.remove': '−',

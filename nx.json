@@ -4,7 +4,8 @@
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json", "{workspaceRoot}/pnpm-lock.yaml"],
-    "lintConfig": ["{workspaceRoot}/.oxlintrc.json"]
+    "lintConfig": ["{workspaceRoot}/.oxlintrc.json"],
+    "production": ["default", "!{projectRoot}/**/*.stories.tsx", "!{projectRoot}/**/*.mdx", "!{projectRoot}/**/*.md"]
   },
   "targetDefaults": {
     "i18n": {
@@ -33,8 +34,13 @@
     "build": {
       "cache": true,
       "dependsOn": ["^build", "^i18n", "i18n"],
-      "inputs": ["default", "^default"],
+      "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/.output", "{projectRoot}/dist"]
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": ["^i18n", "i18n"],
+      "inputs": ["default", "^default"]
     },
     "dev": {
       "continuous": true

@@ -1,6 +1,5 @@
 export { downloadText } from './download'
 export { eventKey } from './event-key'
 export { useFillHeight } from './use-fill-height'
-export { useMediaQuery } from './use-media-query'
 export { useModKey } from './use-mod-key'
 export { useNow } from './use-now'

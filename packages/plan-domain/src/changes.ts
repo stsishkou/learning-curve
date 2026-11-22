@@ -369,9 +369,3 @@ export const editedUids = (edits: PlanEdits): string[] => [
   ...Object.keys(edits.events),
   ...edits.added.map((e) => e.uid),
 ]
-
-/** `base` with one more change, for a plan that lives only in the browser (an opened file). */
-export const withChange = (base: Plan, edits: PlanEdits, change: PlanChange) => {
-  const next = applyChange(base, edits, change)
-  return { edits: next, plan: applyEdits(base, next).plan }
-}

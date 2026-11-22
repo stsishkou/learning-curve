@@ -1,61 +1,31 @@
-import { fmtDay, fmtMonth, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   DAY,
-  HOUR,
   isSession,
   mondayOf,
-  movePatch,
-  nowMinsk,
+  moveOccurrence,
   occurrences,
   parseLocal,
   planFileName,
   planStart,
+  removeOccurrence,
   startOfDay,
-  startOfMonth,
-  toLocalString,
   ymd,
-  type NewEvent,
   type Occurrence,
   type Plan,
   type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
-import {
-  Button,
-  Calendar,
-  CalendarClock,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  History,
-  Kbd,
-  Keyboard,
-  Maximize2,
-  Menu,
-  Minimize2,
-  MoveHorizontal,
-  Plus,
-  Redo2,
-  Search,
-  Segmented,
-  Trash2,
-  Undo2,
-  X,
-  type MenuItem,
-} from '@lc/ui'
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 
 import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
-import { describeStep, HistoryDialog } from '../../../features/history'
+import { HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
-import { PlanTitle } from '../../../features/rename-plan'
 import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
@@ -65,9 +35,19 @@ import { MonthGrid } from '../../../widgets/month-grid'
 import { NowNext } from '../../../widgets/now-next'
 import { Runway } from '../../../widgets/runway'
 import { WeekGrid } from '../../../widgets/week-grid'
-import type { PlannerSearch, PlannerView } from '../model/search'
+import { buildActions, type DialogName } from '../model/build-actions'
+import { toCommands, toMenuItems, toShortcutRows, toShortcuts } from '../model/planner-actions'
+import type { PlannerSearch } from '../model/search'
+import { useDialogFlags } from '../model/use-dialog-flags'
+import { useEventDraft } from '../model/use-event-draft'
 import { usePlanSession, type PlannerState } from '../model/use-plan-session'
+import { usePlannerView } from '../model/use-planner-view'
+import { useQuietChange } from '../model/use-quiet-change'
 import { InsightTabs } from './InsightTabs'
+import { OverdueBar } from './OverdueBar'
+import { PlannerHeader } from './PlannerHeader'
+import { PlannerToolbar } from './PlannerToolbar'
+import { UndoBar } from './UndoBar'
 
 interface Props {
   /** The plan with what the host knows about it: `{ plan, canEdit, edited, trash, history }` */
@@ -88,21 +68,7 @@ interface Props {
   commands?: Command[]
 }
 
-const PRESSED = 'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg'
-const STEP =
-  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap transition-[background-color,transform] duration-150 hover:bg-surface-2 active:scale-[0.96] disabled:opacity-40 disabled:hover:bg-surface disabled:active:scale-100'
 const NO_CALENDARS: ReadonlySet<string> = new Set()
-
-function defaultWeek(plan: Plan) {
-  const now = nowMinsk()
-  const first = planStart(plan)
-  return mondayOf(now < first ? first : now)
-}
-
-/** The first Monday of a month: its Thursday is always inside that month. */
-const firstWeekOf = (month: number) => mondayOf(month + 6 * DAY)
-
-const errorText = (err: unknown) => m.save_failed({ reason: err instanceof Error ? err.message : String(err) })
 
 /**
  * The whole planner: the toolbar, the calendar in one of its views, the side panel and every dialog. It loads and
@@ -124,23 +90,16 @@ export function PlannerPage({
   const { hidden, toggle, solo, showAll, reset } = useHiddenCalendars()
   const session = usePlanSession(state, { onChange, onTravel })
   const { plan, canEdit } = session
+  const nav = usePlannerView(plan, search, onSearchChange)
+  const { view, expanded, weekStart } = nav
+  const quiet = useQuietChange(session)
+  const dialogs = useDialogFlags<DialogName>()
+  const drafting = useEventDraft({ plan, hidden, now, weekStart, canEdit })
 
-  const [draft, setDraft] = useState<NewEvent | null>(null)
-  // The new event as its form has it now: the grid draws this, the form keeps the fields.
-  const [draftShown, setDraftShown] = useState<NewEvent | null>(null)
-  const [calendarsOpen, setCalendarsOpen] = useState(false)
-  const [trashOpen, setTrashOpen] = useState(false)
-  const [historyOpen, setHistoryOpen] = useState(false)
   const [shiftFrom, setShiftFrom] = useState<string | null>(null)
-  const [catchUpOpen, setCatchUpOpen] = useState(false)
-  const [reviewOpen, setReviewOpen] = useState(false)
   const [overdueHidden, setOverdueHidden] = useState(false)
-  const datePicker = useRef<HTMLInputElement>(null)
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
   const [pickedDay, setPickedDay] = useState<string | null>(null)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
-  const [saveError, setSaveError] = useState('')
 
   const selected = plan.events.find((e) => e.uid === search.event) ?? null
   const select = (e: PlanEvent | Occurrence) => {
@@ -149,21 +108,9 @@ export function PlannerPage({
   }
   const trashCount = session.trash.events.length + session.trash.calendars.length
 
-  const view: PlannerView = search.view ?? 'week'
-  const expanded = search.expanded === true
-  const weekStart = search.week ? mondayOf(parseLocal(search.week)) : defaultWeek(plan)
-  const setWeek = (t: number) => onSearchChange({ week: ymd(t) })
-
-  // The month a week belongs to is the month of its Thursday, so a week that straddles two months is not lost.
-  const monthStart = startOfMonth(weekStart + 3 * DAY)
-  const monthGridStart = mondayOf(monthStart)
-  const monthWeeks = Math.ceil((startOfMonth(monthStart, 1) - monthGridStart) / (7 * DAY))
-  const step = (direction: 1 | -1) =>
-    setWeek(view === 'month' ? firstWeekOf(startOfMonth(monthStart, direction)) : weekStart + direction * 7 * DAY)
-
   const weekItems = useMemo(() => occurrences(plan, weekStart, weekStart + 7 * DAY, hidden), [plan, weekStart, hidden])
   const monthItems =
-    view === 'month' ? occurrences(plan, monthGridStart, monthGridStart + monthWeeks * 7 * DAY, hidden) : []
+    view === 'month' ? occurrences(plan, nav.monthGridStart, nav.monthGridStart + nav.monthWeeks * 7 * DAY, hidden) : []
   const allItems = useMemo(
     () => (view === 'list' ? occurrences(plan, planStart(plan), parseLocal(plan.meta.planEnd) + 8 * DAY, hidden) : []),
     [plan, hidden, view],
@@ -180,78 +127,6 @@ export function PlannerPage({
     [plan, now],
   )
 
-  /** A change made outside a dialog (a drag, an undo): its failure is shown above the calendar. */
-  async function changeQuietly(change: PlanChange) {
-    try {
-      await session.change(change)
-      setSaveError('')
-    } catch (err) {
-      setSaveError(errorText(err))
-    }
-  }
-
-  const { cursor, steps } = session.history
-  const canUndo = canEdit && cursor > 0
-  const canRedo = canEdit && cursor < steps.length
-  /** One step back or forward; its failure is shown above the calendar. */
-  const timeTravel = (to: number) =>
-    void session
-      .travel(to)
-      .then(() => setSaveError(''))
-      .catch((err: unknown) => setSaveError(errorText(err)))
-  const undo = () => canUndo && timeTravel(cursor - 1)
-  const redo = () => canRedo && timeTravel(cursor + 1)
-  const lastStep = session.lastStep && {
-    label: describeStep(session.lastStep),
-    run: () => session.travel(cursor - 1),
-  }
-
-  /** A dragged repeat leaves its series and moves alone: the other repeats stay where they are. */
-  const move = (o: Occurrence, slot: { s: number; e: number }) =>
-    void changeQuietly(
-      o.rrule
-        ? {
-            type: 'event.detach',
-            uid: o.uid,
-            day: ymd(o.s),
-            start: toLocalString(o.allDay ? startOfDay(slot.s) : slot.s),
-            end: toLocalString(o.allDay ? startOfDay(slot.s) + (parseLocal(o.end) - parseLocal(o.start)) : slot.e),
-          }
-        : { type: 'event.patch', uid: o.uid, patch: movePatch(o, o.s, slot.s, slot.e) },
-    )
-  /** Delete on a focused event: one repeat of a series is skipped, anything else goes to the trash. */
-  const remove = (o: Occurrence) =>
-    void changeQuietly(
-      o.rrule
-        ? { type: 'event.patch', uid: o.uid, patch: { skip: [...(o.skip ?? []), ymd(o.s)] } }
-        : { type: 'event.remove', uid: o.uid },
-    )
-
-  function newEvent(start?: string, end?: string) {
-    if (!canEdit) return
-    // Without a slot: the next full hour when today is on screen, otherwise noon of the first visible day.
-    const inWeek = now !== null && now >= weekStart && now < weekStart + 7 * DAY
-    const begin = start ? parseLocal(start) : inWeek ? Math.ceil(now / HOUR) * HOUR : weekStart + 12 * HOUR
-    const calendar = plan.calendars.find((c) => !hidden.has(c.id)) ?? plan.calendars[0]
-    if (!calendar) return
-    setDraftShown(null)
-    setDraft({
-      calendar: calendar.id,
-      title: '',
-      description: '',
-      start: toLocalString(begin),
-      end: end ?? toLocalString(begin + HOUR),
-      availability: 'busy',
-    })
-  }
-
-  const drafted = draft ? (draftShown ?? draft) : null
-  const draftSlot = drafted && {
-    s: parseLocal(drafted.start),
-    e: parseLocal(drafted.end),
-    title: drafted.title,
-    calendar: drafted.calendar,
-  }
   // One repeat of a series, not all of them: the one that was opened, or the first on screen after a reload.
   const selectedShown = selected
     ? (view === 'month' ? monthItems : weekItems).find(
@@ -260,174 +135,44 @@ export function PlannerPage({
     : undefined
   const selectedKey = selectedShown ? eventKey(selectedShown) : null
   const dialogAnchor = () =>
-    draft
+    drafting.draft
       ? document.querySelector('[data-draft]')
       : selectedKey
         ? document.querySelector(`[data-key="${CSS.escape(selectedKey)}"]`)
         : null
-
-  const go = {
-    today: () => onSearchChange({ week: undefined }),
-    view: (next: PlannerView) => onSearchChange({ view: next }),
-    fullDay: () => onSearchChange({ fullDay: search.fullDay ? undefined : true }),
-    expand: () => onSearchChange({ expanded: expanded ? undefined : true }),
-  }
 
   const only = (id: string) =>
     solo(
       id,
       plan.calendars.map((c) => c.id),
     )
+  const shift = () => setShiftFrom(ymd(today ?? weekStart))
 
-  const actions: Command[] = [
-    { id: 'today', group: m.palette_navigate(), label: m.go_today(), keys: 'T', run: go.today },
-    { id: 'previous', group: m.palette_navigate(), label: m.previous_period(), keys: '←', run: () => step(-1) },
-    { id: 'next', group: m.palette_navigate(), label: m.next_period(), keys: '→', run: () => step(1) },
-    { id: 'week', group: m.view(), label: m.view_week(), keys: 'W', run: () => go.view('week') },
-    { id: 'month', group: m.view(), label: m.view_month(), keys: 'M', run: () => go.view('month') },
-    { id: 'list', group: m.view(), label: m.view_list(), keys: 'L', run: () => go.view('list') },
-    { id: 'full-day', group: m.view(), label: m.full_day_hint(), keys: 'F', run: go.fullDay },
-    { id: 'expand', group: m.view(), label: expanded ? m.collapse() : m.expand_hint(), keys: 'E', run: go.expand },
-    { id: 'review', group: m.view(), label: m.review_open(), run: () => setReviewOpen(true) },
-    ...(canEdit
-      ? [
-          { id: 'new-event', group: m.palette_plan(), label: m.new_event(), keys: 'N', run: () => newEvent() },
-          {
-            id: 'calendars',
-            group: m.palette_plan(),
-            label: m.manage_calendars(),
-            keys: 'C',
-            run: () => setCalendarsOpen(true),
-          },
-          { id: 'trash', group: m.palette_plan(), label: m.trash(), run: () => setTrashOpen(true) },
-          { id: 'catch-up', group: m.palette_plan(), label: m.catchup(), run: () => setCatchUpOpen(true) },
-          {
-            id: 'shift',
-            group: m.palette_plan(),
-            label: m.shift_plan(),
-            run: () => setShiftFrom(ymd(today ?? weekStart)),
-          },
-          { id: 'history', group: m.palette_plan(), label: m.history(), keys: 'H', run: () => setHistoryOpen(true) },
-          { id: 'undo', group: m.palette_plan(), label: m.undo(), run: undo },
-          { id: 'redo', group: m.palette_plan(), label: m.redo(), run: redo },
-        ]
-      : []),
-    { id: 'shortcuts', group: m.palette_plan(), label: m.shortcuts(), keys: '?', run: () => setShortcutsOpen(true) },
-    ...plan.calendars.map((c) => ({
-      id: `only-${c.id}`,
-      group: m.calendars(),
-      label: m.calendar_only({ name: c.name }),
-      run: () => only(c.id),
-    })),
-    ...(hidden.size ? [{ id: 'show-all', group: m.calendars(), label: m.calendars_show_all(), run: showAll }] : []),
-    ...(commands ?? []),
-  ]
-
-  const narrow = 'md:hidden'
-  const menu: MenuItem[] = [
-    {
-      id: 'search',
-      icon: <Search size={16} aria-hidden />,
-      label: m.search(),
-      className: narrow,
-      run: () => setPaletteOpen(true),
-    },
-    ...(canEdit
-      ? [
-          {
-            id: 'undo',
-            icon: <Undo2 size={16} aria-hidden />,
-            label: m.undo(),
-            className: narrow,
-            disabled: !canUndo,
-            run: () => void undo(),
-          },
-          {
-            id: 'redo',
-            icon: <Redo2 size={16} aria-hidden />,
-            label: m.redo(),
-            className: narrow,
-            disabled: !canRedo,
-            run: () => void redo(),
-          },
-        ]
-      : []),
-    ...(view === 'week'
-      ? [
-          {
-            id: 'full-day',
-            icon: <Clock size={16} aria-hidden />,
-            label: m.full_day(),
-            className: narrow,
-            checked: search.fullDay === true,
-            run: go.fullDay,
-          },
-        ]
-      : []),
-    {
-      id: 'expand',
-      icon: <Maximize2 size={16} aria-hidden />,
-      label: m.expand(),
-      className: narrow,
-      checked: expanded,
-      run: go.expand,
-    },
-    ...(canEdit
-      ? [
-          {
-            id: 'history',
-            icon: <History size={16} aria-hidden />,
-            label: m.history(),
-            keys: 'H',
-            badge: steps.length ? `${cursor}/${steps.length}` : undefined,
-            run: () => setHistoryOpen(true),
-          },
-          {
-            id: 'trash',
-            icon: <Trash2 size={16} aria-hidden />,
-            label: m.trash(),
-            badge: trashCount || undefined,
-            run: () => setTrashOpen(true),
-          },
-          {
-            id: 'catch-up',
-            icon: <CalendarClock size={16} aria-hidden />,
-            label: m.catchup(),
-            badge: overdue.length || undefined,
-            run: () => setCatchUpOpen(true),
-          },
-          {
-            id: 'shift',
-            icon: <MoveHorizontal size={16} aria-hidden />,
-            label: m.shift_plan(),
-            run: () => setShiftFrom(ymd(today ?? weekStart)),
-          },
-          {
-            id: 'calendars',
-            icon: <Calendar size={16} aria-hidden />,
-            label: m.manage_calendars(),
-            keys: 'C',
-            run: () => setCalendarsOpen(true),
-          },
-        ]
-      : []),
-    {
-      id: 'shortcuts',
-      icon: <Keyboard size={16} aria-hidden />,
-      label: m.shortcuts(),
-      keys: '?',
-      run: () => setShortcutsOpen(true),
-    },
-  ]
+  const { cursor, steps } = session.history
+  const actions = buildActions({
+    nav,
+    canEdit,
+    calendars: plan.calendars,
+    hiddenCount: hidden.size,
+    history: { cursor, total: steps.length, ...quiet },
+    trashCount,
+    overdueCount: overdue.length,
+    open: dialogs.show,
+    newEvent: () => drafting.begin(),
+    shift,
+    only,
+    showAll,
+  })
+  const palette: Command[] = [...toCommands(actions), ...(commands ?? [])]
 
   useShortcuts({
-    'mod+k': () => setPaletteOpen(true),
-    '/': () => setPaletteOpen(true),
-    ...Object.fromEntries(actions.flatMap((a) => (a.keys ? [[a.keys.toLowerCase(), a.run]] : []))),
-    'mod+z': undo,
-    'mod+shift+z': redo,
-    arrowleft: () => step(-1),
-    arrowright: () => step(1),
+    'mod+k': () => dialogs.show('palette'),
+    '/': () => dialogs.show('palette'),
+    ...toShortcuts(actions),
+    'mod+z': quiet.undo,
+    'mod+shift+z': quiet.redo,
+    arrowleft: () => nav.step(-1),
+    arrowright: () => nav.step(1),
   })
 
   return (
@@ -443,223 +188,66 @@ export function PlannerPage({
 
       {!expanded && (
         <>
-          <header className="flex flex-col gap-3 md:flex-row md:items-end md:gap-2">
-            <div className="min-w-0 md:mr-auto">
-              <p className="text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">{m.plan_label()}</p>
-              <PlanTitle
-                title={plan.meta.title}
-                onRename={canEdit ? (title) => void session.change({ type: 'plan.rename', title }) : undefined}
-              />
-              <p className="mt-1 text-[14px] text-muted">
-                {m.plan_summary({
-                  events: m.events_count({ count: plan.events.length }),
-                  calendars: m.in_calendars({ count: plan.calendars.length }),
-                  date: fmtDay(parseLocal(plan.meta.planEnd)),
-                })}
-              </p>
-            </div>
-            {/* On a narrow screen the sections of the app come first, as a bar above the title. */}
-            <div className="order-first md:order-none">{headerAside}</div>
-            <div className="flex gap-2 *:flex-1 md:*:flex-none">
-              <OpenPlanFile
-                shown={{ name: session.file?.name ?? planFileName(plan), plan }}
-                project={state.plan}
-                onOpen={(file) => {
-                  session.openFile(file.name, file.plan)
-                  reset()
-                  onSearchChange({ week: undefined, event: undefined })
-                }}
-              />
-              {renderActions?.({ plan, hidden })}
-            </div>
-          </header>
+          <PlannerHeader
+            plan={plan}
+            onRename={canEdit ? (title) => quiet.change({ type: 'plan.rename', title }) : undefined}
+            aside={headerAside}
+          >
+            <OpenPlanFile
+              shown={{ name: session.file?.name ?? planFileName(plan), plan }}
+              project={state.plan}
+              onOpen={(file) => {
+                session.openFile(file.name, file.plan)
+                reset()
+                onSearchChange({ week: undefined, event: undefined })
+              }}
+            />
+            {renderActions?.({ plan, hidden })}
+          </PlannerHeader>
 
           <Runway plan={plan} now={now} onSelect={select} />
         </>
       )}
 
-      {/* The single column may not grow with its content: the calendar chips scroll inside their row instead. */}
-      <div className="mb-3 grid grid-cols-[minmax(0,1fr)] gap-2.5">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-          <Segmented
-            label={m.view()}
-            value={view}
-            options={[
-              { value: 'week', label: m.view_week() },
-              { value: 'month', label: m.view_month() },
-              { value: 'list', label: m.view_list() },
-            ]}
-            onChange={go.view}
-          />
-          {view !== 'list' && (
-            <div
-              role="group"
-              aria-label={m.palette_navigate()}
-              className="order-last flex w-full items-center gap-1.5 md:order-none md:w-auto"
-            >
-              <button type="button" className={STEP} aria-label={m.previous_period()} onClick={() => step(-1)}>
-                <ChevronLeft size={18} aria-hidden />
-              </button>
-              <h2 className="relative mx-0.5 flex-1 text-center md:min-w-[170px] md:flex-none">
-                <button
-                  type="button"
-                  className="w-full rounded-lg px-2 py-1.5 text-[14px]/[1.2] font-semibold whitespace-nowrap hover:bg-surface-2 md:text-[16px]/[1.2]"
-                  title={m.jump_to_date()}
-                  onClick={() => datePicker.current?.showPicker()}
-                >
-                  {view === 'month'
-                    ? fmtMonth(monthStart)
-                    : `${fmtShort(weekStart)} – ${fmtShort(weekStart + 6 * DAY)} ${new Date(weekStart + 6 * DAY).getUTCFullYear()}`}
-                </button>
-                {/* The native date picker opens from the title; the field itself stays out of sight and out of the tab order. */}
-                <input
-                  ref={datePicker}
-                  type="date"
-                  tabIndex={-1}
-                  aria-label={m.jump_to_date()}
-                  className="pointer-events-none absolute bottom-0 left-1/2 size-px opacity-0"
-                  value={ymd(weekStart)}
-                  onChange={(e) => e.target.value && setWeek(mondayOf(parseLocal(`${e.target.value}T00:00`)))}
-                />
-              </h2>
-              <button type="button" className={STEP} aria-label={m.next_period()} onClick={() => step(1)}>
-                <ChevronRight size={18} aria-hidden />
-              </button>
-              <Button onClick={go.today}>{m.go_today()}</Button>
-            </div>
-          )}
-          <div className="ml-auto flex items-center gap-1.5">
-            <Button className="hidden items-center gap-2 text-muted md:flex" onClick={() => setPaletteOpen(true)}>
-              <Search size={15} aria-hidden /> {m.search()} <Kbd>{mod} K</Kbd>
-            </Button>
-            {canEdit && (
-              <div role="group" aria-label={m.history()} className="hidden gap-1.5 md:flex">
-                <button
-                  type="button"
-                  className={STEP}
-                  aria-label={m.undo()}
-                  title={m.undo()}
-                  disabled={!canUndo}
-                  onClick={undo}
-                >
-                  <Undo2 size={17} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className={STEP}
-                  aria-label={m.redo()}
-                  title={m.redo()}
-                  disabled={!canRedo}
-                  onClick={redo}
-                >
-                  <Redo2 size={17} aria-hidden />
-                </button>
-              </div>
-            )}
-            {canEdit && (
-              <Button
-                primary
-                className="flex items-center gap-1.5"
-                title={m.new_event_hint()}
-                onClick={() => newEvent()}
-              >
-                <Plus size={16} aria-hidden /> {m.event()}
-              </Button>
-            )}
-            <Menu label={m.more_actions()} items={menu} />
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <CalendarFilter
-            calendars={plan.calendars}
-            hidden={hidden}
-            onToggle={toggle}
-            onSolo={only}
-            onShowAll={hidden.size ? showAll : undefined}
-            onManage={canEdit ? () => setCalendarsOpen(true) : undefined}
-          />
-          <div role="group" aria-label={m.view()} className="ml-auto hidden gap-1.5 md:flex">
-            {view === 'week' && (
-              <Button
-                className={`flex items-center gap-1.5 ${PRESSED}`}
-                aria-pressed={search.fullDay === true}
-                title={m.full_day_hint()}
-                onClick={go.fullDay}
-              >
-                <Clock size={15} aria-hidden /> {m.full_day()}
-              </Button>
-            )}
-            <Button
-              className={`flex items-center gap-1.5 ${PRESSED}`}
-              aria-pressed={expanded}
-              title={m.expand_hint()}
-              onClick={go.expand}
-            >
-              {expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
-              {expanded ? m.collapse() : m.expand()}
-            </Button>
-          </div>
-        </div>
-      </div>
+      <PlannerToolbar
+        nav={nav}
+        mod={mod}
+        menu={toMenuItems(actions)}
+        onSearch={() => dialogs.show('palette')}
+        onNewEvent={canEdit ? () => drafting.begin() : undefined}
+        history={canEdit ? quiet : undefined}
+      >
+        <CalendarFilter
+          calendars={plan.calendars}
+          hidden={hidden}
+          onToggle={toggle}
+          onSolo={only}
+          onShowAll={hidden.size ? showAll : undefined}
+          onManage={canEdit ? () => dialogs.show('calendars') : undefined}
+        />
+      </PlannerToolbar>
 
       {canEdit && overdue.length > 0 && !overdueHidden && (
-        <div
-          className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13.5px]"
-          role="status"
-        >
-          <span className="min-w-0 flex-1 basis-full md:basis-0">{m.overdue({ count: overdue.length })}</span>
-          <button
-            type="button"
-            className="flex items-center gap-1 font-semibold text-done-ink hover:underline"
-            onClick={() => void changeQuietly({ type: 'events.done', uids: overdue.map((e) => e.uid), done: true })}
-          >
-            <Check size={15} aria-hidden /> {m.overdue_mark()}
-          </button>
-          <button
-            type="button"
-            className="font-semibold text-focus hover:underline"
-            onClick={() => setCatchUpOpen(true)}
-          >
-            {m.catchup()}
-          </button>
-          <button
-            type="button"
-            className="grid place-items-center text-muted hover:text-ink"
-            aria-label={m.close()}
-            onClick={() => setOverdueHidden(true)}
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </div>
+        <OverdueBar
+          count={overdue.length}
+          onMarkDone={() => quiet.change({ type: 'events.done', uids: overdue.map((e) => e.uid), done: true })}
+          onCatchUp={() => dialogs.show('catchUp')}
+          onDismiss={() => setOverdueHidden(true)}
+        />
       )}
 
-      {saveError && (
+      {quiet.saveError && (
         <p className="mb-3 text-[13px] text-today-ink" role="alert">
-          {saveError}
+          {quiet.saveError}
         </p>
       )}
-      {lastStep && (
-        // Floats over the page: a bar in the flow would push the calendar down right after every drag.
-        <div
-          className="fixed inset-x-3 bottom-4 z-20 mx-auto flex max-w-[560px] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13.5px] shadow-[0_12px_32px_rgb(10_16_30/0.28)]"
-          role="status"
-        >
-          <span className="min-w-0 flex-1 truncate">{lastStep.label}</span>
-          <button type="button" className="font-semibold text-focus hover:underline" onClick={undo}>
-            {m.undo()}
-          </button>
-          <button type="button" className="text-muted hover:text-ink" onClick={() => setHistoryOpen(true)}>
-            {m.history()}
-          </button>
-          <button
-            type="button"
-            className="grid place-items-center text-muted hover:text-ink"
-            aria-label={m.close()}
-            onClick={session.dismissLastStep}
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </div>
+      {quiet.lastStep && (
+        <UndoBar
+          label={quiet.lastStep.label}
+          onUndo={quiet.undo}
+          onHistory={() => dialogs.show('history')}
+          onDismiss={session.dismissLastStep}
+        />
       )}
 
       <div className={`grid grid-cols-1 items-start gap-4 ${expanded ? '' : 'lg:grid-cols-[1fr_280px]'}`}>
@@ -668,28 +256,28 @@ export function PlannerPage({
             <WeekGrid
               plan={plan}
               weekStart={weekStart}
-              fullDay={search.fullDay === true}
+              fullDay={nav.fullDay}
               items={weekItems}
               now={now}
               onSelect={select}
-              onMove={canEdit ? move : undefined}
-              onRemove={canEdit ? remove : undefined}
-              onCreate={canEdit ? newEvent : undefined}
-              draft={draftSlot}
+              onMove={canEdit ? (o, slot) => quiet.change(moveOccurrence(o, slot)) : undefined}
+              onRemove={canEdit ? (o) => quiet.change(removeOccurrence(o)) : undefined}
+              onCreate={canEdit ? drafting.begin : undefined}
+              draft={drafting.slot}
               selectedKey={selectedKey}
             />
           )}
           {view === 'month' && (
             <MonthGrid
               plan={plan}
-              monthStart={monthStart}
-              gridStart={monthGridStart}
-              weeks={monthWeeks}
+              monthStart={nav.monthStart}
+              gridStart={nav.monthGridStart}
+              weeks={nav.monthWeeks}
               items={monthItems}
               now={now}
               onSelect={select}
               onPickDay={(day) => onSearchChange({ view: 'week', week: ymd(mondayOf(day)) })}
-              onMove={canEdit ? move : undefined}
+              onMove={canEdit ? (o, slot) => quiet.change(moveOccurrence(o, slot)) : undefined}
             />
           )}
           {view === 'list' && <AgendaList plan={plan} items={allItems} now={now} onSelect={select} />}
@@ -705,7 +293,7 @@ export function PlannerPage({
               now={now}
               weekStart={weekStart}
               onSelect={select}
-              onReview={() => setReviewOpen(true)}
+              onReview={() => dialogs.show('review')}
               onPickWeek={(monday) => onSearchChange({ week: ymd(monday), view: view === 'list' ? 'week' : view })}
             />
           </aside>
@@ -717,68 +305,67 @@ export function PlannerPage({
         event={selected}
         day={pickedDay}
         onDayChange={setPickedDay}
-        draft={draft}
+        draft={drafting.draft}
         edited={selected !== null && session.edited.has(selected.uid)}
         canEdit={canEdit}
         onChange={session.change}
         onClose={() => {
-          setDraft(null)
-          setDraftShown(null)
+          drafting.clear()
           if (search.event) onSearchChange({ event: undefined })
         }}
-        onDraftChange={setDraftShown}
+        onDraftChange={drafting.show}
         anchor={dialogAnchor}
       />
       <CalendarsDialog
         plan={plan}
-        open={calendarsOpen}
+        open={dialogs.isOpen('calendars')}
         onChange={session.change}
-        undo={lastStep}
+        undo={quiet.lastStep}
         trashCount={trashCount}
-        onOpenTrash={() => (setCalendarsOpen(false), setTrashOpen(true))}
-        onClose={() => setCalendarsOpen(false)}
+        onOpenTrash={() => (dialogs.hide('calendars'), dialogs.show('trash'))}
+        onClose={() => dialogs.hide('calendars')}
       />
       <ShiftDialog plan={plan} from={shiftFrom} onChange={session.change} onClose={() => setShiftFrom(null)} />
       <WeekReviewDialog
         plan={plan}
-        monday={reviewOpen ? weekStart : null}
+        monday={dialogs.isOpen('review') ? weekStart : null}
         now={now}
-        onCatchUp={canEdit ? () => setCatchUpOpen(true) : undefined}
-        onNextWeek={() => setWeek(weekStart + 7 * DAY)}
-        onClose={() => setReviewOpen(false)}
+        onCatchUp={canEdit ? () => dialogs.show('catchUp') : undefined}
+        onNextWeek={() => nav.setWeek(weekStart + 7 * DAY)}
+        onClose={() => dialogs.hide('review')}
       />
       <CatchUpDialog
         plan={plan}
-        open={catchUpOpen}
+        open={dialogs.isOpen('catchUp')}
         now={now}
         onChange={session.change}
         onShift={() => setShiftFrom((overdue[0]?.start ?? ymd(today ?? weekStart)).slice(0, 10))}
-        onClose={() => setCatchUpOpen(false)}
+        onClose={() => dialogs.hide('catchUp')}
       />
       <TrashDialog
         plan={plan}
         trash={session.trash}
-        open={trashOpen}
+        open={dialogs.isOpen('trash')}
         onChange={session.change}
-        onClose={() => setTrashOpen(false)}
+        onClose={() => dialogs.hide('trash')}
       />
       <HistoryDialog
-        open={historyOpen}
+        open={dialogs.isOpen('history')}
         history={session.history}
         mod={mod}
         now={now}
         onTravel={session.travel}
-        onClose={() => setHistoryOpen(false)}
+        onClose={() => dialogs.hide('history')}
       />
       <CommandPalette
-        open={paletteOpen}
+        open={dialogs.isOpen('palette')}
         plan={plan}
-        commands={actions}
+        commands={palette}
         onSelectEvent={select}
-        onClose={() => setPaletteOpen(false)}
+        onClose={() => dialogs.hide('palette')}
       />
       <ShortcutsDialog
-        open={shortcutsOpen}
+        open={dialogs.isOpen('shortcuts')}
         rows={[
           { keys: `${mod} K`, label: m.search() },
           ...(canEdit
@@ -787,7 +374,7 @@ export function PlannerPage({
                 { keys: `${mod} ⇧ Z`, label: m.redo() },
               ]
             : []),
-          ...actions.flatMap((a) => (a.keys ? [{ keys: a.keys, label: a.label }] : [])),
+          ...toShortcutRows(actions),
           ...(canEdit
             ? [
                 { keys: 'Alt ← ↑ ↓ →', label: m.shortcut_move_event() },
@@ -796,7 +383,7 @@ export function PlannerPage({
               ]
             : []),
         ]}
-        onClose={() => setShortcutsOpen(false)}
+        onClose={() => dialogs.hide('shortcuts')}
       />
     </div>
   )

@@ -6,6 +6,7 @@ import {
   isCustomEvent,
   isSession,
   parseLocal,
+  skipDay,
   toLocalString,
   type NewEvent,
   type Plan,
@@ -216,15 +217,7 @@ export function EventDialog({
                 </Button>
               )}
               {canEdit && event.rrule && day && (
-                <Button
-                  disabled={busy}
-                  onClick={() =>
-                    void run(
-                      { type: 'event.patch', uid: event.uid, patch: { skip: [...(event.skip ?? []), day] } },
-                      'close',
-                    )
-                  }
-                >
+                <Button disabled={busy} onClick={() => void run(skipDay(event, day), 'close')}>
                   {m.skip_day({ date: fmtDay(parseLocal(day)) })}
                 </Button>
               )}

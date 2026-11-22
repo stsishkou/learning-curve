@@ -20,7 +20,6 @@ export {
   isCustomEvent,
   parseChange,
   shiftTargets,
-  withChange,
   type NewEvent,
   type PlanChange,
 } from './changes'
@@ -37,6 +36,7 @@ export {
   type HistoryView,
   type PlanHistory,
 } from './history'
+export { moveOccurrence, removeOccurrence, skipDay } from './occurrence-changes'
 export { movePatch, weekdaysOf } from './recurrence'
 export { paceForecast, type PaceForecast } from './forecast'
 export {

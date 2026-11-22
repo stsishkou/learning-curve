@@ -111,8 +111,8 @@ src/
 
 - **A feature in a module**: new slice under `features/` or `widgets/` with an `index.ts`, used from the page.
 - **A module**: copy the shape of `modules/calendar-export` (`package.json` with the `type:module` tag,
-  `tsconfig.json`, `src/index.ts`), add it to `apps/web/package.json`, compose it in a route, add its name to the
-  module group in `.oxlintrc.json`.
+  `tsconfig.json`, `src/index.ts`), add it to `apps/web/package.json` and compose it in a route. The lint rule for
+  `modules/**` already refuses every `@lc/*` package except the shared ones, so nothing is added there.
 - **A route**: a file in `apps/web/src/routes` that renders a module's page. Keep logic out of route files.
 - **A server function**: `apps/web/src/server/`, using `@lc/plan-data`; pass the result into the module as props.
 - **A shared dependency version**: the `catalog` in `pnpm-workspace.yaml`, referenced as `catalog:`.
