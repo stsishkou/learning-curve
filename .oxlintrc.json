@@ -22,5 +22,97 @@
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
     "paraglide/no-dynamic-message-access": ["error", { "messageModuleDirectories": ["paraglide"] }]
-  }
+  },
+  // Workspace dependency rules: app → modules → domain and shared; data → domain. pnpm already refuses an import
+  // of a package that is not in package.json; these rules say which dependencies may be added at all.
+  "overrides": [
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["modules/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": ["@lc/planner", "@lc/calendar-export", "@lc/web"],
+                "message": "A module never imports another module or the app: the app composes them through props and slots."
+              },
+              {
+                "group": ["@lc/plan-data", "node:*", "@tanstack/react-start", "@tanstack/react-start/**"],
+                "message": "Modules are browser-safe and transport-free: the app owns storage and server functions and passes data in."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-domain/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-data/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "!@lc/plan-domain", "react", "react/**"],
+                "message": "The data store depends on the domain only."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/ui/**", "packages/i18n/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "node:*"],
+                "message": "Shared packages know nothing about the plan, the modules or the app."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }
