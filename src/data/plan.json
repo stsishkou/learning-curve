@@ -175,8 +175,8 @@
       "uid": "journey-001@learning-curve",
       "calendar": "journey",
       "title": "Буфер — догнать отставание",
-      "start": "2026-11-28T10:00",
-      "end": "2026-11-28T12:00",
+      "start": "2026-11-28T09:00",
+      "end": "2026-11-28T11:00",
       "description": "Резерв на случай отставания. Если всё по плану — свободное время.",
       "kind": "buffer",
       "availability": "free"
