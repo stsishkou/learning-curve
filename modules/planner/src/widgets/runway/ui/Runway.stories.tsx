@@ -17,6 +17,8 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** The "today" marker close to the deadline. */
 export const LastWeek: Story = { args: { now: parseLocal('2026-12-28T10:00') } }
 
+/** Past the deadline the count stays at zero and the "today" marker is gone. */
 export const AfterTheDeadline: Story = { args: { now: parseLocal('2027-01-12T10:00') } }

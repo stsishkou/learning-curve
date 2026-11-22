@@ -5,7 +5,9 @@ export const META = 'flex flex-wrap items-center gap-2 text-[13.5px] text-muted'
 export const FOOT = 'mt-[18px] flex flex-wrap justify-end gap-2'
 
 interface Props {
+  /** The parent owns it: the dialog follows this value and never closes on its own account */
   open: boolean
+  /** Called when the person closes the dialog with Esc or a click on the backdrop: set `open` to false here */
   onClose: () => void
   /** Accessible name, when the content has no heading to point at */
   label?: string
@@ -22,6 +24,11 @@ const SIZE = {
   full: 'h-[calc(100dvh-32px)] w-[min(1120px,calc(100vw-32px))]',
 }
 
+/**
+ * A native `<dialog>` opened with `showModal()`: the page behind it is inert, the focus stays inside, Esc and a
+ * click on the backdrop close it. `TITLE`, `META` and `FOOT`, exported next to it, are the class strings for its
+ * heading, the line under the heading and the button row.
+ */
 export function Modal({ open, onClose, label, size = 'normal', top = false, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {

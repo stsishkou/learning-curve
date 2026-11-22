@@ -7,9 +7,11 @@ import { useState, type ReactNode } from 'react'
 interface Props {
   /** The plan on screen: where a removed event's calendar gets its name and color */
   plan: Plan
+  /** The removed events and calendars, each with the day it was removed */
   trash: PlanTrash
+  /** The parent owns it and sets it to false in `onClose` */
   open: boolean
-  /** Rejects with the reason when the change cannot be stored */
+  /** Stores one change. Rejects with the reason when it cannot be stored: the dialog shows it */
   onChange: (change: PlanChange) => Promise<void>
   onClose: () => void
 }

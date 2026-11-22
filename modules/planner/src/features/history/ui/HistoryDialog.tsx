@@ -7,7 +7,9 @@ import { useState } from 'react'
 import { describeStep } from '../model/describe-step'
 
 interface Props {
+  /** The parent owns it and sets it to false in `onClose` */
   open: boolean
+  /** The stored steps, oldest first, and `cursor`: how many of them are applied now */
   history: HistoryView
   /** `⌘` or `Ctrl`, for the shortcut hints */
   mod: string

@@ -15,4 +15,5 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** The button alone; a click opens the reader shown under **PlanFileReader**. */
 export const Default: Story = {}

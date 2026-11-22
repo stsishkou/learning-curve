@@ -25,10 +25,12 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** After a removal: the last change can be taken back from inside the dialog, and the trash shows its count. */
 export const WithUndoAndTrash: Story = {
   args: { undo: { label: 'AI Journey moved to the trash', run: fn(async () => {}) }, trashCount: 3 },
 }
 
+/** The host rejects every change: rename a calendar to see the reason in the dialog. */
 export const SaveFails: Story = {
   args: { onChange: fn(async () => Promise.reject(new Error('The plan is read-only on this host'))) },
 }

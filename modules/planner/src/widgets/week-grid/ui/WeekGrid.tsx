@@ -21,11 +21,15 @@ import { useFillHeight } from '../../../shared/lib'
 
 interface Props {
   plan: Plan
+  /** Monday of the week, Minsk wall-clock ms */
   weekStart: number
   /** All 24 hours in a scrolling grid; otherwise only the hours around the week's events */
   fullDay?: boolean
+  /** The occurrences of that week, with the hidden calendars already left out */
   items: Occurrence[]
+  /** Minsk wall-clock ms; null before the clock is known, as on the server */
   now: number | null
+  /** Called with the event that was clicked: the page opens its dialog */
   onSelect: (e: PlanEvent) => void
   /** Present when the plan can be edited: called with the new slot (wall-clock ms) of a dragged or resized event */
   onMove?: (o: Occurrence, slot: { s: number; e: number }) => void
@@ -90,6 +94,11 @@ interface Drag {
 const keyOf = (o: Occurrence) => `${o.uid}-${o.s}`
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
+/**
+ * Seven day columns with the events of one week. With `onMove`, `onRemove` and `onCreate` it is an editor: drag an
+ * event to move it, drag its edge to resize, double-click an empty slot to add one, or do the same from the
+ * keyboard. On a touch screen a long press picks an event up.
+ */
 export function WeekGrid({
   plan,
   weekStart,

@@ -8,8 +8,9 @@ const PALETTE = ['#0f8fc4', '#5b8c2a', '#d8473b', '#b0562b', '#3f51b5', '#00897b
 
 interface Props {
   plan: Plan
+  /** The parent owns it and sets it to false in `onClose` */
   open: boolean
-  /** Rejects with the reason when the change cannot be stored */
+  /** Stores one change. Rejects with the reason when it cannot be stored: the dialog shows it */
   onChange: (change: PlanChange) => Promise<void>
   /** The last change that can be taken back, shown here because the dialog covers the page's undo bar */
   undo: { label: string; run: () => Promise<void> } | null | false

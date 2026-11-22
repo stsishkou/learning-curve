@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
 export interface MenuItem {
+  /** React key of the row */
   id: string
   label: string
   /** Shortcut shown at the end of the row */
@@ -9,16 +10,20 @@ export interface MenuItem {
   badge?: ReactNode
   /** Makes the item a switch: it shows a check mark and the menu stays open when it is toggled */
   checked?: boolean
+  /** Dims the row; focus and the arrow keys skip it */
   disabled?: boolean
   /** Extra classes for the row, e.g. to show it only on a narrow screen */
   className?: string
+  /** Called on a click or Enter; the menu then closes unless the item is a switch */
   run: () => void
 }
 
 interface Props {
   /** Accessible name of the trigger and the menu */
   label: string
+  /** The rows, top to bottom: `{ id, label, run }` plus the optional `keys`, `badge`, `checked`, `disabled`, `className` */
   items: MenuItem[]
+  /** Extra classes for the trigger button */
   className?: string
 }
 
@@ -35,7 +40,11 @@ const rowsOf = (menu: HTMLElement) =>
     (row) => row.offsetParent !== null,
   )
 
-/** A "more actions" button that opens a menu under itself: secondary actions that would crowd a toolbar. */
+/**
+ * A "more actions" button that opens a menu under itself, for the actions that would crowd a toolbar. An item with
+ * `checked` is a switch and keeps the menu open. Arrow keys, Home and End move between the rows; Tab, Escape and a
+ * click outside close it.
+ */
 export function Menu({ label, items, className = '' }: Props) {
   const id = useId()
   const anchor = `--menu-${id.replace(/[^a-z0-9]/gi, '')}`

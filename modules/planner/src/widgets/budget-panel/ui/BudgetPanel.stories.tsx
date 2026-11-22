@@ -25,6 +25,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** A week in January where three courses run side by side: one row per calendar. */
 export const ThreeCourses: Story = { args: { weekItems: week(mondayOf(parseLocal('2027-01-11'))) } }
 
 export const EmptyWeek: Story = { args: { weekItems: [] } }

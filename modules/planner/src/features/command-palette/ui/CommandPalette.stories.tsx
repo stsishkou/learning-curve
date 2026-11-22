@@ -27,6 +27,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** With an empty field the palette lists every command under its group; typing filters them. */
 export const Commands: Story = {}
 
 /** Two letters or more also search the events of the plan; Enter opens the first match. */

@@ -18,8 +18,11 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** The fixed "now" falls inside a session: the card counts down to its end. */
 export const SessionRunning: Story = {}
 
+/** Nine in the morning of the same day: the card counts down to the start of the next session. */
 export const BeforeTheFirstSession: Story = { args: { now: today + 9 * HOUR } }
 
+/** With nothing ahead only the heading is left. */
 export const NothingAhead: Story = { args: { upcoming: [] } }

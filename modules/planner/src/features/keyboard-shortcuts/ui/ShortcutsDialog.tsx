@@ -2,12 +2,17 @@ import { m } from '@lc/i18n/messages'
 import { Button, FOOT, Kbd, Modal, TITLE } from '@lc/ui'
 
 interface Props {
+  /** The parent owns it and sets it to false in `onClose` */
   open: boolean
   /** Key label and what it does, in the order to show */
   rows: Array<{ keys: string; label: string }>
   onClose: () => void
 }
 
+/**
+ * The list of keyboard shortcuts. The page builds `rows` from the same actions it registers with `useShortcuts`,
+ * so the list cannot drift from what the keys do.
+ */
 export function ShortcutsDialog({ open, rows, onClose }: Props) {
   return (
     <Modal open={open} onClose={onClose}>

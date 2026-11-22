@@ -13,14 +13,6 @@ const native = (summary: string, description: string) => ({
 const meta = {
   title: 'UI kit/Button',
   component: Button,
-  parameters: {
-    docs: {
-      description: {
-        component:
-          'A `<button>` with the look of the kit. Besides `primary` it accepts every attribute and event handler of a native `<button>` (`ComponentProps<"button">`) and passes them to the element: the table lists the common ones, the rest work the same way. No ref is forwarded.',
-      },
-    },
-  },
   args: { children: 'Save', onClick: fn() },
   argTypes: {
     children: { control: 'text', ...native('ReactNode', 'The label') },
@@ -45,10 +37,12 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** One per dialog or toolbar: the action the person most likely came for. */
 export const Primary: Story = { args: { primary: true } }
 
 export const Disabled: Story = { args: { disabled: true } }
 
+/** There is no `size` prop: a smaller button is the same component with padding and text utilities. */
 export const Sizes: Story = {
   name: 'With utility classes',
   render: (args) => (

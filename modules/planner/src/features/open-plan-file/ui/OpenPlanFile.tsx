@@ -15,6 +15,7 @@ interface Props {
   shown: OpenedFile
   /** The project plan, to compare a file from disk with */
   project: Plan
+  /** Called with a file from disk the person chose to open in the planner */
   onOpen: (file: OpenedFile) => void
 }
 

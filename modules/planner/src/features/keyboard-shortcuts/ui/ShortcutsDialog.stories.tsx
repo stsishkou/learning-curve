@@ -9,10 +9,6 @@ const meta = {
   parameters: {
     dialog: true,
     docs: {
-      description: {
-        component:
-          'The list of keyboard shortcuts. The page builds `rows` from the same actions it registers with `useShortcuts`, so the list cannot drift from what the keys do.',
-      },
       story: { inline: false, iframeHeight: 460 },
     },
   },

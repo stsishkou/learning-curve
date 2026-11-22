@@ -15,9 +15,13 @@ export interface Command {
 }
 
 interface Props {
+  /** The parent owns it and sets it to false in `onClose` */
   open: boolean
+  /** Its events are searched by title once two letters are typed */
   plan: Plan
+  /** The actions to list, grouped by `group` in the order given: `{ id, label, group, run }` plus optional `keys` */
   commands: Command[]
+  /** Called with the event picked from the search results; the palette closes itself first */
   onSelectEvent: (event: PlanEvent) => void
   onClose: () => void
 }

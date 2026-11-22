@@ -11,6 +11,7 @@ const PAD = { above: 16, right: 16, bottom: 26, left: 40 }
 const WEEK = 7 * DAY
 
 interface Props {
+  /** `planStats(plan, now)`: the page computes it once for all its widgets */
   stats: PlanStats
   /** Wall-clock ms; null before the clock is known */
   now: number | null

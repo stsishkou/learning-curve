@@ -24,4 +24,5 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** A freshly generated plan: every ring is empty and each course points at its first session. */
 export const NothingDone: Story = { args: { plan: buildPlan(DEFAULT_CONFIG, '2026-11-22') } }

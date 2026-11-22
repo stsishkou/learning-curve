@@ -22,6 +22,7 @@ interface PlanDoc {
 type Tab = 'overview' | 'events' | 'source'
 
 interface Props {
+  /** The parent owns it and sets it to false in `onClose` */
   open: boolean
   /** The plan on screen and the name of the file it lives in */
   shown: { name: string; plan: Plan }

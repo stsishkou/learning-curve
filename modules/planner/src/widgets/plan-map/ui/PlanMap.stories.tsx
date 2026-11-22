@@ -7,7 +7,6 @@ import { PlanMap } from './PlanMap'
 const meta = {
   title: 'Planner/Widgets/PlanMap',
   component: PlanMap,
-  parameters: {},
   args: { plan: fixturePlan, hidden: new Set<string>(), now: fixtureNow, weekStart: fixtureWeek, onPickWeek: fn() },
   argTypes: { plan: { control: false }, hidden: { control: false } },
   decorators: [
@@ -24,4 +23,5 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** A hidden calendar leaves the map: its hours are not in the bars and its days lose their color. */
 export const CertificatesHidden: Story = { args: { hidden: new Set(['certs']) } }

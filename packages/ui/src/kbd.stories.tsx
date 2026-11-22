@@ -5,9 +5,6 @@ import { Kbd } from './kbd'
 const meta = {
   title: 'UI kit/Kbd',
   component: Kbd,
-  parameters: {
-    docs: { description: { component: 'A key or a key combination, as shown in the shortcuts list.' } },
-  },
   args: { children: '⌘ K' },
 } satisfies Meta<typeof Kbd>
 

@@ -1,10 +1,15 @@
 import type { ComponentProps } from 'react'
 
-export function Button({
-  primary = false,
-  className = '',
-  ...props
-}: ComponentProps<'button'> & { primary?: boolean }) {
+interface Props extends ComponentProps<'button'> {
+  /** The one main action of a dialog or a toolbar, filled with the ink color */
+  primary?: boolean
+}
+
+/**
+ * A `<button>` with the look of the kit. Besides `primary` it accepts every attribute and event handler of a
+ * native `<button>` and passes them to the element. No ref is forwarded.
+ */
+export function Button({ primary = false, className = '', ...props }: Props) {
   return (
     <button
       type="button"

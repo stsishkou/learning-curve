@@ -7,7 +7,7 @@ interface Props {
   plan: Plan
   /** The first day to move, `YYYY-MM-DD`; null keeps the dialog closed */
   from: string | null
-  /** Rejects with the reason when the change cannot be stored */
+  /** Stores one change. Rejects with the reason when it cannot be stored: the dialog shows it */
   onChange: (change: PlanChange) => Promise<void>
   onClose: () => void
 }

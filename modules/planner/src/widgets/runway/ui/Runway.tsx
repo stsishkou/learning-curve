@@ -4,7 +4,9 @@ import { DAY, HOUR, parseLocal, type Plan, type PlanEvent, startOfDay } from '@l
 
 interface Props {
   plan: Plan
+  /** Minsk wall-clock ms; null before the clock is known, as on the server */
   now: number | null
+  /** Called with the challenge lab whose marker was clicked */
   onSelect: (e: PlanEvent) => void
 }
 

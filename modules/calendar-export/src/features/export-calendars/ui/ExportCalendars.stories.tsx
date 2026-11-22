@@ -17,6 +17,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** The dialog after a click on the button: every calendar is checked. */
 export const DialogOpen: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole('button'))
@@ -24,6 +25,7 @@ export const DialogOpen: Story = {
   },
 }
 
+/** Calendars hidden in the planner start unchecked, so the export matches what is on screen. */
 export const SomeCalendarsHidden: Story = {
   args: { hidden: new Set(['journey', 'personal']) },
   play: DialogOpen.play,

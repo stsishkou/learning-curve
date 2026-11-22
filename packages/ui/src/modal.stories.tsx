@@ -10,10 +10,6 @@ const meta = {
   parameters: {
     dialog: true,
     docs: {
-      description: {
-        component:
-          'A native `<dialog>` opened with `showModal()`: Esc and a click on the backdrop close it. `TITLE`, `META` and `FOOT` are the class strings for its heading, the line under it and the button row.',
-      },
       // A modal dialog covers the whole document, so on a docs page each one gets its own frame.
       story: { inline: false, iframeHeight: 420 },
     },
@@ -38,12 +34,16 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** 560 px: a question or a short form. */
 export const Normal: Story = {}
 
+/** 760 px: a list or a comparison. */
 export const Wide: Story = { args: { size: 'wide' } }
 
+/** Fills the window up to 1120 px: a document to read. */
 export const Full: Story = { args: { size: 'full' } }
 
+/** Anchored near the top, so the box does not jump while the results under a search field change height. */
 export const Top: Story = {
   args: {
     top: true,

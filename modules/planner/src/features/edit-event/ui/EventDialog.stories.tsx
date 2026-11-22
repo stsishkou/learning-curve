@@ -14,10 +14,6 @@ const meta = {
   parameters: {
     dialog: true,
     docs: {
-      description: {
-        component:
-          'One event: what it is, and for an editable plan every way to change it. It is open while it has an `event` or a `draft`; with a `draft` it starts as the form for a new event. Each button sends one `PlanChange` through `onChange`.',
-      },
       story: { inline: false, iframeHeight: 560 },
     },
   },
@@ -37,16 +33,20 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** A study session that has not started yet. */
 export const Session: Story = {}
 
+/** Marked done and changed by hand: the dialog offers to take both back. */
 export const DoneAndEdited: Story = { args: { event: pick((e) => !!e.done), edited: true } }
 
 export const ReadOnly: Story = { args: { canEdit: false } }
 
+/** One repeat of a weekly event, opened on the day given in `day`. */
 export const Repeating: Story = { args: { event: pick((e) => !!e.rrule), day: '2026-12-03' } }
 
 export const AllDay: Story = { args: { event: pick((e) => !!e.allDay) } }
 
+/** A `draft` and no `event`: the dialog starts as the form, filled with the draft. */
 export const NewEvent: Story = {
   args: {
     event: null,
@@ -61,6 +61,7 @@ export const NewEvent: Story = {
   },
 }
 
+/** The host rejects every change: press any button that edits to see the reason in the dialog. */
 export const SaveFails: Story = {
   args: { onChange: fn(async () => Promise.reject(new Error('The plan is read-only on this host'))) },
 }

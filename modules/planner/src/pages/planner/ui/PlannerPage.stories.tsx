@@ -64,10 +64,6 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
     docs: {
-      description: {
-        component:
-          'The whole planner as the app renders it at `/`. The host passes the plan, the URL state and its callbacks; here a small in-memory host does that, so editing, the trash and the history all work. The header slots (`headerAside`, `renderActions`) are empty: the app fills them with the language switcher and the export module.',
-      },
       story: { inline: false, iframeHeight: 820 },
     },
   },
@@ -92,14 +88,22 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/**
+ * The page as the app renders it at `/`. A small in-memory host stands in for the app, so editing, the trash and
+ * the history all work and nothing is saved. The header slots (`headerAside`, `renderActions`) are empty: the app
+ * fills them with the language switcher and the export module. The page follows the real clock, so "today" is
+ * marked only when the stand is opened during the fixture's week.
+ */
 export const Week: Story = {}
 
 export const Month: Story = { args: { search: { week: ymd(fixtureWeek), view: 'month' } } }
 
 export const List: Story = { args: { search: { week: ymd(fixtureWeek), view: 'list' } } }
 
+/** All 24 hours with the calendar expanded to the whole window: the header, the runway and the side panel are hidden. */
 export const FullDayExpanded: Story = { args: { search: { week: ymd(fixtureWeek), fullDay: true, expanded: true } } }
 
+/** `canEdit: false`, as on a host that cannot write the plan file: nothing on the page changes the plan. */
 export const ReadOnly: Story = {
   args: {
     state: {

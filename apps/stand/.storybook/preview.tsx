@@ -5,6 +5,7 @@ import { GLOBALS_UPDATED, SET_GLOBALS } from 'storybook/internal/core-events'
 import { addons } from 'storybook/preview-api'
 import { themes } from 'storybook/theming'
 
+import { ComponentPage } from '../src/docs/page'
 import { applyGlobals, askPage, getLocale, getTheme, subscribe } from '../src/globals'
 import { Reopenable } from '../src/reopen'
 
@@ -86,7 +87,7 @@ const preview: Preview = {
     controls: { expanded: true },
     // An accessibility violation fails the story's test (`pnpm run stand:test`), not only the panel.
     a11y: { test: 'error' },
-    docs: { container: ThemedDocs },
+    docs: { container: ThemedDocs, page: ComponentPage },
     options: {
       storySort: {
         order: [

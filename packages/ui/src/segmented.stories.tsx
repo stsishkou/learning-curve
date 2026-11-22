@@ -12,14 +12,6 @@ function Stateful(props: ComponentProps<typeof Segmented>) {
 const meta = {
   title: 'UI kit/Segmented',
   component: Segmented,
-  parameters: {
-    docs: {
-      description: {
-        component:
-          'One choice out of a few, as a row of toggle buttons. `label` names the group for assistive technology; an option can carry its own `lang`.',
-      },
-    },
-  },
   args: {
     label: 'View',
     value: 'week',
@@ -45,6 +37,7 @@ export const Default: Story = {
   },
 }
 
+/** Each option carries its own `lang`, so a screen reader says the label in that language. */
 export const Languages: Story = {
   args: {
     label: 'Language',

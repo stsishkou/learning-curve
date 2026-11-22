@@ -22,6 +22,7 @@ type Story = StoryObj<typeof meta>
 /** Every session from the chosen day that is not done yet moves by the same number of days. */
 export const Default: Story = {}
 
+/** The host rejects the change: the reason is shown and the dialog stays open. */
 export const SaveFails: Story = {
   args: { onChange: fn(async () => Promise.reject(new Error('The plan file is read-only'))) },
 }

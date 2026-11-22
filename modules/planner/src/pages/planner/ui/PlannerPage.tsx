@@ -43,7 +43,9 @@ import { usePlanSession, type PlannerState } from '../model/use-plan-session'
 import { InsightTabs } from './InsightTabs'
 
 interface Props {
+  /** The plan with what the host knows about it: `{ plan, canEdit, edited, trash, history }` */
   state: PlannerState
+  /** The part of the view kept in the URL: the week, the view, the open event */
   search: PlannerSearch
   /** Merges the given keys into the URL; `undefined` removes a key. */
   onSearchChange: (patch: PlannerSearch) => void
@@ -75,6 +77,11 @@ const firstWeekOf = (month: number) => mondayOf(month + 6 * DAY)
 
 const errorText = (err: unknown) => m.save_failed({ reason: err instanceof Error ? err.message : String(err) })
 
+/**
+ * The whole planner: the toolbar, the calendar in one of its views, the side panel and every dialog. It loads and
+ * saves nothing itself. The host passes the plan and the URL state in and receives each edit as one `PlanChange`
+ * and each undo or redo as a position in the history.
+ */
 export function PlannerPage({
   state,
   search,

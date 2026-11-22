@@ -1,16 +1,19 @@
 import type { ReactNode } from 'react'
 
 interface Props {
-  /** 0…1 */
+  /** The filled share, 0…1; values outside are clamped */
   value: number
+  /** Outer diameter in px */
   size?: number
+  /** Thickness of the ring in px */
   stroke?: number
   /** Accessible text, e.g. "6 of 20 hours" */
   label: string
+  /** Shown in the middle, usually the percentage */
   children?: ReactNode
 }
 
-/** A ring that fills clockwise in the calendar color (`--c`). */
+/** A ring that fills clockwise in the calendar color: set it on the ring's parent with `calendarColor()`. */
 export function ProgressRing({ value, size = 44, stroke = 5, label, children }: Props) {
   const radius = (size - stroke) / 2
   const length = 2 * Math.PI * radius

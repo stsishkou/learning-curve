@@ -23,10 +23,6 @@ const meta = {
     layout: 'centered',
     docs: {
       story: { inline: false, iframeHeight: 320 },
-      description: {
-        component:
-          'A "more actions" button with a menu under it, for the actions that would crowd a toolbar. An item with `checked` is a switch and keeps the menu open; arrow keys move between the rows, Tab and Escape close it.',
-      },
     },
   },
   args: {
@@ -43,6 +39,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** Opening the menu puts the focus on its first enabled row; running an item closes it. */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const trigger = within(canvasElement).getByRole('button', { name: 'More actions' })

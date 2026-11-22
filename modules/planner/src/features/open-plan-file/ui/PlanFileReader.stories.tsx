@@ -23,6 +23,7 @@ type Story = StoryObj<typeof meta>
 
 export const Overview: Story = {}
 
+/** The third tab: the file as text, exactly as it is on disk. */
 export const Source: Story = {
   play: async ({ canvasElement }) => {
     const dialog = within(canvasElement.ownerDocument.body)

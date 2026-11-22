@@ -8,8 +8,11 @@ import { useFillHeight } from '../../../shared/lib'
 
 interface Props {
   plan: Plan
+  /** Every occurrence to list, in time order, with the hidden calendars already left out */
   items: Occurrence[]
+  /** Minsk wall-clock ms; null before the clock is known, as on the server */
   now: number | null
+  /** Called with the event that was clicked: the page opens its dialog */
   onSelect: (e: PlanEvent) => void
 }
 

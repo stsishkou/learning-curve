@@ -11,14 +11,6 @@ const coursesWeek = mondayOf(parseLocal('2027-01-11'))
 const meta = {
   title: 'Planner/Widgets/WeekGrid',
   component: WeekGrid,
-  parameters: {
-    docs: {
-      description: {
-        component:
-          'Seven day columns with the events of one week. With `onMove`, `onRemove` and `onCreate` it is an editor: drag an event to move it, drag its edge to resize, double-click an empty slot to add one, or do the same from the keyboard.',
-      },
-    },
-  },
   args: {
     plan: fixturePlan,
     weekStart: fixtureWeek,
@@ -35,12 +27,16 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** Only the hours around the week's events are drawn. */
 export const Default: Story = {}
 
+/** All 24 hours in a box that scrolls, opened at the first event. */
 export const FullDay: Story = { args: { fullDay: true } }
 
+/** A busier week in January with sessions of three courses. */
 export const ThreeCourses: Story = {
   args: { weekStart: coursesWeek, items: week(coursesWeek), now: coursesWeek + 2 * DAY },
 }
 
+/** Without the three edit callbacks an event can only be opened. */
 export const ReadOnly: Story = { args: { onMove: undefined, onRemove: undefined, onCreate: undefined } }

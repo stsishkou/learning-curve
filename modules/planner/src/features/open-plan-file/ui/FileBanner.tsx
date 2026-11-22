@@ -2,10 +2,13 @@ import { m } from '@lc/i18n/messages'
 import { Button } from '@lc/ui'
 
 interface Props {
+  /** Name of the opened file */
   name: string
   /** Events changed or added since the file was opened */
   changes: number
+  /** Saves the file with its changes to disk */
   onDownload: () => void
+  /** Goes back to the project plan */
   onClose: () => void
 }
 

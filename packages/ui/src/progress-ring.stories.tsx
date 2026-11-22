@@ -22,6 +22,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
+/** At zero only the track is drawn. */
 export const Empty: Story = { args: { value: 0, label: '0 of 20 hours', children: '0%' } }
 
 export const Complete: Story = { args: { value: 1, label: '20 of 20 hours', children: '100%' } }

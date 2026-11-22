@@ -16,7 +16,6 @@ function month(offset: number) {
 const meta = {
   title: 'Planner/Widgets/MonthGrid',
   component: MonthGrid,
-  parameters: {},
   args: { plan: fixturePlan, ...month(0), now: fixtureNow, onSelect: fn(), onPickDay: fn(), onMove: fn() },
   argTypes: { plan: { control: false }, items: { control: false } },
 } satisfies Meta<typeof MonthGrid>
@@ -28,4 +27,5 @@ export const Default: Story = {}
 
 export const NextMonth: Story = { args: month(1) }
 
+/** Without `onMove` the events cannot be dragged to another day. */
 export const ReadOnly: Story = { args: { onMove: undefined } }

@@ -7,7 +7,9 @@ interface Props {
   plan: Plan
   /** Timed events from today on, in order */
   upcoming: Occurrence[]
+  /** Minsk wall-clock ms; null before the clock is known, as on the server */
   now: number | null
+  /** Called with the event that was clicked: the page opens its dialog */
   onSelect: (e: PlanEvent) => void
 }
 

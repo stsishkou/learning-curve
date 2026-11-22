@@ -15,8 +15,11 @@ interface Props {
   /** Monday the grid begins with, and how many weeks it has */
   gridStart: number
   weeks: number
+  /** The occurrences inside the grid, with the hidden calendars already left out */
   items: Occurrence[]
+  /** Minsk wall-clock ms; null before the clock is known, as on the server */
   now: number | null
+  /** Called with the event that was clicked: the page opens its dialog */
   onSelect: (e: PlanEvent) => void
   /** Opens the week view on that day */
   onPickDay: (day: number) => void

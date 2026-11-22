@@ -1,9 +1,18 @@
 interface SegmentedProps<T extends string> {
+  /** Accessible name of the group; it is not shown */
   label: string
+  /** The `value` of the pressed option */
   value: T
+  /** The choices, left to right. `lang` marks a label written in another language than the page, such as the names in a language switch */
   options: ReadonlyArray<{ value: T; label: string; lang?: string }>
+  /** Called with the option that was clicked, the pressed one included */
   onChange: (value: T) => void
 }
+
+/**
+ * One choice out of a few, as a row of toggle buttons. It keeps no state: the parent passes `value` and answers
+ * `onChange`.
+ */
 
 export function Segmented<T extends string>({ label, value, options, onChange }: SegmentedProps<T>) {
   return (

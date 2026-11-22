@@ -26,14 +26,6 @@ function Stateful(props: ComponentProps<typeof CalendarFilter>) {
 const meta = {
   title: 'Planner/Features/CalendarFilter',
   component: CalendarFilter,
-  parameters: {
-    docs: {
-      description: {
-        component:
-          'One chip per calendar. A click hides or shows the calendar; a double click or Alt+click leaves it as the only one, and the same again brings the others back.',
-      },
-    },
-  },
   args: {
     calendars: fixturePlan.calendars,
     hidden: new Set<string>(),
@@ -59,4 +51,5 @@ export const Default: Story = {
 
 export const SomeHidden: Story = { args: { hidden: new Set(['journey', 'personal']) } }
 
+/** Without `onManage` there is no button for the calendars dialog. */
 export const ReadOnly: Story = { args: { onManage: undefined } }

@@ -16,10 +16,13 @@ import { useMemo } from 'react'
 
 interface Props {
   plan: Plan
+  /** Ids of the calendars filtered out */
   hidden: ReadonlySet<string>
+  /** Minsk wall-clock ms; null before the clock is known, as on the server */
   now: number | null
   /** Monday of the week on screen */
   weekStart: number
+  /** Called with the Monday of the week that was clicked */
   onPickWeek: (monday: number) => void
 }
 

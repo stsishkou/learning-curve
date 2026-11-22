@@ -1,4 +1,6 @@
-import { Meta } from '@storybook/addon-docs/blocks'
+import { Meta, Unstyled } from '@storybook/addon-docs/blocks'
+
+import { Catalog } from './catalog'
 
 <Meta title="Introduction" />
 
@@ -10,19 +12,28 @@ languages, and to check a change without clicking through the app.
 
 ## What is here
 
-| Section                 | Source                          | What it holds                                                                                          |
-| ----------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Design tokens**       | `packages/ui/src/theme.css`     | Colors, typography, radii, breakpoints                                                                 |
-| **UI kit**              | `packages/ui`                   | Button, Segmented, Modal, ProgressRing, Dot, Kbd, the field classes, `calendarColor`                   |
-| **Planner / Page**      | `modules/planner/src/pages`     | The whole planner page with an in-memory host                                                          |
-| **Planner / Widgets**   | `modules/planner/src/widgets`   | Week grid, month grid, agenda, budget, course progress, plan map, now/next, runway                     |
-| **Planner / Features**  | `modules/planner/src/features`  | Calendar filter, command palette, shortcuts, calendars, trash, history, event dialog, plan file reader |
-| **Dashboard / Page**    | `modules/dashboard/src/pages`   | The progress page                                                                                      |
-| **Dashboard / Widgets** | `modules/dashboard/src/widgets` | Stat tiles, course bars, burn-up chart, weekly load                                                    |
-| **Calendar export**     | `modules/calendar-export`       | The export button and its dialog                                                                       |
+**Design tokens** documents `packages/ui/src/theme.css`: colors, typography, radii, breakpoints. Everything else
+is a component, listed below with the first sentence of its description. The list is read from the story files,
+so it is always complete.
 
-Each component has a **Docs** page: its description and the table of props come from the JSDoc comments and
-the TypeScript types in the component's file, and every story is shown below them.
+<Unstyled>
+  <Catalog />
+</Unstyled>
+
+## Reading a component's page
+
+Each component has a **Docs** page, built from the component's own file:
+
+- **The path under the title** is where the component lives. The UI kit is imported by name
+  (`import { Button } from '@lc/ui'`); a widget or a feature is internal to its module and is used by that
+  module's page.
+- **The description** is the JSDoc comment above the component.
+- **The first story with its controls**: change a prop in the table and the story follows. Big objects such as
+  the plan have no control.
+- **The table of props**: name, type, default and the comment above the prop in its interface. A prop marked
+  with a red asterisk is required.
+- **Every story**, each a state worth knowing about, with a line on what to look at. "Show code" under a story
+  gives the JSX that renders it.
 
 ## The toolbar
 
@@ -58,8 +69,8 @@ exactly as the app does. The full rules are in `docs/architecture.md`.
 
 All stories share one plan from `@lc/plan-domain/fixtures`: the real schedule, built in memory by
 `buildPlan()`, with "now" fixed at Wednesday, 2 December 2026, 12:40. Nothing reads `packages/plan-data`,
-so the stories do not change when the plan is edited in the app. The two page stories are the exception for
-the clock: they use the real time, like the app.
+so the stories do not change when the plan is edited in the app. The planner page story is the exception for
+the clock: it follows the real time, like the app.
 
 ## Adding a story
 

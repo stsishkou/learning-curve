@@ -38,7 +38,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Three steps are applied and the last one was undone: it can be redone or replaced by a new change. */
+/** Four steps are stored, three are applied and the last one was undone: it can be redone or replaced by a new change. */
 export const OneStepBack: Story = {}
 
 export const Empty: Story = { args: { history: { cursor: 0, steps: [] } } }

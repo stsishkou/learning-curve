@@ -81,6 +81,8 @@ apps/stand/
   vitest.config.ts            the story tests: every story in headless Chromium
   src/styles.css              Tailwind and the theme, the stand's copy of apps/web/src/styles.css
   src/docs/*.mdx              written pages: Introduction, Design tokens
+  src/docs/catalog.tsx        the list of components on the Introduction, read from the story files
+  src/docs/page.tsx           the generated page of a component: the default one plus its source path
 packages/ui/src/*.stories.tsx                       stories live next to their components
 modules/*/src/**/ui/*.stories.tsx
 packages/plan-domain/src/fixtures.ts                the plan every story uses
@@ -140,7 +142,8 @@ Rules that keep `pnpm run check` green:
   `play` function waits for it with `findByRole`, not `getByRole`.
 - A story that starts as an open dialog also sets `parameters: { dialog: true }`. Esc or a click on the
   backdrop closes a native dialog while the `open` arg stays true; with the parameter the stand then shows an
-  "Open the dialog again" button that mounts the story anew (`apps/stand/src/reopen.tsx`).- In a `play` function, fill a text field with `fireEvent.change(input, { target: { value } })`, not
+  "Open the dialog again" button that mounts the story anew (`apps/stand/src/reopen.tsx`).
+- In a `play` function, fill a text field with `fireEvent.change(input, { target: { value } })`, not
   `userEvent.type`. With React 19 the user-event build inside `storybook/test` writes the value through the
   tracker React keeps on a controlled input, so React sees no change and `onChange` never runs. Clicks and
   `userEvent.keyboard` work.
@@ -148,7 +151,14 @@ Rules that keep `pnpm run check` green:
   outside Storybook's hook context.
 - Turn the control off for big objects (`plan`, `items`): `argTypes: { plan: { control: false } }`.
 - The description on the docs page is the JSDoc comment above the component, and each prop's description is
-  the comment above it in the props interface. Write them there, not in the story.
+  the comment above it in the props interface. Write them there, not in the story: `parameters.docs.description`
+  is only for a story file without a component (`field.stories.tsx`, `calendar-color.stories.tsx`). Start the
+  description with one sentence that stands on its own: the Introduction page lists it next to the component's
+  name.
+- A prop gets a comment when its type does not tell the whole contract: the unit of a number, what `null`
+  means, when a callback is called, what leaving an optional prop out switches off.
+- A JSDoc comment above a story is shown under its name. Say what state the story shows or what to look at;
+  what holds only in the stand (a pinned clock, an in-memory host) goes here and not into the component.
 - Story names and sample text are plain English. Do not call `m.…()` in a story: the text a component shows
   is its own job.
 - A new module needs `@storybook/react-vite` and `storybook` in its `devDependencies` (`catalog:`) and has to

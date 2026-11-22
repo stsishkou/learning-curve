@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 
 interface Props {
   plan: Plan
+  /** `planStats(plan, now)`: the page computes it once for all its widgets */
   stats: PlanStats
   /** Wall-clock ms; null before the clock is known */
   now: number | null

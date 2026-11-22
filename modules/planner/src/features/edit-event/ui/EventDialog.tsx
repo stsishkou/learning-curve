@@ -34,6 +34,7 @@ const linkify = (text: string) =>
 
 interface Props {
   plan: Plan
+  /** The event to show; null with no `draft` keeps the dialog closed */
   event: PlanEvent | null
   /** For a repeating event: the day of the repeat that was opened, `YYYY-MM-DD` */
   day?: string | null
@@ -43,12 +44,18 @@ interface Props {
   draft: NewEvent | null
   /** true when the event already differs from the generated schedule */
   edited: boolean
+  /** false hides every control that changes the plan */
   canEdit: boolean
-  /** Rejects with the reason when the change cannot be stored */
+  /** Stores one change. Rejects with the reason when it cannot be stored: the dialog shows it */
   onChange: (change: PlanChange) => Promise<void>
   onClose: () => void
 }
 
+/**
+ * One event: what it is, and for an editable plan every way to change it. It is open while it has an `event` or a
+ * `draft`; with a `draft` it starts as the form for a new event. Each button sends one `PlanChange` through
+ * `onChange`.
+ */
 export function EventDialog({
   plan,
   event,

@@ -4,7 +4,9 @@ import { countsToBudget, durationHours, type Occurrence, parseLocal, type Plan }
 import { calendarColor, Dot } from '@lc/ui'
 
 interface Props {
+  /** Gives the weekly budget and the calendars' names and colors */
   plan: Plan
+  /** The occurrences of the week on screen; the ones outside the budget (gym, the buffer) are skipped */
   weekItems: Occurrence[]
 }
 

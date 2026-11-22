@@ -6,15 +6,22 @@ const CHIP =
   'group inline-flex shrink-0 items-center gap-[7px] rounded-full border border-line bg-surface py-[5px] pr-[11px] pl-[9px] text-[13px] whitespace-nowrap'
 
 interface Props {
+  /** One chip each, in this order */
   calendars: PlanCalendar[]
+  /** Ids of the calendars filtered out: their chips are not pressed */
   hidden: ReadonlySet<string>
+  /** Called with the id of the chip that was clicked */
   onToggle: (id: string) => void
   /** Shows only this calendar, or everything again when it is already the only one */
   onSolo: (id: string) => void
-  /** Present when calendars can be added and renamed */
+  /** Present when calendars can be added and renamed: adds the button that opens their dialog */
   onManage?: () => void
 }
 
+/**
+ * One chip per calendar. A click hides or shows the calendar; a double click or Alt+click leaves it as the only
+ * one, and the same again brings the others back. The component keeps no state: the page owns the hidden set.
+ */
 export function CalendarFilter({ calendars, hidden, onToggle, onSolo, onManage }: Props) {
   return (
     <div

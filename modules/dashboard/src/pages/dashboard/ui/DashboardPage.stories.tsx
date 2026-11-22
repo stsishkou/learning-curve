@@ -6,15 +6,7 @@ import { DashboardPage } from './DashboardPage'
 const meta = {
   title: 'Dashboard/Page/DashboardPage',
   component: DashboardPage,
-  parameters: {
-    layout: 'fullscreen',
-    docs: {
-      description: {
-        component:
-          'The progress page as the app renders it at `/dashboard`. The app leaves `now` out and the page follows the clock; the story pins it so the picture does not depend on the day it is opened.',
-      },
-    },
-  },
+  parameters: { layout: 'fullscreen' },
   args: { plan: fixturePlan, now: fixtureNow },
   argTypes: { plan: { control: false }, headerAside: { control: false } },
 } satisfies Meta<typeof DashboardPage>
@@ -22,4 +14,8 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/**
+ * The page as the app renders it at `/dashboard`. The app leaves `now` out and the page follows the clock; the
+ * story pins it so the picture does not depend on the day it is opened.
+ */
 export const Default: Story = {}

@@ -5,6 +5,7 @@ import { calendarColor, ProgressRing } from '@lc/ui'
 
 interface Props {
   plan: Plan
+  /** Called with a course's next open session when its "next" link is clicked */
   onSelect: (e: PlanEvent) => void
 }
 
