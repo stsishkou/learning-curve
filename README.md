@@ -48,7 +48,19 @@ a Husky `commit-msg` hook checks them with commitlint.
 
 - **Views**: week grid (drag to move, drag the bottom edge to resize; drag across an empty part of a day to draw a
   new event, or double-click a slot: the form opens beside it and the dashed block follows what you type), month,
-  and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the calendar the whole window.
+  one day, the whole year, and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the
+  calendar the whole window, `Work week` leaves Monday to Friday, and the two magnifiers change the time scale.
+  The year view shades each day by its study hours. An event's dialog opens beside the event.
+- **Quick event**: type a line with a time into the command search, such as `Разбор завтра 14:00 1ч` or
+  `Review friday 18:30 30 min`, and it is offered as a new event. A day (today, tomorrow, a weekday, `23.11`) and
+  a length are optional; Russian, English and Spanish words are known.
+- **Second time zone**: `⋮` → `Second time zone` puts the clock of another zone next to the plan's Minsk time in
+  the hour column. The choice is kept in the browser.
+- **Dates**: the `Dates` tab of the side card is a month to jump with: a day or an ISO week number opens it.
+- **Reminders**: `⋮` → `Reminders` shows a system notification ten minutes before each start, while the planner
+  is open in a tab.
+- **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs
+  the time it really took, in quarter-hour steps; the stopwatch survives a reload.
 - **The plan's name**: click the title to rename the plan (Enter saves, Escape cancels). It is one history step,
   and the plan's own download (`<Title>.json`) and the combined `.ics` are named after it.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
@@ -95,7 +107,7 @@ a Husky `commit-msg` hook checks them with commitlint.
   undo/redo and `＋ Event`; History, Trash, Shift the plan, Calendars and Shortcuts live in the `⋮` menu, which
   on a phone also holds search, undo/redo and the view toggles.
 - **Keyboard**: `Ctrl/⌘ K` or `/` searches events and commands (including the theme and the language), `?` lists
-  the shortcuts.
+  the shortcuts: `D` `W` `M` `Y` `L` for the views, `5` for the work week, `+` `-` for the time scale.
 
 Everything changed in the viewer is stored in `packages/plan-data/data/edits.json` (event patches, calendars,
 added events, the trash) and applied on top of the generated schedule, so `pnpm run plan` never loses it.
@@ -160,9 +172,10 @@ Subscribed calendars are read-only and Google refreshes them every few hours.
 
 ```
 apps/web/                    TanStack Start shell
-  src/routes/                index.tsx (planner; ?week=YYYY-MM-DD&view=week|list), api/ (plan, ics, ics-zip)
+  src/routes/                index.tsx (planner; ?week=YYYY-MM-DD&view=day|week|month|year|list), focus.tsx,
+                             dashboard.tsx, api/ (plan, ics, ics-zip)
   src/server/                server functions: read the plan, save an event edit
-modules/planner/             planner page, Feature-Sliced layers inside
+modules/planner/             planner and focus pages, Feature-Sliced layers inside
 modules/calendar-export/     export button and dialog
 packages/plan-domain/src/
   content.ts                 courses, sessions, calendars

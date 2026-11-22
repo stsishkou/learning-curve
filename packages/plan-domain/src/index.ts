@@ -39,6 +39,7 @@ export {
   type PlanHistory,
 } from './history'
 export { moveOccurrence, removeOccurrence, skipDay } from './occurrence-changes'
+export { parseQuickEvent, type QuickEvent } from './quick-event'
 export { movePatch, weekdaysOf } from './recurrence'
 export { paceForecast, type PaceForecast } from './forecast'
 export {

@@ -1,7 +1,7 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { parseLocal, type Plan, type PlanEvent } from '@lc/plan-domain'
-import { calendarColor, Dot, Kbd, Modal } from '@lc/ui'
+import { hm, parseLocal, parseQuickEvent, type Plan, type PlanEvent, type QuickEvent } from '@lc/plan-domain'
+import { calendarColor, Dot, Kbd, Modal, Plus } from '@lc/ui'
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
 export interface Command {
@@ -23,6 +23,13 @@ interface Props {
   commands: Command[]
   /** Called with the event picked from the search results; the palette closes itself first */
   onSelectEvent: (event: PlanEvent) => void
+  /**
+   * Present when events can be added: a line with a time, such as "Review tomorrow 14:00 1h", is then offered as a
+   * new event, and this is called with it. `now` is the Minsk wall-clock time the words "today" and "tomorrow"
+   * are read against.
+   */
+  onQuickAdd?: (event: QuickEvent) => void
+  now?: number | null
   onClose: () => void
 }
 
@@ -31,10 +38,11 @@ const MAX_EVENTS = 8
 type Item = { key: string; group: string; run: () => void } & (
   | { kind: 'command'; command: Command }
   | { kind: 'event'; event: PlanEvent }
+  | { kind: 'quick'; quick: QuickEvent }
 )
 
 /** Search for an event or an action and run it from the keyboard. */
-export function CommandPalette({ open, plan, commands, onSelectEvent, onClose }: Props) {
+export function CommandPalette({ open, plan, commands, onSelectEvent, onQuickAdd, now = null, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const listId = useId()
@@ -66,9 +74,14 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onClose }:
         }
       }
     }
-    // Events first: someone who typed a title is looking for a session, not an action.
-    return found.toSorted((a, b) => Number(b.kind === 'event') - Number(a.kind === 'event'))
-  }, [query, commands, plan, onSelectEvent])
+    const quick = onQuickAdd && now !== null ? parseQuickEvent(query, now) : null
+    if (quick) {
+      found.push({ kind: 'quick', key: 'quick-add', group: m.new_event(), quick, run: () => onQuickAdd?.(quick) })
+    }
+    // A typed time means a new event; then events: someone who typed a title is looking for a session, not an action.
+    const rank = { quick: 0, event: 1, command: 2 }
+    return found.toSorted((a, b) => rank[a.kind] - rank[b.kind])
+  }, [query, commands, plan, onSelectEvent, onQuickAdd, now])
 
   const current = Math.min(active, Math.max(0, items.length - 1))
   useEffect(() => {
@@ -150,6 +163,15 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onClose }:
                   </span>
                   <em className="flex-none text-[12.5px] text-muted not-italic tabular-nums">
                     {fmtDay(parseLocal(item.event.start))}
+                  </em>
+                </>
+              ) : item.kind === 'quick' ? (
+                <>
+                  <Plus size={15} aria-hidden className="flex-none text-focus" />
+                  <span className="min-w-0 flex-1 truncate">{item.quick.title}</span>
+                  <em className="flex-none text-[12.5px] text-muted not-italic tabular-nums">
+                    {fmtDay(parseLocal(item.quick.start))}, {hm(parseLocal(item.quick.start))}–
+                    {hm(parseLocal(item.quick.end))}
                   </em>
                 </>
               ) : (

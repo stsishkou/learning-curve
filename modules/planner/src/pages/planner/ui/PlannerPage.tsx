@@ -28,6 +28,7 @@ import { HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
+import { useReminders } from '../../../features/reminders'
 import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
 import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
@@ -68,6 +69,8 @@ interface Props {
   headerAside?: ReactNode
   /** More header actions that work on the plan as it is shown now, such as export */
   renderActions?: (shown: { plan: Plan; hidden: ReadonlySet<string> }) => ReactNode
+  /** Present when the host has a focus page: opens it, from the card of the session in progress or the next one */
+  onFocus?: () => void
   /** Host actions listed in the command palette, such as the theme */
   commands?: Command[]
 }
@@ -87,6 +90,7 @@ export function PlannerPage({
   onTravel,
   headerAside,
   renderActions,
+  onFocus,
   commands,
 }: Props) {
   const now = useNow()
@@ -136,6 +140,8 @@ export function PlannerPage({
     [plan, today],
   )
 
+  const reminders = useReminders(upcoming)
+
   // Sessions that should be over and are not marked done: the plan and the reality have drifted apart.
   const overdue = useMemo(
     () => (now === null ? [] : plan.events.filter((e) => isSession(e) && !e.done && parseLocal(e.end) < now)),
@@ -171,6 +177,7 @@ export function PlannerPage({
     hiddenCount: hidden.size,
     history: { cursor, total: steps.length, ...quiet },
     secondZone: secondZone?.label,
+    reminders: reminders.supported ? reminders : undefined,
     trashCount,
     overdueCount: overdue.length,
     open: dialogs.show,
@@ -254,6 +261,11 @@ export function PlannerPage({
         />
       )}
 
+      {reminders.blocked && (
+        <p className="mb-3 text-[13px] text-today-ink" role="alert">
+          {m.reminders_blocked()}
+        </p>
+      )}
       {quiet.saveError && (
         <p className="mb-3 text-[13px] text-today-ink" role="alert">
           {quiet.saveError}
@@ -316,7 +328,7 @@ export function PlannerPage({
         {!expanded && (
           // The list is long: on one column the side panel goes above it instead of far below.
           <aside className={`grid min-w-0 gap-4 ${view === 'list' ? 'order-first lg:order-none' : ''}`}>
-            <NowNext plan={plan} upcoming={upcoming} now={now} onSelect={select} />
+            <NowNext plan={plan} upcoming={upcoming} now={now} onSelect={select} onFocus={onFocus} />
             <InsightTabs
               plan={plan}
               weekItems={weekItems}
@@ -407,6 +419,15 @@ export function PlannerPage({
         plan={plan}
         commands={palette}
         onSelectEvent={select}
+        now={now}
+        onQuickAdd={
+          canEdit
+            ? (quick) => {
+                nav.goTo(parseLocal(quick.start))
+                drafting.begin(quick.start, quick.end, quick.title)
+              }
+            : undefined
+        }
         onClose={() => dialogs.hide('palette')}
       />
       <ShortcutsDialog

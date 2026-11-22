@@ -16,8 +16,9 @@ export const Route = createFileRoute('/')({
 })
 
 /** What the shell owns and offers in the planner's command palette: the theme and the language. */
-const shellCommands = (openDashboard: () => void): PlannerCommand[] => [
-  { id: 'dashboard', group: m.nav(), label: m.dashboard(), run: openDashboard },
+const shellCommands = (open: (to: '/dashboard' | '/focus') => void): PlannerCommand[] => [
+  { id: 'focus', group: m.nav(), label: m.focus(), run: () => open('/focus') },
+  { id: 'dashboard', group: m.nav(), label: m.dashboard(), run: () => open('/dashboard') },
   ...(STAND_URL
     ? [{ id: 'stand', group: m.nav(), label: m.nav_components(), run: () => void window.open(STAND_URL, '_blank') }]
     : []),
@@ -51,7 +52,8 @@ function PlannerRoute() {
       }}
       headerAside={<ShellAside />}
       renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}
-      commands={shellCommands(() => void router.navigate({ to: '/dashboard' }))}
+      onFocus={() => void router.navigate({ to: '/focus' })}
+      commands={shellCommands((to) => void router.navigate({ to }))}
     />
   )
 }

@@ -1,6 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import type { PlanCalendar } from '@lc/plan-domain'
 import {
+  Bell,
   Briefcase,
   Calendar,
   CalendarClock,
@@ -30,6 +31,8 @@ interface Context {
   history: { cursor: number; total: number; canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
   /** Name of the second time zone of the hour column, when one is chosen */
   secondZone?: string
+  /** Present where the browser can show notifications */
+  reminders?: { on: boolean; toggle: () => void }
   trashCount: number
   overdueCount: number
   open: (dialog: DialogName) => void
@@ -178,6 +181,20 @@ export function buildActions(ctx: Context): PlannerAction[] {
       menu: 'always',
       run: () => ctx.open('zone'),
     },
+    ...(ctx.reminders
+      ? [
+          {
+            id: 'reminders',
+            group: plan,
+            label: m.reminders(),
+            menuLabel: m.reminders_short(),
+            icon: <Bell {...ICON} />,
+            checked: ctx.reminders.on,
+            menu: 'always' as const,
+            run: ctx.reminders.toggle,
+          },
+        ]
+      : []),
     { id: 'review', group: view, label: m.review_open(), run: () => ctx.open('review') },
     ...(ctx.canEdit ? editing : []),
     {

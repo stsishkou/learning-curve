@@ -19,6 +19,9 @@ export function ShellAside() {
         <Link to="/" className={TAB} activeOptions={{ exact: true, includeSearch: false }}>
           {m.nav_plan()}
         </Link>
+        <Link to="/focus" className={TAB}>
+          {m.focus()}
+        </Link>
         <Link to="/dashboard" className={TAB}>
           {m.dashboard()}
         </Link>

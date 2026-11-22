@@ -1,7 +1,7 @@
 import { fmtDay, fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { hm, startOfDay, type Occurrence, type Plan, type PlanEvent } from '@lc/plan-domain'
-import { calendarColor, Dot } from '@lc/ui'
+import { calendarColor, Dot, Timer } from '@lc/ui'
 
 interface Props {
   plan: Plan
@@ -11,10 +11,12 @@ interface Props {
   now: number | null
   /** Called with the event that was clicked: the page opens its dialog */
   onSelect: (e: PlanEvent) => void
+  /** Present when there is a focus page to time the session on */
+  onFocus?: () => void
 }
 
 /** The session in progress with the time left, or the next one with the time until it starts. */
-export function NowNext({ plan, upcoming, now, onSelect }: Props) {
+export function NowNext({ plan, upcoming, now, onSelect, onFocus }: Props) {
   if (now === null) return null
   const current = upcoming.find((o) => o.s <= now && now < o.e)
   const next = upcoming.find((o) => o.s > now)
@@ -54,6 +56,15 @@ export function NowNext({ plan, upcoming, now, onSelect }: Props) {
         </button>
       ) : (
         <p className="mt-2 text-[13.5px] text-muted">{m.nothing_planned()}</p>
+      )}
+      {shown && onFocus && (
+        <button
+          type="button"
+          className="mt-3 flex items-center gap-1.5 pl-[18px] text-[12.5px] font-semibold text-focus hover:underline"
+          onClick={onFocus}
+        >
+          <Timer size={14} aria-hidden /> {m.focus_open()}
+        </button>
       )}
       {current && next && (
         <button

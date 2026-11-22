@@ -1,4 +1,4 @@
-import { fixturePlan } from '@lc/plan-domain/fixtures'
+import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fireEvent, fn, within } from 'storybook/test'
 
@@ -44,5 +44,22 @@ export const SearchingEvents: Story = {
     // Sent to the input itself: on a docs page the story sits in a frame that may not have the focus.
     await fireEvent.keyDown(input, { key: 'Enter' })
     await expect(args.onSelectEvent).toHaveBeenCalledWith(expect.objectContaining({ calendar: 'certs' }))
+  },
+}
+
+/**
+ * A line with a time is offered as a new event, first in the list: a day (`tomorrow`, a weekday, `23.11`) and a
+ * length (`1h`, `30 min`) are optional. Enter hands it to `onQuickAdd`.
+ */
+export const QuickEvent: Story = {
+  args: { onQuickAdd: fn(), now: fixtureNow },
+  play: async ({ canvasElement, args }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const input = await body.findByRole('combobox')
+    await fireEvent.change(input, { target: { value: 'Review tomorrow 14:00 1.5h' } })
+    const [first] = await body.findAllByRole('option')
+    await expect(first).toHaveTextContent('Review')
+    await fireEvent.keyDown(input, { key: 'Enter' })
+    await expect(args.onQuickAdd).toHaveBeenCalledWith(expect.objectContaining({ title: 'Review' }))
   },
 }
