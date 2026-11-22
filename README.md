@@ -95,6 +95,10 @@ a Husky `commit-msg` hook checks them with commitlint.
   the certificates are. They tick themselves as sessions are marked done. `Week review` sums the week up: hours
   done against the plan, the time they really took, goals met, sessions missed (with a way to catch up) and the
   goals of the next week.
+- **Reviews**: when every session of a module is done, a bar above the calendar offers three short reviews, one,
+  three and seven days later, each in the first free half hour of its day. `Plan the reviews` adds them as one
+  history step; they are sessions like any other (they count toward the budget and can be marked done), and the
+  cross declines them for that module.
 - **Catching up**: when sessions in the past are not done, a bar above the calendar offers to mark them done or
   to catch up. `Catch up` (also in the `⋮` menu) compares whole scenarios side by side: leave the plan, push
   every open session to the next study days (same weekly load, later end), or make the missed sessions up in the

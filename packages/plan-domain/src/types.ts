@@ -10,7 +10,8 @@ export interface PlanCalendar {
   custom?: boolean
 }
 
-export type EventKind = 'study' | 'lab' | 'buffer' | 'personal' | 'milestone'
+/** `review` is a short session that goes back to a finished module; it is planned in the viewer, not generated. */
+export type EventKind = 'study' | 'lab' | 'buffer' | 'personal' | 'milestone' | 'review'
 
 /** A single event. Times are Europe/Minsk wall-clock strings: `YYYY-MM-DDTHH:MM`. */
 export interface PlanEvent {

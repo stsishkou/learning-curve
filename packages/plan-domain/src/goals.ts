@@ -41,7 +41,8 @@ const moduleOf = (e: PlanEvent) => e.title.replace(COUNTER, '')
 export function moduleGoals(plan: Plan): ModuleGoal[] {
   const goals = new Map<string, ModuleGoal>()
   for (const e of plan.events) {
-    if (!isSession(e)) continue
+    // A review goes back to a module that is already counted.
+    if (!isSession(e) || e.kind === 'review') continue
     const key = `${e.calendar}\n${moduleOf(e)}`
     const goal = goals.get(key) ?? {
       calendar: e.calendar,

@@ -59,12 +59,29 @@ export type PlanChange =
   | { type: 'events.done'; uids: string[]; done: boolean }
   /** Gives the plan another name: the heading of the viewer and the names of the files it downloads */
   | { type: 'plan.rename'; title: string }
+  /** Adds the review sessions of one finished module, as one step */
+  | { type: 'reviews.plan'; reviews: NewEvent[] }
 
 /** A change that cannot be applied; `message` is safe to show. */
 export class PlanChangeError extends Error {}
 
 const fail = (message: string): never => {
   throw new PlanChangeError(message)
+}
+
+function parseNewEvent(raw: unknown): NewEvent {
+  const patch = parsePatch(raw)
+  if (!isRecord(raw) || !patch?.title || !patch.start || !patch.end || !patch.calendar) {
+    return fail('A new event needs a title, a calendar, a start and an end')
+  }
+  return {
+    calendar: patch.calendar,
+    title: patch.title,
+    start: patch.start,
+    end: patch.end,
+    description: patch.description ?? '',
+    availability: raw.availability === 'free' ? 'free' : 'busy',
+  }
 }
 
 /** Reads a change from untrusted input. Throws `PlanChangeError` when it is malformed. */
@@ -82,23 +99,11 @@ export function parseChange(input: unknown): PlanChange {
         ? { type: 'event.patch', uid: text('uid'), patch }
         : fail('patch has a field of the wrong type or format')
     }
-    case 'event.add': {
-      const raw = input.event
-      const patch = parsePatch(raw)
-      if (!isRecord(raw) || !patch?.title || !patch.start || !patch.end || !patch.calendar) {
-        return fail('A new event needs a title, a calendar, a start and an end')
-      }
-      return {
-        type: 'event.add',
-        event: {
-          calendar: patch.calendar,
-          title: patch.title,
-          start: patch.start,
-          end: patch.end,
-          description: patch.description ?? '',
-          availability: raw.availability === 'free' ? 'free' : 'busy',
-        },
-      }
+    case 'event.add':
+      return { type: 'event.add', event: parseNewEvent(input.event) }
+    case 'reviews.plan': {
+      if (!Array.isArray(input.reviews) || !input.reviews.length) return fail('reviews must list the sessions to add')
+      return { type: 'reviews.plan', reviews: input.reviews.map(parseNewEvent) }
     }
     case 'event.remove':
       return { type: 'event.remove', uid: text('uid') }
@@ -198,6 +203,14 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
   const removedAt = new Date(now).toISOString()
   const calendarExists = (id: string) =>
     !(id in removed.calendars) && (id in next.calendars || base.calendars.some((c) => c.id === id))
+  /** One more event created in the viewer */
+  const add = (event: NewEvent, kind: PlanEvent['kind']) => {
+    if (!calendarExists(event.calendar)) fail(`Unknown calendar "${event.calendar}"`)
+    if (!LOCAL_TIME.test(event.start) || !LOCAL_TIME.test(event.end)) fail('Times must look like 2026-11-23T12:00')
+    const created: PlanEvent = { ...event, uid: `${newId('custom')}@learning-curve`, kind }
+    if (patchProblem(created, {})) fail('The event must end after it starts')
+    next.added.push(created)
+  }
 
   switch (change.type) {
     case 'event.patch': {
@@ -235,19 +248,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       else delete next.events[uid]
       break
     }
-    case 'event.add': {
-      const { event } = change
-      if (!calendarExists(event.calendar)) fail(`Unknown calendar "${event.calendar}"`)
-      if (!LOCAL_TIME.test(event.start) || !LOCAL_TIME.test(event.end)) fail('Times must look like 2026-11-23T12:00')
-      const created: PlanEvent = {
-        ...event,
-        uid: `${newId('custom')}@learning-curve`,
-        kind: event.availability === 'free' ? 'personal' : 'study',
-      }
-      if (patchProblem(created, {})) fail('The event must end after it starts')
-      next.added.push(created)
+    case 'event.add':
+      add(change.event, change.event.availability === 'free' ? 'personal' : 'study')
       break
-    }
+    case 'reviews.plan':
+      for (const review of change.reviews) add(review, 'review')
+      break
     case 'event.detach': {
       const series = applyEdits(base, next).plan.events.find((e) => e.uid === change.uid && e.rrule)
       if (!series) return fail(`Unknown repeating event "${change.uid}"`)

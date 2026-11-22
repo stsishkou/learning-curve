@@ -22,6 +22,7 @@ interface Props {
 
 const SIGN: Partial<Record<PlanChange['type'], string>> = {
   'event.add': '＋',
+  'reviews.plan': '＋',
   'event.remove': '−',
   'calendar.remove': '−',
   'calendar.clear': '−',

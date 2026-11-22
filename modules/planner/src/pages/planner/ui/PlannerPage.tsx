@@ -10,6 +10,7 @@ import {
   planFileName,
   planStart,
   removeOccurrence,
+  reviewOffers,
   startOfDay,
   ymd,
   zoneShift,
@@ -28,6 +29,7 @@ import { HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
+import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
 import { useReminders } from '../../../features/reminders'
 import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
 import { ShiftDialog } from '../../../features/shift-plan'
@@ -148,6 +150,11 @@ export function PlannerPage({
     [plan, now],
   )
 
+  // Finished modules that have no reviews yet; one is offered at a time.
+  const declined = useDismissedReviews()
+  const reviews = useMemo(() => (now === null || !canEdit ? [] : reviewOffers(plan, now)), [plan, now, canEdit])
+  const waiting = reviews.filter((offer) => !declined.dismissed.includes(offer.key))
+
   // One repeat of a series, not all of them: the one that was opened, or the first on screen after a reload.
   const selectedShown = selected
     ? (view === 'month' ? monthItems : gridItems).find(
@@ -258,6 +265,15 @@ export function PlannerPage({
           onMarkDone={() => quiet.change({ type: 'events.done', uids: overdue.map((e) => e.uid), done: true })}
           onCatchUp={() => dialogs.show('catchUp')}
           onDismiss={() => setOverdueHidden(true)}
+        />
+      )}
+
+      {waiting.length > 0 && (
+        <ReviewBar
+          offer={waiting[0]}
+          more={waiting.length - 1}
+          onPlan={() => quiet.change({ type: 'reviews.plan', reviews: waiting[0].reviews })}
+          onDismiss={() => declined.dismiss(waiting[0].key)}
         />
       )}
 

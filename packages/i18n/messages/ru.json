@@ -459,5 +459,26 @@
   "focus_start_this": "Начать в фокусе",
   "focus_on": "В фокус: {title}",
   "today_also": "Ещё сегодня",
-  "missed": "пропущено"
+  "missed": "пропущено",
+  "reviews_offer": "Модуль «{title}» пройден. Запланировать три коротких повтора, чтобы он не забылся?",
+  "reviews_plan": "Запланировать повторы",
+  "reviews_decline": "Не нужно для этого модуля",
+  "reviews_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "и ещё {count} модуль",
+        "countPlural=few": "и ещё {count} модуля",
+        "countPlural=many": "и ещё {count} модулей",
+        "countPlural=*": "и ещё {count} модуля"
+      }
+    }
+  ],
+  "history_reviews": "Запланированы повторы: {name}"
 }

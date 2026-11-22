@@ -41,6 +41,7 @@ export {
 export { moveOccurrence, removeOccurrence, skipDay } from './occurrence-changes'
 export { parseQuickEvent, type QuickEvent } from './quick-event'
 export { movePatch, weekdaysOf } from './recurrence'
+export { REVIEW_GAPS, reviewOffers, type ReviewOffer } from './reviews'
 export { paceForecast, type PaceForecast } from './forecast'
 export {
   goalsBetween,

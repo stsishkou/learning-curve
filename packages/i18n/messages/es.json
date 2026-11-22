@@ -449,5 +449,24 @@
   "focus_start_this": "Empezar en enfoque",
   "focus_on": "Enfocar: {title}",
   "today_also": "También hoy",
-  "missed": "perdida"
+  "missed": "perdida",
+  "reviews_offer": "El módulo «{title}» está hecho. ¿Planificar tres repasos cortos para que no se olvide?",
+  "reviews_plan": "Planificar los repasos",
+  "reviews_decline": "No para este módulo",
+  "reviews_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "y {count} módulo más",
+        "countPlural=*": "y {count} módulos más"
+      }
+    }
+  ],
+  "history_reviews": "Repasos planificados: {name}"
 }

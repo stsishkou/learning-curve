@@ -95,7 +95,7 @@ const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
 const TOUCH_QUIET = 'select-none [-webkit-touch-callout:none]'
 
 const shortTitle = (o: Occurrence) =>
-  o.kind === 'study' || o.kind === 'lab' ? o.title.replace(/^[^—]+— /, '') : o.title
+  o.kind === 'study' || o.kind === 'lab' || o.kind === 'review' ? o.title.replace(/^[^—]+— /, '') : o.title
 
 interface Press {
   x: number

@@ -109,7 +109,12 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
     end,
     description: patch.description ?? '',
     // A repeat moved out of a personal series stays personal: it is not a study session.
-    kind: value.availability === 'free' || value.kind === 'personal' ? 'personal' : 'study',
+    kind:
+      value.availability === 'free' || value.kind === 'personal'
+        ? 'personal'
+        : value.kind === 'review'
+          ? 'review'
+          : 'study',
     availability: value.availability === 'free' ? 'free' : 'busy',
   }
   if (patch.done) event.done = true

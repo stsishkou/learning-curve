@@ -449,5 +449,24 @@
   "focus_start_this": "Start in focus",
   "focus_on": "Focus on: {title}",
   "today_also": "Also today",
-  "missed": "missed"
+  "missed": "missed",
+  "reviews_offer": "The module “{title}” is done. Plan three short reviews so it stays in memory?",
+  "reviews_plan": "Plan the reviews",
+  "reviews_decline": "Not for this module",
+  "reviews_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "and {count} more module",
+        "countPlural=*": "and {count} more modules"
+      }
+    }
+  ],
+  "history_reviews": "Reviews planned: {name}"
 }
