@@ -33,14 +33,14 @@ export function DashboardPage({ plan, headerAside }: Props) {
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   return (
     <div className="mx-auto grid max-w-[1240px] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <header className="flex flex-wrap items-end gap-x-3 gap-y-3">
+      <header className="flex flex-col gap-3 md:flex-row md:items-end">
         <div className="min-w-0 flex-1">
           <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
           <p className="mt-1 text-[14px] text-muted">
             {plan.meta.title} · {m.dash_until({ date: fmtDay(parseLocal(plan.meta.planEnd)) })}
           </p>
         </div>
-        {headerAside}
+        <div className="order-first md:order-none">{headerAside}</div>
       </header>
 
       <StatTiles plan={plan} stats={stats} now={now} />

@@ -17,6 +17,13 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return m.history_restored()
     case 'trash.empty':
       return m.history_trash_emptied()
+    case 'events.shift':
+      return m.history_shifted({
+        days: change.days > 0 ? `+${change.days}` : change.days,
+        name: subject || m.shift_all(),
+      })
+    case 'events.done':
+      return m.history_done_many({ count: change.uids.length })
     case 'event.patch':
       break
   }

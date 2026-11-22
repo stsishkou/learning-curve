@@ -1,10 +1,12 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
+  DAY,
   hm,
   isCustomEvent,
   isSession,
   parseLocal,
+  toLocalString,
   type NewEvent,
   type Plan,
   type PlanChange,
@@ -192,6 +194,29 @@ export function EventDialog({
               {canEdit && edited && !isCustomEvent(event) && (
                 <Button disabled={busy} onClick={() => void run({ type: 'event.patch', uid: event.uid, patch: null })}>
                   {m.reset_event()}
+                </Button>
+              )}
+              {canEdit && !event.rrule && !event.allDay && (
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      {
+                        type: 'event.add',
+                        event: {
+                          calendar: event.calendar,
+                          title: event.title,
+                          description: event.description,
+                          availability: event.availability,
+                          start: toLocalString(parseLocal(event.start) + DAY),
+                          end: toLocalString(parseLocal(event.end) + DAY),
+                        },
+                      },
+                      'close',
+                    )
+                  }
+                >
+                  {m.duplicate()}
                 </Button>
               )}
               {courseUrl && (

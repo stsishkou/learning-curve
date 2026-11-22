@@ -66,6 +66,13 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **History**: every change is a step you can take back and redo: `↶` `↷` in the toolbar, `Ctrl/⌘ Z` and
   `Ctrl/⌘ Shift Z`, or the `History` window (`H`), where any point of the timeline can be picked. The last 100
   steps are kept in `packages/plan-data/data/history.json`, which is local and not committed.
+- **Catching up**: when sessions in the past are not done, a bar above the calendar offers to mark them done or
+  to shift the plan. `Shift the plan` (also in the `⋮` menu) moves every session that is not done, from a chosen
+  day and optionally in one calendar, by a number of days; it is one history step. An event can be duplicated
+  to the next day from its dialog.
+- **Controls**: the toolbar keeps the view switch, the week navigation (the title opens a date picker), search,
+  undo/redo and `＋ Event`; History, Trash, Shift the plan, Calendars and Shortcuts live in the `⋮` menu, which
+  on a phone also holds search, undo/redo and the view toggles.
 - **Keyboard**: `Ctrl/⌘ K` or `/` searches events and commands (including the theme and the language), `?` lists
   the shortcuts.
 

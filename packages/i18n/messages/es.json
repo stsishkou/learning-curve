@@ -312,5 +312,22 @@
   "dash_total_done": "Hecho, total",
   "nav": "Secciones",
   "nav_plan": "Plan",
-  "nav_components": "Componentes"
+  "nav_components": "Componentes",
+  "more_actions": "Más acciones",
+  "jump_to_date": "Ir a una fecha",
+  "duplicate": "Duplicar",
+  "shift_plan": "Desplazar el plan",
+  "shift_hint": "Mueve todas las sesiones no hechas desde la fecha elegida. Las hechas se quedan; el desplazamiento se puede deshacer en el historial.",
+  "shift_all": "Todos los calendarios",
+  "shift_from": "Desde",
+  "shift_days": "Cuántos días",
+  "shift_week_later": "+1 semana",
+  "shift_day_later": "+1 día",
+  "shift_week_earlier": "−1 semana",
+  "shift_count": "Sesiones que se moverán: {count}",
+  "shift_apply": "Desplazar",
+  "overdue": "Sesiones pasadas sin marcar: {count}",
+  "overdue_mark": "Marcarlas como hechas",
+  "history_shifted": "Plan desplazado {days} d: {name}",
+  "history_done_many": "Marcadas como hechas: {count}"
 }

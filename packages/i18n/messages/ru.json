@@ -322,5 +322,22 @@
   "dash_total_done": "Выполнено, всего",
   "nav": "Разделы",
   "nav_plan": "План",
-  "nav_components": "Компоненты"
+  "nav_components": "Компоненты",
+  "more_actions": "Ещё",
+  "jump_to_date": "Перейти к дате",
+  "duplicate": "Дублировать",
+  "shift_plan": "Сдвинуть план",
+  "shift_hint": "Переносит все невыполненные занятия с выбранной даты. Выполненные остаются на месте; сдвиг можно отменить в истории.",
+  "shift_all": "Все календари",
+  "shift_from": "Начиная с",
+  "shift_days": "На сколько дней",
+  "shift_week_later": "+1 неделя",
+  "shift_day_later": "+1 день",
+  "shift_week_earlier": "−1 неделя",
+  "shift_count": "Занятий будет перенесено: {count}",
+  "shift_apply": "Сдвинуть",
+  "overdue": "Прошедших занятий без отметки: {count}",
+  "overdue_mark": "Отметить выполненными",
+  "history_shifted": "План сдвинут на {days} дн.: {name}",
+  "history_done_many": "Отмечено выполненными: {count}"
 }

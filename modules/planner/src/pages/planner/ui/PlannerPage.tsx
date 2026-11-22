@@ -3,6 +3,7 @@ import { m } from '@lc/i18n/messages'
 import {
   DAY,
   HOUR,
+  isSession,
   mondayOf,
   movePatch,
   nowMinsk,
@@ -12,7 +13,6 @@ import {
   startOfDay,
   startOfMonth,
   toLocalString,
-  TRASH_DAYS,
   ymd,
   type NewEvent,
   type Occurrence,
@@ -20,8 +20,8 @@ import {
   type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
-import { Button, Kbd, Segmented } from '@lc/ui'
-import { useMemo, useState, type ReactNode } from 'react'
+import { Button, Kbd, Menu, Segmented, type MenuItem } from '@lc/ui'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
@@ -30,6 +30,7 @@ import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
+import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
 import { useModKey, useNow } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
@@ -94,6 +95,9 @@ export function PlannerPage({
   const [calendarsOpen, setCalendarsOpen] = useState(false)
   const [trashOpen, setTrashOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [shiftFrom, setShiftFrom] = useState<string | null>(null)
+  const [overdueHidden, setOverdueHidden] = useState(false)
+  const datePicker = useRef<HTMLInputElement>(null)
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
   const [pickedDay, setPickedDay] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -130,6 +134,12 @@ export function PlannerPage({
   const upcoming = useMemo(
     () => (today === null ? [] : occurrences(plan, today, today + 21 * DAY, NO_CALENDARS).filter((o) => !o.allDay)),
     [plan, today],
+  )
+
+  // Sessions that should be over and are not marked done: the plan and the reality have drifted apart.
+  const overdue = useMemo(
+    () => (now === null ? [] : plan.events.filter((e) => isSession(e) && !e.done && parseLocal(e.end) < now)),
+    [plan, now],
   )
 
   /** A change made outside a dialog (a drag, an undo): its failure is shown above the calendar. */
@@ -212,6 +222,12 @@ export function PlannerPage({
             run: () => setCalendarsOpen(true),
           },
           { id: 'trash', group: m.palette_plan(), label: m.trash(), run: () => setTrashOpen(true) },
+          {
+            id: 'shift',
+            group: m.palette_plan(),
+            label: m.shift_plan(),
+            run: () => setShiftFrom(ymd(today ?? weekStart)),
+          },
           { id: 'history', group: m.palette_plan(), label: m.history(), keys: 'H', run: () => setHistoryOpen(true) },
           { id: 'undo', group: m.palette_plan(), label: m.undo(), run: undo },
           { id: 'redo', group: m.palette_plan(), label: m.redo(), run: redo },
@@ -219,6 +235,36 @@ export function PlannerPage({
       : []),
     { id: 'shortcuts', group: m.palette_plan(), label: m.shortcuts(), keys: '?', run: () => setShortcutsOpen(true) },
     ...(commands ?? []),
+  ]
+
+  const narrow = 'md:hidden'
+  const menu: MenuItem[] = [
+    { id: 'search', label: m.search(), className: narrow, run: () => setPaletteOpen(true) },
+    ...(canEdit
+      ? [
+          { id: 'undo', label: m.undo(), className: narrow, disabled: !canUndo, run: () => void undo() },
+          { id: 'redo', label: m.redo(), className: narrow, disabled: !canRedo, run: () => void redo() },
+        ]
+      : []),
+    ...(view === 'week'
+      ? [{ id: 'full-day', label: m.full_day(), className: narrow, checked: search.fullDay === true, run: go.fullDay }]
+      : []),
+    { id: 'expand', label: m.expand(), className: narrow, checked: expanded, run: go.expand },
+    ...(canEdit
+      ? [
+          {
+            id: 'history',
+            label: m.history(),
+            keys: 'H',
+            badge: steps.length ? `${cursor}/${steps.length}` : undefined,
+            run: () => setHistoryOpen(true),
+          },
+          { id: 'trash', label: m.trash(), badge: trashCount || undefined, run: () => setTrashOpen(true) },
+          { id: 'shift', label: m.shift_plan(), run: () => setShiftFrom(ymd(today ?? weekStart)) },
+          { id: 'calendars', label: m.manage_calendars(), keys: 'C', run: () => setCalendarsOpen(true) },
+        ]
+      : []),
+    { id: 'shortcuts', label: m.shortcuts(), keys: '?', run: () => setShortcutsOpen(true) },
   ]
 
   useShortcuts({
@@ -244,7 +290,7 @@ export function PlannerPage({
 
       {!expanded && (
         <>
-          <header className="grid grid-cols-[1fr_auto] items-start gap-x-2 gap-y-3 md:flex md:items-end">
+          <header className="flex flex-col gap-3 md:flex-row md:items-end md:gap-2">
             <div className="min-w-0 md:mr-auto">
               <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{plan.meta.title}</h1>
               <p className="mt-1 text-[14px] text-muted">
@@ -255,8 +301,9 @@ export function PlannerPage({
                 })}
               </p>
             </div>
-            {headerAside}
-            <div className="col-span-2 flex gap-2 *:flex-1 md:*:flex-none">
+            {/* On a narrow screen the sections of the app come first, as a bar above the title. */}
+            <div className="order-first md:order-none">{headerAside}</div>
+            <div className="flex gap-2 *:flex-1 md:*:flex-none">
               <OpenPlanFile
                 shown={{ name: session.file?.name ?? 'plan.json', plan }}
                 project={state.plan}
@@ -274,31 +321,105 @@ export function PlannerPage({
         </>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2.5">
-        <Segmented
-          label={m.view()}
-          value={view}
-          options={[
-            { value: 'week', label: m.view_week() },
-            { value: 'month', label: m.view_month() },
-            { value: 'list', label: m.view_list() },
-          ]}
-          onChange={go.view}
-        />
-        {view !== 'list' && (
-          <div className="order-last flex w-full items-center gap-1.5 md:order-none md:w-auto">
-            <button type="button" className={STEP} aria-label={m.previous_period()} onClick={() => step(-1)}>
-              ‹
-            </button>
-            <h2 className="mx-1.5 flex-1 text-center text-[14px]/[1.2] font-semibold whitespace-nowrap md:min-w-[170px] md:flex-none md:text-left md:text-[16px]/[1.2]">
-              {view === 'month'
-                ? fmtMonth(monthStart)
-                : `${fmtShort(weekStart)} – ${fmtShort(weekStart + 6 * DAY)} ${new Date(weekStart + 6 * DAY).getUTCFullYear()}`}
-            </h2>
-            <button type="button" className={STEP} aria-label={m.next_period()} onClick={() => step(1)}>
-              ›
-            </button>
-            <Button onClick={go.today}>{m.go_today()}</Button>
+      <div className="mb-3 grid gap-2.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+          <Segmented
+            label={m.view()}
+            value={view}
+            options={[
+              { value: 'week', label: m.view_week() },
+              { value: 'month', label: m.view_month() },
+              { value: 'list', label: m.view_list() },
+            ]}
+            onChange={go.view}
+          />
+          {view !== 'list' && (
+            <div
+              role="group"
+              aria-label={m.palette_navigate()}
+              className="order-last flex w-full items-center gap-1.5 md:order-none md:w-auto"
+            >
+              <button type="button" className={STEP} aria-label={m.previous_period()} onClick={() => step(-1)}>
+                ‹
+              </button>
+              <h2 className="relative mx-0.5 flex-1 text-center md:min-w-[170px] md:flex-none">
+                <button
+                  type="button"
+                  className="w-full rounded-lg px-2 py-1.5 text-[14px]/[1.2] font-semibold whitespace-nowrap hover:bg-surface-2 md:text-[16px]/[1.2]"
+                  title={m.jump_to_date()}
+                  onClick={() => datePicker.current?.showPicker()}
+                >
+                  {view === 'month'
+                    ? fmtMonth(monthStart)
+                    : `${fmtShort(weekStart)} – ${fmtShort(weekStart + 6 * DAY)} ${new Date(weekStart + 6 * DAY).getUTCFullYear()}`}
+                </button>
+                {/* The native date picker opens from the title; the field itself stays out of sight and out of the tab order. */}
+                <input
+                  ref={datePicker}
+                  type="date"
+                  tabIndex={-1}
+                  aria-label={m.jump_to_date()}
+                  className="pointer-events-none absolute bottom-0 left-1/2 size-px opacity-0"
+                  value={ymd(weekStart)}
+                  onChange={(e) => e.target.value && setWeek(mondayOf(parseLocal(`${e.target.value}T00:00`)))}
+                />
+              </h2>
+              <button type="button" className={STEP} aria-label={m.next_period()} onClick={() => step(1)}>
+                ›
+              </button>
+              <Button onClick={go.today}>{m.go_today()}</Button>
+            </div>
+          )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button className="hidden items-center gap-2 text-muted md:flex" onClick={() => setPaletteOpen(true)}>
+              {m.search()} <Kbd>{mod} K</Kbd>
+            </Button>
+            {canEdit && (
+              <div role="group" aria-label={m.history()} className="hidden gap-1.5 md:flex">
+                <button
+                  type="button"
+                  className={STEP}
+                  aria-label={m.undo()}
+                  title={m.undo()}
+                  disabled={!canUndo}
+                  onClick={undo}
+                >
+                  ↶
+                </button>
+                <button
+                  type="button"
+                  className={STEP}
+                  aria-label={m.redo()}
+                  title={m.redo()}
+                  disabled={!canRedo}
+                  onClick={redo}
+                >
+                  ↷
+                </button>
+              </div>
+            )}
+            {canEdit && (
+              <Button primary title={m.new_event_hint()} onClick={() => newEvent()}>
+                ＋ {m.event()}
+              </Button>
+            )}
+            <Menu label={m.more_actions()} items={menu} />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <CalendarFilter
+            calendars={plan.calendars}
+            hidden={hidden}
+            onToggle={toggle}
+            onSolo={(id) =>
+              solo(
+                id,
+                plan.calendars.map((c) => c.id),
+              )
+            }
+            onManage={canEdit ? () => setCalendarsOpen(true) : undefined}
+          />
+          <div role="group" aria-label={m.view()} className="ml-auto hidden gap-1.5 md:flex">
             {view === 'week' && (
               <Button
                 className={PRESSED}
@@ -309,77 +430,43 @@ export function PlannerPage({
                 {m.full_day()}
               </Button>
             )}
+            <Button className={PRESSED} aria-pressed={expanded} title={m.expand_hint()} onClick={go.expand}>
+              {expanded ? m.collapse() : m.expand()}
+            </Button>
           </div>
-        )}
-        {canEdit && (
-          <Button title={m.new_event_hint()} onClick={() => newEvent()}>
-            ＋ {m.event()}
-          </Button>
-        )}
-        {canEdit && (
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              className={STEP}
-              aria-label={m.undo()}
-              title={m.undo()}
-              disabled={!canUndo}
-              onClick={undo}
-            >
-              ↶
-            </button>
-            <button
-              type="button"
-              className={STEP}
-              aria-label={m.redo()}
-              title={m.redo()}
-              disabled={!canRedo}
-              onClick={redo}
-            >
-              ↷
-            </button>
-            <button
-              type="button"
-              className={`${STEP} w-auto px-2.5 text-[13px]`}
-              title={m.history_hint()}
-              onClick={() => setHistoryOpen(true)}
-            >
-              {m.history()}
-              {steps.length > 0 && (
-                <em className="ml-1.5 text-muted not-italic tabular-nums">
-                  {cursor}/{steps.length}
-                </em>
-              )}
-            </button>
-          </div>
-        )}
-        {canEdit && trashCount > 0 && (
-          <Button title={m.trash_hint({ days: TRASH_DAYS })} onClick={() => setTrashOpen(true)}>
-            {m.trash()} <em className="ml-1 text-muted not-italic tabular-nums">{trashCount}</em>
-          </Button>
-        )}
-        <Button className={PRESSED} aria-pressed={expanded} title={m.expand_hint()} onClick={go.expand}>
-          {expanded ? m.collapse() : m.expand()}
-        </Button>
-        <Button className="flex items-center gap-2 text-muted" onClick={() => setPaletteOpen(true)}>
-          {m.search()}{' '}
-          <span className="hidden md:inline">
-            <Kbd>{mod} K</Kbd>
-          </span>
-        </Button>
-        <CalendarFilter
-          calendars={plan.calendars}
-          hidden={hidden}
-          onToggle={toggle}
-          onSolo={(id) =>
-            solo(
-              id,
-              plan.calendars.map((c) => c.id),
-            )
-          }
-          onManage={canEdit ? () => setCalendarsOpen(true) : undefined}
-        />
+        </div>
       </div>
+
+      {canEdit && overdue.length > 0 && !overdueHidden && (
+        <div
+          className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13.5px]"
+          role="status"
+        >
+          <span className="min-w-0 flex-1">{m.overdue({ count: overdue.length })}</span>
+          <button
+            type="button"
+            className="font-semibold text-done hover:underline"
+            onClick={() => void changeQuietly({ type: 'events.done', uids: overdue.map((e) => e.uid), done: true })}
+          >
+            ✓ {m.overdue_mark()}
+          </button>
+          <button
+            type="button"
+            className="font-semibold text-focus hover:underline"
+            onClick={() => setShiftFrom(overdue[0].start.slice(0, 10))}
+          >
+            {m.shift_plan()}
+          </button>
+          <button
+            type="button"
+            className="text-muted hover:text-ink"
+            aria-label={m.close()}
+            onClick={() => setOverdueHidden(true)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {saveError && (
         <p className="mb-3 text-[13px] text-today" role="alert">
@@ -479,6 +566,7 @@ export function PlannerPage({
         onOpenTrash={() => (setCalendarsOpen(false), setTrashOpen(true))}
         onClose={() => setCalendarsOpen(false)}
       />
+      <ShiftDialog plan={plan} from={shiftFrom} onChange={session.change} onClose={() => setShiftFrom(null)} />
       <TrashDialog
         plan={plan}
         trash={session.trash}

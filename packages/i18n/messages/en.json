@@ -312,5 +312,22 @@
   "dash_total_done": "Done, total",
   "nav": "Sections",
   "nav_plan": "Plan",
-  "nav_components": "Components"
+  "nav_components": "Components",
+  "more_actions": "More actions",
+  "jump_to_date": "Go to a date",
+  "duplicate": "Duplicate",
+  "shift_plan": "Shift the plan",
+  "shift_hint": "Moves every session that is not done, starting from the chosen date. Done sessions stay where they are; the shift can be undone from the history.",
+  "shift_all": "All calendars",
+  "shift_from": "Starting from",
+  "shift_days": "By how many days",
+  "shift_week_later": "+1 week",
+  "shift_day_later": "+1 day",
+  "shift_week_earlier": "−1 week",
+  "shift_count": "Sessions that will move: {count}",
+  "shift_apply": "Shift",
+  "overdue": "Past sessions not marked done: {count}",
+  "overdue_mark": "Mark them done",
+  "history_shifted": "Plan shifted by {days} d: {name}",
+  "history_done_many": "Marked done: {count}"
 }

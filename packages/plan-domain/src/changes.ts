@@ -1,3 +1,4 @@
+import { DAY, parseLocal, toLocalString } from './dates'
 import {
   HEX_COLOR,
   LOCAL_TIME,
@@ -8,6 +9,7 @@ import {
   type EventPatch,
   type PlanEdits,
 } from './edits'
+import { isSession } from './progress'
 import { purgeTrash } from './trash'
 import type { Plan, PlanEvent } from './types'
 
@@ -39,6 +41,13 @@ export type PlanChange =
   | { type: 'trash.restore'; events?: string[]; calendars?: string[] }
   /** Removes everything in the trash for good */
   | { type: 'trash.empty' }
+  /**
+   * Moves every session that is not done and starts on `from` (`YYYY-MM-DD`) or later by a number of days,
+   * in one calendar or in all of them: the way to catch up after time off
+   */
+  | { type: 'events.shift'; calendar?: string; from: string; days: number }
+  /** Marks several sessions done or not done as one step */
+  | { type: 'events.done'; uids: string[]; done: boolean }
 
 /** A change that cannot be applied; `message` is safe to show. */
 export class PlanChangeError extends Error {}
@@ -104,6 +113,27 @@ export function parseChange(input: unknown): PlanChange {
     }
     case 'trash.empty':
       return { type: 'trash.empty' }
+    case 'events.shift': {
+      const { days, calendar } = input
+      if (typeof days !== 'number' || !Number.isInteger(days) || days === 0 || Math.abs(days) > 366) {
+        return fail('days must be a whole number of days, not zero')
+      }
+      const from = text('from')
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) return fail('from must look like 2026-11-23')
+      return {
+        type: 'events.shift',
+        calendar: typeof calendar === 'string' && calendar ? calendar : undefined,
+        from,
+        days,
+      }
+    }
+    case 'events.done': {
+      const { uids, done } = input
+      if (!Array.isArray(uids) || !uids.every((uid) => typeof uid === 'string') || typeof done !== 'boolean') {
+        return fail('uids must be a list of ids and done a boolean')
+      }
+      return { type: 'events.done', uids, done }
+    }
     default:
       return fail(`Unknown change "${input.type}"`)
   }
@@ -215,9 +245,40 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     }
     case 'trash.empty':
       return purgeTrash(base, next, Infinity)
+    case 'events.shift': {
+      if (change.calendar && !calendarExists(change.calendar)) fail(`Unknown calendar "${change.calendar}"`)
+      const moved = shiftTargets(applyEdits(base, next).plan, change)
+      if (!moved.length) fail('No sessions to move')
+      return moved.reduce((sofar, event) => {
+        const patch = {
+          start: toLocalString(parseLocal(event.start) + change.days * DAY),
+          end: toLocalString(parseLocal(event.end) + change.days * DAY),
+        }
+        return applyChange(base, sofar, { type: 'event.patch', uid: event.uid, patch }, now)
+      }, next)
+    }
+    case 'events.done': {
+      const known = new Set(applyEdits(base, next).plan.events.map((e) => e.uid))
+      return change.uids
+        .filter((uid) => known.has(uid))
+        .reduce(
+          (sofar, uid) => applyChange(base, sofar, { type: 'event.patch', uid, patch: { done: change.done } }, now),
+          next,
+        )
+    }
   }
   return next
 }
+
+/** The sessions an `events.shift` change would move, in `plan` as it is shown. */
+export const shiftTargets = (plan: Plan, change: { calendar?: string; from: string }): PlanEvent[] =>
+  plan.events.filter(
+    (e) =>
+      isSession(e) &&
+      !e.done &&
+      e.start.slice(0, 10) >= change.from &&
+      (!change.calendar || e.calendar === change.calendar),
+  )
 
 /** True for an event created in the viewer, not generated from the course content. */
 export const isCustomEvent = (event: PlanEvent) => event.uid.startsWith('custom-')

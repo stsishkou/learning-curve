@@ -19,6 +19,7 @@ export {
   editedUids,
   isCustomEvent,
   parseChange,
+  shiftTargets,
   withChange,
   type NewEvent,
   type PlanChange,

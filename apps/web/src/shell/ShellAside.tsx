@@ -14,7 +14,7 @@ export const STAND_URL: string | undefined =
 /** What the shell puts in every page header: the sections of the app and the language. */
 export function ShellAside() {
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 md:justify-end">
       <nav className="flex gap-1.5" aria-label={m.nav()}>
         <Link to="/" className={TAB} activeOptions={{ exact: true, includeSearch: false }}>
           {m.nav_plan()}

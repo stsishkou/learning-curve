@@ -18,7 +18,7 @@ interface Props {
 export function CalendarFilter({ calendars, hidden, onToggle, onSolo, onManage }: Props) {
   return (
     <div
-      className="-mx-3 flex w-[calc(100%+24px)] min-w-0 flex-none [scrollbar-width:none] gap-1.5 overflow-x-auto px-3 md:mx-0 md:ml-auto md:w-auto md:flex-wrap md:overflow-visible md:px-0"
+      className="-mx-3 flex w-[calc(100%+24px)] min-w-0 flex-none [scrollbar-width:none] gap-1.5 overflow-x-auto px-3 md:mx-0 md:w-auto md:flex-1 md:flex-wrap md:overflow-visible md:px-0"
       aria-label={m.calendars()}
     >
       {calendars.map((c) => (

@@ -54,6 +54,8 @@ function subjectOf(plan: Plan, change: PlanChange): string {
     case 'calendar.remove':
     case 'calendar.clear':
       return plan.calendars.find((c) => c.id === change.id)?.name ?? ''
+    case 'events.shift':
+      return change.calendar ? (plan.calendars.find((c) => c.id === change.calendar)?.name ?? '') : ''
     default:
       return ''
   }
