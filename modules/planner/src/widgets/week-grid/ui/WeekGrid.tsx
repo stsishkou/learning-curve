@@ -1,7 +1,9 @@
-import { dowShort, fmtDay } from '@lc/i18n/format'
+import { dowShort, fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
+  countsToBudget,
   DAY,
+  durationHours,
   hm,
   HOUR,
   layoutLanes,
@@ -27,6 +29,8 @@ interface Props {
   onSelect: (e: PlanEvent) => void
   /** Present when the plan can be edited: called after an event is dragged or resized. */
   onMove?: (e: PlanEvent, slot: { start: string; end: string }) => void
+  /** Present when events can be added: called with the slot that was double-clicked, `YYYY-MM-DDTHH:MM` */
+  onCreate?: (start: string) => void
 }
 
 const PX_PER_HOUR = 56
@@ -62,7 +66,7 @@ interface Drag {
 const keyOf = (o: Occurrence) => `${o.uid}-${o.s}`
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
-export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelect, onMove }: Props) {
+export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelect, onMove, onCreate }: Props) {
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
   let minH = 8
@@ -81,6 +85,8 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
   const days = Array.from({ length: 7 }, (_, i) => weekStart + i * DAY)
   const today = now === null ? null : startOfDay(now)
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
+  const studyHours = (day: number) =>
+    timed.reduce((sum, o) => (startOfDay(o.s) === day && countsToBudget(o) ? sum + durationHours(o) : sum), 0)
 
   // On a narrow screen only some days fit: start at today when it is in this week.
   const scroller = useRef<HTMLDivElement>(null)
@@ -161,9 +167,14 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
             return (
               <div
                 key={d}
-                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''}`}
+                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''} ${d === days[6] ? 'rounded-tr-2xl' : ''}`}
               >
                 {dowShort(d)}
+                {studyHours(d) > 0 && (
+                  <small className="float-right text-[11.5px] tabular-nums" title={m.study_that_day()}>
+                    {fmtHours(studyHours(d))}
+                  </small>
+                )}
                 <b
                   className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today' : 'text-ink'}`}
                 >
@@ -208,11 +219,19 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
             const dayItems = timed.filter((o) => startOfDay(o.s) === d)
             const lanes = layoutLanes(dayItems)
             return (
+              // The keyboard path to a new event is the toolbar button and the N key.
+              // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
               <div
                 key={d}
                 data-day={ymd(d)}
                 className="relative border-r border-line-soft last:border-r-0"
                 style={{ height }}
+                onDoubleClick={(e) => {
+                  if (!onCreate || (e.target instanceof Element && e.target.closest('button'))) return
+                  const y = e.clientY - e.currentTarget.getBoundingClientRect().y
+                  const slot = Math.floor(((y / PX_PER_HOUR + minH) * HOUR) / SNAP) * SNAP
+                  onCreate(toLocalString(d + clamp(slot, 0, DAY - HOUR)))
+                }}
               >
                 {hours.map((h) => (
                   <div
@@ -231,7 +250,7 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
                     <button
                       key={keyOf(o)}
                       type="button"
-                      className={`${EVENT} ${o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 select-none' : ''}`}
+                      className={`${EVENT} ${o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 select-none' : ''} ${o.done ? 'opacity-55' : ''}`}
                       style={{
                         ...calendarColor(colorOf(o.calendar)),
                         top: ((s - startOfDay(s)) / HOUR - minH) * PX_PER_HOUR + 1,
@@ -249,7 +268,10 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
                         else onSelect(o)
                       }}
                     >
-                      <b className="block font-semibold">{shortTitle(o)}</b>
+                      <b className={`block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
+                        {o.done && <span className="mr-1 inline-block text-done no-underline">✓</span>}
+                        {shortTitle(o)}
+                      </b>
                       <small className="text-muted tabular-nums">
                         {hm(s)}–{hm(e)}
                       </small>

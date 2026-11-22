@@ -7,11 +7,32 @@ export {
   nowMinsk,
   parseLocal,
   startOfDay,
+  startOfMonth,
   toLocalString,
   weekday,
   ymd,
 } from './dates'
-export { applyEdits, emptyEdits, parseEdits, parsePatch, patchProblem, type EventPatch, type PlanEdits } from './edits'
+export {
+  PlanChangeError,
+  applyChange,
+  editedUids,
+  isCustomEvent,
+  parseChange,
+  withChange,
+  type NewEvent,
+  type PlanChange,
+} from './changes'
+export { diffPlans, type PlanDiff } from './diff'
+export {
+  applyEdits,
+  emptyEdits,
+  parseEdits,
+  parsePatch,
+  patchProblem,
+  type CalendarPatch,
+  type EventPatch,
+  type PlanEdits,
+} from './edits'
 export { IMPORT_HOWTO, buildICS, calendarICS, combinedCalendar, combinedICS, icsFileName } from './ics'
 export {
   countsToBudget,
@@ -22,6 +43,7 @@ export {
   type Lane,
   type Occurrence,
 } from './occurrences'
+export { courseProgress, isSession, type CourseProgress } from './progress'
 export { DEFAULT_CONFIG, buildPlan, weeklyHours, type ScheduleConfig } from './schedule'
 export {
   isPlan,

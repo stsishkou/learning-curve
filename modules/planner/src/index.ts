@@ -1,3 +1,4 @@
+export type { Command as PlannerCommand } from './features/command-palette'
 export {
   PlannerPage,
   parsePlannerSearch,

@@ -2,6 +2,8 @@ import { m } from '@lc/i18n/messages'
 import { getLocale, localizeHref } from '@lc/i18n/runtime'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { THEME_BOOT_SCRIPT } from '#/shell/theme'
+
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
@@ -9,6 +11,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+      { name: 'color-scheme', content: 'light dark' },
       { title: m.meta_title() },
       { name: 'description', content: m.meta_description() },
     ],
@@ -25,6 +28,7 @@ export const Route = createRootRoute({
         href: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗓️</text></svg>',
       },
     ],
+    scripts: [{ children: THEME_BOOT_SCRIPT }],
   }),
   shellComponent: RootDocument,
   notFoundComponent: () => (

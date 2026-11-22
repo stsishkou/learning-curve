@@ -6,6 +6,8 @@ export interface PlanCalendar {
   /** true when the calendar does not exist yet and must be created before import */
   isNew: boolean
   note?: string
+  /** true for a calendar added in the viewer, not defined in the course content */
+  custom?: boolean
 }
 
 export type EventKind = 'study' | 'lab' | 'buffer' | 'personal' | 'milestone'
@@ -25,6 +27,8 @@ export interface PlanEvent {
   allDay?: boolean
   /** RFC 5545 RRULE without the `RRULE:` prefix, e.g. `FREQ=WEEKLY;BYDAY=TU,TH` */
   rrule?: string
+  /** The session is finished: set by hand in the viewer */
+  done?: boolean
 }
 
 export interface PlanMeta {

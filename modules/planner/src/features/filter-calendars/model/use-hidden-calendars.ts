@@ -27,5 +27,13 @@ export function useHiddenCalendars() {
     })
   }, [])
   const reset = useCallback(() => setHidden(new Set()), [])
-  return { hidden, toggle, reset }
+  /** Leaves only `id` visible; when it already is the only one, shows everything. Not remembered: it is a quick look. */
+  const solo = useCallback((id: string, all: string[]) => {
+    setHidden((prev) => {
+      const others = all.filter((other) => other !== id)
+      const alreadySolo = !prev.has(id) && others.every((other) => prev.has(other))
+      return new Set(alreadySolo ? [] : others)
+    })
+  }, [])
+  return { hidden, toggle, solo, reset }
 }

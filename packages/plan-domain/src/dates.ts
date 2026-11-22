@@ -26,6 +26,11 @@ export const toLocalString = (t: number) => `${ymd(t)}T${hm(t)}`
 export const startOfDay = (t: number) => Math.floor(t / DAY) * DAY
 export const weekday = (t: number) => new Date(t).getUTCDay() // 0 Sun … 6 Sat
 export const mondayOf = (t: number) => startOfDay(t) - ((weekday(t) + 6) % 7) * DAY
+/** First day of the month `t` is in, and of the month `n` months away */
+export const startOfMonth = (t: number, n = 0) => {
+  const d = new Date(t)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1)
+}
 export const addDays = (s: string, n: number) => ymd(parseLocal(s) + n * DAY)
 
 /** Current Minsk wall-clock time */

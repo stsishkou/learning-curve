@@ -59,9 +59,12 @@ export function AgendaList({ plan, items, now, onSelect }: Props) {
         <time className="text-[13.5px] text-muted tabular-nums">
           {o.allDay ? m.all_day() : `${hm(o.s)}–${hm(o.e)}`}
         </time>
-        <span className={`flex items-baseline gap-2 ${o.availability === 'free' ? 'text-muted' : ''}`}>
+        <span
+          className={`flex items-baseline gap-2 ${o.availability === 'free' || o.done ? 'text-muted' : ''} ${o.done ? 'line-through decoration-done' : ''}`}
+        >
           <Dot className="size-[9px] -translate-y-px" />
           {o.title}
+          {o.done && <span className="text-done no-underline">✓</span>}
         </span>
       </button>,
     )

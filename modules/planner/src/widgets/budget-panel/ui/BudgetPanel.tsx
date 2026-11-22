@@ -4,13 +4,12 @@ import { countsToBudget, durationHours, type Occurrence, parseLocal, type Plan }
 import { calendarColor, Dot } from '@lc/ui'
 
 interface Props {
-  className?: string
   plan: Plan
   weekItems: Occurrence[]
 }
 
 /** Study hours in the visible week against the weekly budget. */
-export function BudgetPanel({ className = '', plan, weekItems }: Props) {
+export function BudgetPanel({ plan, weekItems }: Props) {
   const perCalendar: Record<string, number> = {}
   let total = 0
   for (const o of weekItems) {
@@ -22,8 +21,7 @@ export function BudgetPanel({ className = '', plan, weekItems }: Props) {
   const rows = plan.calendars.filter((c) => perCalendar[c.id])
 
   return (
-    <aside className={`rounded-2xl border border-line bg-surface p-4 ${className}`}>
-      <h4 className="mb-2.5 text-[14px]/[1.3] font-semibold">{m.study_this_week()}</h4>
+    <div>
       <div className="tabular-nums">
         <div className="font-display text-[30px] leading-none font-bold tracking-[-0.02em]">
           {fmtHours(total)}
@@ -63,6 +61,6 @@ export function BudgetPanel({ className = '', plan, weekItems }: Props) {
       <div className="mt-4 border-t border-line-soft pt-3.5 text-[12.5px] text-muted">
         {m.budget_note({ timezone: plan.meta.timezone, date: fmtDay(parseLocal(plan.meta.generated)) })}
       </div>
-    </aside>
+    </div>
   )
 }

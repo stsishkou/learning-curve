@@ -1,1 +1,2 @@
-export { OpenPlanFile } from './ui/OpenPlanFile'
+export { FileBanner } from './ui/FileBanner'
+export { OpenPlanFile, type OpenedFile } from './ui/OpenPlanFile'

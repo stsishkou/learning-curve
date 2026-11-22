@@ -1,4 +1,5 @@
-/* Color tokens live on :root so the dark values below swap them without a `dark:` variant on every class. */
+/* Color tokens live on :root so the dark values below swap them without a `dark:` variant on every class.
+   The scheme follows the system unless <meta name="color-scheme"> pins it to light or dark (see the app's theme switch). */
 :root {
   color-scheme: light;
   --bg: #edf1f6;
@@ -10,12 +11,13 @@
   --line-soft: #e6ebf1;
   --today: #d8473b;
   --focus: #2f5bea;
+  --done: #1f9d6b;
   --shadow: 0 1px 0 rgb(23 32 51 / 0.06);
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
+  :root:not(:has(> head > meta[name='color-scheme'][content='light'])) {
     color-scheme: dark;
     --bg: #121722;
     --surface: #1a2130;
@@ -26,10 +28,11 @@
     --line-soft: #242d3d;
     --today: #ff6b5e;
     --focus: #7c9bff;
+    --done: #46c692;
     --shadow: 0 0 #0000;
   }
 }
-:root[data-theme='dark'] {
+:root:has(> head > meta[name='color-scheme'][content='dark']) {
   color-scheme: dark;
   --bg: #121722;
   --surface: #1a2130;
@@ -40,6 +43,7 @@
   --line-soft: #242d3d;
   --today: #ff6b5e;
   --focus: #7c9bff;
+  --done: #46c692;
   --shadow: 0 0 #0000;
 }
 
@@ -64,6 +68,7 @@
   --color-focus: var(--focus);
   /* --c is the calendar color, set inline on the element that owns the event, chip or legend row */
   --color-cal: var(--c);
+  --color-done: var(--done);
   --shadow-card: var(--shadow);
 }
 

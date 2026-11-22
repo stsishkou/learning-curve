@@ -1,5 +1,8 @@
 export { Button } from './button'
 export { calendarColor } from './calendar-color'
 export { Dot } from './dot'
+export { FIELD, INPUT } from './field'
+export { Kbd } from './kbd'
 export { FOOT, META, Modal, TITLE } from './modal'
+export { ProgressRing } from './progress-ring'
 export { Segmented } from './segmented'
