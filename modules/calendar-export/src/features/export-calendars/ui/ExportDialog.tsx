@@ -1,5 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import {
+  ALARM_MINUTES,
   calendarICS,
   combinedCalendar,
   combinedICS,
@@ -43,6 +44,8 @@ export function ExportDialog({
   const [mode, setMode] = useState<'separate' | 'single'>('separate')
   const [provider, setProvider] = useState<Provider>('google')
   const [markDone, setMarkDone] = useState(false)
+  const [alarms, setAlarms] = useState(false)
+  const options = { markDone, alarm: alarms ? ALARM_MINUTES : undefined }
   useEffect(() => {
     try {
       const saved = PROVIDERS.find((p) => p === localStorage.getItem(PROVIDER_KEY))
@@ -82,7 +85,7 @@ export function ExportDialog({
     const files: Record<string, string> = {
       'Как импортировать.txt': IMPORT_HOWTO(calendars.filter((c) => c.isNew).map((c) => c.name)),
     }
-    for (const c of calendars) files[icsFileName(c)] = calendarICS(plan, c, { markDone })
+    for (const c of calendars) files[icsFileName(c)] = calendarICS(plan, c, options)
     downloadBlob(`plan-ics-${plan.meta.generated}.zip`, await zipBlob(files))
     setStatus(m.export_done({ count: calendars.length }))
   }
@@ -91,13 +94,13 @@ export function ExportDialog({
     const calendars = chosen()
     if (!calendars.length) return setStatus(m.export_select_calendar())
     const name = icsFileName(combinedCalendar(plan))
-    downloadBlob(name, combinedICS(plan, new Set(calendars.map((c) => c.id)), { markDone }), 'text/calendar')
+    downloadBlob(name, combinedICS(plan, new Set(calendars.map((c) => c.id)), options), 'text/calendar')
     setStatus(m.export_done_single({ name }))
   }
 
   function downloadOne(id: string) {
     const c = plan.calendars.find((it) => it.id === id)!
-    downloadBlob(icsFileName(c), calendarICS(plan, c, { markDone }), 'text/calendar')
+    downloadBlob(icsFileName(c), calendarICS(plan, c, options), 'text/calendar')
   }
 
   return (
@@ -156,6 +159,13 @@ export function ExportDialog({
         <input type="checkbox" checked={markDone} onChange={(e) => setMarkDone(e.target.checked)} />
         {m.export_mark_done()}
       </label>
+      <label className="flex items-center gap-2.5 px-2 py-[7px] text-[13.5px]">
+        <input type="checkbox" checked={alarms} onChange={(e) => setAlarms(e.target.checked)} />
+        {m.export_alarms({ minutes: ALARM_MINUTES })}
+      </label>
+      {alarms && provider === 'google' && (
+        <p className="px-2 pb-1 text-[12.5px] text-muted">{m.export_alarms_google()}</p>
+      )}
       <div className="mt-2.5 text-[13px]">
         <Segmented
           label={m.export_where()}

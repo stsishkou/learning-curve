@@ -38,9 +38,17 @@ export const icsFileName = (calendar: PlanCalendar) => `${fileStem(calendar.name
 /** File name of the plan itself when it is downloaded: it follows the plan's title, e.g. `AI_Agent_Engineer.json` */
 export const planFileName = (plan: Plan) => `${fileStem(plan.meta.title) || 'plan'}.json`
 
+/** Minutes before a start that the viewer's own reminders and the exported alarms use */
+export const ALARM_MINUTES = 10
+
 export interface IcsOptions {
   /** Done sessions get a ✓ before the title and stop blocking their time: a VEVENT has no "completed" state */
   markDone?: boolean
+  /**
+   * Minutes before the start at which every timed, busy event that is not finished asks for a reminder (VALARM).
+   * Whether it is kept is up to the calendar app: some replace it with their own default.
+   */
+  alarm?: number
   /** The address the file is served from, for a client that subscribed to it (RFC 7986 SOURCE) */
   source?: string
 }
@@ -90,11 +98,17 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
     if (e.description) lines.push(`DESCRIPTION:${escapeText(e.description)}`)
     const url = e.description.match(/Module: (\S+)/)?.[1]
     if (url && /^https?:/.test(url)) lines.push(`URL:${url}`)
-    lines.push(
-      `TRANSP:${e.availability === 'free' || finished ? 'TRANSPARENT' : 'OPAQUE'}`,
-      'STATUS:CONFIRMED',
-      'END:VEVENT',
-    )
+    lines.push(`TRANSP:${e.availability === 'free' || finished ? 'TRANSPARENT' : 'OPAQUE'}`, 'STATUS:CONFIRMED')
+    if (options.alarm && !e.allDay && e.availability !== 'free' && !e.done) {
+      lines.push(
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:${escapeText(e.title)}`,
+        `TRIGGER:-PT${options.alarm}M`,
+        'END:VALARM',
+      )
+    }
+    lines.push('END:VEVENT')
   }
   lines.push('END:VCALENDAR')
   return lines.map(fold).join('\r\n') + '\r\n'

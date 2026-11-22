@@ -5,7 +5,8 @@ import { createFileRoute } from '@tanstack/react-router'
 /**
  * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`);
  * `all` returns every calendar's events in one file.
- * Add `?download=1` to get it as an attachment, `?done=1` to mark finished sessions with ✓ and free their time. Once the app is deployed on a public URL,
+ * Add `?download=1` to get it as an attachment, `?done=1` to mark finished sessions with ✓ and free their time,
+ * `?alarm=10` to ask for a reminder that many minutes before each start. Once the app is deployed on a public URL,
  * this address can be added in Google Calendar / Outlook as a subscription ("From URL").
  */
 export const Route = createFileRoute('/api/ics/$calendarId')({
@@ -22,7 +23,13 @@ export const Route = createFileRoute('/api/ics/$calendarId')({
             status: 404,
           })
         const query = new URL(request.url).searchParams
-        const options = { markDone: query.has('done'), source: request.url }
+        // `?alarm=10`: minutes; anything that is not 1 to 1440 leaves the alarms out.
+        const alarm = Number(query.get('alarm'))
+        const options = {
+          markDone: query.has('done'),
+          alarm: Number.isInteger(alarm) && alarm > 0 && alarm <= 1440 ? alarm : undefined,
+          source: request.url,
+        }
         const body =
           id === 'all'
             ? combinedICS(plan, new Set(only ?? plan.calendars.map((c) => c.id)), options)

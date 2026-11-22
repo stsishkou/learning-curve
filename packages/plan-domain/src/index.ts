@@ -81,6 +81,7 @@ export {
   type PlanEdits,
 } from './edits'
 export {
+  ALARM_MINUTES,
   IMPORT_HOWTO,
   buildICS,
   calendarICS,

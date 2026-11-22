@@ -1,10 +1,10 @@
 import { m } from '@lc/i18n/messages'
-import { hm, nowMinsk, type Occurrence } from '@lc/plan-domain'
+import { ALARM_MINUTES, hm, nowMinsk, type Occurrence } from '@lc/plan-domain'
 import { useEffect, useState } from 'react'
 
 const REMINDERS_KEY = 'learning-curve:reminders'
 /** How long before a start the reminder is shown, in ms */
-const LEAD = 10 * 60_000
+const LEAD = ALARM_MINUTES * 60_000
 /** The longest delay a timer takes; a later reminder is set when this one runs out */
 const MAX_DELAY = 2 ** 31 - 1
 

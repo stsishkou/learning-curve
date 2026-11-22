@@ -151,7 +151,8 @@ You can also open any `plan.json` in the viewer ("Открыть файл пла
 Use **Экспорт в календарь** in the viewer (separate calendars as a zip or one `.ics` each, or everything as one
 `.ics` for a single calendar), or `pnpm run plan --ics`. Pick the calendar app under `Where to` (Google Calendar, Outlook,
 Apple Calendar or another) and the dialog shows the import steps for it; the choice is remembered. `Mark finished
-sessions` puts a ✓ before the title of every done session and stops it blocking time.
+sessions` puts a ✓ before the title of every done session and stops it blocking time. `Add a reminder` puts a
+10-minute alarm on every timed session that is not done; the calendar app decides whether to keep it.
 
 1. Create the calendars marked "создать календарь" (Gemini Certs, Practical Python, Личное).
 2. Delete old future events from existing calendars, otherwise you get duplicates.
@@ -164,7 +165,7 @@ sessions` puts a ✓ before the title of every done session and stops it blockin
 | Route | Response |
 |---|---|
 | `GET /api/plan` | The plan as JSON |
-| `GET /api/ics/:calendarId` | One calendar as `.ics` (`certs`, `hfllm`, `hfagents`, `pypy`, `journey`, `personal`); add `?download=1` for an attachment, `?done=1` to mark finished sessions |
+| `GET /api/ics/:calendarId` | One calendar as `.ics` (`certs`, `hfllm`, `hfagents`, `pypy`, `journey`, `personal`); add `?download=1` for an attachment, `?done=1` to mark finished sessions, `?alarm=10` for a reminder that many minutes before each start |
 | `GET /api/ics/all` | Every calendar's events in one `.ics`; `?calendars=certs,hfllm` narrows it |
 | `GET /api/ics-zip` | All calendars in one zip |
 
