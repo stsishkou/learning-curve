@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { downloadBlob, zipBlob } from '#/lib/client'
-import { buildICS, icsFileName, IMPORT_HOWTO } from '#/lib/plan/ics'
+import { calendarICS, combinedCalendar, combinedICS, icsFileName, IMPORT_HOWTO } from '#/lib/plan/ics'
 import type { Plan } from '#/lib/plan/types'
 import { m } from '#/paraglide/messages.js'
 
 import { FOOT, META, Modal, TITLE } from './Modal'
-import { Button, Dot, calendarColor } from './ui'
+import { Button, Dot, Segmented, calendarColor } from './ui'
 
 export function ExportDialog({
   plan,
@@ -25,6 +25,7 @@ export function ExportDialog({
   )
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [status, setStatus] = useState('')
+  const [mode, setMode] = useState<'separate' | 'single'>('separate')
   useEffect(() => {
     if (open) {
       setSelected(new Set(plan.calendars.filter((c) => counts[c.id] && !hidden.has(c.id)).map((c) => c.id)))
@@ -40,39 +41,47 @@ export function ExportDialog({
       return next
     })
 
+  const chosen = () => plan.calendars.filter((c) => selected.has(c.id))
+
   async function downloadZip() {
-    const ids = plan.calendars.filter((c) => selected.has(c.id))
-    if (!ids.length) return setStatus(m.export_select_calendar())
+    const calendars = chosen()
+    if (!calendars.length) return setStatus(m.export_select_calendar())
     const files: Record<string, string> = {
-      'Как импортировать.txt': IMPORT_HOWTO(ids.filter((c) => c.isNew).map((c) => c.name)),
+      'Как импортировать.txt': IMPORT_HOWTO(calendars.filter((c) => c.isNew).map((c) => c.name)),
     }
-    for (const c of ids)
-      files[icsFileName(c)] = buildICS(
-        c,
-        plan.events.filter((e) => e.calendar === c.id),
-        plan.meta.timezone,
-      )
+    for (const c of calendars) files[icsFileName(c)] = calendarICS(plan, c)
     downloadBlob(`plan-ics-${plan.meta.generated}.zip`, await zipBlob(files))
-    setStatus(m.export_done({ count: ids.length }))
+    setStatus(m.export_done({ count: calendars.length }))
+  }
+
+  function downloadCombined() {
+    const calendars = chosen()
+    if (!calendars.length) return setStatus(m.export_select_calendar())
+    const name = icsFileName(combinedCalendar(plan))
+    downloadBlob(name, combinedICS(plan, new Set(calendars.map((c) => c.id))), 'text/calendar')
+    setStatus(m.export_done_single({ name }))
   }
 
   function downloadOne(id: string) {
     const c = plan.calendars.find((it) => it.id === id)!
-    downloadBlob(
-      icsFileName(c),
-      buildICS(
-        c,
-        plan.events.filter((e) => e.calendar === id),
-        plan.meta.timezone,
-      ),
-      'text/calendar',
-    )
+    downloadBlob(icsFileName(c), calendarICS(plan, c), 'text/calendar')
   }
 
   return (
     <Modal open={open} onClose={onClose}>
       <h3 className={TITLE}>{m.export_to_calendar()}</h3>
-      <div className={META}>{m.export_hint()}</div>
+      <div className={META}>{mode === 'separate' ? m.export_hint() : m.export_hint_single()}</div>
+      <div className="mt-3">
+        <Segmented
+          label={m.export_mode()}
+          value={mode}
+          options={[
+            { value: 'separate', label: m.export_separate() },
+            { value: 'single', label: m.export_single() },
+          ]}
+          onChange={(next) => (setMode(next), setStatus(''))}
+        />
+      </div>
       <div className="mt-3.5 mb-1.5 grid gap-1">
         {plan.calendars.map((c) => (
           <label
@@ -87,16 +96,18 @@ export function ExportDialog({
               onChange={() => toggle(c.id)}
             />
             <Dot className="size-2.5" />
-            {c.name}
-            {c.isNew && (
-              <span className="rounded-md border border-current px-[5px] text-[11.5px] text-focus">
-                {m.create_calendar()}
-              </span>
-            )}
-            <em className="ml-auto text-[13px] text-muted not-italic tabular-nums">
+            <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+              {c.name}
+              {mode === 'separate' && c.isNew && (
+                <span className="rounded-md border border-current px-[5px] text-[11.5px] whitespace-nowrap text-focus">
+                  {m.create_calendar()}
+                </span>
+              )}
+            </span>
+            <em className="text-[13px] whitespace-nowrap text-muted not-italic tabular-nums">
               {m.events_count({ count: counts[c.id] })}
             </em>
-            {counts[c.id] > 0 && (
+            {mode === 'separate' && counts[c.id] > 0 && (
               <button
                 type="button"
                 className="ml-1.5 rounded-md border border-line bg-surface px-[7px] py-px text-[12px]"
@@ -109,8 +120,14 @@ export function ExportDialog({
         ))}
       </div>
       <ol className="mt-2.5 list-decimal pl-[18px] text-[13px] text-muted *:my-[3px]">
-        <li>{m.howto_google()}</li>
-        <li>{m.howto_outlook()}</li>
+        {mode === 'separate' ? (
+          <>
+            <li>{m.howto_google()}</li>
+            <li>{m.howto_outlook()}</li>
+          </>
+        ) : (
+          <li>{m.howto_single()}</li>
+        )}
         <li>{m.howto_duplicates()}</li>
       </ol>
       <p className="mt-2 min-h-[1.4em] text-[13px] text-muted" role="status">
@@ -120,9 +137,15 @@ export function ExportDialog({
         <Button onClick={() => downloadBlob('plan.json', JSON.stringify(plan, null, 2), 'application/json')}>
           {m.download_plan_json()}
         </Button>
-        <Button primary onClick={downloadZip}>
-          {m.download_zip()}
-        </Button>
+        {mode === 'separate' ? (
+          <Button primary onClick={downloadZip}>
+            {m.download_zip()}
+          </Button>
+        ) : (
+          <Button primary onClick={downloadCombined}>
+            {m.download_ics()}
+          </Button>
+        )}
         <Button onClick={onClose}>{m.close()}</Button>
       </div>
     </Modal>

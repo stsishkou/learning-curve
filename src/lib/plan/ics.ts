@@ -1,4 +1,4 @@
-import type { PlanCalendar, PlanEvent } from './types'
+import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 const escapeText = (s: string) =>
   s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
@@ -72,6 +72,30 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
   lines.push('END:VCALENDAR')
   return lines.map(fold).join('\r\n') + '\r\n'
 }
+
+/** Events of one calendar, ready for `buildICS`. */
+export const calendarICS = (plan: Plan, calendar: PlanCalendar) =>
+  buildICS(
+    calendar,
+    plan.events.filter((e) => e.calendar === calendar.id),
+    plan.meta.timezone,
+  )
+
+/** The stand-in calendar for a combined export: every chosen calendar's events in one file. */
+export const combinedCalendar = (plan: Plan): PlanCalendar => ({
+  id: 'all',
+  name: plan.meta.title,
+  color: '',
+  isNew: true,
+})
+
+/** One VCALENDAR with the events of all `calendarIds`, for import into a single calendar. */
+export const combinedICS = (plan: Plan, calendarIds: ReadonlySet<string>) =>
+  buildICS(
+    combinedCalendar(plan),
+    plan.events.filter((e) => calendarIds.has(e.calendar)),
+    plan.meta.timezone,
+  )
 
 export const IMPORT_HOWTO = (newCalendars: string[]) =>
   [

@@ -1,10 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { buildICS, icsFileName } from '#/lib/plan/ics'
+import { calendarICS, combinedCalendar, combinedICS, icsFileName } from '#/lib/plan/ics'
 import { readPlan } from '#/lib/plan/store'
 
 /**
- * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`).
+ * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`);
+ * `all` returns every calendar's events in one file.
  * Add `?download=1` to get it as an attachment. Once the app is deployed on a public URL,
  * this address can be added in Google Calendar / Outlook as a subscription ("From URL").
  */
@@ -14,16 +15,17 @@ export const Route = createFileRoute('/api/ics/$calendarId')({
       GET: ({ params, request }) => {
         const plan = readPlan()
         const id = params.calendarId.replace(/\.ics$/, '')
-        const calendar = plan.calendars.find((c) => c.id === id)
+        // `all` is the combined calendar; `?calendars=certs,hfllm` narrows it.
+        const only = new URL(request.url).searchParams.get('calendars')?.split(',')
+        const calendar = id === 'all' ? combinedCalendar(plan) : plan.calendars.find((c) => c.id === id)
         if (!calendar)
-          return new Response(`Unknown calendar "${id}". Known: ${plan.calendars.map((c) => c.id).join(', ')}`, {
+          return new Response(`Unknown calendar "${id}". Known: all, ${plan.calendars.map((c) => c.id).join(', ')}`, {
             status: 404,
           })
-        const body = buildICS(
-          calendar,
-          plan.events.filter((e) => e.calendar === id),
-          plan.meta.timezone,
-        )
+        const body =
+          id === 'all'
+            ? combinedICS(plan, new Set(only ?? plan.calendars.map((c) => c.id)))
+            : calendarICS(plan, calendar)
         const download = new URL(request.url).searchParams.has('download')
         return new Response(body, {
           headers: {

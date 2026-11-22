@@ -135,5 +135,12 @@
   "recurring_hint": "El cambio se aplica a todas las repeticiones.",
   "error_title_required": "Escribe un título.",
   "error_time_order": "El fin debe ser posterior al inicio.",
-  "save_failed": "No se pudo guardar: {reason}"
+  "save_failed": "No se pudo guardar: {reason}",
+  "export_mode": "Cómo exportar",
+  "export_separate": "Calendarios separados",
+  "export_single": "Un solo calendario",
+  "export_hint_single": "Todos los eventos seleccionados en un solo archivo .ics, para importarlos en un único calendario.",
+  "howto_single": "Importa el archivo en el calendario que quieras. Google Calendar: Configuración → Importar y exportar. Outlook: Agregar calendario → Cargar desde archivo.",
+  "download_ics": "Descargar .ics",
+  "export_done_single": "Se descargó {name}."
 }
