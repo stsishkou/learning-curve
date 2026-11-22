@@ -32,9 +32,11 @@ a Husky `commit-msg` hook checks them with commitlint.
 
 ## Languages
 
-The interface is in Russian (default, unprefixed URLs), English (`/en/…`) and Spanish (`/es/…`), built with
+The interface is in Russian (`/ru/…`, the default), English (`/en/…`) and Spanish (`/es/…`), built with
 [Paraglide JS](https://paraglidejs.com). Plan content (event titles, descriptions, calendar notes) and the
 exported files are Russian only.
+
+A URL without a language prefix redirects to `/ru/…`. The `/api/…` endpoints have no prefix.
 
 - Messages live in `messages/{ru,en,es}.json`; `project.inlang/` holds the locale list and compiler options.
 - `src/paraglide/` is generated and git-ignored: never edit it.

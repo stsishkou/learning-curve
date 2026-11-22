@@ -4,15 +4,16 @@ export default defineConfig({
   outdir: './src/paraglide',
   emitTsDeclarations: true,
   strategy: ['url', 'baseLocale'],
-  // Russian keeps the unprefixed URLs so existing links and /api routes stay valid.
   urlPatterns: [
     {
       pattern: '/:path(.*)?',
       localized: [
+        ['ru', '/ru/:path(.*)?'],
         ['en', '/en/:path(.*)?'],
         ['es', '/es/:path(.*)?'],
-        ['ru', '/:path(.*)?'],
       ],
     },
   ],
+  // The .ics and plan endpoints are language-neutral and their URLs are used as calendar subscriptions.
+  routeStrategies: [{ match: '/api/:path(.*)?', exclude: true }],
 })
