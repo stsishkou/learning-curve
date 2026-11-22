@@ -1,0 +1,86 @@
+import type { PlanCalendar, PlanEvent } from './types'
+
+const escapeText = (s: string) =>
+  s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+
+/** Lines longer than 75 octets are folded with CRLF + space (RFC 5545 §3.1). */
+function fold(line: string): string {
+  const enc = new TextEncoder()
+  if (enc.encode(line).length <= 75) return line
+  const out: string[] = []
+  let cur = ''
+  for (const ch of line) {
+    if (enc.encode(cur + ch).length > (out.length ? 74 : 75)) {
+      out.push(cur)
+      cur = ch
+    } else cur += ch
+  }
+  out.push(cur)
+  return out.join('\r\n ')
+}
+
+const compact = (local: string) => local.replace(/[-:]/g, '').slice(0, 15).padEnd(15, '0') // 2026-11-23T12:00 → 20261123T120000
+
+function nextDate(day: string): string {
+  const d = new Date(Date.UTC(+day.slice(0, 4), +day.slice(4, 6) - 1, +day.slice(6, 8) + 1))
+  return d.toISOString().slice(0, 10).replace(/-/g, '')
+}
+
+/** File name used for downloads and the zip, e.g. `Gemini_Certs.ics` */
+export const icsFileName = (calendar: PlanCalendar) => `${calendar.name.replace(/[:/\\]/g, '').replace(/\s+/g, '_')}.ics`
+
+/**
+ * One VCALENDAR per target calendar. Google Calendar and Outlook import it into the calendar the user picks.
+ * The fixed Europe/Minsk VTIMEZONE (+03:00, no DST) keeps times correct in both.
+ */
+export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string): string {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//learning-curve//study plan//RU',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${escapeText(calendar.name)}`,
+    `X-WR-TIMEZONE:${tz}`,
+    'BEGIN:VTIMEZONE',
+    `TZID:${tz}`,
+    'BEGIN:STANDARD',
+    'DTSTART:19700101T000000',
+    'TZOFFSETFROM:+0300',
+    'TZOFFSETTO:+0300',
+    'TZNAME:+03',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+  ]
+  for (const e of events) {
+    lines.push('BEGIN:VEVENT', `UID:${e.uid}`, `DTSTAMP:${stamp}`)
+    if (e.allDay) {
+      const day = e.start.slice(0, 10).replace(/-/g, '')
+      lines.push(`DTSTART;VALUE=DATE:${day}`, `DTEND;VALUE=DATE:${nextDate(day)}`)
+    } else {
+      lines.push(`DTSTART;TZID=${tz}:${compact(e.start)}`, `DTEND;TZID=${tz}:${compact(e.end)}`)
+    }
+    if (e.rrule) lines.push(`RRULE:${e.rrule}`)
+    lines.push(`SUMMARY:${escapeText(e.title)}`)
+    if (e.description) lines.push(`DESCRIPTION:${escapeText(e.description)}`)
+    const url = e.description.match(/Module: (\S+)/)?.[1]
+    if (url && /^https?:/.test(url)) lines.push(`URL:${url}`)
+    lines.push(`TRANSP:${e.availability === 'free' ? 'TRANSPARENT' : 'OPAQUE'}`, 'STATUS:CONFIRMED', 'END:VEVENT')
+  }
+  lines.push('END:VCALENDAR')
+  return lines.map(fold).join('\r\n') + '\r\n'
+}
+
+export const IMPORT_HOWTO = (newCalendars: string[]) =>
+  [
+    'Каждый .ics-файл импортируется в календарь с тем же названием.',
+    '',
+    'Google Calendar (компьютер): Настройки → Импорт и экспорт → Импорт → выбрать файл → выбрать календарь → Импорт.',
+    'Outlook: Календарь → Добавить календарь → Загрузить из файла → выбрать файл и календарь.',
+    '',
+    newCalendars.length ? `Новые календари (создать заранее): ${newCalendars.join(', ')}.` : '',
+    'Перед повторным импортом удалите старые события из этих календарей, иначе появятся дубли.',
+  ]
+    .filter((l, i, a) => l || a[i - 1])
+    .join('\r\n')
