@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
 import { dowShort, fmtDay } from '#/lib/format'
 import { DAY, HOUR, hm, startOfDay, toLocalString, ymd } from '#/lib/plan/dates'
@@ -24,6 +24,8 @@ const SNAP = HOUR / 2
 const DRAG_THRESHOLD = 5
 
 const HEAD = 'border-b border-line text-muted'
+// The hour column stays in place while the days scroll sideways on a narrow screen.
+const PINNED = 'sticky left-0 z-4 bg-surface'
 const DAY_OFF = 'bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line-soft)_6px_8px)]'
 const EVENT =
   'absolute overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink'
@@ -63,6 +65,13 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Prop
   const days = Array.from({ length: 7 }, (_, i) => weekStart + i * DAY)
   const today = now === null ? null : startOfDay(now)
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
+
+  // On a narrow screen only some days fit: start at today when it is in this week.
+  const scroller = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const column = today === null ? null : scroller.current?.querySelector<HTMLElement>(`[data-day="${ymd(today)}"]`)
+    if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - 52
+  }, [today, weekStart])
 
   const [drag, setDrag] = useState<Drag | null>(null)
   const press = useRef<{ x: number; y: number; columnWidth: number; moved: boolean } | null>(null)
@@ -119,13 +128,13 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Prop
 
   return (
     <>
-      <div className="overflow-x-auto">
+      <div ref={scroller} className="snap-x scroll-pl-[52px] overflow-x-auto">
         <div className="grid min-w-[760px] grid-cols-[52px_repeat(7,minmax(96px,1fr))]">
-          <div className={HEAD} />
+          <div className={`${HEAD} ${PINNED} rounded-tl-2xl`} />
           {days.map((d) => {
             const off = plan.meta.holidays.includes(ymd(d))
             return (
-              <div key={d} className={`${HEAD} px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''}`}>
+              <div key={d} className={`${HEAD} snap-start px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''}`}>
                 {dowShort(d)}
                 <b
                   className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today' : 'text-ink'}`}
@@ -139,7 +148,7 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Prop
 
           {allDay.length > 0 && (
             <>
-              <div className={`${HEAD} px-2 py-1.5 text-[11px]`}>{m.all_day()}</div>
+              <div className={`${HEAD} ${PINNED} px-2 py-1.5 text-[11px]`}>{m.all_day()}</div>
               <div className="col-[2/-1] flex flex-wrap gap-1.5 border-b border-line-soft px-2 py-1.5">
                 {allDay.map((o) => (
                   <button
@@ -155,7 +164,7 @@ export function WeekGrid({ plan, weekStart, items, now, onSelect, onMove }: Prop
             </>
           )}
 
-          <div className="relative border-r border-line-soft" style={{ height }}>
+          <div className={`${PINNED} relative rounded-bl-2xl border-r border-line-soft`} style={{ height }}>
             {hours.map((h) => (
               <span
                 key={h}

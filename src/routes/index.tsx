@@ -110,8 +110,8 @@ function PlanPage() {
 
   return (
     <div className="mx-auto max-w-[1240px] px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <header className="grid grid-cols-[1fr_auto] items-start gap-x-2 gap-y-3 md:flex md:items-end">
+        <div className="min-w-0 md:mr-auto">
           <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{plan.meta.title}</h1>
           <p className="mt-1 text-[14px] text-muted">
             {m.plan_summary({
@@ -141,8 +141,8 @@ function PlanPage() {
             </p>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <LanguageSwitcher />
+        <LanguageSwitcher />
+        <div className="col-span-2 flex gap-2 *:flex-1 md:*:flex-none">
           <Button onClick={() => fileInput.current?.click()}>{m.open_plan_file()}</Button>
           <input
             ref={fileInput}
@@ -164,8 +164,17 @@ function PlanPage() {
       <Runway plan={plan} now={now} onSelect={select} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2.5">
+        <Segmented
+          label={m.view()}
+          value={view}
+          options={[
+            { value: 'week', label: m.view_week() },
+            { value: 'list', label: m.view_list() },
+          ]}
+          onChange={(v) => navigate({ search: (prev) => ({ ...prev, view: v }) })}
+        />
         {view === 'week' && (
-          <div className="flex items-center gap-1.5">
+          <div className="order-last flex w-full items-center gap-1.5 md:order-none md:w-auto">
             <button
               type="button"
               className={WEEK_STEP}
@@ -174,7 +183,7 @@ function PlanPage() {
             >
               ‹
             </button>
-            <h2 className="mx-1.5 text-[16px]/[1.2] font-semibold md:min-w-[170px]">
+            <h2 className="mx-1.5 flex-1 text-center text-[14px]/[1.2] font-semibold whitespace-nowrap md:min-w-[170px] md:flex-none md:text-left md:text-[16px]/[1.2]">
               {fmtShort(weekStart)} – {fmtShort(weekStart + 6 * DAY)} {new Date(weekStart + 6 * DAY).getUTCFullYear()}
             </h2>
             <button
@@ -190,21 +199,15 @@ function PlanPage() {
             </Button>
           </div>
         )}
-        <Segmented
-          label={m.view()}
-          value={view}
-          options={[
-            { value: 'week', label: m.view_week() },
-            { value: 'list', label: m.view_list() },
-          ]}
-          onChange={(v) => navigate({ search: (prev) => ({ ...prev, view: v }) })}
-        />
-        <div className="flex flex-wrap gap-1.5 md:ml-auto" aria-label={m.calendars()}>
+        <div
+          className="-mx-3 flex min-w-0 flex-1 [scrollbar-width:none] gap-1.5 overflow-x-auto px-3 md:mx-0 md:ml-auto md:flex-none md:flex-wrap md:overflow-visible md:px-0"
+          aria-label={m.calendars()}
+        >
           {plan.calendars.map((c) => (
             <button
               key={c.id}
               type="button"
-              className="group inline-flex items-center gap-[7px] rounded-full border border-line bg-surface py-[5px] pr-[11px] pl-[9px] text-[13px] aria-[pressed=false]:opacity-45"
+              className="group inline-flex shrink-0 items-center gap-[7px] rounded-full border border-line bg-surface py-[5px] pr-[11px] pl-[9px] text-[13px] whitespace-nowrap aria-[pressed=false]:opacity-45"
               style={calendarColor(c.color)}
               aria-pressed={!hidden.has(c.id)}
               onClick={() => toggle(c.id)}
@@ -231,7 +234,8 @@ function PlanPage() {
             <AgendaList plan={plan} items={allItems} now={now} onSelect={select} />
           )}
         </section>
-        <BudgetPanel plan={plan} weekItems={weekItems} />
+        {/* The list is long: on one column the week's budget goes above it instead of far below. */}
+        <BudgetPanel className={view === 'list' ? 'order-first lg:order-none' : ''} plan={plan} weekItems={weekItems} />
       </div>
 
       <EventDialog

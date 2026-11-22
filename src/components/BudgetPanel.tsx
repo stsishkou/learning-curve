@@ -7,12 +7,13 @@ import { m } from '#/paraglide/messages.js'
 import { Dot, calendarColor } from './ui'
 
 interface Props {
+  className?: string
   plan: Plan
   weekItems: Occurrence[]
 }
 
 /** Study hours in the visible week against the weekly budget. */
-export function BudgetPanel({ plan, weekItems }: Props) {
+export function BudgetPanel({ className = '', plan, weekItems }: Props) {
   const perCalendar: Record<string, number> = {}
   let total = 0
   for (const o of weekItems) {
@@ -24,7 +25,7 @@ export function BudgetPanel({ plan, weekItems }: Props) {
   const rows = plan.calendars.filter((c) => perCalendar[c.id])
 
   return (
-    <aside className="rounded-2xl border border-line bg-surface p-4">
+    <aside className={`rounded-2xl border border-line bg-surface p-4 ${className}`}>
       <h4 className="mb-2.5 text-[14px]/[1.3] font-semibold">{m.study_this_week()}</h4>
       <div className="tabular-nums">
         <div className="font-display text-[30px] leading-none font-bold tracking-[-0.02em]">
