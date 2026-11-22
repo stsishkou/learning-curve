@@ -217,7 +217,6 @@
   "open_week_of": "Открыть неделю: {date}",
   "now_label": "Сейчас",
   "next_label": "Дальше",
-  "then_label": "Затем:",
   "ends_in": "ещё {time}",
   "starts_in": "через {time}",
   "nothing_planned": "В ближайшие три недели ничего не запланировано.",
@@ -457,5 +456,8 @@
   "focus_logged": "«{title}» пройдена, записано {time}",
   "focus_queue": "Очередь",
   "focus_empty": "Все сессии плана пройдены.",
-  "focus_open": "Открыть в фокусе"
+  "focus_start_this": "Начать в фокусе",
+  "focus_on": "В фокус: {title}",
+  "today_also": "Ещё сегодня",
+  "missed": "пропущено"
 }

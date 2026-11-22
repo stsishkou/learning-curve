@@ -69,8 +69,8 @@ interface Props {
   headerAside?: ReactNode
   /** More header actions that work on the plan as it is shown now, such as export */
   renderActions?: (shown: { plan: Plan; hidden: ReadonlySet<string> }) => ReactNode
-  /** Present when the host has a focus page: opens it, from the card of the session in progress or the next one */
-  onFocus?: () => void
+  /** Present when the host has a focus page: called with the uid of the session to time there */
+  onFocus?: (uid: string) => void
   /** Host actions listed in the command palette, such as the theme */
   commands?: Command[]
 }

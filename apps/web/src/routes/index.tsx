@@ -52,7 +52,7 @@ function PlannerRoute() {
       }}
       headerAside={<ShellAside />}
       renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}
-      onFocus={() => void router.navigate({ to: '/focus' })}
+      onFocus={(session) => void router.navigate({ to: '/focus', search: { session } })}
       commands={shellCommands((to) => void router.navigate({ to }))}
     />
   )

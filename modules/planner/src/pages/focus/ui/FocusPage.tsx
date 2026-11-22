@@ -11,6 +11,10 @@ interface Props {
   plan: Plan
   /** false on a read-only host: the time can be measured but not logged */
   canEdit: boolean
+  /** uid of the session to time, as the host keeps it (in the URL); without it the page picks by the clock */
+  session?: string
+  /** Called with the uid picked from the queue, or with undefined once it is finished: the host stores it */
+  onPick?: (uid: string | undefined) => void
   /** Stores one change. Rejects with the reason when it cannot be stored: the page shows it */
   onChange: (change: PlanChange) => Promise<void>
   /** Shown next to the title: controls the host owns, such as the sections of the app */
@@ -40,11 +44,14 @@ const loggedMinutes = (ms: number) => Math.max(QUARTER, Math.round(ms / QUARTER)
  * really took, which is what the pace forecast is worked out from. The session is the one in progress, or the next
  * one that is not done; any other from the queue can be picked.
  */
-export function FocusPage({ plan, canEdit, onChange, headerAside, now: fixed }: Props) {
+export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, headerAside, now: fixed }: Props) {
   const clock = useNow()
   const now = fixed ?? clock
   const watch = useStopwatch()
-  const [picked, setPicked] = useState<string | null>(null)
+  // Without a host that keeps the choice, the page keeps it itself.
+  const [own, setOwn] = useState<string | undefined>(undefined)
+  const picked = wanted ?? own
+  const pick = (uid: string | undefined) => (onPick ? onPick(uid) : setOwn(uid))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [logged, setLogged] = useState<{ title: string; minutes: number } | null>(null)
@@ -57,9 +64,20 @@ export function FocusPage({ plan, canEdit, onChange, headerAside, now: fixed }: 
   const queue = (today === null ? open : open.filter((e) => parseLocal(e.start) >= today)).slice(0, QUEUE)
   const inProgress = now === null ? undefined : queue.find((e) => parseLocal(e.start) <= now && now < parseLocal(e.end))
   const upcoming = now === null ? undefined : queue.find((e) => parseLocal(e.end) > now)
-  // The session the stopwatch already runs for wins over the schedule: a reload must not switch it.
+  const byUid = (uid: string | null | undefined) => open.find((e) => e.uid === uid)
+  // A running stopwatch keeps its session whatever was picked since: its time must not be dropped by a link.
+  // Paused time comes next to the pick, so a reload does not switch away from it.
   const session =
-    open.find((e) => e.uid === (picked ?? watch.timed)) ?? inProgress ?? upcoming ?? queue[0] ?? open[0] ?? null
+    (watch.running ? byUid(watch.timed) : undefined) ??
+    byUid(picked) ??
+    byUid(watch.timed) ??
+    inProgress ??
+    upcoming ??
+    queue[0] ??
+    open[0] ??
+    null
+  // The picked session is listed even when the queue of the day does not reach it.
+  const listed = session && !queue.includes(session) ? [session, ...queue] : queue
 
   const planned = session ? parseLocal(session.end) - parseLocal(session.start) : 0
   const elapsed = session && watch.timed === session.uid ? watch.elapsed : 0
@@ -74,7 +92,7 @@ export function FocusPage({ plan, canEdit, onChange, headerAside, now: fixed }: 
     try {
       await onChange({ type: 'event.patch', uid: event.uid, patch: { done: true, actual: minutes } })
       watch.reset()
-      setPicked(null)
+      pick(undefined)
       setLogged({ title: event.title, minutes })
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
@@ -193,7 +211,7 @@ export function FocusPage({ plan, canEdit, onChange, headerAside, now: fixed }: 
         <aside className="min-w-0 rounded-2xl border border-line bg-surface p-4">
           <h2 className="text-[12px] font-semibold tracking-wide text-muted uppercase">{m.focus_queue()}</h2>
           <ul className="mt-2 grid gap-1">
-            {queue.map((e) => (
+            {listed.map((e) => (
               <li key={e.uid} style={calendarColor(plan.calendars.find((c) => c.id === e.calendar)?.color)}>
                 <button
                   type="button"
@@ -201,7 +219,7 @@ export function FocusPage({ plan, canEdit, onChange, headerAside, now: fixed }: 
                   aria-pressed={e.uid === session?.uid}
                   // A running stopwatch belongs to its session: pause or finish it before taking another.
                   disabled={watch.running && e.uid !== session?.uid}
-                  onClick={() => setPicked(e.uid)}
+                  onClick={() => pick(e.uid)}
                 >
                   <b className="flex items-baseline gap-2 text-[13.5px]/[1.35] font-semibold">
                     <Dot className="size-2 flex-none -translate-y-px" />

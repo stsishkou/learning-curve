@@ -207,7 +207,6 @@
   "open_week_of": "Open the week of {date}",
   "now_label": "Now",
   "next_label": "Next",
-  "then_label": "Then:",
   "ends_in": "{time} left",
   "starts_in": "in {time}",
   "nothing_planned": "Nothing is planned for the next three weeks.",
@@ -447,5 +446,8 @@
   "focus_logged": "“{title}” is done, {time} logged",
   "focus_queue": "Queue",
   "focus_empty": "Every session of the plan is done.",
-  "focus_open": "Open in focus"
+  "focus_start_this": "Start in focus",
+  "focus_on": "Focus on: {title}",
+  "today_also": "Also today",
+  "missed": "missed"
 }
