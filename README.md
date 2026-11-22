@@ -73,7 +73,11 @@ a Husky `commit-msg` hook checks them with commitlint.
   the dashboard's `Forecast at your pace` shows when the rest of each course will really be finished and how
   that sits against the certificate deadline.
 - **Catching up**: when sessions in the past are not done, a bar above the calendar offers to mark them done or
-  to shift the plan. `Shift the plan` (also in the `⋮` menu) moves every session that is not done, from a chosen
+  to catch up. `Catch up` (also in the `⋮` menu) compares whole scenarios side by side: leave the plan, push
+  every open session to the next study days (same weekly load, later end), or make the missed sessions up in the
+  Saturday buffers and an extra hour a day (same end, heavier weeks). Each shows the day the plan ends, the room
+  before the certificate deadline and the heaviest week, and is applied as one history step. `Shift the plan`
+  moves every session that is not done, from a chosen
   day and optionally in one calendar, by a number of days; it is one history step. An event can be duplicated
   to the next day from its dialog.
 - **Controls**: the toolbar keeps the view switch, the week navigation (the title opens a date picker), search,

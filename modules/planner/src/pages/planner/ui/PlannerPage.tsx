@@ -23,6 +23,7 @@ import {
 import { Button, Kbd, Menu, Segmented, type MenuItem } from '@lc/ui'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 
+import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
@@ -103,6 +104,7 @@ export function PlannerPage({
   const [trashOpen, setTrashOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [shiftFrom, setShiftFrom] = useState<string | null>(null)
+  const [catchUpOpen, setCatchUpOpen] = useState(false)
   const [overdueHidden, setOverdueHidden] = useState(false)
   const datePicker = useRef<HTMLInputElement>(null)
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
@@ -240,6 +242,7 @@ export function PlannerPage({
             run: () => setCalendarsOpen(true),
           },
           { id: 'trash', group: m.palette_plan(), label: m.trash(), run: () => setTrashOpen(true) },
+          { id: 'catch-up', group: m.palette_plan(), label: m.catchup(), run: () => setCatchUpOpen(true) },
           {
             id: 'shift',
             group: m.palette_plan(),
@@ -278,6 +281,7 @@ export function PlannerPage({
             run: () => setHistoryOpen(true),
           },
           { id: 'trash', label: m.trash(), badge: trashCount || undefined, run: () => setTrashOpen(true) },
+          { id: 'catch-up', label: m.catchup(), badge: overdue.length || undefined, run: () => setCatchUpOpen(true) },
           { id: 'shift', label: m.shift_plan(), run: () => setShiftFrom(ymd(today ?? weekStart)) },
           { id: 'calendars', label: m.manage_calendars(), keys: 'C', run: () => setCalendarsOpen(true) },
         ]
@@ -472,9 +476,9 @@ export function PlannerPage({
           <button
             type="button"
             className="font-semibold text-focus hover:underline"
-            onClick={() => setShiftFrom(overdue[0].start.slice(0, 10))}
+            onClick={() => setCatchUpOpen(true)}
           >
-            {m.shift_plan()}
+            {m.catchup()}
           </button>
           <button
             type="button"
@@ -586,6 +590,14 @@ export function PlannerPage({
         onClose={() => setCalendarsOpen(false)}
       />
       <ShiftDialog plan={plan} from={shiftFrom} onChange={session.change} onClose={() => setShiftFrom(null)} />
+      <CatchUpDialog
+        plan={plan}
+        open={catchUpOpen}
+        now={now}
+        onChange={session.change}
+        onShift={() => setShiftFrom((overdue[0]?.start ?? ymd(today ?? weekStart)).slice(0, 10))}
+        onClose={() => setCatchUpOpen(false)}
+      />
       <TrashDialog
         plan={plan}
         trash={session.trash}

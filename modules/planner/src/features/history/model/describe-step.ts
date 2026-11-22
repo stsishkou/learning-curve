@@ -24,6 +24,8 @@ export function describeStep({ change, subject }: HistoryStep): string {
       })
     case 'event.detach':
       return m.history_moved({ name: subject })
+    case 'events.move':
+      return m.history_replanned({ count: change.moves.length })
     case 'events.done':
       return m.history_done_many({ count: change.uids.length })
     case 'event.patch':

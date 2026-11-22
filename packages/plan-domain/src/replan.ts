@@ -1,0 +1,161 @@
+import { DAY, HOUR, mondayOf, parseLocal, startOfDay, toLocalString, weekday, ymd } from './dates'
+import { isSession, plannedHours } from './progress'
+import type { Plan, PlanEvent } from './types'
+
+/** One session in a new slot. Times are Europe/Minsk wall-clock strings. */
+export interface SessionMove {
+  uid: string
+  start: string
+  end: string
+}
+
+export interface CatchUpScenario {
+  /**
+   * `push`: every open session slides to a later study day, the weekly load stays and the plan ends later.
+   * `squeeze`: only the missed sessions move, into the Saturday buffers and an extra hour after the sessions of
+   * the coming days; the plan ends when it did and the weeks get heavier.
+   */
+  id: 'push' | 'squeeze'
+  moves: SessionMove[]
+  /** Missed sessions the scenario found no room for */
+  unplaced: number
+}
+
+/** What a plan promises from `now` on: the numbers the scenarios are compared by. */
+export interface PlanOutlook {
+  /** Open sessions that are already over */
+  missed: number
+  /** Day of the last open session, wall-clock ms; null when nothing is left */
+  finish: number | null
+  /** Days between the last open certificate session and the certificate deadline; negative when it is past it */
+  deadlineMargin: number | null
+  /** Study hours of the heaviest week from this one on, and how many such weeks are over the weekly budget */
+  peakWeek: number
+  overWeeks: number
+}
+
+const CERTS = 'certs'
+/** How far ahead `squeeze` looks for room */
+const SQUEEZE_DAYS = 56
+
+const dayOf = (e: PlanEvent) => e.start.slice(0, 10)
+const openSessions = (plan: Plan) =>
+  plan.events.filter((e) => isSession(e) && !e.done).toSorted((a, b) => a.start.localeCompare(b.start))
+const isMissed = (e: PlanEvent, now: number) => parseLocal(e.end) <= now
+
+export function planOutlook(plan: Plan, now: number): PlanOutlook {
+  const open = openSessions(plan)
+  const last = open.at(-1)
+  const lastCert = open.findLast((e) => e.calendar === CERTS)
+  const weeks = new Map<number, number>()
+  for (const e of plan.events) {
+    if (!isSession(e) || e.calendar === 'personal') continue
+    const monday = mondayOf(parseLocal(e.start))
+    if (monday >= mondayOf(now)) weeks.set(monday, (weeks.get(monday) ?? 0) + plannedHours(e))
+  }
+  const loads = [...weeks.values()]
+  return {
+    missed: open.filter((e) => isMissed(e, now)).length,
+    finish: last ? startOfDay(parseLocal(last.start)) : null,
+    deadlineMargin: lastCert
+      ? Math.round((startOfDay(parseLocal(plan.meta.certDeadline)) - startOfDay(parseLocal(lastCert.start))) / DAY)
+      : null,
+    peakWeek: Math.max(0, ...loads),
+    overWeeks: loads.filter((hours) => hours > plan.meta.weeklyBudgetHours + 1e-9).length,
+  }
+}
+
+/** The plan as it would be after the moves: for a preview, nothing is stored. */
+export function withMoves(plan: Plan, moves: SessionMove[]): Plan {
+  const byUid = new Map(moves.map((move) => [move.uid, move]))
+  return {
+    ...plan,
+    events: plan.events.map((e) => {
+      const move = byUid.get(e.uid)
+      return move ? { ...e, start: move.start, end: move.end } : e
+    }),
+  }
+}
+
+const moveTo = (e: PlanEvent, start: number): SessionMove => ({
+  uid: e.uid,
+  start: toLocalString(start),
+  end: toLocalString(start + parseLocal(e.end) - parseLocal(e.start)),
+})
+
+/** Every open session slides forward by as many study days as were missed; the days keep their own sessions' hours. */
+function push(plan: Plan, now: number): CatchUpScenario {
+  const today = ymd(now)
+  const open = openSessions(plan)
+  const days = [...new Set(open.map(dayOf))]
+  const behind = days.filter(
+    (day) => day < today || (day === today && open.some((e) => dayOf(e) === day && isMissed(e, now))),
+  )
+  const targets = days.filter((day) => day > today)
+  const sources = [...behind, ...targets]
+
+  // Past the last planned day the plan goes on with the weekdays of its last week.
+  const holidays = new Set(plan.meta.holidays)
+  const tail = (targets.length ? targets : behind).slice(-7)
+  const lastDay = parseLocal(`${tail.at(-1) ?? today}T00:00`)
+  const pattern = new Set(
+    tail
+      .filter((day) => parseLocal(`${day}T00:00`) > lastDay - 7 * DAY)
+      .map((day) => weekday(parseLocal(`${day}T00:00`))),
+  )
+  let cursor = Math.max(lastDay, startOfDay(now))
+  while (targets.length < sources.length && pattern.size) {
+    cursor += DAY
+    if (pattern.has(weekday(cursor)) && !holidays.has(ymd(cursor))) targets.push(ymd(cursor))
+  }
+
+  const target = new Map(sources.map((day, i) => [day, targets[i]]))
+  const moves: SessionMove[] = []
+  for (const e of behind.length ? open : []) {
+    const to = target.get(dayOf(e))
+    if (!to || to === dayOf(e)) continue
+    const start = parseLocal(e.start)
+    moves.push(moveTo(e, parseLocal(`${to}T00:00`) + (start - startOfDay(start))))
+  }
+  return { id: 'push', moves, unplaced: 0 }
+}
+
+/** The missed sessions go into the free time of the coming days: the Saturday buffers, and one more hour after a day's sessions. */
+function squeeze(plan: Plan, now: number): CatchUpScenario {
+  const missed = openSessions(plan).filter((e) => isMissed(e, now))
+  const timed = plan.events.filter((e) => !e.rrule && !e.allDay)
+  const moves: SessionMove[] = []
+  let next = 0
+  for (
+    let day = startOfDay(now) + DAY;
+    next < missed.length && day < startOfDay(now) + SQUEEZE_DAYS * DAY;
+    day += DAY
+  ) {
+    const here = timed.filter((e) => dayOf(e) === ymd(day))
+    const buffers = here.filter((e) => e.kind === 'buffer')
+    const sessions = here.filter((e) => isSession(e) && !e.done)
+    const windows = buffers.length
+      ? buffers.map((e) => ({ from: parseLocal(e.start), to: parseLocal(e.end) }))
+      : sessions.length
+        ? [Math.max(...here.map((e) => parseLocal(e.end)))].map((from) => ({ from, to: from + HOUR }))
+        : []
+    for (const window of windows) {
+      let at = window.from
+      while (next < missed.length && at + plannedHours(missed[next]) * HOUR <= window.to) {
+        moves.push(moveTo(missed[next], at))
+        at += plannedHours(missed[next]) * HOUR
+        next += 1
+      }
+    }
+  }
+  return { id: 'squeeze', moves, unplaced: missed.length - next }
+}
+
+/**
+ * Ways to get back on the plan after sessions were missed, each as the list of moves that does it. Empty when
+ * nothing is missed.
+ */
+export function catchUpScenarios(plan: Plan, now: number): CatchUpScenario[] {
+  if (!openSessions(plan).some((e) => isMissed(e, now))) return []
+  return [push(plan, now), squeeze(plan, now)].filter((scenario) => scenario.moves.length > 0)
+}

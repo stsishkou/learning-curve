@@ -40,6 +40,14 @@ export {
 export { movePatch, weekdaysOf } from './recurrence'
 export { paceForecast, type PaceForecast } from './forecast'
 export {
+  catchUpScenarios,
+  planOutlook,
+  withMoves,
+  type CatchUpScenario,
+  type PlanOutlook,
+  type SessionMove,
+} from './replan'
+export {
   TRASH_DAYS,
   emptyTrash,
   purgeTrash,

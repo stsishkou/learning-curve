@@ -10,6 +10,7 @@ import {
   type PlanEdits,
 } from './edits'
 import { isSession } from './progress'
+import type { SessionMove } from './replan'
 import { purgeTrash } from './trash'
 import type { Plan, PlanEvent } from './types'
 
@@ -51,6 +52,8 @@ export type PlanChange =
    * in one calendar or in all of them: the way to catch up after time off
    */
   | { type: 'events.shift'; calendar?: string; from: string; days: number }
+  /** Puts several sessions into new slots as one step: a catch-up scenario */
+  | { type: 'events.move'; moves: SessionMove[] }
   /** Marks several sessions done or not done as one step */
   | { type: 'events.done'; uids: string[]; done: boolean }
 
@@ -136,6 +139,26 @@ export function parseChange(input: unknown): PlanChange {
         calendar: typeof calendar === 'string' && calendar ? calendar : undefined,
         from,
         days,
+      }
+    }
+    case 'events.move': {
+      const { moves } = input
+      if (!Array.isArray(moves) || !moves.length) return fail('moves must be a list of sessions and their slots')
+      return {
+        type: 'events.move',
+        moves: moves.map((move: unknown) => {
+          if (!isRecord(move) || typeof move.uid !== 'string') return fail('A move needs a uid')
+          const { uid, start, end } = move
+          if (
+            typeof start !== 'string' ||
+            typeof end !== 'string' ||
+            !LOCAL_TIME.test(start) ||
+            !LOCAL_TIME.test(end)
+          ) {
+            return fail('Times must look like 2026-11-23T12:00')
+          }
+          return { uid, start, end }
+        }),
       }
     }
     case 'events.done': {
@@ -292,6 +315,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
         return applyChange(base, sofar, { type: 'event.patch', uid: event.uid, patch }, now)
       }, next)
     }
+    case 'events.move':
+      return change.moves.reduce(
+        (sofar, { uid, start, end }) =>
+          applyChange(base, sofar, { type: 'event.patch', uid, patch: { start, end } }, now),
+        next,
+      )
     case 'events.done': {
       const known = new Set(applyEdits(base, next).plan.events.map((e) => e.uid))
       return change.uids
