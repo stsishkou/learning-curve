@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@inlang/paraglide-js": "catalog:",
+    "@lc/calendar-export": "workspace:*",
     "@lc/i18n": "workspace:*",
     "@lc/plan-data": "workspace:*",
     "@lc/plan-domain": "workspace:*",
+    "@lc/planner": "workspace:*",
     "@lc/ui": "workspace:*",
     "@tailwindcss/vite": "4.3.5",
     "@tanstack/react-router": "1.170.46",

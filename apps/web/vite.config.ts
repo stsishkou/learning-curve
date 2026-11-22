@@ -9,7 +9,10 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     // Recompiles the messages when a translation changes, so dev picks it up without a restart.
-    paraglideVitePlugin({ project: '../../packages/i18n/project.inlang' }),
+    paraglideVitePlugin({
+      project: '../../packages/i18n/project.inlang',
+      outdir: '../../packages/i18n/src/paraglide',
+    }),
     tailwindcss(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
 

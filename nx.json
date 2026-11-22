@@ -10,7 +10,10 @@
     "i18n": { "cache": true, "inputs": ["default"], "outputs": ["{projectRoot}/src/paraglide"] },
     "typecheck": { "cache": true, "dependsOn": ["^i18n", "i18n"], "inputs": ["default", "^default"] },
     "lint": { "cache": true, "dependsOn": ["^i18n", "i18n"], "inputs": ["default", "^default", "lintConfig"] },
-    "check:i18n": { "cache": true, "inputs": ["default", "^default"] },
+    "check:i18n": {
+      "cache": true,
+      "inputs": ["default", "{workspaceRoot}/apps/*/src/**/*", "{workspaceRoot}/modules/*/src/**/*"]
+    },
     "build": {
       "cache": true,
       "dependsOn": ["^build", "^i18n", "i18n"],

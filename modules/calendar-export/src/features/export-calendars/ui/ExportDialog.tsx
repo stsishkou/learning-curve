@@ -3,7 +3,7 @@ import { calendarICS, combinedCalendar, combinedICS, icsFileName, IMPORT_HOWTO, 
 import { Button, calendarColor, Dot, FOOT, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useEffect, useMemo, useState } from 'react'
 
-import { downloadBlob, zipBlob } from '#/lib/client'
+import { downloadBlob, zipBlob } from '../../../shared/lib'
 
 export function ExportDialog({
   plan,
