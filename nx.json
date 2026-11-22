@@ -7,10 +7,25 @@
     "lintConfig": ["{workspaceRoot}/.oxlintrc.json"]
   },
   "targetDefaults": {
-    "i18n": { "cache": true, "inputs": ["default"], "outputs": ["{projectRoot}/src/paraglide"] },
-    "typecheck": { "cache": true, "dependsOn": ["^i18n", "i18n"], "inputs": ["default", "^default"] },
-    "lint": { "cache": true, "dependsOn": ["^i18n", "i18n"], "inputs": ["default", "^default", "lintConfig"] },
-    "lint:fsd": { "cache": true, "inputs": ["default", "{workspaceRoot}/steiger.config.ts"] },
+    "i18n": {
+      "cache": true,
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/src/paraglide"]
+    },
+    "typecheck": {
+      "cache": true,
+      "dependsOn": ["^i18n", "i18n"],
+      "inputs": ["default", "^default"]
+    },
+    "lint": {
+      "cache": true,
+      "dependsOn": ["^i18n", "i18n"],
+      "inputs": ["default", "^default", "lintConfig"]
+    },
+    "lint:fsd": {
+      "cache": true,
+      "inputs": ["default", "{workspaceRoot}/steiger.config.ts"]
+    },
     "check:i18n": {
       "cache": true,
       "inputs": ["default", "{workspaceRoot}/apps/*/src/**/*", "{workspaceRoot}/modules/*/src/**/*"]
@@ -21,7 +36,13 @@
       "inputs": ["default", "^default"],
       "outputs": ["{projectRoot}/.output", "{projectRoot}/dist"]
     },
-    "dev": { "continuous": true },
-    "start": { "dependsOn": ["build"], "continuous": true }
-  }
+    "dev": {
+      "continuous": true
+    },
+    "start": {
+      "dependsOn": ["build"],
+      "continuous": true
+    }
+  },
+  "analytics": false
 }

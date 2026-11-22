@@ -15,6 +15,8 @@ import {
 import { calendarColor } from '@lc/ui'
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
+import { useFillHeight } from '../../../shared/lib'
+
 interface Props {
   plan: Plan
   weekStart: number
@@ -82,6 +84,7 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
 
   // On a narrow screen only some days fit: start at today when it is in this week.
   const scroller = useRef<HTMLDivElement>(null)
+  const maxHeight = useFillHeight(scroller, fullDay)
   useEffect(() => {
     const column = today === null ? null : scroller.current?.querySelector<HTMLElement>(`[data-day="${ymd(today)}"]`)
     if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - 52
@@ -148,7 +151,8 @@ export function WeekGrid({ plan, weekStart, fullDay = false, items, now, onSelec
     <>
       <div
         ref={scroller}
-        className={`snap-x scroll-pl-[52px] overflow-x-auto ${fullDay ? 'max-h-[max(360px,calc(100dvh-220px))] overflow-y-auto rounded-2xl' : ''}`}
+        className={`snap-x scroll-pl-[52px] overflow-x-auto ${fullDay ? 'max-h-[70dvh] overflow-y-auto rounded-2xl' : ''}`}
+        style={{ maxHeight }}
       >
         <div className="grid min-w-[760px] grid-cols-[52px_repeat(7,minmax(96px,1fr))]">
           <div className={`${HEAD} ${PINNED} top-0 z-6 rounded-tl-2xl`} />

@@ -4,6 +4,8 @@ import { hm, type Occurrence, type Plan, type PlanEvent, startOfDay } from '@lc/
 import { calendarColor, Dot } from '@lc/ui'
 import { useEffect, useRef } from 'react'
 
+import { useFillHeight } from '../../../shared/lib'
+
 interface Props {
   plan: Plan
   items: Occurrence[]
@@ -15,6 +17,7 @@ interface Props {
 export function AgendaList({ plan, items, now, onSelect }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const todayRef = useRef<HTMLHeadingElement>(null)
+  const maxHeight = useFillHeight(box)
   const today = now === null ? null : startOfDay(now)
   // Scrolls the box, not the page: the toolbar and the budget stay where they are.
   useEffect(() => {
@@ -66,7 +69,8 @@ export function AgendaList({ plan, items, now, onSelect }: Props) {
   return (
     <div
       ref={box}
-      className="relative max-h-[max(360px,calc(100dvh-220px))] overflow-y-auto overscroll-contain rounded-2xl pb-1.5"
+      className="relative max-h-[70dvh] overflow-y-auto overscroll-contain rounded-2xl pb-1.5"
+      style={{ maxHeight }}
     >
       {rows}
     </div>

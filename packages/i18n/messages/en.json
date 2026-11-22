@@ -144,5 +144,8 @@
   "download_ics": "Download .ics",
   "export_done_single": "Downloaded {name}.",
   "full_day": "24 hours",
-  "full_day_hint": "Show every hour of the day, not only the hours with events"
+  "full_day_hint": "Show every hour of the day, not only the hours with events",
+  "expand": "Expand",
+  "collapse": "Collapse",
+  "expand_hint": "Calendar across the whole window: no header, runway or budget"
 }

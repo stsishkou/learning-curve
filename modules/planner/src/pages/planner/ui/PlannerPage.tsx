@@ -47,6 +47,7 @@ interface Props {
   renderActions?: (shown: { plan: Plan; hidden: ReadonlySet<string> }) => ReactNode
 }
 
+const PRESSED = 'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg'
 const WEEK_STEP = 'grid size-9 place-items-center rounded-[10px] border border-line bg-surface'
 
 function defaultWeek(plan: Plan) {
@@ -74,6 +75,7 @@ export function PlannerPage({ state, search, onSearchChange, onSaveEdit, headerA
   const [saveError, setSaveError] = useState('')
 
   const view: PlannerView = search.view ?? 'week'
+  const expanded = search.expanded === true
   const weekStart = search.week ? mondayOf(parseLocal(search.week)) : defaultWeek(plan)
   const setWeek = (t: number) => onSearchChange({ week: ymd(t) })
 
@@ -102,54 +104,58 @@ export function PlannerPage({ state, search, onSearchChange, onSaveEdit, headerA
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <header className="grid grid-cols-[1fr_auto] items-start gap-x-2 gap-y-3 md:flex md:items-end">
-        <div className="min-w-0 md:mr-auto">
-          <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{plan.meta.title}</h1>
-          <p className="mt-1 text-[14px] text-muted">
-            {m.plan_summary({
-              events: m.events_count({ count: plan.events.length }),
-              calendars: m.in_calendars({ count: plan.calendars.length }),
-              date: fmtDay(parseLocal(plan.meta.planEnd)),
-            })}
-            {opened && (
-              <>
-                {' '}
-                ({m.file_opened()},{' '}
-                <button type="button" className="text-focus underline" onClick={() => setOpened(null)}>
-                  {m.restore_plan()}
-                </button>
-                )
-              </>
-            )}
-          </p>
-          {saveError && (
-            <p className="mt-1.5 text-[13px] text-today" role="alert">
-              {saveError}
-            </p>
-          )}
-          {fileError && (
-            <p className="mt-1.5 text-[13px] text-today" role="alert">
-              {fileError}
-            </p>
-          )}
-        </div>
-        {headerAside}
-        <div className="col-span-2 flex gap-2 *:flex-1 md:*:flex-none">
-          <OpenPlanFile
-            onOpen={(next) => {
-              setOpened(next)
-              reset()
-              setFileError('')
-              onSearchChange({ week: undefined })
-            }}
-            onError={setFileError}
-          />
-          {renderActions?.({ plan, hidden })}
-        </div>
-      </header>
+    <div className={`mx-auto px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12 ${expanded ? '' : 'max-w-[1240px]'}`}>
+      {!expanded && (
+        <>
+          <header className="grid grid-cols-[1fr_auto] items-start gap-x-2 gap-y-3 md:flex md:items-end">
+            <div className="min-w-0 md:mr-auto">
+              <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{plan.meta.title}</h1>
+              <p className="mt-1 text-[14px] text-muted">
+                {m.plan_summary({
+                  events: m.events_count({ count: plan.events.length }),
+                  calendars: m.in_calendars({ count: plan.calendars.length }),
+                  date: fmtDay(parseLocal(plan.meta.planEnd)),
+                })}
+                {opened && (
+                  <>
+                    {' '}
+                    ({m.file_opened()},{' '}
+                    <button type="button" className="text-focus underline" onClick={() => setOpened(null)}>
+                      {m.restore_plan()}
+                    </button>
+                    )
+                  </>
+                )}
+              </p>
+              {saveError && (
+                <p className="mt-1.5 text-[13px] text-today" role="alert">
+                  {saveError}
+                </p>
+              )}
+              {fileError && (
+                <p className="mt-1.5 text-[13px] text-today" role="alert">
+                  {fileError}
+                </p>
+              )}
+            </div>
+            {headerAside}
+            <div className="col-span-2 flex gap-2 *:flex-1 md:*:flex-none">
+              <OpenPlanFile
+                onOpen={(next) => {
+                  setOpened(next)
+                  reset()
+                  setFileError('')
+                  onSearchChange({ week: undefined })
+                }}
+                onError={setFileError}
+              />
+              {renderActions?.({ plan, hidden })}
+            </div>
+          </header>
 
-      <Runway plan={plan} now={now} onSelect={select} />
+          <Runway plan={plan} now={now} onSelect={select} />
+        </>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2.5">
         <Segmented
@@ -184,7 +190,7 @@ export function PlannerPage({ state, search, onSearchChange, onSaveEdit, headerA
             </button>
             <Button onClick={() => onSearchChange({ week: undefined })}>{m.go_today()}</Button>
             <Button
-              className="aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg"
+              className={PRESSED}
               aria-pressed={search.fullDay === true}
               title={m.full_day_hint()}
               onClick={() => onSearchChange({ fullDay: search.fullDay ? undefined : true })}
@@ -193,10 +199,18 @@ export function PlannerPage({ state, search, onSearchChange, onSaveEdit, headerA
             </Button>
           </div>
         )}
+        <Button
+          className={PRESSED}
+          aria-pressed={expanded}
+          title={m.expand_hint()}
+          onClick={() => onSearchChange({ expanded: expanded ? undefined : true })}
+        >
+          {expanded ? m.collapse() : m.expand()}
+        </Button>
         <CalendarFilter calendars={plan.calendars} hidden={hidden} onToggle={toggle} />
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_260px]">
+      <div className={`grid grid-cols-1 items-start gap-4 ${expanded ? '' : 'lg:grid-cols-[1fr_260px]'}`}>
         <section className="rounded-2xl border border-line bg-surface">
           {view === 'week' ? (
             <WeekGrid
@@ -213,7 +227,13 @@ export function PlannerPage({ state, search, onSearchChange, onSaveEdit, headerA
           )}
         </section>
         {/* The list is long: on one column the week's budget goes above it instead of far below. */}
-        <BudgetPanel className={view === 'list' ? 'order-first lg:order-none' : ''} plan={plan} weekItems={weekItems} />
+        {!expanded && (
+          <BudgetPanel
+            className={view === 'list' ? 'order-first lg:order-none' : ''}
+            plan={plan}
+            weekItems={weekItems}
+          />
+        )}
       </div>
 
       <EventDialog
