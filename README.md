@@ -22,6 +22,9 @@ Requires Node 26+ and pnpm 12.
 | `pnpm run build` / `pnpm start` | Production build (Nitro) and Node server from `.output/` |
 | `pnpm run typecheck` | `tsc --noEmit` |
 
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix: …`, `build: …`);
+a Husky `commit-msg` hook checks them with commitlint.
+
 ## How the plan is made
 
 1. **Content** — `src/lib/plan/content.ts`: every course is a queue of sessions (title, 1 h or 2 h, description).
