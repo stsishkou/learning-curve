@@ -36,19 +36,27 @@ interface Props {
   history?: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
   /** The calendar chips, on the second row */
   children: ReactNode
+  /**
+   * Keeps the toolbar at the top while the page scrolls. For the expanded calendar, where the page header is
+   * gone and the toolbar is the only way to another view or period.
+   */
+  pinned?: boolean
 }
 
+// The negative margins take the bar to the edges of the page padding, as the page header does.
+const PINNED =
+  'sticky top-0 z-20 -mx-3 -mt-3.5 border-b border-line-soft bg-bg/90 px-3 py-2.5 backdrop-blur-md md:-mx-5 md:-mt-5 md:px-5 md:py-3'
 const PRESSED = 'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg'
 const STEP =
   'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap transition-[background-color,transform] duration-150 hover:bg-surface-2 active:scale-[0.96] disabled:opacity-40 disabled:hover:bg-surface disabled:active:scale-100'
 
 /** Two rows above the calendar: which view and period, search and editing; then the calendars and how they show. */
-export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, children }: Props) {
+export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, children, pinned = false }: Props) {
   const datePicker = useRef<HTMLInputElement>(null)
   const timeGrid = nav.view === 'week' || nav.view === 'day'
   return (
     // The single column may not grow with its content: the calendar chips scroll inside their row instead.
-    <div className="mb-3 grid grid-cols-[minmax(0,1fr)] gap-2.5">
+    <div className={`mb-3 grid grid-cols-[minmax(0,1fr)] gap-2.5 ${pinned ? PINNED : ''}`}>
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
         <Segmented
           label={m.view()}

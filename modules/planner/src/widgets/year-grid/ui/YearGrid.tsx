@@ -11,6 +11,9 @@ import {
   type Occurrence,
   type Plan,
 } from '@lc/plan-domain'
+import { useRef } from 'react'
+
+import { useFillHeight } from '../../../shared/lib'
 
 interface Props {
   plan: Plan
@@ -51,9 +54,12 @@ export function YearGrid({ plan, year, items, now, onPickDay, onPickMonth }: Pro
   const today = now === null ? null : startOfDay(now)
   const months = Array.from({ length: 12 }, (_, i) => Date.UTC(year, i, 1))
   const weekdays = Array.from({ length: 7 }, (_, i) => mondayOf(months[0]) + i * DAY)
+  // Like the other views, the year ends where the window does and scrolls inside itself.
+  const box = useRef<HTMLDivElement>(null)
+  const maxHeight = useFillHeight(box, true, { minWidth: 961 })
 
   return (
-    <div className="p-4">
+    <div ref={box} className="overflow-y-auto rounded-2xl p-4" style={{ maxHeight }}>
       <div className="sm:grid-cols-2 xl:grid-cols-4 grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-3">
         {months.map((month) => {
           const first = mondayOf(month)

@@ -275,6 +275,7 @@ export function PlannerPage({
         onSearch={() => dialogs.show('palette')}
         onNewEvent={canEdit ? () => drafting.begin() : undefined}
         history={canEdit ? quiet : undefined}
+        pinned={expanded}
       >
         <CalendarFilter
           calendars={plan.calendars}
