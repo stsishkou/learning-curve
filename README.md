@@ -163,6 +163,13 @@ a Husky `commit-msg` hook checks them with commitlint.
   history step. Each calendar can have its own deadline, set, moved or cleared in the same dialog and kept as the
   calendar's milestone. The runway, the goals, the forecast and Catch up use the nearest one. How the re-balance
   chooses, with a worked example: [docs/rebalancing.md](docs/rebalancing.md).
+- **Timeline**: a lane per calendar under the header, in its colour: its sessions from the first to the last
+  (done, open, missed), the spare days before its deadline (◆) or the late ones after it, and today. Drag a lane to
+  move its open sessions by whole weeks: stored at once with Undo, or shown in Reschedule first when the move breaks
+  a rule. Drag its end to re-balance the course to finish by that day, shown before it is stored; drag ◆ to move the
+  deadline, and the Undo bar offers to re-balance to it. A click opens Reschedule for the calendar; the end and ◆
+  also move with the arrow keys and Enter. The lanes follow the calendar filter; the strip's `⋮` puts it above or
+  below the header or hides it (remembered per browser), and `⋮` → `Timeline` brings it back.
 - **Controls**: the toolbar keeps the view switch, the week navigation (the title opens a date picker), search,
   undo/redo and `＋ Event`; History, Trash, Reschedule, Calendars and Shortcuts live in the `⋮` menu, which
   on a phone also holds search, undo/redo and the view toggles.

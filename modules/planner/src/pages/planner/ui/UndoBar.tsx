@@ -4,13 +4,15 @@ import { X } from '@lc/ui'
 interface Props {
   /** What was just changed */
   label: string
+  /** A next step the change makes likely, offered beside Undo */
+  action?: { label: string; run: () => void } | undefined
   onUndo: () => void
   onHistory: () => void
   onDismiss: () => void
 }
 
 /** Offers to take back the change that was just made. */
-export function UndoBar({ label, onUndo, onHistory, onDismiss }: Props) {
+export function UndoBar({ label, action, onUndo, onHistory, onDismiss }: Props) {
   return (
     // Floats over the page: a bar in the flow would push the calendar down right after every drag.
     <div
@@ -18,6 +20,11 @@ export function UndoBar({ label, onUndo, onHistory, onDismiss }: Props) {
       role="status"
     >
       <span className="min-w-0 flex-1 truncate">{label}</span>
+      {action && (
+        <button type="button" className="font-semibold text-focus hover:underline" onClick={action.run}>
+          {action.label}
+        </button>
+      )}
       <button type="button" className="font-semibold text-focus hover:underline" onClick={onUndo}>
         {m.undo()}
       </button>

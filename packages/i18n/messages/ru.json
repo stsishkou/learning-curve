@@ -377,6 +377,8 @@
   "timeline_below": "Под заголовком",
   "timeline_above": "Над заголовком",
   "timeline_hide": "Скрыть шкалу",
+  "timeline_show": "Показывать шкалу курсов",
+  "timeline_rebalance_to_deadline": "Перераспределить к дедлайну",
   "timeline_lane": "Перепланировать {name}: {from} – {to}, сделано {done} из {total}",
   "timeline_finish": "Конец курса {name}",
   "timeline_deadline": "Дедлайн курса {name}",

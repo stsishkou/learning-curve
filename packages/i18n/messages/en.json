@@ -367,6 +367,8 @@
   "timeline_below": "Below the header",
   "timeline_above": "Above the header",
   "timeline_hide": "Hide the timeline",
+  "timeline_show": "Show the timeline",
+  "timeline_rebalance_to_deadline": "Re-balance to it",
   "timeline_lane": "Reschedule {name}: {from} – {to}, {done} of {total} done",
   "timeline_finish": "End of {name}",
   "timeline_deadline": "Deadline of {name}",

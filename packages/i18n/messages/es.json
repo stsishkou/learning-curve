@@ -367,6 +367,8 @@
   "timeline_below": "Debajo del encabezado",
   "timeline_above": "Encima del encabezado",
   "timeline_hide": "Ocultar el cronograma",
+  "timeline_show": "Mostrar el cronograma",
+  "timeline_rebalance_to_deadline": "Reequilibrar hasta ella",
   "timeline_lane": "Reprogramar {name}: {from} – {to}, {done} de {total} hechas",
   "timeline_finish": "Fin de {name}",
   "timeline_deadline": "Fecha límite de {name}",

@@ -8,7 +8,7 @@ is a package in `packages/`.
 apps/
   web/                 TanStack Start shell: routes, server functions, HTML document. Composes the modules.
 modules/               microfrontends, composed at build time
-  planner/             the planner page: week grid, agenda, budget, runway, event editing
+  planner/             the planner page: week grid, agenda, budget, runway, timeline, event editing
   calendar-export/     the export dialog (.ics, zip, combined calendar)
   dashboard/           the progress page at /dashboard: stat tiles and charts, read-only
 packages/
@@ -86,7 +86,7 @@ Each module's `src/` follows [Feature-Sliced Design](https://feature-sliced.desi
 src/
   index.ts             the module's public API
   pages/               a full screen, composed from the layers below
-  widgets/             self-contained blocks of a page (week grid, month grid, plan map, course progress)
+  widgets/             self-contained blocks of a page (week grid, month grid, plan map, course progress, timeline)
   features/            one user action each (edit an event, manage calendars, open a plan file, command palette)
   entities/            business objects with their UI (none yet: the domain lives in @lc/plan-domain)
   shared/              helpers with no business meaning

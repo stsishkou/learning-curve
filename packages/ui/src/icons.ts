@@ -14,6 +14,7 @@ export {
   CalendarSync,
   CalendarPlus,
   CalendarDays,
+  ChartGantt,
   Check,
   ChevronLeft,
   ChevronRight,

@@ -64,7 +64,9 @@ export function LaneRow({ lane, scale, now, first, edit, keysHint }: Props) {
     <>
       <div className={`flex min-w-0 items-center gap-2 text-[13px] ${first ? '' : 'max-md:mt-2'}`} style={color}>
         <Dot className="size-2.5" />
-        <span className="truncate font-medium">{calendar.name}</span>
+        <span className="truncate font-medium" title={calendar.name}>
+          {calendar.name}
+        </span>
         <span className="ml-auto flex-none text-[12px] text-muted tabular-nums">
           {lane.done}/{lane.total}
         </span>

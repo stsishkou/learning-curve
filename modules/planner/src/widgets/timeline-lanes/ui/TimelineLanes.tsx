@@ -71,7 +71,7 @@ export function TimelineLanes({ plan, hidden, now, position, onPosition, edit }:
           ]}
         />
       </div>
-      <div className="grid grid-cols-1 gap-y-1 md:grid-cols-[140px_minmax(0,1fr)] md:gap-x-4">
+      <div className="grid grid-cols-1 gap-y-1 md:grid-cols-[200px_minmax(0,1fr)] md:gap-x-4">
         {lanes.map((lane, i) => (
           <LaneRow
             key={lane.calendar.id}

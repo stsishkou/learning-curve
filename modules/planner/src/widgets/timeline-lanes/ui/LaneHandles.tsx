@@ -22,7 +22,7 @@ interface SliderProps extends Common {
 // Half a year: a course moved further than that is a new plan, made in the dialog.
 const MAX_MOVE = 182
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus'
-const HANDLE = `absolute inset-y-0 grid w-6 cursor-ew-resize place-items-center rounded-md touch-none ${FOCUS}`
+const HANDLE = `absolute inset-y-0 w-6 cursor-ew-resize rounded-md touch-none ${FOCUS}`
 
 /** The result of a drag in words, over the place it points at. */
 function Tip({ at, children }: { at: number; children: ReactNode }) {
@@ -141,7 +141,7 @@ export function FinishHandle({
         aria-valuenow={valueOf(scale, day)}
         aria-valuetext={fmtDay(day)}
         aria-describedby={describedBy}
-        className={`${HANDLE} z-10 -ml-6`}
+        className={`${HANDLE} z-10 -ml-6 flex items-center justify-end`}
         style={{ left: `${clampPct(at)}%` }}
         onPointerDown={nudge.onPointerDown}
         onPointerMove={nudge.onPointerMove}
@@ -150,7 +150,7 @@ export function FinishHandle({
         onKeyDown={nudge.onKeyDown}
         onBlur={nudge.onBlur}
       >
-        <i className="h-3.5 w-1 rounded-full bg-cal" />
+        <i className="-mr-0.5 h-3.5 w-1 rounded-full bg-cal" />
       </span>
       {nudge.offset !== 0 && (
         <>
@@ -203,7 +203,7 @@ export function DeadlineHandle({
         aria-valuetext={fmtDay(day)}
         aria-describedby={describedBy}
         title={m.deadline_on({ date: fmtDay(day) })}
-        className={`${HANDLE} z-20 -ml-3`}
+        className={`${HANDLE} z-20 -ml-3 grid place-items-center`}
         style={{ left: `${clampPct(scale.at(day))}%` }}
         onPointerDown={nudge.onPointerDown}
         onPointerMove={nudge.onPointerMove}
