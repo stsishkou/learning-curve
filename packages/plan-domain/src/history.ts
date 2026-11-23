@@ -48,6 +48,7 @@ function subjectOf(plan: Plan, change: PlanChange): string {
       return change.event.title
     case 'event.patch':
     case 'event.detach':
+    case 'event.split':
     case 'event.remove':
       return plan.events.find((e) => e.uid === change.uid)?.title ?? ''
     case 'calendar.save':

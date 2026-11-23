@@ -649,5 +649,8 @@
   "ai_warn_deadline": "{title}: after the deadline of its course, {day}",
   "ai_warn_done": "{title}: already done, and the update changes it",
   "ai_warn_done_removed": "{title}: already done, and the update removes it",
-  "grid_took": "took {time}"
+  "grid_took": "took {time}",
+  "history_split": "Split {name} into {count} parts",
+  "split_in_two": "Split in two",
+  "split_hint": "The second part starts right after the first: drag it to another time"
 }

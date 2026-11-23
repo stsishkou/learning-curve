@@ -44,6 +44,7 @@ export {
   Redo2,
   Repeat,
   RotateCcw,
+  Scissors,
   Search,
   Timer,
   Trash2,

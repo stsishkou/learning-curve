@@ -148,6 +148,9 @@ a Husky `commit-msg` hook checks them with commitlint.
   real calendar included), not on a weekend or a holiday and inside the weekly budget, trying the session's own
   hour first; `Move here` takes it. The card also copies a link to the event and opens Google Calendar with the
   event filled in.
+- **Split a long session**: the scissors on the card of a session of an hour or more cut it in two on the half
+  hour, the second part right after the first, to drag to another time. Both keep the title and notes; a lab, a
+  repeat and a finished session stay whole. A chat does the same with `event.split`, on any days.
 - **Less on screen, and on paper**: `⋮` → `Hide what is done` (key `X`) leaves the finished sessions out of the
   day, week and month views. `Print or PDF` prints the calendar alone, whole, without the toolbars and the side
   panel. The month view shows the hours of study of each day.

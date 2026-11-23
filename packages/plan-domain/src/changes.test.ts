@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { applyChange, parseChange, type NewEvent, type PlanChange } from './changes'
+import { applyChange, parseChange, splitInHalves, type NewEvent, type PlanChange } from './changes'
 import { applyEdits, emptyEdits, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
@@ -41,6 +41,14 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   'event.patch': { type: 'event.patch', uid: SESSION, patch: { start: '2026-11-23T19:00', end: '2026-11-23T20:00' } },
   'event.add': { type: 'event.add', event: session() },
   'event.remove': { type: 'event.remove', uid: SESSION },
+  'event.split': {
+    type: 'event.split',
+    uid: SESSION,
+    parts: [
+      { start: '2026-11-23T12:00', end: '2026-11-23T12:30' },
+      { start: '2026-11-26T18:00', end: '2026-11-26T18:30' },
+    ],
+  },
   'event.detach': {
     type: 'event.detach',
     uid: GYM,
@@ -216,5 +224,49 @@ describe('names', () => {
     expect(planOf(apply([EXAMPLES['calendar.save']])).calendars.find((c) => c.id === 'journey')?.name).toBe('Journey')
     const created = planOf(apply([{ type: 'calendar.save', name: 'Reading', color: '#445566' }]))
     expect(created.calendars.some((c) => c.name === 'Reading' && c.custom)).toBe(true)
+  })
+})
+
+describe('event.split', () => {
+  test('the first part keeps the event, the others are new events with its title', () => {
+    const edits = apply([EXAMPLES['event.split']])
+    expect(find(planOf(edits), SESSION)).toMatchObject({ start: '2026-11-23T12:00', end: '2026-11-23T12:30' })
+    const part = added(edits)
+    expect(part).toMatchObject({ title: itemAt(base.events).title, start: '2026-11-26T18:00', calendar: 'certs' })
+    expect(part.uid).not.toBe(SESSION)
+  })
+
+  test('the parts must add up to the session, each on one day', () => {
+    const { parts } = EXAMPLES['event.split']
+    const [first, second] = [itemAt(parts), itemAt(parts, 1)]
+    const longer = {
+      ...EXAMPLES['event.split'],
+      parts: [first, { start: '2026-11-26T18:00', end: '2026-11-26T19:00' }],
+    }
+    expect(() => apply([longer])).toThrow(/add up/)
+    const overnight = {
+      ...EXAMPLES['event.split'],
+      parts: [{ start: '2026-11-23T23:45', end: '2026-11-24T00:15' }, second],
+    }
+    expect(() => apply([overnight])).toThrow(/same day/)
+  })
+
+  test('a lab, a repeat and a finished session stay whole', () => {
+    const lab = itemAt(base.events.filter((e) => e.kind === 'lab'))
+    expect(() => apply([{ ...EXAMPLES['event.split'], uid: lab.uid }])).toThrow(/lab/)
+    expect(() => apply([{ ...EXAMPLES['event.split'], uid: GYM }])).toThrow(/repeating/)
+    const done = apply([{ type: 'events.done', uids: [SESSION], done: true }])
+    expect(() => apply([EXAMPLES['event.split']], done)).toThrow(/finished/)
+  })
+
+  test('splitInHalves cuts on the half hour and leaves out what cannot be split', () => {
+    const event = itemAt(base.events)
+    const long = { ...event, start: '2026-11-23T12:00', end: '2026-11-23T13:30' }
+    expect(splitInHalves(long)?.parts).toEqual([
+      { start: '2026-11-23T12:00', end: '2026-11-23T13:00' },
+      { start: '2026-11-23T13:00', end: '2026-11-23T13:30' },
+    ])
+    expect(splitInHalves({ ...event, end: '2026-11-23T12:30' })).toBeNull()
+    expect(splitInHalves({ ...event, kind: 'lab' })).toBeNull()
   })
 })

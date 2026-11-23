@@ -25,9 +25,13 @@ export {
   isCustomEvent,
   parseChange,
   shiftTargets,
+  splitInHalves,
+  splitProblem,
+  SPLIT_PARTS_MAX,
   type NewEvent,
   type NewSession,
   type PlanChange,
+  type Slot,
 } from './changes'
 export { diffPlans, type PlanDiff } from './diff'
 export {

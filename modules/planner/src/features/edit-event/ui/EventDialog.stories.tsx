@@ -1,7 +1,7 @@
-import { isSession, parseLocal, type PlanEvent } from '@lc/plan-domain'
+import { isSession, parseLocal, splitInHalves, type PlanEvent } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, userEvent, within } from 'storybook/test'
 
 import { EventDialog } from './EventDialog'
 
@@ -86,4 +86,17 @@ export const Overlapping: Story = {
 /** The host rejects every change: press any button that edits to see the reason in the dialog. */
 export const SaveFails: Story = {
   args: { onChange: fn(async () => Promise.reject(new Error('The plan is read-only on this host'))) },
+}
+
+/**
+ * A session of an hour or more can be split in two from its card: the halves fall on the half hour, the second
+ * right after the first, and the dialog closes so it can be dragged elsewhere. Labs stay one block.
+ */
+export const Split: Story = {
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const split = await body.findByRole('button', { name: /✂|split|раздел|divid/i })
+    await userEvent.click(split)
+    await expect(args.onChange).toHaveBeenCalledWith(splitInHalves(upcoming))
+  },
 }

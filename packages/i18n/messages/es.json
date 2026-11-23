@@ -649,5 +649,8 @@
   "ai_warn_deadline": "{title}: después de la fecha límite de su curso, {day}",
   "ai_warn_done": "{title}: ya está hecha y la actualización la cambia",
   "ai_warn_done_removed": "{title}: ya está hecha y la actualización la elimina",
-  "grid_took": "llevó {time}"
+  "grid_took": "llevó {time}",
+  "history_split": "{name} dividida en {count} partes",
+  "split_in_two": "Dividir en dos",
+  "split_hint": "La segunda parte empieza justo después de la primera: arrástrala a otra hora"
 }

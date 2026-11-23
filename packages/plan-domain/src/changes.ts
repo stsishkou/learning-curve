@@ -1,4 +1,4 @@
-import { DAY, parseLocal, toLocalString, weekday } from './dates'
+import { DAY, HOUR, parseLocal, toLocalString, weekday } from './dates'
 import {
   HEX_COLOR,
   LOCAL_TIME,
@@ -50,6 +50,11 @@ export type PlanChange =
    * skipped and an event of its own takes its place at `start`–`end`
    */
   | { type: 'event.detach'; uid: string; day: string; start: string; end: string }
+  /**
+   * Splits a session into parts that add up to its length: the first part keeps the event and its uid, the others
+   * are new events with the same title and notes
+   */
+  | { type: 'event.split'; uid: string; parts: Slot[] }
   /** Without an id a new calendar is created */
   | { type: 'calendar.save'; id?: string | undefined; name: string; color: string }
   /** Moves the calendar and its events to the trash */
@@ -77,6 +82,15 @@ export type PlanChange =
   | { type: 'course.add'; name: string; color: string; sessions: NewSession[] }
   /** Adds several events to calendars that exist, as one step */
   | { type: 'events.add'; events: NewEvent[] }
+
+/** A stretch of time on one day, as wall-clock strings. */
+export interface Slot {
+  start: string
+  end: string
+}
+
+/** At most this many parts come out of one session. */
+export const SPLIT_PARTS_MAX = 8
 
 /** A change that cannot be applied; `message` is safe to show. */
 export class PlanChangeError extends Error {}
@@ -172,6 +186,23 @@ export function parseChange(input: unknown): PlanChange {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return fail('day must look like 2026-11-23')
       if (!LOCAL_TIME.test(start) || !LOCAL_TIME.test(end)) return fail('Times must look like 2026-11-23T12:00')
       return { type: 'event.detach', uid: text('uid'), day, start, end }
+    }
+    case 'event.split': {
+      const { parts } = input
+      if (!Array.isArray(parts) || parts.length < 2 || parts.length > SPLIT_PARTS_MAX) {
+        return fail(`parts must list 2 to ${SPLIT_PARTS_MAX} slots`)
+      }
+      return {
+        type: 'event.split',
+        uid: text('uid'),
+        parts: parts.map((part: unknown): Slot => {
+          const start = isRecord(part) ? part.start : undefined
+          const end = isRecord(part) ? part.end : undefined
+          return typeof start === 'string' && typeof end === 'string' && LOCAL_TIME.test(start) && LOCAL_TIME.test(end)
+            ? { start, end }
+            : fail('A part needs a start and an end like 2026-11-23T12:00')
+        }),
+      }
     }
     case 'calendar.remove':
       return { type: 'calendar.remove', id: text('id') }
@@ -346,6 +377,23 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       skipped.added.push(single)
       return skipped
     }
+    case 'event.split': {
+      const event =
+        applyEdits(base, next).plan.events.find((e) => e.uid === change.uid) ?? fail(`Unknown event "${change.uid}"`)
+      const problem = splitProblem(event)
+      if (problem) fail(problem)
+      if (change.parts.some((part) => length(part) <= 0 || part.start.slice(0, 10) !== part.end.slice(0, 10))) {
+        fail('Each part must end after it starts, on the same day')
+      }
+      const total = change.parts.reduce((sum, part) => sum + length(part), 0)
+      if (total !== length(event)) fail(`The parts must add up to the length of the session, ${length(event) / HOUR} h`)
+      const [first, ...rest] = change.parts
+      if (!first) return fail('A split needs its parts')
+      const { uid: _uid, ...copy } = event
+      const split = applyChange(base, next, { type: 'event.patch', uid: event.uid, patch: { ...first } }, now)
+      for (const part of rest) split.added.push({ ...copy, ...part, uid: `${newId('custom')}@learning-curve` })
+      return split
+    }
     case 'event.remove': {
       const { uid } = change
       if (!next.added.some((e) => e.uid === uid) && !base.events.some((e) => e.uid === uid)) {
@@ -427,6 +475,35 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     }
   }
   return next
+}
+
+const length = (slot: Slot) => parseLocal(slot.end) - parseLocal(slot.start)
+
+/** Why an event cannot be split, in words a model can act on; null when it can. */
+export function splitProblem(event: PlanEvent): string | null {
+  if (event.rrule) return 'A repeating event cannot be split: move one repeat with event.detach'
+  if (event.allDay) return 'An all-day event cannot be split'
+  if (event.kind === 'lab') return 'A lab is one block that cannot be paused: it cannot be split'
+  if (event.done) return 'A finished session cannot be split'
+  return null
+}
+
+/**
+ * The session in two halves on the half hour, the second right after the first, ready to be dragged elsewhere.
+ * null when it cannot be split or is shorter than an hour.
+ */
+export function splitInHalves(event: PlanEvent): Extract<PlanChange, { type: 'event.split' }> | null {
+  if (splitProblem(event) || length(event) < HOUR) return null
+  const half = HOUR / 2
+  const middle = toLocalString(parseLocal(event.start) + Math.round(length(event) / 2 / half) * half)
+  return {
+    type: 'event.split',
+    uid: event.uid,
+    parts: [
+      { start: event.start, end: middle },
+      { start: middle, end: event.end },
+    ],
+  }
 }
 
 /** The sessions an `events.shift` change would move, in `plan` as it is shown. */

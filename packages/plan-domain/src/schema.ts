@@ -2,6 +2,8 @@
 // and the update it gives back. The descriptions are written for a language model: every field says what it means
 // and how to fill it. `parseUpdate` is the code that enforces them; change both together.
 
+import { SPLIT_PARTS_MAX } from './changes'
+
 type Schema = Record<string, unknown>
 
 export const PLAN_FORMAT = 'learning-curve/plan@1'
@@ -285,6 +287,25 @@ const CHANGES: Schema[] = [
     ['uid', 'day', 'start', 'end'],
   ),
   change(
+    'event.split',
+    'Splits one session into parts, as one step: the first part keeps the event and its `uid`, the others are new events with the same title and notes. The parts must add up to the length of the session, each on one day. A lab, a repeat or a finished session cannot be split.',
+    {
+      uid: UID,
+      parts: {
+        type: 'array',
+        minItems: 2,
+        maxItems: SPLIT_PARTS_MAX,
+        items: {
+          type: 'object',
+          required: ['start', 'end'],
+          additionalProperties: false,
+          properties: { start: LOCAL_TIME, end: LOCAL_TIME },
+        },
+      },
+    },
+    ['uid', 'parts'],
+  ),
+  change(
     'event.remove',
     'Moves an event to the trash, a whole series when it repeats. The person can restore it for 30 days.',
     { uid: UID },
@@ -350,6 +371,7 @@ export const UPDATE_CHANGE_TYPES = [
   'event.add',
   'event.patch',
   'event.detach',
+  'event.split',
   'event.remove',
   'events.move',
   'events.shift',

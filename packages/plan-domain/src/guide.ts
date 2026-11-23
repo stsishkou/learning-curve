@@ -189,6 +189,7 @@ The changes you can use:
 | \`event.add\` | One \`event\` |
 | \`event.patch\` | Changes fields of the event \`uid\`: \`title\`, \`description\`, \`start\`, \`end\`, \`calendar\`, \`done\`, \`actual\`, \`rrule\`, \`skip\` |
 | \`event.detach\` | Moves one repeat (\`day\`) of a repeating event to \`start\`–\`end\`; the series stays |
+| \`event.split\` | Splits the session \`uid\` into \`parts\` (\`start\`, \`end\`) that add up to its length; the first part keeps the uid |
 | \`event.remove\` | Moves the event \`uid\` to the trash (restorable for 30 days) |
 | \`events.move\` | New \`start\` and \`end\` for several sessions (\`moves\`), as one step |
 | \`events.shift\` | Moves every not-done session from the day \`from\` on by \`days\`, in one \`calendar\` or in all |
@@ -233,6 +234,8 @@ ${code(habit)}
 - **Finished sessions**: \`events.done\` with their uids. Time spent, when the person says it: \`event.patch\` with
   \`actual\` in minutes.
 - **Moving a few sessions**: one \`events.move\` with all of them, so it is one step to undo.
+- **A session too long for one sitting**: \`event.split\` with the slots of its parts, on the same or other days.
+  They must add up to its length. A lab stays one block.
 - **Time off or a late start**: \`events.shift\` from the first affected day, then check that nothing landed on a
   holiday or a weekend and fix those with \`events.move\`.
 - **A course is dropped**: \`event.remove\` for each session that is not done. Removing a calendar is left to the

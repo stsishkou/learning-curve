@@ -10,6 +10,7 @@ import {
   overlapping,
   parseLocal,
   skipDay,
+  splitInHalves,
   toLocalString,
   type BusyBlock,
   type NewEvent,
@@ -30,6 +31,7 @@ import {
   Link2,
   META,
   Modal,
+  Scissors,
   TITLE,
   Trash2,
   X,
@@ -172,6 +174,7 @@ export function EventDialog({
         : `${fmtDay(s)} ${hm(s)}–${hm(e)}`
   }
   const courseUrl = event?.description.match(URL_PATTERN)?.[0]
+  const halves = event ? splitInHalves(event) : null
   const overlaps = (start: string, end: string): Overlap[] => {
     const slot = { s: parseLocal(start), e: parseLocal(end) }
     return [
@@ -362,6 +365,17 @@ export function EventDialog({
                   }
                 >
                   <Copy size={16} aria-hidden />
+                </Button>
+              )}
+              {canEdit && halves && (
+                <Button
+                  className="grid place-items-center px-2.5"
+                  disabled={busy}
+                  aria-label={m.split_in_two()}
+                  title={`${m.split_in_two()}. ${m.split_hint()}`}
+                  onClick={() => void run(halves, 'close')}
+                >
+                  <Scissors size={16} aria-hidden />
                 </Button>
               )}
               {canEdit && isSession(event) && !event.done && (
