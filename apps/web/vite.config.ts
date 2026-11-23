@@ -17,7 +17,8 @@ const config = defineConfig({
       outputStructure: 'message-modules',
     }),
     tailwindcss(),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    // HiGHS stays a package on disk: its loader finds highs.wasm next to itself.
+    nitro({ rollupConfig: { external: [/^@sentry\//, /^highs/] } }),
 
     tanstackStart(),
     viteReact(),

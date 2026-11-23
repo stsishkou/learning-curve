@@ -191,3 +191,13 @@ export {
   type PlanVersion,
   type StoredPlanFile,
 } from './library'
+export {
+  solveInOrder,
+  type LpConstraint,
+  type LpModel,
+  type LpSolution,
+  type LpTerm,
+  type LpVariable,
+  type OrderedSolution,
+  type Solve,
+} from './rebalance/lp'

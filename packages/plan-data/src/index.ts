@@ -16,6 +16,7 @@ export {
   finishConnect,
   saveCalendarClient,
 } from './calendar-sync/oauth'
+export { solveLp } from './solver'
 export { listPlanFiles, readPlanVersion, removePlanFile, renamePlanFile, savePlanVersion } from './library'
 export {
   canWrite,
