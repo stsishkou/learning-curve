@@ -10,10 +10,14 @@ import { setTheme, storedTheme, type Theme } from './theme'
 
 const SHIPPING = CHAPTERS.find((chapter) => chapter.id === 'shipping')?.id ?? 'shipping'
 
-/** The same page in another language: the path with its first segment swapped. */
+/**
+ * The same page in another language: the path with its first segment swapped. A full load rather than a router
+ * link, so the new page arrives with its own <html lang> and head.
+ */
 function LanguageLinks() {
   const { locale } = useDocsEnv()
-  const pathname = useLocation({ select: (location) => location.pathname })
+  // The router's pathname leaves out the base the site is served under (`/<repo>/` on GitHub Pages).
+  const pathname = useLocation({ select: (location) => `${import.meta.env.BASE_URL}${location.pathname.slice(1)}` })
   return (
     <nav
       aria-label={m.language({}, { locale })}
