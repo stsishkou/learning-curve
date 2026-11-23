@@ -240,6 +240,9 @@ ${code(habit)}
   holiday or a weekend and fix those with \`events.move\`.
 - **Studying at another time of day**: \`events.shift\` with \`hours\` (whole or half, negative for earlier). A session
   that would cross midnight stops the change: shift fewer sessions or move that one with \`events.move\`.
+- **More or fewer sessions a day, or finishing a course by a date**: re-balancing works out the days and times, in
+  the planner's Reschedule dialog or with the \`rebalance_calendar\` tool. Its result is an \`events.move\` with
+  \`reason: "rebalance"\`, previewed and applied like any update.
 - **A course is dropped**: \`event.remove\` for each session that is not done. Removing a calendar is left to the
   person.
 - **Renaming**: \`event.patch\` with \`title\`, keeping the naming pattern.

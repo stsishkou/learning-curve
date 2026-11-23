@@ -25,9 +25,11 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 
+import { rebalanceCalendar, requestFromTool } from '../src/rebalance'
 import { canWrite, readPlan, saveChanges } from '../src/store'
 
 const DAY = String.raw`^\d{4}-\d{2}-\d{2}$`
+const HOUR = String.raw`^([01]\d|2[0-3]):(00|30)$`
 
 const TOOLS = [
   {
@@ -78,6 +80,48 @@ const TOOLS = [
       "Stores an update: every change becomes one step of the plan's history, which the person can undo in the viewer. All or nothing: when one change does not fit, nothing is stored and the reason comes back. Call it only after the person agreed to what preview_update showed.",
     inputSchema: UPDATE_SCHEMA,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  {
+    name: 'rebalance_calendar',
+    title: 'Re-balance a calendar',
+    description:
+      'Works out new days and times for the sessions of one calendar from a day on, keeping the order of the course: evenly at a pace (sessions a study day), or towards a deadline (the calendar\'s milestone unless one is given), inside the study hours and the weekly budget, around holidays, other events and the person\'s busy time. Nothing is stored. The answer is an `update` (an events.move with reason "rebalance", or null when nothing moves) to check with preview_update and store with apply_update once the person agrees, and a `report`: the finish, the heaviest week and day, weeks over the budget, late and unplaced sessions, and the reasons nothing better exists. It can take several seconds.',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['calendar', 'from', 'mode'],
+      properties: {
+        calendar: { type: 'string', description: 'The `id` of the calendar to re-balance.' },
+        from: { type: 'string', pattern: DAY, description: 'Its sessions from this day on move, "YYYY-MM-DD".' },
+        mode: {
+          type: 'string',
+          enum: ['pace', 'deadline'],
+          description: '`pace`: a steady number of sessions a study day. `deadline`: done before the deadline, evenly.',
+        },
+        perDay: {
+          type: 'number',
+          exclusiveMinimum: 0,
+          description: 'Sessions a study day, for `pace`: 1/3, 1/2, 1, 3/2, 2 or 3 (0.5 is one every two days).',
+        },
+        deadline: {
+          type: 'string',
+          pattern: DAY,
+          description: "For `deadline`: the day everything is done before. The calendar's milestone when left out.",
+        },
+        overBudget: {
+          type: 'boolean',
+          default: false,
+          description: 'Allow weeks past the weekly budget when nothing else fits.',
+        },
+        hoursFrom: {
+          type: 'string',
+          pattern: HOUR,
+          description: 'The study hours start, "HH:MM" on the half hour. The usual hours of the plan when left out.',
+        },
+        hoursTo: { type: 'string', pattern: HOUR, description: 'The study hours end, "HH:MM" on the half hour.' },
+      },
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
   },
 ]
 
@@ -140,7 +184,7 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, () => ({ tools: TOOLS }))
 
-server.setRequestHandler(CallToolRequestSchema, ({ params }) => {
+server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   const args = params.arguments ?? {}
   const plan = readPlan()
   try {
@@ -161,6 +205,12 @@ server.setRequestHandler(CallToolRequestSchema, ({ params }) => {
         // Read from what was stored: the ids of new events and calendars are given out only then.
         const stored = updateOutcome(plan, saveChanges(update.changes).plan)
         return json({ ...reportPreview(stored), applied: update.changes.length })
+      }
+      case 'rebalance_calendar': {
+        const request = requestFromTool(args, plan)
+        const { moves, report } = await rebalanceCalendar(plan, request, nowMinsk())
+        const changes = [{ type: 'events.move', moves, reason: 'rebalance', calendar: request.calendar }]
+        return json({ update: moves.length ? { changes } : null, report })
       }
       default:
         return refused(`Unknown tool "${params.name}"`)
