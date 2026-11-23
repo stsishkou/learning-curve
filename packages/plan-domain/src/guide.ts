@@ -1,10 +1,19 @@
-import { DAY, mondayOf, ymd } from './dates'
+import { DAY, mondayOf, startOfDay, weekday, ymd } from './dates'
 import { isSession, plannedHours } from './progress'
 import { weeklyHours } from './schedule'
 import { UPDATE_FORMAT } from './schema'
 import type { Plan, PlanEvent } from './types'
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+/** The first day after `now` that is the weekday `dow` (0 Sunday … 6 Saturday), so the examples are never in the past. */
+const nextWeekday = (now: number, dow: number) => startOfDay(now) + (((dow - weekday(now) + 6) % 7) + 1) * DAY
+
+const CONTRACT = `- Answer with **one** \`\`\`json block that holds an update, and no other code block.
+- Point at events only by a \`uid\` you read in the plan.
+- Every time is \`YYYY-MM-DDTHH:MM\` in the plan's time zone.
+- Send only what changes, never a copy of the plan.
+- When the request is unclear or breaks a rule, ask a question instead of sending an update.`
 
 const code = (value: unknown) => `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``
 
@@ -45,11 +54,15 @@ function weekLines(plan: Plan, now: number): string[] {
 export function planGuide(plan: Plan, now: number): string {
   const { meta } = plan
   const uid = plan.events.find((e) => isSession(e) && !e.done)?.uid ?? 'certs-001@learning-curve'
+  const thursday = ymd(nextWeekday(now, 4))
+  const wednesday = ymd(nextWeekday(now, 3))
+  // A course that starts on the Monday four weeks from now and has its lab that Wednesday.
+  const courseStart = mondayOf(now) + 28 * DAY
   const example = {
     format: UPDATE_FORMAT,
     summary: 'Moved one session to Thursday evening and marked another done.',
     changes: [
-      { type: 'event.patch', uid, patch: { start: '2026-11-26T19:00', end: '2026-11-26T20:00' } },
+      { type: 'event.patch', uid, patch: { start: `${thursday}T19:00`, end: `${thursday}T20:00` } },
       { type: 'events.done', uids: [uid], done: true },
     ],
   }
@@ -60,15 +73,15 @@ export function planGuide(plan: Plan, now: number): string {
     sessions: [
       {
         title: 'LangGraph — Введение: графы и состояние (1/2)',
-        start: '2027-03-15T12:00',
-        end: '2027-03-15T13:00',
+        start: `${ymd(courseStart)}T12:00`,
+        end: `${ymd(courseStart)}T13:00`,
         description:
           'Course: https://academy.langchain.com/courses/intro-to-langgraph\nModule: https://academy.langchain.com/courses/intro-to-langgraph\nГраф, узлы, рёбра, состояние.\nDone: первый граф из двух узлов запускается локально.',
       },
       {
         title: 'LangGraph — Лаба 1: агент с инструментами',
-        start: '2027-03-17T12:00',
-        end: '2027-03-17T14:00',
+        start: `${ymd(courseStart + 2 * DAY)}T12:00`,
+        end: `${ymd(courseStart + 2 * DAY)}T14:00`,
         kind: 'lab',
         description:
           'Course: https://academy.langchain.com/courses/intro-to-langgraph\nDone: агент вызывает два инструмента.',
@@ -81,8 +94,8 @@ export function planGuide(plan: Plan, now: number): string {
       {
         calendar: 'personal',
         title: 'Бассейн',
-        start: '2026-11-25T07:00',
-        end: '2026-11-25T08:00',
+        start: `${wednesday}T07:00`,
+        end: `${wednesday}T08:00`,
         availability: 'free',
         rrule: 'FREQ=WEEKLY;BYDAY=WE,SA',
       },
@@ -94,6 +107,10 @@ export function planGuide(plan: Plan, now: number): string {
 You are helping a person keep a personal study plan called "${meta.title}". You get the plan as a JSON file and
 you change it by answering with an **update**: a small JSON document that lists changes. You never return an
 edited copy of the plan.
+
+The contract, in short (each point is explained below):
+
+${CONTRACT}
 
 Now it is ${ymd(now)} (${WEEKDAYS[new Date(now).getUTCDay()]}) in the plan's time zone, ${meta.timezone}.
 
@@ -188,7 +205,7 @@ The JSON Schema of the update describes every field; follow it when you have it.
    Start after the sessions the plan already has for those hours, or on the date the person named.
 5. Answer with **one** \`course.add\` change that carries every session:
 
-${code({ format: UPDATE_FORMAT, summary: 'Added the course LangGraph Academy: 2 sessions from March 15.', changes: [course] })}
+${code({ format: UPDATE_FORMAT, summary: `Added the course LangGraph Academy: 2 sessions from ${ymd(courseStart)}.`, changes: [course] })}
 
 For more sessions of a course that is already in the plan, use \`events.add\` with its calendar \`id\`.
 
@@ -228,7 +245,9 @@ export function planBrief(plan: Plan, now: number, options: { request?: string; 
   const request = options.request?.trim()
   return [
     planGuide(plan, now),
-    `## The plan\n\n\`\`\`json\n${JSON.stringify(compactPlan(plan, options.descriptions))}\n\`\`\``,
-    request ? `## What I want\n\n${request}` : '## What I want\n\n(Ask me what to change.)',
-  ].join('\n')
+    // The tags keep the data apart from the instructions; the request comes last, after the long plan.
+    `## The plan\n\n<plan>\n${JSON.stringify(compactPlan(plan, options.descriptions))}\n</plan>`,
+    `## What I want\n\n<request>\n${request || 'Ask me what to change.'}\n</request>`,
+    `## Before you answer\n\n${CONTRACT}`,
+  ].join('\n\n')
 }

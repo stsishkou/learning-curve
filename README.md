@@ -209,7 +209,9 @@ The plan is described so that a model can change it without guessing. Three docu
 
 - **The guide** (`planGuide`): Markdown generated from the plan itself, with its calendars, the hours planned per
   week, the rules (budget, holidays, what is done stays), how to name things, how to add a course, how to mark a
-  repeat and how to answer.
+  repeat and how to answer. It opens with the contract in five lines, its examples are dated from today, and the
+  brief puts the plan in `<plan>` tags, the request in `<request>` tags after it and the contract once more at the
+  end. Why: [docs/llm-integration-research.md](docs/llm-integration-research.md).
 - **The schemas** (`PLAN_SCHEMA`, `UPDATE_SCHEMA`): JSON Schema of the plan file and of an update, with a
   description on every field.
 - **The update** (`parseUpdate`, `previewUpdate`): `{ "summary": "…", "changes": [ … ] }`. The changes are the same

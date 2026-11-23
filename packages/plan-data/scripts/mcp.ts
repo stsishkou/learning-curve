@@ -36,7 +36,7 @@ const TOOLS = [
     description:
       'The instructions for working with this study plan: how it is laid out, its rules (weekly budget, holidays, naming), how to add a course, how to mark something as repeating and how to write an update. Call it first, before any other tool, and again after the plan changed: it lists the calendars and the hours already planned per week.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: 'get_plan',
@@ -61,7 +61,7 @@ const TOOLS = [
         descriptions: { type: 'boolean', default: false, description: 'Include the `description` of every event.' },
       },
     },
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: 'preview_update',
@@ -69,7 +69,7 @@ const TOOLS = [
     description:
       'Works out what an update would do: events added, removed and changed, calendars created, weeks filled past the weekly budget, and the first change that does not fit the plan. Nothing is stored. Call it before apply_update and show the person the result.',
     inputSchema: UPDATE_SCHEMA,
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: 'apply_update',
@@ -77,7 +77,7 @@ const TOOLS = [
     description:
       "Stores an update: every change becomes one step of the plan's history, which the person can undo in the viewer. All or nothing: when one change does not fit, nothing is stored and the reason comes back. Call it only after the person agreed to what preview_update showed.",
     inputSchema: UPDATE_SCHEMA,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 ]
 
