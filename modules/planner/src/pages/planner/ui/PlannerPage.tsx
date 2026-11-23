@@ -383,7 +383,15 @@ export function PlannerPage({
               onPickMonth={(month) => onSearchChange({ view: 'month', week: ymd(mondayOf(month + 6 * DAY)) })}
             />
           )}
-          {view === 'list' && <AgendaList plan={plan} items={allItems} now={now} onSelect={select} />}
+          {view === 'list' && (
+            <AgendaList
+              plan={plan}
+              items={allItems}
+              now={now}
+              onSelect={select}
+              onChanges={canEdit ? quiet.changeAll : undefined}
+            />
+          )}
         </section>
         {!expanded && (
           // The list is long: on one column the side panel goes above it instead of far below.

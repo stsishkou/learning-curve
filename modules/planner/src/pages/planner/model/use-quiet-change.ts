@@ -19,6 +19,8 @@ export function useQuietChange(session: PlanSession) {
   return {
     saveError,
     change: (change: PlanChange) => quietly(session.change(change)),
+    /** Several changes in order, each its own step of the history */
+    changeAll: (changes: PlanChange[]) => quietly(session.changeAll(changes)),
     canUndo,
     canRedo,
     undo: () => canUndo && quietly(session.travel(cursor - 1)),
