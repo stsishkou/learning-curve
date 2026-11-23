@@ -27,6 +27,15 @@ const utc = (ms: number) => new Date(ms).toISOString().replaceAll(/[-:]/g, '').r
 /** A length in minutes as `1:15` */
 const clock = (minutes: number) => `${Math.floor(minutes / 60)}:${String(Math.round(minutes % 60)).padStart(2, '0')}`
 
+/**
+ * How long a finished session really took against its slot, `✓ 1:15 / 1:00`: put first in its notes by every
+ * calendar the plan is sent to, which shows only the planned slot. Empty when no time was logged.
+ */
+export const tookNote = (e: PlanEvent) =>
+  e.done && e.actual && !e.allDay
+    ? `✓ ${clock(e.actual)} / ${clock((parseLocal(e.end) - parseLocal(e.start)) / 60_000)}`
+    : ''
+
 const compact = (local: string) => local.replaceAll(/[-:]/g, '').slice(0, 15).padEnd(15, '0') // 2026-11-23T12:00 → 20261123T120000
 
 function nextDate(day: string): string {
@@ -107,12 +116,7 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
     for (const day of e.skip ?? []) lines.push(`EXDATE;TZID=${tz}:${compact(`${day}T${e.start.slice(11, 16)}`)}`)
     const finished = options.markDone === true && e.done === true
     lines.push(`SUMMARY:${escapeText(finished ? `✓ ${e.title}` : e.title)}`)
-    // How long it really took, first: the calendar shows only the planned slot.
-    const took =
-      finished && e.actual && !e.allDay
-        ? `✓ ${clock(e.actual)} / ${clock((parseLocal(e.end) - parseLocal(e.start)) / 60_000)}`
-        : ''
-    const description = [took, e.description].filter(Boolean).join('\n\n')
+    const description = [finished ? tookNote(e) : '', e.description].filter(Boolean).join('\n\n')
     if (description) lines.push(`DESCRIPTION:${escapeText(description)}`)
     const url = e.description.match(/Module: (\S+)/)?.[1]
     if (url && /^https?:/.test(url)) lines.push(`URL:${url}`)

@@ -97,10 +97,30 @@ export {
   combinedICS,
   icsETag,
   icsFileName,
+  tookNote,
   planFileName,
   type IcsOptions,
 } from './ics'
 export { hashText, parseRevisions, reviseEvents, type Revision, type Revisions } from './revisions'
+export {
+  bodyHash,
+  googleBody,
+  googleEventId,
+  planPush,
+  readGoogleEvent,
+  rowOf,
+  uidOfGoogleId,
+  wallOf,
+  type GoogleBody,
+  type GoogleCalendarRow,
+  type GoogleEvent,
+  type GoogleRow,
+  type GoogleState,
+  type GoogleTime,
+  type Proposal,
+  type PushPlan,
+  type Reading,
+} from './google-sync'
 export {
   countsToBudget,
   durationHours,

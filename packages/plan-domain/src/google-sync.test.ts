@@ -1,0 +1,151 @@
+import { expect, test } from 'vitest'
+
+import { applyChange } from './changes'
+import { applyEdits, emptyEdits } from './edits'
+import { fixturePlan, itemAt } from './fixtures'
+import {
+  bodyHash,
+  googleBody,
+  googleEventId,
+  planPush,
+  readGoogleEvent,
+  rowOf,
+  uidOfGoogleId,
+  type GoogleEvent,
+  type GoogleState,
+} from './google-sync'
+import { isSession } from './progress'
+import type { Plan } from './types'
+
+const TZ = fixturePlan.meta.timezone
+const session = itemAt(fixturePlan.events.filter((e) => isSession(e) && !e.done))
+const repeat = itemAt(fixturePlan.events.filter((e) => e.rrule))
+
+/** Every calendar and event written to Google as the plan has them now. */
+function synced(plan: Plan): GoogleState {
+  const state: GoogleState = { calendars: {}, events: {} }
+  for (const c of plan.calendars) state.calendars[c.id] = { id: `g-${c.id}`, summary: c.name }
+  for (const e of plan.events) state.events[e.uid] = rowOf(googleBody(e, TZ), `g-${e.calendar}`, `"etag-${e.uid}"`)
+  return state
+}
+const changed = (plan: Plan, ...changes: Parameters<typeof applyChange>[2][]) => {
+  let edits = emptyEdits()
+  for (const change of changes) edits = applyChange(plan, edits, change)
+  return applyEdits(plan, edits).plan
+}
+/** The event as Google would return it after the app wrote it, with a person's edit on top. */
+const inGoogle = (uid: string, edit: Partial<GoogleEvent> = {}): GoogleEvent => {
+  const event = itemAt(fixturePlan.events.filter((e) => e.uid === uid))
+  return { ...googleBody(event, TZ), etag: '"edited"', status: 'confirmed', ...edit }
+}
+
+test('an event id is the uid in base32hex, and goes back to it', () => {
+  expect(googleEventId('certs-001@learning-curve')).toBe('cdin4t3j5ko30ca0dhim2sjed5n6ebb3elp7cp8')
+  for (const e of fixturePlan.events) {
+    const id = googleEventId(e.uid)
+    expect(id).toMatch(/^[a-v0-9]{5,1024}$/)
+    expect(uidOfGoogleId(id)).toBe(e.uid)
+  }
+  expect(uidOfGoogleId('Abc_20261201T110000Z')).toBeNull()
+})
+
+test('a done session is written with ✓, as free time, with how long it took first in its notes', () => {
+  const body = googleBody({ ...session, done: true, actual: 75 }, TZ)
+  expect(body.summary).toBe(`✓ ${session.title}`)
+  expect(body.transparency).toBe('transparent')
+  expect(body.description.startsWith('✓ 1:15 / ')).toBe(true)
+  expect(body.start).toEqual({ dateTime: `${session.start}:00`, timeZone: TZ })
+  expect(googleBody(repeat, TZ).recurrence?.[0]).toBe(`RRULE:${repeat.rrule}`)
+})
+
+test('the first round writes every calendar and event; a plan in step writes nothing', () => {
+  const first = planPush(fixturePlan, { calendars: {}, events: {} })
+  expect(first.create).toHaveLength(fixturePlan.calendars.length)
+  expect(first.insert).toHaveLength(0)
+  const state = synced(fixturePlan)
+  expect(planPush(fixturePlan, state)).toEqual({ create: [], rename: [], insert: [], move: [], patch: [], remove: [] })
+  const { calendars } = state
+  expect(planPush(fixturePlan, { calendars, events: {} }).insert).toHaveLength(fixturePlan.events.length)
+})
+
+test('a change in the plan writes only what it touched, and a waiting proposal holds its event back', () => {
+  const state = synced(fixturePlan)
+  const moved = changed(fixturePlan, {
+    type: 'event.patch',
+    uid: session.uid,
+    patch: { start: `${session.start.slice(0, 11)}06:00`, end: `${session.start.slice(0, 11)}07:00` },
+  })
+  const push = planPush(moved, state)
+  expect(push.patch.map((p) => p.uid)).toEqual([session.uid])
+  expect(push.patch[0]?.etag).toBe(`"etag-${session.uid}"`)
+  expect(planPush(moved, state, new Set([session.uid])).patch).toEqual([])
+
+  const removed = changed(fixturePlan, { type: 'event.remove', uid: session.uid })
+  expect(planPush(removed, state).remove).toEqual([
+    { uid: session.uid, calendar: `g-${session.calendar}`, etag: `"etag-${session.uid}"` },
+  ])
+  const elsewhere = itemAt(fixturePlan.calendars.filter((c) => c.id !== session.calendar))
+  const recalendared = changed(fixturePlan, {
+    type: 'event.patch',
+    uid: session.uid,
+    patch: { calendar: elsewhere.id },
+  })
+  expect(planPush(recalendared, state).move).toEqual([
+    { uid: session.uid, from: `g-${session.calendar}`, to: `g-${elsewhere.id}` },
+  ])
+})
+
+test('the app reading back its own write proposes nothing', () => {
+  const state = synced(fixturePlan)
+  const own = { ...inGoogle(session.uid), etag: `"etag-${session.uid}"` }
+  expect(readGoogleEvent(own, fixturePlan, state)).toEqual({ kind: 'seen', uid: session.uid, etag: own.etag })
+  expect(readGoogleEvent(inGoogle(session.uid), fixturePlan, state).kind).toBe('seen')
+})
+
+test('a ✓ typed in Google proposes done, and a move proposes the new slot', () => {
+  const state = synced(fixturePlan)
+  const ticked = readGoogleEvent(inGoogle(session.uid, { summary: `✓ ${session.title}` }), fixturePlan, state)
+  expect(ticked).toMatchObject({
+    kind: 'proposal',
+    proposals: [
+      { uid: session.uid, change: { type: 'events.done', uids: [session.uid], done: true }, etag: '"edited"' },
+    ],
+  })
+  const day = session.start.slice(0, 10)
+  const moved = readGoogleEvent(
+    inGoogle(session.uid, { start: { dateTime: `${day}T06:00:00+03:00` }, end: { dateTime: `${day}T07:30:00+03:00` } }),
+    fixturePlan,
+    state,
+  )
+  expect(moved).toMatchObject({
+    kind: 'proposal',
+    proposals: [
+      { change: { type: 'event.patch', uid: session.uid, patch: { start: `${day}T06:00`, end: `${day}T07:30` } } },
+    ],
+  })
+  if (moved.kind === 'proposal') expect(moved.proposals[0]?.basis).toBe(bodyHash(googleBody(session, TZ)))
+})
+
+test('a title edited in Google is written back; a deleted session asks; a deleted repeat is skipped', () => {
+  const state = synced(fixturePlan)
+  expect(readGoogleEvent(inGoogle(session.uid, { summary: 'Something else' }), fixturePlan, state).kind).toBe('reset')
+  expect(readGoogleEvent(inGoogle(session.uid, { status: 'cancelled' }), fixturePlan, state)).toMatchObject({
+    kind: 'proposal',
+    proposals: [{ uid: session.uid, change: null }],
+  })
+  const day = '2026-12-08'
+  const cancelled: GoogleEvent = {
+    id: `${googleEventId(repeat.uid)}_20261208T150000Z`,
+    etag: '"x"',
+    status: 'cancelled',
+    recurringEventId: googleEventId(repeat.uid),
+    originalStartTime: { dateTime: `${day}T${repeat.start.slice(11, 16)}:00+03:00` },
+  }
+  expect(readGoogleEvent(cancelled, fixturePlan, state)).toMatchObject({
+    kind: 'proposal',
+    proposals: [{ change: { type: 'event.patch', uid: repeat.uid, patch: { skip: [...(repeat.skip ?? []), day] } } }],
+  })
+  expect(readGoogleEvent({ id: 'madeingoogle', etag: '"y"', summary: 'Lunch' }, fixturePlan, state)).toEqual({
+    kind: 'foreign',
+  })
+})
