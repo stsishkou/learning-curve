@@ -662,5 +662,6 @@
   "focus_break_skip": "Later",
   "focus_break_left": "Break: {time} left",
   "focus_break_end": "Back to work",
-  "focus_break_over": "The break is over: resume when you are ready."
+  "focus_break_over": "The break is over: resume when you are ready.",
+  "week_summary": "{done} of {total} done · budget {budget}"
 }

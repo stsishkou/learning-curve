@@ -674,5 +674,6 @@
   "focus_break_skip": "Позже",
   "focus_break_left": "Перерыв: осталось {time}",
   "focus_break_end": "Вернуться к работе",
-  "focus_break_over": "Перерыв закончился: продолжайте, когда будете готовы."
+  "focus_break_over": "Перерыв закончился: продолжайте, когда будете готовы.",
+  "week_summary": "сделано {done} из {total} · бюджет {budget}"
 }

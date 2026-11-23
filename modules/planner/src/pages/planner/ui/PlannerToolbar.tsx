@@ -37,6 +37,8 @@ interface Props {
   history?: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void } | undefined
   /** The calendar chips, on the second row */
   children: ReactNode
+  /** Shown at the end of the second row, on a phone too */
+  summary?: ReactNode
   /**
    * Keeps the toolbar at the top while the page scrolls. For the expanded calendar, where the page header is
    * gone and the toolbar is the only way to another view or period.
@@ -52,7 +54,17 @@ const STEP =
   'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap transition-[background-color,transform] duration-150 hover:bg-surface-2 active:scale-[0.96] disabled:opacity-40 disabled:hover:bg-surface disabled:active:scale-100'
 
 /** Two rows above the calendar: which view and period, search and editing; then the calendars and how they show. */
-export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, children, pinned = false }: Props) {
+export function PlannerToolbar({
+  nav,
+  mod,
+  menu,
+  onSearch,
+  onNewEvent,
+  history,
+  children,
+  summary,
+  pinned = false,
+}: Props) {
   const datePicker = useRef<HTMLInputElement>(null)
   const timeGrid = nav.view === 'week' || nav.view === 'day'
   return (
@@ -148,60 +160,63 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {children}
-        <div role="group" aria-label={m.view()} className="ml-auto hidden gap-1.5 md:flex">
-          {timeGrid && (
-            <div role="group" aria-label={m.time_scale()} className="flex gap-1.5">
-              <button
-                type="button"
-                className={STEP}
-                aria-label={m.zoom_out()}
-                title={m.zoom_out()}
-                disabled={!nav.canZoomOut}
-                onClick={nav.zoomOut}
+        <div className="ml-auto flex items-center gap-3">
+          {summary}
+          <div role="group" aria-label={m.view()} className="hidden gap-1.5 md:flex">
+            {timeGrid && (
+              <div role="group" aria-label={m.time_scale()} className="flex gap-1.5">
+                <button
+                  type="button"
+                  className={STEP}
+                  aria-label={m.zoom_out()}
+                  title={m.zoom_out()}
+                  disabled={!nav.canZoomOut}
+                  onClick={nav.zoomOut}
+                >
+                  <ZoomOut size={16} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className={STEP}
+                  aria-label={m.zoom_in()}
+                  title={m.zoom_in()}
+                  disabled={!nav.canZoomIn}
+                  onClick={nav.zoomIn}
+                >
+                  <ZoomIn size={16} aria-hidden />
+                </button>
+              </div>
+            )}
+            {nav.view === 'week' && (
+              <Button
+                className={`flex items-center gap-1.5 ${PRESSED}`}
+                aria-pressed={nav.workWeek}
+                title={m.work_week_hint()}
+                onClick={nav.toggleWorkWeek}
               >
-                <ZoomOut size={16} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={STEP}
-                aria-label={m.zoom_in()}
-                title={m.zoom_in()}
-                disabled={!nav.canZoomIn}
-                onClick={nav.zoomIn}
+                <Briefcase size={15} aria-hidden /> {m.work_week()}
+              </Button>
+            )}
+            {timeGrid && (
+              <Button
+                className={`flex items-center gap-1.5 ${PRESSED}`}
+                aria-pressed={nav.fullDay}
+                title={m.full_day_hint()}
+                onClick={nav.toggleFullDay}
               >
-                <ZoomIn size={16} aria-hidden />
-              </button>
-            </div>
-          )}
-          {nav.view === 'week' && (
+                <Clock size={15} aria-hidden /> {m.full_day()}
+              </Button>
+            )}
             <Button
               className={`flex items-center gap-1.5 ${PRESSED}`}
-              aria-pressed={nav.workWeek}
-              title={m.work_week_hint()}
-              onClick={nav.toggleWorkWeek}
+              aria-pressed={nav.expanded}
+              title={m.expand_hint()}
+              onClick={nav.toggleExpanded}
             >
-              <Briefcase size={15} aria-hidden /> {m.work_week()}
+              {nav.expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
+              {nav.expanded ? m.collapse() : m.expand()}
             </Button>
-          )}
-          {timeGrid && (
-            <Button
-              className={`flex items-center gap-1.5 ${PRESSED}`}
-              aria-pressed={nav.fullDay}
-              title={m.full_day_hint()}
-              onClick={nav.toggleFullDay}
-            >
-              <Clock size={15} aria-hidden /> {m.full_day()}
-            </Button>
-          )}
-          <Button
-            className={`flex items-center gap-1.5 ${PRESSED}`}
-            aria-pressed={nav.expanded}
-            title={m.expand_hint()}
-            onClick={nav.toggleExpanded}
-          >
-            {nav.expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
-            {nav.expanded ? m.collapse() : m.expand()}
-          </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -39,6 +39,7 @@ import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
 import { eventKey, useModKey, useNow } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
+import { BudgetLine } from '../../../widgets/budget-panel'
 import { MonthGrid } from '../../../widgets/month-grid'
 import { NowNext } from '../../../widgets/now-next'
 import { Runway } from '../../../widgets/runway'
@@ -290,6 +291,7 @@ export function PlannerPage({
         onNewEvent={canEdit ? () => drafting.begin() : undefined}
         history={canEdit ? quiet : undefined}
         pinned={expanded}
+        summary={expanded && view === 'week' && <BudgetLine plan={plan} weekItems={weekItems} />}
       >
         <Hint title={m.help_calendars_title()} text={m.help_calendars()} />
         <CalendarFilter

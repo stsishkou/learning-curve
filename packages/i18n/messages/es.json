@@ -662,5 +662,6 @@
   "focus_break_skip": "Más tarde",
   "focus_break_left": "Descanso: quedan {time}",
   "focus_break_end": "Volver al trabajo",
-  "focus_break_over": "El descanso ha terminado: continúa cuando quieras."
+  "focus_break_over": "El descanso ha terminado: continúa cuando quieras.",
+  "week_summary": "{done} de {total} hecho · presupuesto {budget}"
 }
