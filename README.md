@@ -236,18 +236,25 @@ What goes where:
   trash), or kept out, which writes the plan's version back to Google. Until you decide, the event is left alone in
   Google. A title or notes edited in Google are written back without asking: the text belongs to the plan.
 
-Set it up once, with an OAuth client of your own (about five minutes):
+Set it up once, with an OAuth client of your own (about ten minutes):
 
 1. [Create a Google Cloud project](https://console.cloud.google.com/projectcreate) and
    [enable the Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) in it.
 2. In [Google Auth Platform](https://console.cloud.google.com/auth/overview), `Get started`: any app name, your
-   address as the support and contact address, audience `External`.
-3. Under `Audience`, either add your Google account as a test user, or `Publish app`. A published personal app
-   needs no verification: Google only shows an "unverified app" screen at sign-in (`Advanced` → `Go to …`). Left in
-   testing, Google ends the sign-in every 7 days and the planner asks to connect again; nothing is lost meanwhile.
-4. Under `Clients`, `Create client` of type **Desktop app**, and copy its client ID and secret.
+   address as the support and contact address. As the audience, pick `Personal` when it is offered: only your own
+   account can sign in, with no weekly sign-out and no verification (it cannot be changed later). Otherwise pick
+   `External`, and under `Audience` either `Publish app` (Google shows an "unverified app" screen at sign-in:
+   `Advanced` → `Go to …`) or add your account as a test user, which Google signs out every 7 days; the planner
+   then asks to connect again, and nothing is lost meanwhile.
+3. Under `Data access`, `Add or remove scopes`, paste `https://www.googleapis.com/auth/calendar.app.created` under
+   `Manually add scopes`, add it to the table and save.
+4. Under `Clients`, `Create client` of type **Desktop app**, and copy its client ID and secret at once: Google shows
+   the secret only when the client is made.
 5. In the planner, `⋮` → `Google Calendar`: paste both, `Save client`, then `Connect Google Calendar` and allow
    access. Open the planner on `localhost` or `127.0.0.1` for this: Google sends the answer back to that address.
+   Google documents loopback answers without a path; if it refuses this one (`redirect_uri_mismatch`), make a client
+   of type `Web application` instead, with `http://localhost:3000/api/google/callback` (the address you open the
+   planner at) as its authorized redirect URI.
 
 The client and the sign-in are kept in the untracked `packages/plan-data/data/local.json`, readable only by you;
 `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set the client instead. What was written to Google and the changes
