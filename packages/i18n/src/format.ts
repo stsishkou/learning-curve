@@ -53,3 +53,21 @@ export function fmtDuration(ms: number): string {
   const hours = Math.floor(minutes / 60)
   return minutes % 60 ? m.duration_hm({ hours, minutes: minutes % 60 }) : m.duration_h({ hours })
 }
+
+/**
+ * What people call the time of an IANA zone in the current language: `Польша` / `Poland Time` for
+ * `Europe/Warsaw`. Empty when the zone is not known here.
+ */
+export function fmtZoneRegion(zone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat(getLocale(), { timeZone: zone, timeZoneName: 'shortGeneric' }).formatToParts(
+      0,
+    )
+    return parts.find((part) => part.type === 'timeZoneName')?.value ?? ''
+  } catch {
+    return ''
+  }
+}
+
+/** How far a clock is from the plan's own, as a signed number of hours: `+2 ч`, `−5,5 ч`; empty for no difference. */
+export const fmtShift = (ms: number) => (ms ? `${ms > 0 ? '+' : '−'}${fmtHours(Math.abs(ms) / 3_600_000)}` : '')

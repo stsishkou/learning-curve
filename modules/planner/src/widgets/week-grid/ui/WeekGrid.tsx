@@ -1,4 +1,4 @@
-import { dowShort, fmtDay, fmtHours } from '@lc/i18n/format'
+import { dowShort, fmtDay, fmtHours, fmtShift } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   countsToBudget,
@@ -72,7 +72,7 @@ const DEFAULT_HOUR_HEIGHT = 56
 const MIN_COLUMN = 101
 const GUTTER = 52
 /** With a second clock next to the plan's own */
-const GUTTER_TWO_ZONES = 100
+const GUTTER_TWO_ZONES = 108
 /** The `lg` breakpoint: from here the page puts the side panel next to the grid. */
 const TWO_COLUMNS = 961
 const SNAP = HOUR / 2
@@ -405,10 +405,16 @@ export function WeekGrid({
           >
             {secondZone && (
               <>
-                <span className="min-w-0 flex-1 truncate pl-1.5 text-right" title={secondZone.label}>
-                  {secondZone.label}
+                {/* Two clocks, each over its own column of hours: the other zone with how far it is from the
+                    plan, then the plan's own. */}
+                <span className="w-[42px] text-right" title={secondZone.label}>
+                  <span className="block truncate">{secondZone.label}</span>
+                  <span className="block tabular-nums">{fmtShift(secondZone.shift) || '='}</span>
                 </span>
-                <span className="font-semibold text-ink">{m.plan_zone()}</span>
+                <span className="w-[38px] text-right font-semibold text-ink">
+                  <span className="block truncate">{m.plan_zone()}</span>
+                  <span className="block font-normal text-muted">{m.zone_plan_short()}</span>
+                </span>
               </>
             )}
           </div>
@@ -486,7 +492,7 @@ export function WeekGrid({
                 style={{ top: (h - minH) * hourHeight }}
               >
                 {secondZone && (
-                  <span className="w-[38px] text-right">{hm(weekStart + h * HOUR + secondZone.shift)}</span>
+                  <span className="w-[42px] text-right">{hm(weekStart + h * HOUR + secondZone.shift)}</span>
                 )}
                 <span className={secondZone ? 'w-[38px] text-right font-medium text-ink' : ''}>
                   {String(h).padStart(2, '0')}:00

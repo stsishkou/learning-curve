@@ -461,6 +461,7 @@ export function PlannerPage({
       <SecondZoneDialog
         open={dialogs.isOpen('zone')}
         zone={zone}
+        now={now}
         onChoose={setZone}
         onClose={() => dialogs.hide('zone')}
       />
