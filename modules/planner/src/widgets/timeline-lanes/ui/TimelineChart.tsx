@@ -182,8 +182,9 @@ export function TimelineChart({
         className={`overflow-x-auto overscroll-x-contain border-t ${height === undefined ? '' : 'min-h-0 flex-1'} border-line-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus ${zoom === 'fit' ? '' : '[&_[data-axis]]:cursor-grab [&_[data-track]]:cursor-grab'} ${pan.panning ? 'select-none [&_*]:cursor-grabbing!' : ''}`}
         onPointerDown={pan.onPointerDown}
       >
+        {/* As wide as the days, not the view: the names only stay over the days while they are inside this box. */}
         <div
-          className="grid grid-cols-[var(--names)_var(--track)] [--names:136px] md:[--names:240px]"
+          className="grid w-max min-w-full grid-cols-[var(--names)_var(--track)] [--names:136px] md:[--names:240px]"
           style={{ '--track': track }}
         >
           {/* Over the names and the days alike while the lanes scroll under them. */}

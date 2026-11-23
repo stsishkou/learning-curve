@@ -254,6 +254,30 @@ export const DeadlineTipSaysSpare: Story = {
   },
 }
 
+/** Zoomed in, the names stay over the days however far they are scrolled, and the days pass under them, deadline too. */
+export const NamesStayOverTheDays: Story = {
+  args: { edit: editing() },
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const box = scroller(canvasElement)
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_week() }))
+    const name = region.getByText('Gemini Certs')
+    const deadline = region.getByRole('slider', { name: m.timeline_deadline({ name: 'Gemini Certs' }) })
+    const axis = canvasElement.querySelector('[data-axis]')
+    if (!axis) throw new Error('no axis')
+    box.scrollLeft = box.scrollWidth
+    const view = box.getBoundingClientRect()
+    await expect(name.getBoundingClientRect().left).toBeGreaterThanOrEqual(view.left)
+    box.scrollLeft = 0
+    const names = axis.getBoundingClientRect().left - view.left
+    const mark = deadline.getBoundingClientRect()
+    box.scrollLeft = mark.left + mark.width / 2 - view.left - names / 2
+    const under = deadline.getBoundingClientRect()
+    const hit = document.elementFromPoint(under.left + under.width / 2, under.top + under.height / 2)
+    await expect(hit && deadline.contains(hit)).toBe(false)
+  },
+}
+
 /** A click on a lane selects that course; nothing moves. */
 export const SelectALane: Story = {
   args: { edit: editing() },

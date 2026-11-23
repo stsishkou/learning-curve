@@ -207,6 +207,7 @@ export function DeadlineHandle({
           style={{ left: `${scale.at(deadline)}%` }}
         />
       )}
+      {/* Over the end of the course when the two meet, under the names the days scroll past (z-20). */}
       <span
         role="slider"
         tabIndex={0}
@@ -217,7 +218,7 @@ export function DeadlineHandle({
         aria-valuetext={fmtDay(day)}
         aria-describedby={describedBy}
         title={m.deadline_on({ date: fmtDay(day) })}
-        className={`${HANDLE} z-20 -ml-3 grid place-items-center`}
+        className={`${HANDLE} z-[15] -ml-3 grid place-items-center`}
         style={{ left: `${clampPct(scale.at(day))}%` }}
         onPointerDown={nudge.onPointerDown}
         onPointerMove={nudge.onPointerMove}
