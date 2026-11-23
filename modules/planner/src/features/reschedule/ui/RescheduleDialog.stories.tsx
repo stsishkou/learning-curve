@@ -136,19 +136,22 @@ export const RebalanceByPace: Story = {
 }
 
 /**
- * A deadline typed for a calendar that has none: the re-balance can aim at it at once, and Apply stores it as the
- * calendar's milestone before the moves.
+ * A deadline typed for a calendar that has none: the re-balance can finish the day before it at once, and Apply
+ * stores it as the calendar's milestone before the moves.
  */
-export const FitTheDeadline: Story = {
+export const FinishBy: Story = {
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     await rebalanceLlm(canvasElement)
-    const fit = body.getByRole('checkbox', { name: m.reschedule_fit_deadline() })
-    await expect(fit).toBeDisabled()
+    const finish = body.getByRole('checkbox', { name: m.reschedule_finish_by() })
+    await expect(finish).toBeDisabled()
     await fireEvent.change(body.getByLabelText(new RegExp(`^${m.reschedule_deadline()}`)), {
       target: { value: '2027-02-16' },
     })
-    await userEvent.click(fit)
+    await expect(body.getByLabelText(m.reschedule_finish_by(), { selector: 'input[type="date"]' })).toHaveValue(
+      '2027-02-15',
+    )
+    await userEvent.click(finish)
     await waitFor(() =>
       expect(args.rebalance).toHaveBeenLastCalledWith(
         fixturePlan,
@@ -172,6 +175,74 @@ export const FitTheDeadline: Story = {
         },
       },
       { type: 'events.move', moves, reason: 'rebalance', calendar: 'hfllm' },
+    ])
+  },
+}
+
+/** The end of a lane dragged to 10 Feb: Re-balance opens for that calendar, aiming to finish by that day. */
+export const FinishByFromTheTimeline: Story = {
+  args: { preset: { calendar: 'hfllm', mode: 'rebalance', finishBy: '2027-02-10' } },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await waitFor(() =>
+      expect(args.rebalance).toHaveBeenLastCalledWith(
+        fixturePlan,
+        expect.objectContaining({
+          calendar: 'hfllm',
+          from: FROM,
+          deadline: '2027-02-11',
+          target: { mode: 'deadline' },
+        }),
+      ),
+    )
+    await expect(body.getByRole('checkbox', { name: m.reschedule_finish_by() })).toBeChecked()
+    const apply = body.getByRole('button', { name: m.reschedule_apply() })
+    await waitFor(() => expect(apply).toBeEnabled())
+    await userEvent.click(apply)
+    await expect(args.onApply).toHaveBeenCalledWith([
+      { type: 'events.move', moves, reason: 'rebalance', calendar: 'hfllm' },
+    ])
+  },
+}
+
+/** A lane dragged two weeks onto a rule: Move opens with that calendar and those days, ready to apply. */
+export const MoveFromTheTimeline: Story = {
+  args: { preset: { calendar: 'hfllm', mode: 'move', days: 14 } },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: m.reschedule_apply() }))
+    await expect(args.onApply).toHaveBeenCalledWith([{ type: 'events.shift', calendar: 'hfllm', from: FROM, days: 14 }])
+  },
+}
+
+/** Only the deadline changes: Move stores it alone when nothing is shifted. */
+export const DeadlineAlone: Story = {
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.selectOptions(
+      await body.findByRole('combobox', { name: new RegExp(`^${m.field_calendar()}`) }),
+      'hfllm',
+    )
+    await fireEvent.change(body.getByLabelText(new RegExp(`^${m.reschedule_deadline()}`)), {
+      target: { value: '2027-02-20' },
+    })
+    await fireEvent.change(body.getByLabelText(m.shift_days()), { target: { value: '0' } })
+    const apply = body.getByRole('button', { name: m.reschedule_apply() })
+    await waitFor(() => expect(apply).toBeEnabled())
+    await userEvent.click(apply)
+    await expect(args.onApply).toHaveBeenCalledWith([
+      {
+        type: 'event.add',
+        event: {
+          calendar: 'hfllm',
+          title: 'Дедлайн: Hugging Face: LLM Course',
+          start: '2027-02-20T00:00',
+          end: '2027-02-20T00:00',
+          description: '',
+          availability: 'free',
+          kind: 'milestone',
+        },
+      },
     ])
   },
 }

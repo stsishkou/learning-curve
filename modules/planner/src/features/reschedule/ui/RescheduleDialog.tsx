@@ -1,6 +1,7 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
+  addDays,
   deadlineOf,
   defaultStudyHours,
   parseLocal,
@@ -28,8 +29,15 @@ interface Props {
   onApply: (changes: PlanChange[]) => Promise<void>
   /** Works out a re-balance of one calendar; without it the dialog only moves */
   rebalance?: Rebalance | undefined
+  /** What the dialog opens with, as a drag on the timeline asked */
+  preset?: ReschedulePreset | undefined
   onClose: () => void
 }
+
+/** A calendar and a mode to open with: days to move by, or the day to finish by. Days are `YYYY-MM-DD`. */
+export type ReschedulePreset =
+  | { calendar: string; mode: 'move'; days?: number | undefined }
+  | { calendar: string; mode: 'rebalance'; finishBy?: string | undefined }
 
 type Mode = 'move' | 'rebalance'
 
@@ -50,26 +58,36 @@ const CHECK = 'flex items-center gap-2 text-[13.5px] text-ink'
  * Reschedules the open sessions from a day on: moves them by days and hours, or re-balances one calendar at a pace or
  * towards its deadline, with the result worked out on the host and shown before anything is stored.
  */
-export function RescheduleDialog({ plan, from, onApply, rebalance, onClose }: Props) {
+export function RescheduleDialog({ plan, from, onApply, rebalance, preset, onClose }: Props) {
   return (
     <Modal open={from !== null} size="wide" onClose={onClose}>
       {from !== null && (
-        <RescheduleForm key={from} plan={plan} from={from} onApply={onApply} rebalance={rebalance} onClose={onClose} />
+        <RescheduleForm
+          key={from}
+          plan={plan}
+          from={from}
+          onApply={onApply}
+          rebalance={rebalance}
+          preset={preset}
+          onClose={onClose}
+        />
       )}
     </Modal>
   )
 }
 
-function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Props & { from: string }) {
+function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClose }: Props & { from: string }) {
   const ids = useId()
-  const [calendar, setCalendar] = useState('')
+  const [calendar, setCalendar] = useState(preset?.calendar ?? '')
   const [from, setFrom] = useState(initial)
-  const [deadline, setDeadline] = useState('')
-  const [mode, setMode] = useState<Mode>('move')
-  const [days, setDays] = useState(7)
+  const [deadline, setDeadline] = useState(() => (preset ? (deadlineOf(plan, preset.calendar) ?? '') : ''))
+  const [mode, setMode] = useState<Mode>(preset?.mode === 'rebalance' && rebalance ? 'rebalance' : 'move')
+  const [days, setDays] = useState(preset?.mode === 'move' ? (preset.days ?? 7) : 7)
   const [hours, setHours] = useState(0)
   const [pace, setPace] = useState<Pace>('1')
-  const [fit, setFit] = useState(false)
+  // null follows the Deadline field: the day before it.
+  const [finishBy, setFinishBy] = useState(preset?.mode === 'rebalance' ? (preset.finishBy ?? null) : null)
+  const [fit, setFit] = useState(preset?.mode === 'rebalance' && preset.finishBy !== undefined)
   const [study, setStudy] = useState(() => defaultStudyHours(plan))
   const [overBudget, setOverBudget] = useState(false)
   const [error, setError] = useState('')
@@ -78,7 +96,9 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Pr
   const rebalancing = mode === 'rebalance' && rebalance !== undefined
   // A deadline on or before the first day cannot be aimed at: it is kept, but not sent.
   const aim = deadline > from ? deadline : ''
-  const fitting = fit && aim !== ''
+  const finish = finishBy ?? (deadline ? addDays(deadline, -1) : '')
+  const finishable = finish !== '' && finish >= from
+  const fitting = fit && finishable
   const perDay = PACE_OPTIONS.find((p) => p.key === pace)?.perDay ?? 1
   const request = useMemo<RebalanceRequest | null>(
     () =>
@@ -86,13 +106,14 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Pr
         ? {
             calendar,
             from,
-            deadline: aim || undefined,
+            // Finishing by a day aims at the next one, so the stored deadline changes only with its own field.
+            deadline: fitting ? addDays(finish, 1) : aim || undefined,
             target: fitting ? { mode: 'deadline' } : { mode: 'pace', perDay },
             overBudget,
             hours: study,
           }
         : null,
-    [rebalancing, calendar, from, aim, fitting, perDay, overBudget, study],
+    [rebalancing, calendar, from, aim, finish, fitting, perDay, overBudget, study],
   )
   const outcome = useRebalance(rebalance, plan, request)
   const { result } = outcome
@@ -118,22 +139,23 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Pr
   const warnings = useMemo(() => (step ? previewUpdate(plan, [step]).warnings : []), [plan, step])
   const ready = rebalancing
     ? request !== null && !outcome.working && result?.report.unplaced === 0 && (moves !== null || deadlineStep !== null)
-    : shifting
+    : shifting || deadlineStep !== null
 
   function chooseCalendar(id: string) {
     setCalendar(id)
     setDeadline(id ? (deadlineOf(plan, id) ?? '') : '')
+    setFinishBy(null)
     setFit(false)
   }
 
-  function preset(byDays: number, byHours: number) {
+  function fill(byDays: number, byHours: number) {
     setDays(byDays)
     setHours(byHours)
   }
 
   async function submit(e: SubmitEvent) {
     e.preventDefault()
-    const changes = [deadlineStep, rebalancing ? moves : shift].filter((change) => change !== null)
+    const changes = [deadlineStep, rebalancing ? moves : shifting ? shift : null].filter((change) => change !== null)
     setBusy(true)
     try {
       await onApply(changes)
@@ -214,10 +236,28 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Pr
                 </div>
               </div>
             </div>
-            <label className={CHECK}>
-              <input type="checkbox" checked={fitting} disabled={!aim} onChange={(e) => setFit(e.target.checked)} />
-              {m.reschedule_fit_deadline()}
-            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className={CHECK}>
+                <input
+                  type="checkbox"
+                  checked={fitting}
+                  disabled={!finishable}
+                  onChange={(e) => setFit(e.target.checked)}
+                />
+                {m.reschedule_finish_by()}
+              </label>
+              <input
+                className={`${INPUT} w-auto`}
+                type="date"
+                value={finish}
+                min={from}
+                aria-label={m.reschedule_finish_by()}
+                onChange={(e) => {
+                  setFinishBy(e.target.value || null)
+                  setFit(e.target.value !== '')
+                }}
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <div className="flex items-center gap-2 text-[13px] text-muted">
                 <span className="whitespace-nowrap">{m.reschedule_study_hours()}</span>
@@ -285,11 +325,11 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Pr
             </label>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => preset(0, 1)}>{m.reschedule_hour_later()}</Button>
-            <Button onClick={() => preset(0, -1)}>{m.reschedule_hour_earlier()}</Button>
-            <Button onClick={() => preset(1, 0)}>{m.shift_day_later()}</Button>
-            <Button onClick={() => preset(7, 0)}>{m.shift_week_later()}</Button>
-            <Button onClick={() => preset(-7, 0)}>{m.shift_week_earlier()}</Button>
+            <Button onClick={() => fill(0, 1)}>{m.reschedule_hour_later()}</Button>
+            <Button onClick={() => fill(0, -1)}>{m.reschedule_hour_earlier()}</Button>
+            <Button onClick={() => fill(1, 0)}>{m.shift_day_later()}</Button>
+            <Button onClick={() => fill(7, 0)}>{m.shift_week_later()}</Button>
+            <Button onClick={() => fill(-7, 0)}>{m.shift_week_earlier()}</Button>
           </div>
           <p className="text-[13.5px] text-muted" role="status">
             {m.shift_count({ count })}

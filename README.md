@@ -154,7 +154,8 @@ a Husky `commit-msg` hook checks them with commitlint.
   - `Move` shifts every session that is not done, from a chosen day, in every calendar or in one. It shifts by
     days and by hours; `+1 h`, `−1 h`, `+1 day`, `+1 week` and `−1 week` fill both in.
   - `Re-balance` spreads one calendar's open sessions over the study days ahead instead. It keeps a pace, from one
-    session every three study days to three a day, or finishes before the calendar's deadline as evenly as it can.
+    session every three study days to three a day, or finishes by a chosen day as evenly as it can: `Finish by`
+    starts at the day before the calendar's deadline, and another day there leaves the deadline as it is.
     The study hours, and whether a week may go over the budget, are part of the request.
 
   While the inputs change, the dialog shows when the course ends, its heaviest week and how many sessions move.
