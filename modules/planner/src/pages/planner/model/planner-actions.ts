@@ -1,8 +1,7 @@
-import type { MenuItem } from '@lc/ui'
+import type { MenuItem, Shortcuts } from '@lc/ui'
 import type { ReactNode } from 'react'
 
 import type { Command } from '../../../features/command-palette'
-import type { Shortcuts } from '../../../features/keyboard-shortcuts'
 
 /**
  * One thing the page can do, declared once: the command search, the `⋮` menu, the keyboard shortcuts and the

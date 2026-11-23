@@ -24,7 +24,7 @@ import {
   type RebalanceRequest,
   type RebalanceResult,
 } from '@lc/plan-domain'
-import { Button, CalendarSync, HelpToggle, Hint, useFullscreen, useHelpMode } from '@lc/ui'
+import { Button, CalendarSync, HelpToggle, Hint, useFullscreen, useHelpMode, useShortcuts } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 
 import { Backlog } from '../../../features/backlog'
@@ -45,7 +45,7 @@ import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
 import { describeStep, HistoryDialog } from '../../../features/history'
-import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
+import { ShortcutsDialog } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'

@@ -10,10 +10,9 @@ import {
   type Plan,
   type PlanChange,
 } from '@lc/plan-domain'
-import { HelpToggle, Hint, PageHeader, useFullscreen } from '@lc/ui'
+import { HelpToggle, Hint, PageHeader, useFullscreen, useShortcuts } from '@lc/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
-import { useShortcuts } from '../../../features/keyboard-shortcuts'
 import { RescheduleDialog, type Rebalance } from '../../../features/reschedule'
 import { useFillHeight, useNow } from '../../../shared/lib'
 import { ScreenButtons } from '../../../shared/ui'
