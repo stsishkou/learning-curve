@@ -3,7 +3,7 @@
     "title": "AI Agent Engineer",
     "version": 1,
     "timezone": "Europe/Minsk",
-    "generated": "2026-11-22",
+    "generated": "2026-11-23",
     "weeklyBudgetHours": 12,
     "certDeadline": "2026-12-30",
     "holidays": [
@@ -25,7 +25,7 @@
     },
     {
       "id": "hfllm",
-      "name": "Hugging Face: LLM Cource",
+      "name": "Hugging Face: LLM Course",
       "color": "#C98A0B",
       "isNew": false,
       "note": "Уже существует"

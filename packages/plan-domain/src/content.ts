@@ -5,7 +5,7 @@ import type { PlanCalendar, QueueItem } from './types'
 
 export const CALENDARS: PlanCalendar[] = [
   { id: 'certs',   name: 'Gemini Certs',                    color: '#2F5BEA', isNew: true,  note: 'Сертификаты Google Partner — приоритет до Нового года' },
-  { id: 'hfllm',   name: 'Hugging Face: LLM Cource',        color: '#C98A0B', isNew: false, note: 'Уже существует' },
+  { id: 'hfllm',   name: 'Hugging Face: LLM Course',        color: '#C98A0B', isNew: false, note: 'Уже существует' },
   { id: 'hfagents',name: 'Hugging Face: AI Agents Course',  color: '#14897A', isNew: false, note: 'Уже существует' },
   { id: 'pypy',    name: 'Practical Python',                color: '#7A5AC8', isNew: true,  note: 'Python для опытного разработчика' },
   { id: 'journey', name: 'AI Journey',                      color: '#7D8796', isNew: false, note: 'Субботний буфер, позже — короткие курсы' },
