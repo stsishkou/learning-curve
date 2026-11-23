@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex" />
+    <title>lc_docs remote</title>
+  </head>
+  <body>
+    <!-- The remote's build input and a page to try the drawer without a host: the chunks the host loads are built from
+         src/remote/help.tsx through the federation entry, not from this page. -->
+    <main style="font-family: system-ui; padding: 2rem">
+      <h1>lc_docs</h1>
+      <p>The Module Federation remote of the docs. Hosts load <code>mf-manifest.json</code> from this folder.</p>
+      <button type="button" id="open">Open the guide</button>
+    </main>
+    <script type="module" src="/src/remote/playground.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,174 @@
+/* Styles shared by the site and the remote. Colours come from the root app's tokens (@lc/ui theme.css): inside a
+   host they are inherited through the shadow boundary, so the guide wears the host's theme. The fallbacks are those
+   same tokens, for a host that does not define them. */
+@theme inline {
+  --color-bg: var(--bg, light-dark(#edf1f6, #121722));
+  --color-surface: var(--surface, light-dark(#ffffff, #1a2130));
+  --color-surface-2: var(--surface-2, light-dark(#f5f7fa, #202838));
+  --color-ink: var(--ink, light-dark(#172033, #e5eaf1));
+  --color-muted: var(--muted, light-dark(#5a6578, #9aa5b6));
+  --color-line: var(--line, light-dark(#d4dbe5, #2c3547));
+  --color-line-soft: var(--line-soft, light-dark(#e6ebf1, #242d3d));
+  --color-focus: var(--focus, light-dark(#2f5bea, #7c9bff));
+  --color-done: var(--done, light-dark(#1f9d6b, #46c692));
+  --color-done-ink: var(--done-ink, light-dark(#14704b, #46c692));
+  --color-today: var(--today, light-dark(#d8473b, #ff6b5e));
+  --color-today-ink: var(--today-ink, light-dark(#b93026, #ff6b5e));
+  --shadow-card: var(--shadow, 0 1px 0 light-dark(rgb(23 32 51 / 0.06), transparent));
+}
+
+@keyframes lc-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@layer components {
+  .lc-card {
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+  .lc-link {
+    color: var(--color-focus);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    &:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+  .lc-code {
+    border-radius: 5px;
+    background: var(--color-surface-2);
+    padding: 0.05em 0.35em;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+  }
+  .lc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+    & > li::marker {
+      color: var(--color-muted);
+    }
+  }
+  .lc-terminal,
+  .lc-codeblock {
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-surface-2);
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  .lc-codeblock pre {
+    position: relative;
+    overflow: auto;
+    max-height: 32rem;
+    padding: 0.75rem 0;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    tab-size: 2;
+  }
+  .lc-walk-code .lc-codeblock pre {
+    max-height: 45vh;
+    @container (min-width: 56rem) {
+      max-height: calc(100vh - var(--lc-sticky-top, 0px) - 6rem);
+    }
+  }
+  /* Shiki writes both themes as custom properties; the scheme in force picks one. */
+  .shiki,
+  .shiki span {
+    color: light-dark(var(--shiki-light), var(--shiki-dark));
+  }
+  .shiki code {
+    display: block;
+    min-width: fit-content;
+  }
+  .shiki .line {
+    display: inline-block;
+    min-width: 100%;
+    padding-right: 1rem;
+    transition: opacity 200ms;
+    &[data-line]::before {
+      content: attr(data-line);
+      display: inline-block;
+      width: 3.25rem;
+      padding-right: 1rem;
+      color: var(--color-muted);
+      text-align: right;
+      user-select: none;
+    }
+  }
+  .lc-walk-code:has([data-focus]) .line:not([data-focus]) {
+    opacity: 0.38;
+  }
+  .lc-walk-code .line[data-focus] {
+    background: color-mix(in oklab, var(--color-focus) 10%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shiki .line {
+      transition: none;
+    }
+  }
+
+  .lc-prose {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    line-height: 1.7;
+    & > h2 {
+      margin-top: 1rem;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+    }
+    & > h3 {
+      margin-top: 0.5rem;
+      font-weight: 600;
+      font-size: 1.0625rem;
+    }
+    & a {
+      color: var(--color-focus);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    & :not(pre) > code {
+      border-radius: 5px;
+      background: var(--color-surface-2);
+      padding: 0.05em 0.35em;
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+    & ul {
+      padding-left: 1.25rem;
+      list-style: disc;
+    }
+    & ol {
+      padding-left: 1.25rem;
+      list-style: decimal;
+    }
+    & li + li {
+      margin-top: 0.35rem;
+    }
+    & blockquote {
+      border-left: 3px solid var(--color-line);
+      padding-left: 1rem;
+      color: var(--color-muted);
+    }
+    & table {
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    & th,
+    & td {
+      border-bottom: 1px solid var(--color-line-soft);
+      padding: 0.4rem 0.75rem 0.4rem 0;
+      text-align: left;
+      vertical-align: top;
+    }
+  }
+}
