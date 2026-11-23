@@ -20,8 +20,9 @@ interface Props {
 }
 
 /**
- * The edits made in Google Calendar, one row each, with what accepting it would change in the plan and the rules of
- * the plan it would break. Each can be taken into the plan, or kept out by writing the plan's version back.
+ * The edits made in Google Calendar that were not taken in by themselves, one row each: the planner changed the same
+ * thing, or the plan cannot take them. Each shows what using it would change and the rules it would break; neither
+ * choice is the default, since only the person knows which version stands.
  */
 export function GoogleReviewDialog({ open, plan, items, working, error, onAccept, onKeep, onClose }: Props) {
   const rows = useMemo(() => items.map((item) => describeProposal(plan, item)), [plan, items])
@@ -49,13 +50,16 @@ export function GoogleReviewDialog({ open, plan, items, working, error, onAccept
                 <span className={`block text-[12.5px] ${problem ? 'text-today-ink' : 'text-muted'}`}>
                   {problem || detail}
                 </span>
+                {item.hold === 'both' && !problem && (
+                  <span className="block text-[12.5px] text-today-ink">{m.google_both()}</span>
+                )}
               </span>
             </span>
             <span className="flex flex-none gap-2">
               <Button disabled={working} onClick={() => onKeep([item.id])}>
                 {m.google_keep()}
               </Button>
-              <Button primary disabled={working || Boolean(problem)} onClick={() => onAccept([item.id])}>
+              <Button disabled={working || Boolean(problem)} onClick={() => onAccept([item.id])}>
                 {m.google_accept()}
               </Button>
             </span>
@@ -77,7 +81,7 @@ export function GoogleReviewDialog({ open, plan, items, working, error, onAccept
         <Button disabled={working || !items.length} onClick={() => onKeep(items.map((item) => item.id))}>
           {m.google_keep_all()}
         </Button>
-        <Button primary disabled={working || !fitting.length} onClick={() => onAccept(fitting)}>
+        <Button disabled={working || !fitting.length} onClick={() => onAccept(fitting)}>
           {m.google_accept_all()}
         </Button>
       </div>

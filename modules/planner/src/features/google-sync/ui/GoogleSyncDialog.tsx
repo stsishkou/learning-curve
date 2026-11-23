@@ -1,18 +1,21 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { hm, toMinsk } from '@lc/plan-domain'
-import { Button, FIELD, FOOT, INPUT, META, Modal, TITLE } from '@lc/ui'
-import { useState, type SubmitEvent } from 'react'
+import { Button, FOOT, META, Modal, TITLE } from '@lc/ui'
+import { useState, useSyncExternalStore, type ReactNode, type SubmitEvent } from 'react'
 
-import type { GoogleSyncStatus } from '../model/source'
+import type { GoogleSyncStatus, SignInEnd } from '../model/source'
+import { CONSOLE_PAGES, ConsoleLink, GoogleSetup, NOTE } from './GoogleSetup'
 
 interface Props {
   open: boolean
   status: GoogleSyncStatus
   /** Where the browser goes to sign in to Google */
   connectUrl: string
-  /** The sign-in that just came back did not work */
-  failed: boolean
+  /** Where Google's sign-in comes back, on the address the planner is open at */
+  callbackPath: string
+  /** How the sign-in that just came back ended; null when none did */
+  ended: SignInEnd | null
   /** A round or a call is running */
   working: boolean
   /** Why the last call failed; empty when it did not */
@@ -25,33 +28,86 @@ interface Props {
   onClose: () => void
 }
 
-const NOTE = 'mt-3 text-[13px] text-today-ink'
 const moment = (utc: number) => `${fmtDay(toMinsk(utc))} ${hm(toMinsk(utc))}`
+const CONNECT =
+  'rounded-[10px] border border-ink bg-ink px-3.5 py-2 font-medium whitespace-nowrap text-bg shadow-card hover:opacity-90'
+// The page's own address is known only in the browser, and does not change while the page is open.
+function subscribe() {
+  return () => {
+    // nothing to stop listening to
+  }
+}
+const useOrigin = () =>
+  useSyncExternalStore(
+    subscribe,
+    () => window.location.origin,
+    () => '',
+  )
+
+/** What went wrong, in words that say what to do about it. */
+function problemNote(code: string, connectUrl: string): { text: ReactNode; quiet?: boolean } {
+  switch (code) {
+    case 'reconnect':
+      return { text: m.google_reconnect() }
+    case 'client':
+      return { text: m.google_problem_client() }
+    case 'denied':
+      return { text: m.google_denied() }
+    case 'failed':
+      return { text: m.google_connect_failed() }
+    case 'offline':
+      return { text: m.google_problem_offline(), quiet: true }
+    case 'api-off':
+      return {
+        text: (
+          <>
+            {m.google_problem_api()} <ConsoleLink href={CONSOLE_PAGES.api}>{m.google_turn_on()}</ConsoleLink>
+          </>
+        ),
+      }
+    case 'scope':
+      return {
+        text: (
+          <>
+            {m.google_problem_scope()}{' '}
+            <a className="font-medium text-focus hover:underline" href={connectUrl}>
+              {m.google_connect()}
+            </a>
+          </>
+        ),
+      }
+    default:
+      return { text: m.google_failed({ reason: code }) }
+  }
+}
 
 /**
- * Connects Google Calendar with the person's own OAuth client and shows how the sync stands: when it last ran,
- * what failed, and the way to run it now or to sign out.
+ * Connects Google Calendar with the person's own OAuth client and shows how the sync stands. Without a client it walks
+ * through making one, each step with its page of Google's console and the value to paste there; saving the client goes
+ * straight on to Google's sign-in.
  */
 export function GoogleSyncDialog(props: Props) {
-  const { open, status, connectUrl, failed, working, error, onSaveClient, onSync, onDisconnect, onClose } = props
+  const { open, status, connectUrl, callbackPath, ended, working, error, onSaveClient, onSync, onDisconnect, onClose } =
+    props
+  const origin = useOrigin()
   const [id, setId] = useState('')
   const [secret, setSecret] = useState('')
   const [changing, setChanging] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [problem, setProblem] = useState('')
-  // A failed sign-in is old news once another client is saved.
+  const [failure, setFailure] = useState('')
+  // How the last sign-in ended is old news once another client is saved.
   const [retried, setRetried] = useState(false)
   const connected = status.connectedAt !== null
   const asking = status.writable && !connected && (!status.configured || changing)
+  const ready = status.writable && !connected && status.configured && !changing
 
   async function attempt(work: () => Promise<void>) {
     setBusy(true)
-    setProblem('')
+    setFailure('')
     try {
       await work()
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : String(err))
-    } finally {
+      setFailure(err instanceof Error ? err.message : String(err))
       setBusy(false)
     }
   }
@@ -61,29 +117,33 @@ export function GoogleSyncDialog(props: Props) {
     if (!id.trim() || !secret.trim()) return
     void attempt(async () => {
       await onSaveClient(id, secret)
-      setId('')
-      setSecret('')
-      setChanging(false)
       setRetried(true)
+      window.location.assign(connectUrl)
     })
   }
 
-  const reason = problem || error || (status.error !== 'reconnect' ? (status.error ?? '') : '')
+  const signIn = ended && ended !== 'connected' && !connected && !retried ? ended : null
+  const round = status.error === 'reconnect' && connected ? null : status.error
+  const code = failure || error ? 'call' : (signIn ?? round)
+  const note =
+    code === 'call' ? { text: m.google_failed({ reason: failure || error }) } : code && problemNote(code, connectUrl)
+
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal open={open} onClose={onClose} size={asking ? 'wide' : 'normal'}>
       <form onSubmit={submit}>
         <h2 className={TITLE}>{m.google_calendar()}</h2>
-        <p className={META}>{m.google_hint()}</p>
+        <p className={META}>{asking ? m.google_setup_hint() : m.google_hint()}</p>
         {!status.writable && <p className="mt-3 text-[13px] text-muted">{m.google_read_only()}</p>}
-        {failed && !retried && !connected && (
-          <p className={NOTE} role="alert">
-            {m.google_connect_failed()}
-          </p>
-        )}
-        {status.error === 'reconnect' && !connected && (
-          <p className={NOTE} role="alert">
-            {m.google_reconnect()}
-          </p>
+        {asking && (
+          <GoogleSetup
+            callback={origin && `${origin}${callbackPath}`}
+            id={id}
+            secret={secret}
+            onClient={(nextId, nextSecret) => {
+              setId(nextId)
+              setSecret(nextSecret)
+            }}
+          />
         )}
         {connected && (
           <div className="mt-3.5 grid gap-0.5 rounded-[10px] bg-surface-2 px-3.5 py-2.5 text-[14px]">
@@ -100,36 +160,9 @@ export function GoogleSyncDialog(props: Props) {
             </p>
           </div>
         )}
-        {asking && (
-          <>
-            <label className={`${FIELD} mt-4`}>
-              {m.google_client_id()}
-              <input
-                className={INPUT}
-                autoComplete="off"
-                spellCheck={false}
-                placeholder="….apps.googleusercontent.com"
-                value={id}
-                onChange={(e) => setId(e.target.value)}
-              />
-            </label>
-            <label className={`${FIELD} mt-3`}>
-              {m.google_client_secret()}
-              <input
-                className={INPUT}
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
-              />
-            </label>
-            <p className="mt-2 text-[12.5px]/[1.5] text-muted">{m.google_client_where()}</p>
-          </>
-        )}
-        {reason && (
-          <p className={NOTE} role="alert">
-            {m.google_failed({ reason })}
+        {note && (
+          <p className={`mt-3 ${note.quiet ? 'text-[13px]/[1.45] text-muted' : NOTE}`} role="alert">
+            {note.text}
           </p>
         )}
         <div className={FOOT}>
@@ -138,7 +171,7 @@ export function GoogleSyncDialog(props: Props) {
               {m.google_disconnect()}
             </Button>
           )}
-          {status.writable && !connected && status.configured && !changing && (
+          {ready && (
             <Button className="mr-auto" onClick={() => setChanging(true)}>
               {m.google_other_client()}
             </Button>
@@ -151,14 +184,11 @@ export function GoogleSyncDialog(props: Props) {
           )}
           {asking && (
             <Button primary type="submit" disabled={busy || !id.trim() || !secret.trim()}>
-              {m.google_save_client()}
+              {m.google_save_connect()}
             </Button>
           )}
-          {status.writable && !connected && status.configured && !changing && (
-            <a
-              className="rounded-[10px] border border-ink bg-ink px-3.5 py-2 font-medium whitespace-nowrap text-bg shadow-card hover:opacity-90"
-              href={connectUrl}
-            >
+          {ready && (
+            <a className={CONNECT} href={connectUrl}>
               {m.google_connect()}
             </a>
           )}

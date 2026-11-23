@@ -1,5 +1,11 @@
-import { finishConnect, syncGoogle } from '@lc/plan-data'
+import { GoogleAuthError, finishConnect, syncGoogle } from '@lc/plan-data'
 import { createFileRoute } from '@tanstack/react-router'
+
+/** How a sign-in ended, as the planner's Google dialog explains it. */
+function outcome(error: unknown): 'scope' | 'client' | 'failed' {
+  if (error instanceof GoogleAuthError && (error.reason === 'scope' || error.reason === 'client')) return error.reason
+  return 'failed'
+}
 
 /** GET /api/google/callback — where Google's sign-in comes back; the planner then opens on the Google dialog. */
 export const Route = createFileRoute('/api/google/callback')({
@@ -9,17 +15,18 @@ export const Route = createFileRoute('/api/google/callback')({
         const url = new URL(request.url)
         const code = url.searchParams.get('code')
         const state = url.searchParams.get('state') ?? ''
-        let outcome = 'failed'
+        // Google comes back with `error=access_denied` when the person cancels on its page.
+        let ended = url.searchParams.get('error') === 'access_denied' ? 'denied' : 'failed'
         if (code) {
           try {
             await finishConnect(code, state)
             void syncGoogle()
-            outcome = 'connected'
-          } catch {
-            // The planner says it did not work; the reason is in the server log of the token call, if anywhere.
+            ended = 'connected'
+          } catch (err) {
+            ended = outcome(err)
           }
         }
-        return Response.redirect(new URL(`/?google=${outcome}`, request.url).href, 302)
+        return Response.redirect(new URL(`/?google=${ended}`, request.url).href, 302)
       },
     },
   },

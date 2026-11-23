@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 /**
  * GET /api/google/connect — sends the browser to Google's sign-in, which comes back to `/api/google/callback` on the
- * address the planner was opened at: a Desktop OAuth client takes any loopback port.
+ * address the planner was opened at: the redirect URI the planner asks to register on the Web application client.
  */
 export const Route = createFileRoute('/api/google/connect')({
   server: {

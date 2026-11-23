@@ -1,7 +1,7 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { hm, startOfDay, toMinsk, type HistoryView, type PlanChange } from '@lc/plan-domain'
-import { Button, FOOT, Kbd, META, Modal, Redo2, TITLE, Undo2 } from '@lc/ui'
+import { Button, CalendarSync, FOOT, Kbd, META, Modal, Redo2, TITLE, Undo2 } from '@lc/ui'
 import { useState } from 'react'
 
 import { describeStep } from '../model/describe-step'
@@ -44,7 +44,7 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
     }
   }
 
-  const point = (to: number, sign: string, label: string, time: string) => {
+  const point = (to: number, sign: string, label: string, time: string, google = false) => {
     const current = to === cursor
     const undone = to > cursor
     return (
@@ -62,7 +62,15 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
           <span aria-hidden className={`text-center ${current ? 'text-focus' : 'text-muted'}`}>
             {current ? '●' : sign}
           </span>
-          <span className={`min-w-0 truncate ${undone ? 'line-through decoration-line' : ''}`}>{label}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className={`min-w-0 truncate ${undone ? 'line-through decoration-line' : ''}`}>{label}</span>
+            {google && (
+              <span className="flex flex-none text-muted" title={m.google_calendar()}>
+                <CalendarSync size={13} aria-hidden />
+                <span className="sr-only">{m.google_calendar()}</span>
+              </span>
+            )}
+          </span>
           <span className="text-[12.5px] text-muted tabular-nums">
             {current ? m.history_here() : undone ? m.history_undone() : time}
           </span>
@@ -84,7 +92,8 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
             .map((step, i) => {
               const at = toMinsk(Date.parse(step.at))
               const today = now !== null && startOfDay(at) === startOfDay(now)
-              return point(i + 1, SIGN[step.change.type] ?? '✎', describeStep(step), today ? hm(at) : fmtDay(at))
+              const time = today ? hm(at) : fmtDay(at)
+              return point(i + 1, SIGN[step.change.type] ?? '✎', describeStep(step), time, step.source === 'google')
             })
             .toReversed()}
           {point(0, '○', m.history_start(), '')}

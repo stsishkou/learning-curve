@@ -22,8 +22,12 @@ const item = (uid: string, change: PlanChange | null, extra: Partial<InboxItem> 
 })
 
 const items: InboxItem[] = [
-  item(ticked.uid, { type: 'events.done', uids: [ticked.uid], done: true }),
-  item(moved.uid, { type: 'event.patch', uid: moved.uid, patch: { start: `${day}T06:00`, end: `${day}T07:00` } }),
+  item(ticked.uid, { type: 'events.done', uids: [ticked.uid], done: true }, { hold: 'both' }),
+  item(
+    moved.uid,
+    { type: 'event.patch', uid: moved.uid, patch: { start: `${day}T06:00`, end: `${day}T07:00` } },
+    { hold: 'both' },
+  ),
   item(deleted.uid, null),
   item(repeat.uid, skipDay(repeat, repeat.start.slice(0, 10)), { day: repeat.start.slice(0, 10) }),
 ]
@@ -48,13 +52,17 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** A ✓, a move, a deletion and a skipped repeat, each with what accepting it would change. */
+/**
+ * Edits that waited for a decision: a ✓ and a move to sessions the planner changed too, a deletion and a skipped
+ * repeat, each with what using Google's version would change.
+ */
 export const Default: Story = {
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     const rows = body.getAllByRole('listitem')
     await expect(rows).toHaveLength(4)
     await waitFor(() => expect(within(itemAt(rows)).getByText(m.diff_done())).toBeVisible())
+    await expect(within(itemAt(rows)).getByText(m.google_both())).toBeVisible()
     await expect(within(itemAt(rows, 2)).getByText(m.google_deleted())).toBeVisible()
     await userEvent.click(within(itemAt(rows, 1)).getByRole('button', { name: m.google_keep() }))
     await expect(args.onKeep).toHaveBeenCalledWith([itemAt(items, 1).id])

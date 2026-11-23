@@ -32,6 +32,8 @@ export function useQuietChange(session: PlanSession) {
     canRedo,
     undo: () => canUndo && quietly(session.travel(cursor - 1)),
     redo: () => canRedo && quietly(session.travel(cursor + 1)),
+    /** Takes back the last `count` steps at once */
+    back: (count: number) => canUndo && quietly(session.travel(Math.max(0, cursor - count))),
     /** The step a bar offers to take back right after it was made */
     lastStep: session.lastStep && {
       label: describeStep(session.lastStep),

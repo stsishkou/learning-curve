@@ -50,6 +50,11 @@ function PlannerRoute() {
   const navigate = Route.useNavigate()
   const router = useRouter()
   const { state, feed, google } = Route.useLoaderData()
+  // A round that took edits made in Google into the plan changed it: the page reads it again.
+  const readAgain = async <T extends { takenAt: number | null }>(next: T) => {
+    if (next.takenAt !== google.takenAt) await router.invalidate()
+    return next
+  }
   return (
     <PlannerPage
       state={state}
@@ -103,17 +108,14 @@ function PlannerRoute() {
           ? {
               status: google,
               connectUrl: '/api/google/connect',
+              callbackPath: '/api/google/callback',
+              // The dialog goes on to Google's sign-in right after, which reloads the page.
               saveClient: async (id, secret) => {
                 await saveGoogleClientFn({ data: { id, secret } })
-                await router.invalidate()
               },
-              sync: () => syncGoogleNow(),
-              accept: async (ids) => {
-                const next = await acceptGoogleProposals({ data: ids })
-                await router.invalidate()
-                return next
-              },
-              reject: (ids) => rejectGoogleProposals({ data: ids }),
+              sync: async () => readAgain(await syncGoogleNow()),
+              accept: async (ids) => readAgain(await acceptGoogleProposals({ data: ids })),
+              reject: async (ids) => readAgain(await rejectGoogleProposals({ data: ids })),
               disconnect: async () => {
                 await disconnectGoogleFn()
                 await router.invalidate()

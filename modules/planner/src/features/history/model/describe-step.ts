@@ -29,6 +29,9 @@ export function describeStep({ change, subject }: HistoryStep): string {
     case 'events.move':
       return m.history_replanned({ count: change.moves.length })
     case 'events.done':
+      if (subject && change.uids.length === 1) {
+        return change.done ? m.history_done({ name: subject }) : m.history_not_done({ name: subject })
+      }
       return m.history_done_many({ count: change.uids.length })
     case 'plan.rename':
       return m.history_renamed({ name: subject })

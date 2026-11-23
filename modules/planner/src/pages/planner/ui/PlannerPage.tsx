@@ -33,10 +33,12 @@ import {
   GoogleReviewBar,
   GoogleReviewDialog,
   GoogleSyncDialog,
+  takenFromGoogle,
   useGoogleSync,
+  useSeenFromGoogle,
   type GoogleSyncSource,
 } from '../../../features/google-sync'
-import { HistoryDialog } from '../../../features/history'
+import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
@@ -131,6 +133,10 @@ export function PlannerPage({
   const dialogs = useDialogFlags<DialogName>(search.google ? ['google'] : [])
   const googleSync = useGoogleSync(google)
   const googleStatus = googleSync.status
+  // Edits from Google come in by themselves; the latest ones get the same bar as a change made here.
+  const fromGoogle = takenFromGoogle(session.history)
+  const seenGoogle = useSeenFromGoogle(fromGoogle)
+  const [onlyFromGoogle, ...moreFromGoogle] = fromGoogle
   const drafting = useEventDraft({ plan, hidden, now, first: nav.grid.start, days: nav.grid.days, canEdit })
 
   const [zone, setZone] = useSecondZone()
@@ -379,13 +385,26 @@ export function PlannerPage({
           {quiet.saveError}
         </p>
       )}
-      {quiet.lastStep && (
+      {canEdit && onlyFromGoogle && seenGoogle.unseen ? (
         <UndoBar
-          label={quiet.lastStep.label}
-          onUndo={quiet.undo}
+          label={
+            moreFromGoogle.length
+              ? m.google_took_many({ count: fromGoogle.length })
+              : m.google_took_one({ what: describeStep(onlyFromGoogle) })
+          }
+          onUndo={() => quiet.back(fromGoogle.length)}
           onHistory={() => dialogs.show('history')}
-          onDismiss={session.dismissLastStep}
+          onDismiss={seenGoogle.dismiss}
         />
+      ) : (
+        quiet.lastStep && (
+          <UndoBar
+            label={quiet.lastStep.label}
+            onUndo={quiet.undo}
+            onHistory={() => dialogs.show('history')}
+            onDismiss={session.dismissLastStep}
+          />
+        )
       )}
 
       <div className={`grid grid-cols-1 items-start gap-4 ${expanded ? '' : 'lg:grid-cols-[1fr_280px]'}`}>
@@ -553,7 +572,8 @@ export function PlannerPage({
             open={dialogs.isOpen('google')}
             status={googleStatus}
             connectUrl={google.connectUrl}
-            failed={search.google === 'failed'}
+            callbackPath={google.callbackPath}
+            ended={search.google ?? null}
             working={googleSync.working}
             error={googleSync.error}
             onSaveClient={google.saveClient}

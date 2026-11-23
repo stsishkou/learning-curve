@@ -1,3 +1,5 @@
+import { SIGN_IN_ENDS, type SignInEnd } from '../../../features/google-sync'
+
 export type PlannerView = 'day' | 'week' | 'month' | 'year' | 'list'
 export type PlannerZoom = 'compact' | 'large'
 
@@ -21,12 +23,14 @@ export interface PlannerSearch {
   /** uid of the event whose dialog is open */
   event?: string | undefined
   /** How a sign-in to Google that just came back went; the Google dialog opens to say so */
-  google?: 'connected' | 'failed' | undefined
+  google?: SignInEnd | undefined
 }
 
 const VIEWS: readonly unknown[] = ['day', 'week', 'month', 'year', 'list'] satisfies PlannerView[]
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const isView = (value: unknown): value is PlannerView => VIEWS.includes(value)
+const SIGN_INS: readonly unknown[] = SIGN_IN_ENDS
+const isSignInEnd = (value: unknown): value is SignInEnd => SIGN_INS.includes(value)
 
 export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSearch => ({
   week: typeof search.week === 'string' && DATE.test(search.week) ? search.week : undefined,
@@ -38,5 +42,5 @@ export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSear
   expanded: search.expanded === true ? true : undefined,
   hideDone: search.hideDone === true ? true : undefined,
   event: typeof search.event === 'string' && search.event ? search.event : undefined,
-  google: search.google === 'connected' || search.google === 'failed' ? search.google : undefined,
+  google: isSignInEnd(search.google) ? search.google : undefined,
 })
