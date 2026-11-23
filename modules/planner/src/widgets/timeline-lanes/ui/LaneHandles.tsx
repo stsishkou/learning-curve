@@ -85,7 +85,7 @@ export function LaneBody({
           total: lane.total,
         })}
         aria-pressed={selected}
-        className={`absolute inset-y-1 rounded-md ${FOCUS} ${canMove ? 'cursor-grab active:cursor-grabbing' : ''}`}
+        className={`absolute inset-y-1 rounded-md ${FOCUS} ${canMove ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
         style={{ left: `${left}%`, width: `${clampPct(scale.at(end)) - left}%` }}
         onClick={() => {
           if (!nudge.afterDrop()) onSelect()

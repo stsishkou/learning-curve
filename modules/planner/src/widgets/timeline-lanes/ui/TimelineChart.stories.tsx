@@ -423,3 +423,117 @@ export const LastCourseEndsLater: Story = {
     await expect(args.edit?.onFinish).toHaveBeenCalledWith('pypy', '2027-03-10')
   },
 }
+
+/** The day in the middle of the days in view, past the names over them, in days from the start of the range. */
+function middleDay(canvasElement: HTMLElement, range: { start: number; end: number }) {
+  const box = scroller(canvasElement)
+  const view = box.getBoundingClientRect()
+  const track = canvasElement.querySelector('[data-axis]')?.getBoundingClientRect()
+  if (!track) throw new Error('no axis')
+  const names = track.left - view.left + box.scrollLeft
+  const middle = (view.left + names + view.right) / 2
+  return ((middle - track.left) / track.width) * ((range.end - range.start) / DAY)
+}
+
+/** A new zoom keeps the day that was in the middle of the view there, instead of jumping to other dates. */
+export const ZoomKeepsTheDayInView: Story = {
+  play: async ({ args, canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const box = scroller(canvasElement)
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_month() }))
+    box.scrollLeft = 600
+    const day = middleDay(canvasElement, args.range)
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_week() }))
+    await waitFor(() => expect(Math.abs(middleDay(canvasElement, args.range) - day)).toBeLessThan(1))
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_month() }))
+    await waitFor(() => expect(Math.abs(middleDay(canvasElement, args.range) - day)).toBeLessThan(1))
+  },
+}
+
+/** Dispatches a wheel turn over the days and says whether the chart took it. */
+function wheel(target: Element, init: WheelEventInit) {
+  const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, ...init })
+  target.dispatchEvent(event)
+  return event.defaultPrevented
+}
+
+/**
+ * With a mouse wheel and nothing left to scroll up or down, turning it scrolls the days sideways; Shift + wheel and a
+ * trackpad's sideways swipe stay the browser's own.
+ */
+export const WheelScrollsTheDays: Story = {
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const box = scroller(canvasElement)
+    const [track] = canvasElement.querySelectorAll('[data-track]')
+    if (!track) throw new Error('no track')
+    await expect(wheel(track, { deltaY: 120 })).toBe(false)
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_month() }))
+    const start = box.scrollLeft
+    await expect(wheel(track, { deltaY: 120 })).toBe(true)
+    await expect(box.scrollLeft).toBe(start + 120)
+    await expect(wheel(track, { deltaY: -40 })).toBe(true)
+    await expect(box.scrollLeft).toBe(start + 80)
+    await expect(wheel(track, { deltaY: 120, shiftKey: true })).toBe(false)
+    await expect(wheel(track, { deltaX: 30, deltaY: 5 })).toBe(false)
+    await expect(box.scrollLeft).toBe(start + 80)
+  },
+}
+
+/** While the page itself can still scroll, the wheel scrolls the page; at its end, the days. */
+export const WheelScrollsThePageFirst: Story = {
+  decorators: [
+    (Story) => (
+      <>
+        <Story />
+        <div style={{ height: 2000 }} />
+      </>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const box = scroller(canvasElement)
+    const [track] = canvasElement.querySelectorAll('[data-track]')
+    if (!track) throw new Error('no track')
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_month() }))
+    box.scrollLeft = 200
+    window.scrollTo(0, 0)
+    await expect(wheel(track, { deltaY: 120 })).toBe(false)
+    await expect(box.scrollLeft).toBe(200)
+    await expect(wheel(track, { deltaY: -120 })).toBe(true)
+    await expect(box.scrollLeft).toBe(80)
+    window.scrollTo(0, canvasElement.ownerDocument.documentElement.scrollHeight)
+    await expect(wheel(track, { deltaY: 120 })).toBe(true)
+    await expect(box.scrollLeft).toBe(200)
+    window.scrollTo(0, 0)
+  },
+}
+
+/** Days with nothing on them can be grabbed with the mouse and dragged to scroll; a press on a course stays the course's. */
+export const DragTheDaysToPan: Story = {
+  args: { edit: editing() },
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const box = scroller(canvasElement)
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_month() }))
+    box.scrollLeft = 300
+    const [track] = canvasElement.querySelectorAll('[data-track]')
+    const axis = canvasElement.querySelector('[data-axis]')
+    if (!track || !axis) throw new Error('no track')
+    const at = { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true, clientX: 700, clientY: 10 }
+    await fireEvent.pointerDown(track, at)
+    await fireEvent.pointerMove(box, { ...at, clientX: 600 })
+    await fireEvent.pointerMove(box, { ...at, clientX: 500 })
+    await fireEvent.pointerUp(box, { ...at, clientX: 500 })
+    await expect(box.scrollLeft).toBe(500)
+    await fireEvent.pointerDown(axis, at)
+    await fireEvent.pointerMove(box, { ...at, clientX: 800 })
+    await fireEvent.pointerUp(box, { ...at, clientX: 800 })
+    await expect(box.scrollLeft).toBe(400)
+    const lane = region.getByRole('button', { name: LLM })
+    await fireEvent.pointerDown(lane, at)
+    await fireEvent.pointerMove(box, { ...at, clientX: 500 })
+    await fireEvent.pointerUp(box, { ...at, clientX: 500 })
+    await expect(box.scrollLeft).toBe(400)
+  },
+}

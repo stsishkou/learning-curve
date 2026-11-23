@@ -1,10 +1,12 @@
 import { m } from '@lc/i18n/messages'
 import { DAY, type CalendarLane, type LaneChange } from '@lc/plan-domain'
 import { Button, Segmented } from '@lc/ui'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { scaleOf, ticksOf } from '../lib/scale'
+import { daysInView, wheelSideways } from '../lib/scroll'
 import type { LaneEditing } from '../model/editing'
+import { usePan } from '../model/use-pan'
 import { PX_PER_DAY, useZoom, type TimelineZoom } from '../model/use-zoom'
 import { LaneRow } from './LaneRow'
 import { TimelineAxis } from './TimelineAxis'
@@ -65,6 +67,10 @@ export function TimelineChart({
   const scale = useMemo(() => scaleOf(range), [range])
   const ticks = useMemo(() => ticksOf(scale), [scale])
   const drawn = lanes.length > 0
+  const pan = usePan()
+  // The day kept in the middle of the view across a change of zoom; the zoom it was last drawn at.
+  const anchor = useRef<number | null>(null)
+  const drawnAt = useRef(zoom)
 
   useEffect(() => {
     const el = axis.current
@@ -74,6 +80,35 @@ export function TimelineChart({
     return () => observer.disconnect()
   }, [drawn])
 
+  useEffect(() => {
+    const box = scroller.current
+    if (!box) return undefined
+    // Not React's wheel: that one cannot keep the page from scrolling too.
+    box.addEventListener('wheel', wheelSideways, { passive: false })
+    return () => box.removeEventListener('wheel', wheelSideways)
+  }, [drawn])
+
+  // Before paint, so the days never show at the old offset: from the whole plan the view opens at today, from another
+  // zoom it keeps the day that was in its middle.
+  useLayoutEffect(() => {
+    const box = scroller.current
+    const ruler = axis.current
+    const was = drawnAt.current
+    drawnAt.current = zoom
+    const day = anchor.current
+    anchor.current = null
+    if (!box || !ruler || was === zoom || zoom === 'fit') return
+    const { visible } = daysInView(box, ruler)
+    const perDay = PX_PER_DAY[zoom]
+    const left =
+      was === 'fit' || day === null
+        ? now === null
+          ? 0
+          : ((now - scale.start) / DAY) * perDay - TODAY_INSET
+        : day * perDay - visible / 2
+    box.scrollLeft = Math.max(0, left)
+  }, [zoom, now, scale.start])
+
   if (!drawn) return null
   const pxPerDay = trackWidth / scale.days
   const track = zoom === 'fit' ? 'minmax(0,1fr)' : `${Math.round(scale.days * PX_PER_DAY[zoom])}px`
@@ -82,6 +117,16 @@ export function TimelineChart({
     { value: 'month', label: m.timeline_zoom_month() },
     { value: 'week', label: m.timeline_zoom_week() },
   ]
+
+  function chooseZoom(next: TimelineZoom) {
+    const box = scroller.current
+    const ruler = axis.current
+    if (box && ruler && zoom !== 'fit') {
+      const { visible } = daysInView(box, ruler)
+      anchor.current = (box.scrollLeft + visible / 2) / (ruler.getBoundingClientRect().width / scale.days)
+    }
+    setZoom(next)
+  }
 
   function toToday() {
     const box = scroller.current
@@ -98,7 +143,7 @@ export function TimelineChart({
       className="isolate min-w-0 rounded-2xl border border-line bg-surface print:hidden"
     >
       <div className="flex flex-wrap items-center gap-2 px-3.5 pt-3 pb-2.5 text-[13px] md:px-5">
-        <Segmented label={m.timeline_zoom()} value={zoom} options={zooms} onChange={setZoom} />
+        <Segmented label={m.timeline_zoom()} value={zoom} options={zooms} onChange={chooseZoom} />
         {zoom !== 'fit' && now !== null && (
           <Button className="py-1! text-[13px]" onClick={toToday}>
             {m.go_today()}
@@ -124,7 +169,8 @@ export function TimelineChart({
         aria-label={m.timeline_days()}
         // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scroller has to take focus to be scrolled
         tabIndex={0}
-        className="overflow-x-auto overscroll-x-contain border-t border-line-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
+        className={`overflow-x-auto overscroll-x-contain border-t border-line-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus ${zoom === 'fit' ? '' : '[&_[data-axis]]:cursor-grab [&_[data-track]]:cursor-grab'} ${pan.panning ? 'select-none [&_*]:cursor-grabbing!' : ''}`}
+        onPointerDown={pan.onPointerDown}
       >
         <div
           className="grid grid-cols-[var(--names)_var(--track)] [--names:136px] md:[--names:240px]"
