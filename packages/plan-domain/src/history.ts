@@ -1,3 +1,4 @@
+import { isCalendarProvider, type CalendarProvider } from './calendar-sync'
 import { parseChange, type PlanChange } from './changes'
 import { emptyEdits, isRecord, parseEdits, type PlanEdits } from './edits'
 import type { Plan } from './types'
@@ -5,8 +6,8 @@ import type { Plan } from './types'
 /** Older steps are dropped: the state before them becomes the new starting point. */
 export const HISTORY_LIMIT = 100
 
-/** Where a change was made, when not in the planner or by a tool: `google` for an edit made in Google Calendar. */
-export type StepSource = 'google'
+/** Where a change was made, when not in the planner or by a tool: the calendar app it was made in. */
+export type StepSource = CalendarProvider
 
 /** One change in the history, as the viewer shows it. */
 export interface HistoryStep {
@@ -144,7 +145,7 @@ export function parseHistory(value: unknown): PlanHistory {
         at: raw.at,
         change: parseChange(raw.change),
         subject: typeof raw.subject === 'string' ? raw.subject : '',
-        ...(raw.source === 'google' ? { source: raw.source } : {}),
+        ...(isCalendarProvider(raw.source) ? { source: raw.source } : {}),
         edits: parseEdits(raw.edits),
       }
     })

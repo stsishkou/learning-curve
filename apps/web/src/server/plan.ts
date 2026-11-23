@@ -4,7 +4,7 @@ import {
   readEdits,
   readPlan,
   saveChanges,
-  syncGoogle,
+  syncCalendars,
   writeHistory,
   writePlan,
 } from '@lc/plan-data'
@@ -45,9 +45,9 @@ function state(plan: Plan): PlanState {
   }
 }
 
-/** The state after a save, which Google Calendar is sent in the background when it is connected. */
+/** The state after a save, which each connected calendar app is sent in the background. */
 function pushed(plan: Plan): PlanState {
-  void syncGoogle()
+  void syncCalendars()
   return state(plan)
 }
 

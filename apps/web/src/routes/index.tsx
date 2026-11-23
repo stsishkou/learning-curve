@@ -6,13 +6,13 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { getBusy, getBusyFeed, saveBusyFeed } from '#/server/busy'
 import {
-  acceptGoogleProposals,
-  disconnectGoogleFn,
-  getGoogleStatus,
-  rejectGoogleProposals,
-  saveGoogleClientFn,
-  syncGoogleNow,
-} from '#/server/google'
+  acceptCalendarProposals,
+  disconnectCalendarFn,
+  getCalendarStatuses,
+  rejectCalendarProposals,
+  saveCalendarClientFn,
+  syncCalendarNow,
+} from '#/server/calendars'
 import { getPlanFile, getPlanFiles, removeSavedPlan, renameSavedPlan, savePlanFile } from '#/server/library'
 import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory } from '#/server/plan'
 import { ShellAside, STAND_URL } from '#/shell/ShellAside'
@@ -22,7 +22,9 @@ import { setTheme } from '#/shell/theme'
 export const Route = createFileRoute('/')({
   validateSearch: parsePlannerSearch,
   loader: async () => {
-    const [state, feed, google] = await Promise.all([getPlanState(), getBusyFeed(), getGoogleStatus()])
+    const [state, feed, calendars] = await Promise.all([getPlanState(), getBusyFeed(), getCalendarStatuses()])
+    const google = calendars.find((status) => status.provider === 'google')
+    if (!google) throw new Error('No Google Calendar status')
     return { state, feed, google }
   },
   component: PlannerRoute,
@@ -111,13 +113,13 @@ function PlannerRoute() {
               callbackPath: '/api/google/callback',
               // The dialog goes on to Google's sign-in right after, which reloads the page.
               saveClient: async (id, secret) => {
-                await saveGoogleClientFn({ data: { id, secret } })
+                await saveCalendarClientFn({ data: { provider: 'google', id, secret } })
               },
-              sync: async () => readAgain(await syncGoogleNow()),
-              accept: async (ids) => readAgain(await acceptGoogleProposals({ data: ids })),
-              reject: async (ids) => readAgain(await rejectGoogleProposals({ data: ids })),
+              sync: async () => readAgain(await syncCalendarNow({ data: 'google' })),
+              accept: async (ids) => readAgain(await acceptCalendarProposals({ data: { provider: 'google', ids } })),
+              reject: async (ids) => readAgain(await rejectCalendarProposals({ data: { provider: 'google', ids } })),
               disconnect: async () => {
-                await disconnectGoogleFn()
+                await disconnectCalendarFn({ data: 'google' })
                 await router.invalidate()
               },
             }

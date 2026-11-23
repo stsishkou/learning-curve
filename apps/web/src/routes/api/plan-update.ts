@@ -1,4 +1,4 @@
-import { canWrite, readPlan, saveChanges, syncGoogle } from '@lc/plan-data'
+import { canWrite, readPlan, saveChanges, syncCalendars } from '@lc/plan-data'
 import { parseUpdate, previewUpdate, reportPreview, updateOutcome } from '@lc/plan-domain'
 import { createFileRoute } from '@tanstack/react-router'
 
@@ -21,7 +21,7 @@ export const Route = createFileRoute('/api/plan-update')({
           if (!canWrite())
             return Response.json({ ok: false, problem: { message: 'The plan is read-only here' } }, { status: 403 })
           const stored = updateOutcome(plan, saveChanges(changes).plan)
-          void syncGoogle()
+          void syncCalendars()
           return Response.json({ ...reportPreview(stored), applied: changes.length })
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err)

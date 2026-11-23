@@ -1,13 +1,21 @@
 export { feedAddress, loadBusy, parseBusy } from './busy'
 export {
-  acceptGoogle,
-  googleStatus,
-  rejectGoogle,
-  syncGoogle,
-  type GoogleProblem,
-  type GoogleStatus,
-} from './google/engine'
-export { GoogleAuthError, connectAddress, disconnectGoogle, finishConnect, saveGoogleClient } from './google/oauth'
+  acceptProposals,
+  calendarStatus,
+  calendarStatuses,
+  rejectProposals,
+  syncCalendar,
+  syncCalendars,
+  type CalendarProblem,
+  type CalendarStatus,
+} from './calendar-sync/engine'
+export {
+  CalendarAuthError,
+  connectAddress,
+  disconnectCalendar,
+  finishConnect,
+  saveCalendarClient,
+} from './calendar-sync/oauth'
 export { listPlanFiles, readPlanVersion, removePlanFile, renamePlanFile, savePlanVersion } from './library'
 export {
   canWrite,
