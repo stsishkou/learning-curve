@@ -1,7 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import type { Plan, PlanCalendar, PlanChange } from '@lc/plan-domain'
 import { Button, FOOT, INPUT, META, Modal, TITLE, Trash2 } from '@lc/ui'
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 
 /** Offered for a new calendar: the first one no calendar uses yet. */
 const PALETTE: readonly [string, ...string[]] = [
@@ -46,6 +46,14 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
     }
   }
 
+  async function takeBack(step: () => Promise<void>) {
+    try {
+      await step()
+    } catch (err) {
+      setError(String(err))
+    }
+  }
+
   return (
     <Modal open={open} onClose={onClose}>
       <h3 className={TITLE}>{m.calendars()}</h3>
@@ -83,7 +91,7 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
           <button
             type="button"
             className="font-semibold text-focus hover:underline"
-            onClick={() => void undo.run().catch((err: unknown) => setError(String(err)))}
+            onClick={() => void takeBack(undo.run)}
           >
             {m.undo()}
           </button>
@@ -117,7 +125,7 @@ function CalendarRow({ calendar, events, onSave, onClear, onRemove }: RowProps) 
   const adding = events === null
   const dirty = name.trim() !== calendar.name || color.toLowerCase() !== calendar.color.toLowerCase()
 
-  function submit(e: FormEvent) {
+  function submit(e: SubmitEvent) {
     e.preventDefault()
     if (name.trim()) void onSave(name.trim(), color)
   }

@@ -1,7 +1,7 @@
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 const escapeText = (s: string) =>
-  s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+  s.replaceAll('\\', '\\\\').replaceAll(';', '\\;').replaceAll(',', '\\,').replaceAll(/\r?\n/g, '\\n')
 
 /** Lines longer than 75 octets are folded with CRLF + space (RFC 5545 §3.1). */
 function fold(line: string): string {
@@ -19,18 +19,18 @@ function fold(line: string): string {
   return out.join('\r\n ')
 }
 
-const compact = (local: string) => local.replace(/[-:]/g, '').slice(0, 15).padEnd(15, '0') // 2026-11-23T12:00 → 20261123T120000
+const compact = (local: string) => local.replaceAll(/[-:]/g, '').slice(0, 15).padEnd(15, '0') // 2026-11-23T12:00 → 20261123T120000
 
 function nextDate(day: string): string {
-  const d = new Date(Date.UTC(+day.slice(0, 4), +day.slice(4, 6) - 1, +day.slice(6, 8) + 1))
-  return d.toISOString().slice(0, 10).replace(/-/g, '')
+  const d = new Date(Date.UTC(Number(day.slice(0, 4)), Number(day.slice(4, 6)) - 1, Number(day.slice(6, 8)) + 1))
+  return d.toISOString().slice(0, 10).replaceAll('-', '')
 }
 
 const fileStem = (name: string) =>
   name
-    .replace(/[:/\\]/g, '')
+    .replaceAll(/[:/\\]/g, '')
     .trim()
-    .replace(/\s+/g, '_')
+    .replaceAll(/\s+/g, '_')
 
 /** File name used for downloads and the zip, e.g. `Gemini_Certs.ics` */
 export const icsFileName = (calendar: PlanCalendar) => `${fileStem(calendar.name)}.ics`
@@ -58,7 +58,7 @@ export interface IcsOptions {
  * The fixed Europe/Minsk VTIMEZONE (+03:00, no DST) keeps times correct in both.
  */
 export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string, options: IcsOptions = {}): string {
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')
+  const stamp = new Date().toISOString().replaceAll(/[-:]/g, '').replace(/\.\d+/, '')
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -86,7 +86,7 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
   for (const e of events) {
     lines.push('BEGIN:VEVENT', `UID:${e.uid}`, `DTSTAMP:${stamp}`)
     if (e.allDay) {
-      const day = e.start.slice(0, 10).replace(/-/g, '')
+      const day = e.start.slice(0, 10).replaceAll('-', '')
       lines.push(`DTSTART;VALUE=DATE:${day}`, `DTEND;VALUE=DATE:${nextDate(day)}`)
     } else {
       lines.push(`DTSTART;TZID=${tz}:${compact(e.start)}`, `DTEND;TZID=${tz}:${compact(e.end)}`)
@@ -111,7 +111,7 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
     lines.push('END:VEVENT')
   }
   lines.push('END:VCALENDAR')
-  return lines.map(fold).join('\r\n') + '\r\n'
+  return `${lines.map(fold).join('\r\n')}\r\n`
 }
 
 /** Events of one calendar, ready for `buildICS`. */

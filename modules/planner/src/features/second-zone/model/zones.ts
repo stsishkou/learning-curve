@@ -29,7 +29,7 @@ const COMMON = [
   'America/Los_Angeles',
 ]
 
-export const cityOf = (zone: string) => zone.split('/').at(-1)!.replaceAll('_', ' ')
+export const cityOf = (zone: string) => zone.slice(zone.lastIndexOf('/') + 1).replaceAll('_', ' ')
 
 /** `utc+1 gmt+1 +1 +01:00`: the ways people type an offset. */
 function offsetWords(shift: number): string {

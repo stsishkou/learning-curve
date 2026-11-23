@@ -66,7 +66,10 @@ export function layoutLanes(items: Occurrence[]): Map<Occurrence, Lane> {
   let groupEnd = -Infinity
   let laneEnds: number[] = []
   const flush = () => {
-    for (const o of group) result.get(o)!.lanes = laneEnds.length
+    for (const o of group) {
+      const lane = result.get(o)
+      if (lane) lane.lanes = laneEnds.length
+    }
   }
   for (const o of items.toSorted((a, b) => a.s - b.s || b.e - a.e)) {
     if (o.s >= groupEnd) {

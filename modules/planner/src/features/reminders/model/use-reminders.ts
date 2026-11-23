@@ -8,7 +8,7 @@ const LEAD = ALARM_MINUTES * 60_000
 /** The longest delay a timer takes; a later reminder is set when this one runs out */
 const MAX_DELAY = 2 ** 31 - 1
 
-const allowed = () => typeof Notification !== 'undefined' && Notification.permission === 'granted'
+const allowed = () => 'Notification' in globalThis && Notification.permission === 'granted'
 
 /**
  * A system notification ten minutes before each of the `upcoming` events (timed, in order). It works while the

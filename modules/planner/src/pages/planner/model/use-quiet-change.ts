@@ -10,8 +10,15 @@ const errorText = (err: unknown) => m.save_failed({ reason: err instanceof Error
 /** Changes made outside a dialog (a drag, an undo, a rename): a failure is kept to show above the calendar. */
 export function useQuietChange(session: PlanSession) {
   const [saveError, setSaveError] = useState('')
-  const quietly = (work: Promise<void>) =>
-    void work.then(() => setSaveError('')).catch((err: unknown) => setSaveError(errorText(err)))
+  const settle = async (work: Promise<void>) => {
+    try {
+      await work
+      setSaveError('')
+    } catch (err) {
+      setSaveError(errorText(err))
+    }
+  }
+  const quietly = (work: Promise<void>) => void settle(work)
 
   const { cursor, steps } = session.history
   const canUndo = session.canEdit && cursor > 0

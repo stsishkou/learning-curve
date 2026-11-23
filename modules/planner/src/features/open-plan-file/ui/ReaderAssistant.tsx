@@ -165,7 +165,7 @@ export function ReaderAssistant({ plan, now, onApply }: Props) {
   // In words the chat can act on: the text that was not an update, or the change that does not fit.
   const problem =
     read?.invalid ||
-    (preview?.problem ? `change ${at + 1} (${read?.update?.changes[at]?.type}): ${preview.problem.message}` : '')
+    (preview?.problem ? `change ${at + 1} (${read?.update.changes[at]?.type}): ${preview.problem.message}` : '')
   const origin = typeof location === 'undefined' ? '' : location.origin
   const { diff } = preview ?? { diff: null }
   const renamed = preview !== null && preview !== undefined && preview.after.meta.title !== plan.meta.title
@@ -187,7 +187,10 @@ export function ReaderAssistant({ plan, now, onApply }: Props) {
             className={`${INPUT} min-h-[72px] resize-y`}
             value={request}
             placeholder={m.ai_request_placeholder()}
-            onChange={(e) => (setRequest(e.target.value), setCopied(''))}
+            onChange={(e) => {
+              setRequest(e.target.value)
+              setCopied('')
+            }}
           />
         </label>
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={m.ai_templates()}>
@@ -198,14 +201,24 @@ export function ReaderAssistant({ plan, now, onApply }: Props) {
               type="button"
               className={CHIP}
               aria-pressed={request === template.text()}
-              onClick={() => (setRequest(template.text()), setCopied(''))}
+              onClick={() => {
+                setRequest(template.text())
+                setCopied('')
+              }}
             >
               {template.label()}
             </button>
           ))}
         </div>
         <label className="flex items-center gap-2 text-[13px]">
-          <input type="checkbox" checked={notes} onChange={(e) => (setNotes(e.target.checked), setCopied(''))} />
+          <input
+            type="checkbox"
+            checked={notes}
+            onChange={(e) => {
+              setNotes(e.target.checked)
+              setCopied('')
+            }}
+          />
           {m.ai_with_notes()}
         </label>
         <div className="flex flex-wrap items-center gap-2">

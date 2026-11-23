@@ -1,7 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import type { PlanCalendar } from '@lc/plan-domain'
 import { Button, FIELD, FOOT, INPUT, TITLE } from '@lc/ui'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 
 import { OverlapNote, type Overlap } from './OverlapNote'
 
@@ -78,10 +78,16 @@ export function EventForm({
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- the fields are the trigger, not the callback's identity
   }, [title, description, calendar, values.start, values.end, values.availability])
 
-  function submit(e: FormEvent) {
+  function submit(e: SubmitEvent) {
     e.preventDefault()
-    if (!title.trim()) return onProblem(m.error_title_required())
-    if (!allDay && to <= from) return onProblem(m.error_time_order())
+    if (!title.trim()) {
+      onProblem(m.error_title_required())
+      return
+    }
+    if (!allDay && to <= from) {
+      onProblem(m.error_time_order())
+      return
+    }
     onSubmit(values)
   }
 

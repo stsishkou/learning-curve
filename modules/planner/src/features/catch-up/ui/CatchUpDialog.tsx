@@ -118,7 +118,13 @@ function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open'
         </p>
       )}
       <div className={FOOT}>
-        <Button className="mr-auto" onClick={() => (onClose(), onShift())}>
+        <Button
+          className="mr-auto"
+          onClick={() => {
+            onClose()
+            onShift()
+          }}
+        >
           {m.catchup_manual()}
         </Button>
         <Button onClick={onClose}>{m.cancel()}</Button>

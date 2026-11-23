@@ -8,6 +8,7 @@ import {
   IMPORT_HOWTO,
   planFileName,
   type Plan,
+  type PlanCalendar,
 } from '@lc/plan-domain'
 import { Button, calendarColor, Dot, FOOT, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useEffect, useMemo, useState } from 'react'
@@ -82,7 +83,10 @@ export function ExportDialog({
 
   async function downloadZip() {
     const calendars = chosen()
-    if (!calendars.length) return setStatus(m.export_select_calendar())
+    if (!calendars.length) {
+      setStatus(m.export_select_calendar())
+      return
+    }
     const files: Record<string, string> = {
       'Как импортировать.txt': IMPORT_HOWTO(calendars.filter((c) => c.isNew).map((c) => c.name)),
     }
@@ -93,14 +97,16 @@ export function ExportDialog({
 
   function downloadCombined() {
     const calendars = chosen()
-    if (!calendars.length) return setStatus(m.export_select_calendar())
+    if (!calendars.length) {
+      setStatus(m.export_select_calendar())
+      return
+    }
     const name = icsFileName(combinedCalendar(plan))
     downloadBlob(name, combinedICS(plan, new Set(calendars.map((c) => c.id)), options), 'text/calendar')
     setStatus(m.export_done_single({ name }))
   }
 
-  function downloadOne(id: string) {
-    const c = plan.calendars.find((it) => it.id === id)!
+  function downloadOne(c: PlanCalendar) {
     downloadBlob(icsFileName(c), calendarICS(plan, c, options), 'text/calendar')
   }
 
@@ -116,7 +122,10 @@ export function ExportDialog({
             { value: 'separate', label: m.export_separate() },
             { value: 'single', label: m.export_single() },
           ]}
-          onChange={(next) => (setMode(next), setStatus(''))}
+          onChange={(next) => {
+            setMode(next)
+            setStatus('')
+          }}
         />
       </div>
       <div className="mt-3.5 mb-1.5 grid gap-1">
@@ -148,7 +157,10 @@ export function ExportDialog({
               <button
                 type="button"
                 className="ml-1.5 rounded-md border border-line bg-surface px-[7px] py-px text-[12px]"
-                onClick={(e) => (e.preventDefault(), downloadOne(c.id))}
+                onClick={(e) => {
+                  e.preventDefault()
+                  downloadOne(c)
+                }}
               >
                 .ics
               </button>
@@ -195,7 +207,7 @@ export function ExportDialog({
           {m.download_plan_json()}
         </Button>
         {mode === 'separate' ? (
-          <Button primary onClick={downloadZip}>
+          <Button primary onClick={() => void downloadZip()}>
             {m.download_zip()}
           </Button>
         ) : (

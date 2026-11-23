@@ -122,7 +122,10 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onQuickAdd
         value={query}
         // oxlint-disable-next-line jsx-a11y/no-autofocus -- the palette is opened to type
         autoFocus
-        onChange={(e) => (setQuery(e.target.value), setActive(0))}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setActive(0)
+        }}
         onKeyDown={keyDown}
       />
       <div

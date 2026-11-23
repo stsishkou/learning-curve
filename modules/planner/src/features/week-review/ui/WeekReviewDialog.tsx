@@ -96,7 +96,10 @@ function Review({ plan, monday, now, onCatchUp, onNextWeek, onClose }: Props & {
             <button
               type="button"
               className="font-semibold text-focus hover:underline"
-              onClick={() => (onClose(), onCatchUp())}
+              onClick={() => {
+                onClose()
+                onCatchUp()
+              }}
             >
               {m.catchup()}
             </button>
@@ -112,7 +115,13 @@ function Review({ plan, monday, now, onCatchUp, onNextWeek, onClose }: Props & {
       )}
 
       <div className={FOOT}>
-        <Button className="flex items-center gap-1.5" onClick={() => (onClose(), onNextWeek())}>
+        <Button
+          className="flex items-center gap-1.5"
+          onClick={() => {
+            onClose()
+            onNextWeek()
+          }}
+        >
           {m.review_go_next()} <ArrowRight size={15} aria-hidden />
         </Button>
         <Button primary onClick={onClose}>

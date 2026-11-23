@@ -44,7 +44,7 @@ export function useStopwatch() {
     setSaved(read())
     setClock(Date.now())
   }, [])
-  const running = saved?.startedAt != null
+  const running = saved?.startedAt !== null && saved?.startedAt !== undefined
   useEffect(() => {
     if (!running) return undefined
     const timer = window.setInterval(() => setClock(Date.now()), 1000)
@@ -65,7 +65,8 @@ export function useStopwatch() {
     start: (uid: string) => keep({ uid, banked: saved?.uid === uid ? elapsed : 0, startedAt: Date.now() }),
     // Counted to this moment, not to the last tick of the display.
     pause: () =>
-      saved?.startedAt != null &&
+      saved?.startedAt !== null &&
+      saved?.startedAt !== undefined &&
       keep({ ...saved, banked: saved.banked + Math.max(0, Date.now() - saved.startedAt), startedAt: null }),
     reset: () => keep(null),
   }

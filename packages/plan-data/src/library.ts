@@ -31,7 +31,7 @@ function read(id: string): StoredPlanFile {
 
 function write(file: StoredPlanFile): PlanFileInfo {
   mkdirSync(dir(), { recursive: true })
-  writeFileSync(path(file.id), JSON.stringify(file, null, 2) + '\n')
+  writeFileSync(path(file.id), `${JSON.stringify(file, null, 2)}\n`)
   return fileInfo(file)
 }
 

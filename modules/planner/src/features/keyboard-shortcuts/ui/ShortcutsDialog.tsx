@@ -5,7 +5,7 @@ interface Props {
   /** The parent owns it and sets it to false in `onClose` */
   open: boolean
   /** Key label and what it does, in the order to show */
-  rows: Array<{ keys: string; label: string }>
+  rows: { keys: string; label: string }[]
   onClose: () => void
 }
 

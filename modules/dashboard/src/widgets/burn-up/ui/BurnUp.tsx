@@ -30,9 +30,13 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
   // Point i is the end of week i - 1; point 0 is the start of the plan.
   const planned = [0]
   const done = [0]
+  let plannedSoFar = 0
+  let doneSoFar = 0
   for (const week of weeks) {
-    planned.push(planned.at(-1)! + week.planned)
-    done.push(done.at(-1)! + week.done)
+    plannedSoFar += week.planned
+    doneSoFar += week.done
+    planned.push(plannedSoFar)
+    done.push(doneSoFar)
   }
   const start = weeks[0]?.monday ?? 0
   const elapsed = now === null ? 0 : Math.max(0, Math.min(weeks.length, (now - start) / WEEK))

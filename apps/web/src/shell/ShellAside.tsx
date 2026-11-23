@@ -8,8 +8,9 @@ const TAB =
   'rounded-[10px] px-3 py-2 text-[13.5px] font-medium whitespace-nowrap text-muted transition-colors duration-150 hover:text-ink aria-[current=page]:bg-surface aria-[current=page]:text-ink aria-[current=page]:shadow-[0_0_0_1px_var(--line),0_1px_2px_rgb(10_16_30/0.12)]'
 
 /** The component stand is a separate app: linked while developing, or wherever `VITE_STAND_URL` says it is hosted. */
+const hosted: unknown = import.meta.env.VITE_STAND_URL
 export const STAND_URL: string | undefined =
-  import.meta.env.VITE_STAND_URL ?? (import.meta.env.DEV ? 'http://localhost:6006' : undefined)
+  typeof hosted === 'string' ? hosted : import.meta.env.DEV ? 'http://localhost:6006' : undefined
 
 /** What the shell puts in every page header: the sections of the app and the language. */
 export function ShellAside() {

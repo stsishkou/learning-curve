@@ -6,7 +6,7 @@ export interface PlanDiff {
   /** In `base` only */
   removed: PlanEvent[]
   /** Same uid, different title, time or calendar */
-  changed: Array<{ before: PlanEvent; after: PlanEvent }>
+  changed: { before: PlanEvent; after: PlanEvent }[]
 }
 
 const KEYS = ['title', 'start', 'end', 'calendar'] as const

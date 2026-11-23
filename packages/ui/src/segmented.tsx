@@ -4,7 +4,7 @@ interface SegmentedProps<T extends string> {
   /** The `value` of the pressed option */
   value: T
   /** The choices, left to right. `lang` marks a label written in another language than the page, such as the names in a language switch */
-  options: ReadonlyArray<{ value: T; label: string; lang?: string }>
+  options: readonly { value: T; label: string; lang?: string }[]
   /** Called with the option that was clicked, the pressed one included */
   onChange: (value: T) => void
   /** Takes the whole width of its container and shares it between the options, for a narrow card */

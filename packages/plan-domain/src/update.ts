@@ -36,9 +36,11 @@ function jsonIn(text: string): unknown[] {
   })
 }
 
+const isList = (value: unknown): value is unknown[] => Array.isArray(value)
+
 const changesOf = (value: unknown): unknown[] | null => {
-  if (Array.isArray(value)) return value
-  if (isRecord(value) && Array.isArray(value.changes)) return value.changes
+  if (isList(value)) return value
+  if (isRecord(value) && isList(value.changes)) return value.changes
   // One change on its own is an update of one change.
   if (isRecord(value) && typeof value.type === 'string') return [value]
   return null
@@ -80,7 +82,7 @@ export interface UpdatePreview {
   /** The first change that does not fit the plan; `index` counts from 0. null when all fit */
   problem: { index: number; message: string } | null
   /** Mondays (`YYYY-MM-DD`) of the weeks the update fills past the weekly budget, with their hours */
-  overBudget: Array<{ week: string; hours: number }>
+  overBudget: { week: string; hours: number }[]
 }
 
 const brief = ({ uid, calendar, title, start, end }: PlanEvent) => ({ uid, calendar, title, start, end })

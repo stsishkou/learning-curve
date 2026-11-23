@@ -47,6 +47,9 @@ export function useEventDraft({ plan, hidden, now, first, days, canEdit }: Conte
     },
     begin,
     show: setShown,
-    clear: () => (setDraft(null), setShown(null)),
+    clear: () => {
+      setDraft(null)
+      setShown(null)
+    },
   }
 }

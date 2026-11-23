@@ -2,7 +2,7 @@ import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { FILE_NAME_MAX, hm, toMinsk, type Plan, type PlanFileInfo, type PlanVersion } from '@lc/plan-domain'
 import { Button, FIELD, INPUT, Pencil, Trash2 } from '@lc/ui'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 
 import type { PlanLibrary } from '../model/library'
 
@@ -48,11 +48,11 @@ export function ReaderLibrary({ library, shown, origin, onView, onOpen }: Props)
   const [doomed, setDoomed] = useState('')
 
   /** Runs one request to the library and reads the list again. */
-  async function run(task: () => Promise<unknown>) {
+  async function run(task?: () => Promise<unknown>) {
     setBusy(true)
     setError('')
     try {
-      await task()
+      await task?.()
       setFiles(await library.list())
     } catch (err) {
       setError(m.lib_failed({ reason: err instanceof Error ? err.message : String(err) }))
@@ -64,7 +64,7 @@ export function ReaderLibrary({ library, shown, origin, onView, onOpen }: Props)
 
   // Once, when the tab opens.
   useEffect(() => {
-    void run(async () => {})
+    void run()
     // oxlint-disable-next-line react/exhaustive-deps
   }, [])
 
@@ -74,7 +74,7 @@ export function ReaderLibrary({ library, shown, origin, onView, onOpen }: Props)
       setNote('')
     })
 
-  function submit(e: FormEvent) {
+  function submit(e: SubmitEvent) {
     e.preventDefault()
     if (name.trim()) void save()
   }

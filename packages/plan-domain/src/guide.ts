@@ -31,9 +31,9 @@ function calendarLines(plan: Plan): string[] {
     const sessions = plan.events.filter((e) => e.calendar === c.id && isSession(e))
     const left = sessions.filter((e) => !e.done)
     const short = sessions[0]?.title.match(/^(.+?) — /)?.[1]
+    const titles = short ? `, short name in titles: "${short}"` : ''
     const facts = sessions.length
-      ? `${sessions.length} sessions, ${left.length} not done (${left.reduce((sum, e) => sum + plannedHours(e), 0)} h)` +
-        (short ? `, short name in titles: "${short}"` : '')
+      ? `${sessions.length} sessions, ${left.length} not done (${left.reduce((sum, e) => sum + plannedHours(e), 0)} h)${titles}`
       : 'no sessions'
     return `- \`${c.id}\`: ${c.name} (${c.color}): ${facts}`
   })

@@ -109,10 +109,14 @@ export function buildPlan(
   let lastDay = config.coursesStart
   for (let day = config.coursesStart; llm.length || agents.length || py.length; day = addDays(day, 1)) {
     if (!isWorkday(day)) continue
-    if (llm.length) push('hfllm', llm.shift()!, at(day, 11), at(day, 12))
-    else if (py.length) push('pypy', py.shift()!, at(day, 11), at(day, 12))
-    if (agents.length) push('hfagents', agents.shift()!, at(day, 12), at(day, 13))
-    if ((dow(day) === 1 || dow(day) === 3) && py.length) push('pypy', py.shift()!, at(day, 13), at(day, 14))
+    const llmItem = llm.shift()
+    const pyInstead = llmItem ? undefined : py.shift()
+    if (llmItem) push('hfllm', llmItem, at(day, 11), at(day, 12))
+    else if (pyInstead) push('pypy', pyInstead, at(day, 11), at(day, 12))
+    const agentsItem = agents.shift()
+    if (agentsItem) push('hfagents', agentsItem, at(day, 12), at(day, 13))
+    const pyExtra = dow(day) === 1 || dow(day) === 3 ? py.shift() : undefined
+    if (pyExtra) push('pypy', pyExtra, at(day, 13), at(day, 14))
     lastDay = day
   }
 

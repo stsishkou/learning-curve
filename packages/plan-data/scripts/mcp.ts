@@ -128,6 +128,7 @@ function narrowed(plan: Plan, args: Record<string, unknown>): Plan {
   }
 }
 
+// oxlint-disable-next-line typescript/no-deprecated -- McpServer takes Zod shapes; the tools here are raw JSON Schema
 const server = new Server(
   { name: 'learning-curve', title: 'Study plan', version: '1.0.0' },
   {
@@ -176,12 +177,14 @@ server.setRequestHandler(ReadResourceRequestSchema, ({ params }) => {
   const known = RESOURCES.find((r) => r.uri === params.uri)
   if (!known) throw new Error(`Unknown resource "${params.uri}"`)
   const plan = readPlan()
-  const body = {
+  const bodies: Record<string, () => string> = {
     'plan://guide': () => planGuide(plan, nowMinsk()),
     'plan://plan': () => JSON.stringify(plan, null, 2),
     'plan://schema/plan': () => JSON.stringify(PLAN_SCHEMA, null, 2),
     'plan://schema/update': () => JSON.stringify(UPDATE_SCHEMA, null, 2),
-  }[known.uri]!
+  }
+  const body = bodies[known.uri]
+  if (!body) throw new Error(`No text for resource "${known.uri}"`)
   return { contents: [{ uri: known.uri, mimeType: known.mimeType, text: body() }] }
 })
 

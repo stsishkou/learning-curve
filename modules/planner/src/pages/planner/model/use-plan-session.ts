@@ -153,17 +153,20 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onChan
     file: file
       ? { name: file.name, origin: file.origin, changes: edited.size + Object.keys(file.edits.calendars).length }
       : null,
-    openFile: (name: string, base: Plan, origin?: string) => (
-      setFile({ name, origin, base, edits: emptyEdits(), trash: emptyTrash(), history: emptyHistory() }),
+    openFile: (name: string, base: Plan, origin?: string) => {
+      setFile({ name, origin, base, edits: emptyEdits(), trash: emptyTrash(), history: emptyHistory() })
       setJustChanged(false)
-    ),
+    },
     /** The file as it is now was saved to the library as `origin`: what follows is counted from here. */
     fileSaved: (origin: string) => {
       if (file)
         setFile({ ...file, origin, base: plan, edits: emptyEdits(), trash: emptyTrash(), history: emptyHistory() })
       setJustChanged(false)
     },
-    closeFile: () => (setFile(null), setJustChanged(false)),
+    closeFile: () => {
+      setFile(null)
+      setJustChanged(false)
+    },
     downloadFile: () =>
       downloadText(file?.name ?? planFileName(plan), JSON.stringify(plan, null, 2), 'application/json'),
   }

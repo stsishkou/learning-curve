@@ -37,7 +37,7 @@ const entries = Object.entries(files).map(([path, file]) => {
     section: title.slice(0, cut),
     name: title.slice(cut + 1),
     // Storybook's own rule for an id: lower case, every run of other characters becomes one dash.
-    href: `?path=/docs/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}--docs`,
+    href: `?path=/docs/${title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}--docs`,
     source: sourceOf(path),
     // oxlint-disable-next-line no-underscore-dangle -- the name the docs generator gives the field
     description: parameters?.docs?.description?.component ?? component?.__docgenInfo?.description ?? '',
@@ -55,8 +55,8 @@ function open(e: MouseEvent<HTMLAnchorElement>) {
 /** First sentence of a description, without the Markdown backticks. */
 const summary = (text: string) =>
   text
-    .replace(/\s+/g, ' ')
-    .replace(/`/g, '')
+    .replaceAll(/\s+/g, ' ')
+    .replaceAll('`', '')
     .match(/^.*?\.(?=\s|$)/)?.[0] ?? text
 
 export function Catalog() {

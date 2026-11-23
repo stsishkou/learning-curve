@@ -6,7 +6,16 @@ import { Segmented } from './segmented'
 
 function Stateful(props: ComponentProps<typeof Segmented>) {
   const [value, setValue] = useState(props.value)
-  return <Segmented {...props} value={value} onChange={(next) => (setValue(next), props.onChange(next))} />
+  return (
+    <Segmented
+      {...props}
+      value={value}
+      onChange={(next) => {
+        setValue(next)
+        props.onChange(next)
+      }}
+    />
+  )
 }
 
 const meta = {

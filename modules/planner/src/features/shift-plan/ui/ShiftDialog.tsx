@@ -1,7 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import { shiftTargets, type Plan, type PlanChange } from '@lc/plan-domain'
 import { Button, FIELD, FOOT, INPUT, META, Modal, TITLE } from '@lc/ui'
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 
 interface Props {
   plan: Plan
@@ -29,7 +29,7 @@ function ShiftForm({ plan, from: initial, onChange, onClose }: Props & { from: s
   const [busy, setBusy] = useState(false)
   const count = shiftTargets(plan, { calendar: calendar || undefined, from }).length
 
-  async function submit(e: FormEvent) {
+  async function submit(e: SubmitEvent) {
     e.preventDefault()
     setBusy(true)
     try {

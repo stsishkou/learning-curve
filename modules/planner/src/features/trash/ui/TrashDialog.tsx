@@ -33,7 +33,14 @@ export function TrashDialog({ plan, trash, open, onChange, onClose }: Props) {
   }
 
   return (
-    <Modal open={open} size="wide" onClose={() => (setConfirming(false), onClose())}>
+    <Modal
+      open={open}
+      size="wide"
+      onClose={() => {
+        setConfirming(false)
+        onClose()
+      }}
+    >
       <h3 className={TITLE}>{m.trash()}</h3>
       <div className={META}>{m.trash_hint({ days: TRASH_DAYS })}</div>
 

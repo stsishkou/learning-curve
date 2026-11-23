@@ -133,7 +133,10 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
                     }}
                     onPointerMove={(e) => pointerMove(e, o)}
                     onPointerUp={() => pointerUp(o)}
-                    onPointerCancel={() => ((press.current = null), setDrag(null))}
+                    onPointerCancel={() => {
+                      press.current = null
+                      setDrag(null)
+                    }}
                     onClick={() => {
                       if (suppressClick.current) suppressClick.current = false
                       else onSelect(o)

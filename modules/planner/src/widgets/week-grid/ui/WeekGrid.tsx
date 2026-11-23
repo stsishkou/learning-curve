@@ -292,7 +292,7 @@ export function WeekGrid({
     // A finger scrolls the grid; it picks an event up only after resting on it.
     next.timer = window.setTimeout(() => {
       next.armed = true
-      navigator.vibrate?.(8)
+      if ('vibrate' in navigator) navigator.vibrate(8)
       begin()
     }, LONG_PRESS)
   }
@@ -524,7 +524,10 @@ export function WeekGrid({
                 onPointerDown={(e) => drawStart(e, d)}
                 onPointerMove={drawMove}
                 onPointerUp={drawEnd}
-                onPointerCancel={() => ((drawing.current = null), setDrawn(null))}
+                onPointerCancel={() => {
+                  drawing.current = null
+                  setDrawn(null)
+                }}
                 onDoubleClick={(e) => {
                   if (!onCreate || (e.target instanceof Element && e.target.closest('button'))) return
                   const y = e.clientY - e.currentTarget.getBoundingClientRect().y
@@ -621,7 +624,7 @@ export function WeekGrid({
                   )
                 })}
                 {[drawn && { ...drawn, title: '', calendar: '' }, draft]
-                  .filter((slot) => slot !== null && slot.e > slot.s && startOfDay(slot.s) === d)
+                  .flatMap((slot) => (slot !== null && slot.e > slot.s && startOfDay(slot.s) === d ? [slot] : []))
                   .slice(0, 1)
                   .map((slot) => (
                     <div
@@ -629,13 +632,13 @@ export function WeekGrid({
                       data-draft
                       className="pointer-events-none absolute inset-x-1 z-4 overflow-hidden rounded-lg border-2 border-dashed border-focus bg-[color-mix(in_srgb,var(--focus)_16%,transparent)] px-[7px] py-[3px] text-[12px]/[1.3]"
                       style={{
-                        top: ((slot!.s - d) / HOUR - minH) * hourHeight + 1,
-                        height: Math.max(22, ((slot!.e - slot!.s) / HOUR) * hourHeight - 3),
+                        top: ((slot.s - d) / HOUR - minH) * hourHeight + 1,
+                        height: Math.max(22, ((slot.e - slot.s) / HOUR) * hourHeight - 3),
                       }}
                     >
-                      <b className="block truncate font-semibold">{slot!.title || m.new_event()}</b>
+                      <b className="block truncate font-semibold">{slot.title || m.new_event()}</b>
                       <small className="text-ink tabular-nums">
-                        {hm(slot!.s)}–{hm(slot!.e)}
+                        {hm(slot.s)}–{hm(slot.e)}
                       </small>
                     </div>
                   ))}

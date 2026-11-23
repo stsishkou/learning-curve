@@ -37,14 +37,14 @@ type Story = StoryObj<typeof meta>
 export const Session: Story = {}
 
 /** Marked done and changed by hand: the dialog offers to take both back. */
-export const DoneAndEdited: Story = { args: { event: pick((e) => !!e.done), edited: true } }
+export const DoneAndEdited: Story = { args: { event: pick((e) => Boolean(e.done)), edited: true } }
 
 export const ReadOnly: Story = { args: { canEdit: false } }
 
 /** One repeat of a weekly event, opened on the day given in `day`. */
-export const Repeating: Story = { args: { event: pick((e) => !!e.rrule), day: '2026-12-03' } }
+export const Repeating: Story = { args: { event: pick((e) => Boolean(e.rrule)), day: '2026-12-03' } }
 
-export const AllDay: Story = { args: { event: pick((e) => !!e.allDay) } }
+export const AllDay: Story = { args: { event: pick((e) => Boolean(e.allDay)) } }
 
 /** A `draft` and no `event`: the dialog starts as the form, filled with the draft. */
 export const NewEvent: Story = {

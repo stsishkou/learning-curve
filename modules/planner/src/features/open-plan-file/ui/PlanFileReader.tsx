@@ -107,13 +107,20 @@ export function PlanFileReader({ open, shown, project, onOpen, library, origin, 
     void load(e.dataTransfer.files[0])
   }
 
-  const close = () => (setPicked(null), setTab('overview'), onClose())
+  const close = () => {
+    setPicked(null)
+    setTab('overview')
+    onClose()
+  }
 
   return (
     <Modal open size="full" onClose={close}>
       <div
         className={`flex h-full min-h-0 flex-col rounded-xl ${dropping ? 'outline-2 outline-offset-8 outline-focus outline-dashed' : ''}`}
-        onDragOver={(e) => (e.preventDefault(), setDropping(true))}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setDropping(true)
+        }}
         onDragLeave={() => setDropping(false)}
         onDrop={drop}
       >
@@ -132,7 +139,16 @@ export function PlanFileReader({ open, shown, project, onOpen, library, origin, 
             </div>
           </div>
           <Button onClick={() => input.current?.click()}>{m.reader_choose_file()}</Button>
-          {picked && <Button onClick={() => (setPicked(null), setTab('overview'))}>{m.reader_back()}</Button>}
+          {picked && (
+            <Button
+              onClick={() => {
+                setPicked(null)
+                setTab('overview')
+              }}
+            >
+              {m.reader_back()}
+            </Button>
+          )}
           <input
             ref={input}
             type="file"
@@ -186,8 +202,14 @@ export function PlanFileReader({ open, shown, project, onOpen, library, origin, 
               library={library}
               shown={shown}
               origin={origin}
-              onView={(file) => (setPicked(fromLibrary(file)), setTab('overview'))}
-              onOpen={(file) => (onOpen(file), close())}
+              onView={(file) => {
+                setPicked(fromLibrary(file))
+                setTab('overview')
+              }}
+              onOpen={(file) => {
+                onOpen(file)
+                close()
+              }}
             />
           )}
           {active === 'assistant' && <ReaderAssistant plan={shown.plan} now={now} onApply={onApply} />}

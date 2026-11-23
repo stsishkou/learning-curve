@@ -111,7 +111,10 @@ export function SecondZoneDialog({ open, zone, now, onChoose, onClose }: Props) 
             spellCheck={false}
             // oxlint-disable-next-line jsx-a11y/no-autofocus -- the dialog is opened to find a zone
             autoFocus
-            onChange={(e) => (setQuery(e.target.value), setActive(0))}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setActive(0)
+            }}
             onKeyDown={keyDown}
           />
           <div

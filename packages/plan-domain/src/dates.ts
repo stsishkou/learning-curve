@@ -10,7 +10,13 @@ const pad = (n: number) => String(n).padStart(2, '0')
 
 /** `2026-11-23T12:00` or `2026-11-23` → wall-clock ms */
 export function parseLocal(s: string): number {
-  return Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +(s.slice(11, 13) || 0), +(s.slice(14, 16) || 0))
+  return Date.UTC(
+    Number(s.slice(0, 4)),
+    Number(s.slice(5, 7)) - 1,
+    Number(s.slice(8, 10)),
+    Number(s.slice(11, 13) || 0),
+    Number(s.slice(14, 16) || 0),
+  )
 }
 
 export const ymd = (t: number) => {

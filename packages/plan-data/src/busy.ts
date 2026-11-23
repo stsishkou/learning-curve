@@ -32,6 +32,7 @@ const wallClock = (time: ICAL.Time) =>
  * exceptions; events marked free (`TRANSP:TRANSPARENT`) or cancelled are left out, since they take no time.
  */
 export function parseBusy(text: string, from: number, to: number): BusyBlock[] {
+  // oxlint-disable-next-line typescript/no-unsafe-argument -- ical.js types the jCal it parses as `any`
   const root = new ICAL.Component(ICAL.parse(text))
   for (const zone of root.getAllSubcomponents('vtimezone')) ICAL.TimezoneService.register(zone)
   const events = root.getAllSubcomponents('vevent').map((component) => new ICAL.Event(component))
@@ -60,6 +61,7 @@ export function parseBusy(text: string, from: number, to: number): BusyBlock[] {
     const repeats = event.iterator()
     for (let count = 0; count < MAX_REPEATS; count++) {
       const next = repeats.next()
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- nothing comes back after the last repeat, whatever the types say
       if (!next) break
       const occurrence = event.getOccurrenceDetails(next)
       // Read against the real clock: the window's end as an instant, with a day of slack for all-day repeats.

@@ -29,7 +29,7 @@ export interface StoredPlanFile {
   version: 1
   id: string
   name: string
-  versions: Array<PlanVersion & { plan: Plan }>
+  versions: (PlanVersion & { plan: Plan })[]
 }
 
 export const fileInfo = ({ id, name, versions }: StoredPlanFile): PlanFileInfo => ({
@@ -73,7 +73,7 @@ export function withVersion(
   const name = cleanName(save.name) || file?.name || save.plan.meta.title
   const versions = file?.versions ?? []
   const latest = versions.at(-1)
-  if (latest && JSON.stringify(latest.plan) === JSON.stringify(save.plan)) return { ...file!, name }
+  if (file && latest && JSON.stringify(latest.plan) === JSON.stringify(save.plan)) return { ...file, name }
   const at = new Date(now).toISOString()
   const next = {
     id: `v-${now.toString(36)}`,

@@ -42,7 +42,7 @@ const HISTORY_FILE = join(dataDir(), 'history.json')
 const LOCAL_FILE = join(dataDir(), 'local.json')
 
 const readJson = (file: string): unknown => JSON.parse(readFileSync(file, 'utf8'))
-const writeJson = (file: string, value: unknown) => writeFileSync(file, JSON.stringify(value, null, 2) + '\n')
+const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
 
 export function readEdits(): PlanEdits {
   return parseEdits(existsSync(EDITS_FILE) ? readJson(EDITS_FILE) : null)

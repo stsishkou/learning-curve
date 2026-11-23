@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import { Button, FIELD, FOOT, INPUT, META, Modal, TITLE } from '@lc/ui'
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 
 interface Props {
   open: boolean
@@ -34,7 +34,7 @@ export function BusyFeedDialog({ open, host, onSave, onClose }: Props) {
     }
   }
 
-  function submit(e: FormEvent) {
+  function submit(e: SubmitEvent) {
     e.preventDefault()
     if (url.trim()) void save(url.trim())
   }

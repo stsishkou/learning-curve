@@ -42,7 +42,10 @@ function Host(props: ComponentProps<typeof PlannerPage>) {
       {...props}
       state={state}
       search={search}
-      onSearchChange={(patch) => (setSearch((prev) => ({ ...prev, ...patch })), props.onSearchChange(patch))}
+      onSearchChange={(patch) => {
+        setSearch((prev) => ({ ...prev, ...patch }))
+        props.onSearchChange(patch)
+      }}
       onChange={async (change) => {
         await props.onChange(change)
         setHistory((prev) => {

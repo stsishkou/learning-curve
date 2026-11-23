@@ -47,6 +47,10 @@ export const HEX_COLOR = /^#[0-9a-f]{6}$/i
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
+/** `record` without `key`; the other keys stay in their order. */
+export const without = <T>(record: Record<string, T>, key: string): Record<string, T> =>
+  Object.fromEntries(Object.entries(record).filter(([name]) => name !== key))
+
 /** Reads a patch from untrusted input; returns null when a field has the wrong type or format. */
 export function parsePatch(value: unknown): EventPatch | null {
   if (!isRecord(value)) return null

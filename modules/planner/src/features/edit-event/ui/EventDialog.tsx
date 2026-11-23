@@ -57,7 +57,7 @@ const linkify = (text: string) =>
 
 const NO_BUSY: BusyBlock[] = []
 
-const stamp = (local: string) => `${local.replace(/[-:]/g, '')}00`
+const stamp = (local: string) => `${local.replaceAll(/[-:]/g, '')}00`
 
 /** The page of Google Calendar that creates this event, filled in: nothing is sent until it is saved there. */
 function googleLink(event: PlanEvent, zone: string): string {
@@ -189,7 +189,7 @@ export function EventDialog({
       : []
 
   return (
-    <Modal open={!!event || !!draft} anchor={anchor} onClose={close}>
+    <Modal open={Boolean(event) || Boolean(draft)} anchor={anchor} onClose={close}>
       {draft && !event && (
         <EventForm
           // A fresh form per slot, so fields never carry over from the previous one.
@@ -214,11 +214,14 @@ export function EventDialog({
           initial={{ ...event }}
           calendars={plan.calendars}
           allDay={event.allDay}
-          recurring={!!event.rrule}
+          recurring={Boolean(event.rrule)}
           overlaps={event.availability === 'free' ? undefined : overlaps}
           busy={busy}
           error={error}
-          onCancel={() => (setEditing(false), setError(''))}
+          onCancel={() => {
+            setEditing(false)
+            setError('')
+          }}
           onSubmit={({ availability: _unchanged, ...patch }) =>
             void run({ type: 'event.patch', uid: event.uid, patch })
           }

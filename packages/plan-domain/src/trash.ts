@@ -1,5 +1,5 @@
 import { DAY } from './dates'
-import { applyEdits, type PlanEdits } from './edits'
+import { applyEdits, without, type PlanEdits } from './edits'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 /** How long a removed event or calendar can still be restored. */
@@ -64,22 +64,22 @@ export function purgeTrash(base: Plan, edits: PlanEdits, now = Date.now()): Plan
       removed.calendars[id] = null
       continue
     }
-    delete removed.calendars[id]
-    delete next.calendars[id]
+    removed.calendars = without(removed.calendars, id)
+    next.calendars = without(next.calendars, id)
     next.added = next.added.filter((e) => e.calendar !== id)
     for (const [uid, patch] of Object.entries(next.events)) {
       if (patch.calendar !== id) continue
-      delete next.events[uid]
+      next.events = without(next.events, uid)
       removed.events[uid] = null
     }
   }
   for (const [uid, at] of Object.entries(removed.events)) {
     if (!expired(at)) continue
-    delete next.events[uid]
+    next.events = without(next.events, uid)
     if (base.events.some((e) => e.uid === uid)) {
       removed.events[uid] = null
     } else {
-      delete removed.events[uid]
+      removed.events = without(removed.events, uid)
       next.added = next.added.filter((e) => e.uid !== uid)
     }
   }

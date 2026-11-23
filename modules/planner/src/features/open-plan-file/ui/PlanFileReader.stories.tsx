@@ -76,7 +76,8 @@ export const AiChat: Story = {
   play: async ({ canvasElement }) => {
     const dialog = within(canvasElement.ownerDocument.body)
     const tabs = itemAt(await dialog.findAllByRole('group'))
-    await userEvent.click(within(tabs).getAllByRole('button').at(-1)!)
+    const buttons = within(tabs).getAllByRole('button')
+    await userEvent.click(itemAt(buttons, buttons.length - 1))
     const update = {
       summary: 'One more session on Saturday.',
       changes: [

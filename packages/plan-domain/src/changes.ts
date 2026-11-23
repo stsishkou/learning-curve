@@ -7,6 +7,7 @@ import {
   isRecord,
   parsePatch,
   patchProblem,
+  without,
   type EventPatch,
   type PlanEdits,
 } from './edits'
@@ -288,12 +289,13 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       }
       const original = base.events.find((e) => e.uid === uid) ?? fail(`Unknown event "${uid}"`)
       if (!patch) {
-        delete next.events[uid]
+        next.events = without(next.events, uid)
         return next
       }
       const merged: EventPatch = { ...next.events[uid], ...patch }
       // Keep only what differs from the original event, so the edits list real changes.
       for (const key of ['title', 'description', 'start', 'end', 'calendar', 'rrule'] as const) {
+        // oxlint-disable-next-line typescript/no-dynamic-delete -- the key is one of the six names above
         if (merged[key] === original[key]) delete merged[key]
       }
       if (!(merged.done ?? original.done)) delete merged.actual
@@ -302,7 +304,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       if (!original.rrule) delete merged.rrule
       if (patchProblem(original, merged)) fail('The event must end after it starts')
       if (Object.keys(merged).length) next.events[uid] = merged
-      else delete next.events[uid]
+      else next.events = without(next.events, uid)
       break
     }
     case 'event.add':
@@ -377,10 +379,10 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       const everything = !change.events && !change.calendars
       // A `null` mark is past restoring: the trash no longer lists it.
       for (const uid of everything ? Object.keys(removed.events) : (change.events ?? [])) {
-        if (removed.events[uid]) delete removed.events[uid]
+        if (removed.events[uid]) removed.events = without(removed.events, uid)
       }
       for (const id of everything ? Object.keys(removed.calendars) : (change.calendars ?? [])) {
-        if (removed.calendars[id]) delete removed.calendars[id]
+        if (removed.calendars[id]) removed.calendars = without(removed.calendars, id)
       }
       break
     }

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 import css from '@lc/ui/theme.css?raw'
 
 /** Custom properties declared in the first block that follows `marker`. */
-function declarations(marker: string): Array<[name: string, value: string]> {
+function declarations(marker: string): [name: string, value: string][] {
   const start = css.indexOf(marker)
   if (start === -1) return []
   const open = css.indexOf('{', start)

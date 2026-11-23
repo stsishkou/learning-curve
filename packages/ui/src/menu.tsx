@@ -50,7 +50,7 @@ const rowsOf = (menu: HTMLElement) =>
  */
 export function Menu({ label, items, className = '' }: Props) {
   const id = useId()
-  const anchor = `--menu-${id.replace(/[^a-z0-9]/gi, '')}`
+  const anchor = `--menu-${id.replaceAll(/[^a-z0-9]/gi, '')}`
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)

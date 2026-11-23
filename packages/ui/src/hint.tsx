@@ -83,7 +83,7 @@ interface HintProps {
 export function Hint({ title, text, children, className = '' }: HintProps) {
   const [on] = useHelpMode()
   const id = useId()
-  const anchor = `--hint-${id.replace(/[^a-z0-9]/gi, '')}`
+  const anchor = `--hint-${id.replaceAll(/[^a-z0-9]/gi, '')}`
   if (!on) return null
   return (
     <>

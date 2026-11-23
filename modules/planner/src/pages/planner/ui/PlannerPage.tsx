@@ -121,7 +121,9 @@ export function PlannerPage({
   const zoneAhead = zone ? zoneShift(zone, nav.grid.start + 12 * HOUR) : null
   // The city is enough to tell the clocks apart: `Europe/Warsaw` reads as Warsaw.
   const secondZone =
-    zone && zoneAhead !== null ? { label: zone.split('/').at(-1)!.replaceAll('_', ' '), shift: zoneAhead } : null
+    zone && zoneAhead !== null
+      ? { label: zone.slice(zone.lastIndexOf('/') + 1).replaceAll('_', ' '), shift: zoneAhead }
+      : null
 
   // What the calendar shows: a week, or the weeks of the month grid.
   const shownFrom = view === 'month' ? nav.monthGridStart : weekStart
@@ -448,7 +450,10 @@ export function PlannerPage({
         onChange={session.change}
         undo={quiet.lastStep}
         trashCount={trashCount}
-        onOpenTrash={() => (dialogs.hide('calendars'), dialogs.show('trash'))}
+        onOpenTrash={() => {
+          dialogs.hide('calendars')
+          dialogs.show('trash')
+        }}
         onClose={() => dialogs.hide('calendars')}
       />
       <ShiftDialog plan={plan} from={shiftFrom} onChange={session.change} onClose={() => setShiftFrom(null)} />
