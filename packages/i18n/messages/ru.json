@@ -318,6 +318,7 @@
   "redo": "Вернуть",
   "dashboard": "Прогресс",
   "dash_until": "план до {date}",
+  "dash_expand_hint": "Графики на всё окно: без заголовка и навигации",
   "dash_progress": "Выполнено",
   "dash_hours": "Часы",
   "dash_of": "из {total}",

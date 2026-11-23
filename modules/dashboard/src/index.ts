@@ -1,1 +1,1 @@
-export { DashboardPage } from './pages/dashboard'
+export { DashboardPage, parseDashboardSearch, type DashboardSearch } from './pages/dashboard'

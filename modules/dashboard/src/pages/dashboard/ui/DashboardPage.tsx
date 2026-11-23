@@ -1,7 +1,7 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
-import { HelpToggle, PageHeader } from '@lc/ui'
+import { HelpToggle, PageHeader, ScreenButtons, useFullscreen, useShortcuts } from '@lc/ui'
 import { useMemo, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
@@ -18,6 +18,10 @@ interface Props {
   headerAside?: ReactNode
   /** Minsk wall-clock time to show the plan at, instead of the running clock */
   now?: number
+  /** The charts take the whole window: no page header */
+  expanded?: boolean | undefined
+  /** Present when the host keeps `expanded`: the page then offers Expand */
+  onExpandedChange?: ((expanded: boolean) => void) | undefined
 }
 
 /** Each week with its hours and the running totals up to it. */
@@ -32,19 +36,54 @@ function tableRows(weeks: WeekStats[]) {
 }
 
 /** Progress of the plan in numbers and charts. Read-only: marks are made in the planner. */
-export function DashboardPage({ plan, headerAside, now: fixed }: Props) {
+export function DashboardPage({ plan, headerAside, now: fixed, expanded = false, onExpandedChange }: Props) {
   const clock = useNow()
   const now = fixed ?? clock
   const stats = useMemo(() => planStats(plan, now ?? 0), [plan, now])
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
+  const fullscreen = useFullscreen()
+  // The whole screen is for the charts: it is laid out as Expand lays it out.
+  const wide = expanded || fullscreen.on
+  const toggleExpanded = onExpandedChange && (() => onExpandedChange(!expanded))
+
+  useShortcuts({
+    ...(toggleExpanded && { e: toggleExpanded }),
+    ...(fullscreen.supported && { 'shift+f': fullscreen.toggle }),
+  })
+
   return (
-    <div className="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
-        <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
-        <p className="mt-1 text-[14px] text-muted">
+    <div
+      className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1240px] pt-3.5 pb-10 md:pt-5 md:pb-12'}`}
+    >
+      {!wide && (
+        <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
+          <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
+        </PageHeader>
+      )}
+      {/* Out of the header, so the plan stays named while the header is hidden. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="min-w-0 flex-1 basis-[240px] text-[14px] text-muted">
           {plan.meta.title} · {m.dash_until({ date: fmtDay(parseLocal(plan.meta.planEnd)) })}
         </p>
-      </PageHeader>
+        {toggleExpanded && (
+          <div className="flex gap-2">
+            <ScreenButtons
+              expanded={expanded}
+              onToggleExpanded={toggleExpanded}
+              fullscreen={fullscreen.supported ? fullscreen : undefined}
+              labels={{
+                expand: m.expand(),
+                collapse: m.collapse(),
+                expandHint: m.dash_expand_hint(),
+                fullscreen: m.fullscreen(),
+                fullscreenExit: m.fullscreen_exit(),
+                fullscreenHint: m.fullscreen_hint(),
+              }}
+              className="py-1! text-[13px]"
+            />
+          </div>
+        )}
+      </div>
 
       <StatTiles plan={plan} stats={stats} now={now} />
       <StudyStreak plan={plan} now={now} />

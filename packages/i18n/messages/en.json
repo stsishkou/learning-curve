@@ -308,6 +308,7 @@
   "redo": "Redo",
   "dashboard": "Progress",
   "dash_until": "plan until {date}",
+  "dash_expand_hint": "The charts across the whole window: no header or navigation",
   "dash_progress": "Completed",
   "dash_hours": "Hours",
   "dash_of": "of {total}",

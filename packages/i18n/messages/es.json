@@ -308,6 +308,7 @@
   "redo": "Rehacer",
   "dashboard": "Progreso",
   "dash_until": "plan hasta {date}",
+  "dash_expand_hint": "Los gráficos en toda la ventana: sin encabezado ni navegación",
   "dash_progress": "Completado",
   "dash_hours": "Horas",
   "dash_of": "de {total}",

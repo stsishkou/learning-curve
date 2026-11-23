@@ -123,7 +123,8 @@ a Husky `commit-msg` hook checks them with commitlint.
   behind the plan, hours added up against the plan, the load of every week by calendar against the budget, and
   a bar per course. Every chart has a hover readout and the same numbers as a table. `Study streak` counts the
   study days in a row on which something was done (a day with no session does not break the run) and draws every
-  day of the plan as a cell: done, missed or still ahead.
+  day of the plan as a cell: done, missed or still ahead. `Expand` (`E`) spreads the charts across the whole
+  window and `Full screen` (`Shift F`) across the whole screen.
 - **History**: every change is a step you can take back and redo: `↶` `↷` in the toolbar, `Ctrl/⌘ Z` and
   `Ctrl/⌘ Shift Z`, or the `History` window (`H`), where any point of the timeline can be picked. The last 100
   steps are kept in `packages/plan-data/data/history.json`, which is local and not committed.
