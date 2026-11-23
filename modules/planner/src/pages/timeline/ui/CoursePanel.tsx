@@ -23,6 +23,8 @@ interface Props {
   today: string | null
   /** Changes what the draft asks of the course; null takes it out of the draft. Without it the panel only shows */
   onEdit?: ((patch: CourseEdit | null) => void) | undefined
+  /** How far the whole move may go, in days; null when nothing is left to move */
+  bounds: { min: number; max: number } | null
   /** Present when the host can re-balance: the finish-by controls show */
   canRebalance: boolean
   /** Opens Reschedule for the course, with every option it has */
@@ -71,7 +73,7 @@ function Fact({ label, now, draft }: FactProps) {
 
 /** The picked course: its dates, deadline and spare days now and in the draft, and the ways to change them. */
 export function CoursePanel(props: Props) {
-  const { lane, change, edit, warnings, working, failed, today, onEdit, canRebalance, onMore } = props
+  const { lane, change, edit, warnings, working, failed, today, bounds, onEdit, canRebalance, onMore } = props
   if (!lane) {
     return (
       <section aria-label={m.timeline_course()} className="rounded-2xl border border-line bg-surface p-4 md:p-5">
@@ -81,6 +83,7 @@ export function CoursePanel(props: Props) {
   }
   const after = change?.after
   const deadline = edit?.deadline ?? lane.deadline
+  const move = edit?.move ?? 0
   return (
     <section
       aria-label={m.timeline_course()}
@@ -127,11 +130,15 @@ export function CoursePanel(props: Props) {
           <div className="grid gap-1.5">
             <span className="text-[13px] text-muted">
               {m.timeline_move_by()}
-              {edit?.move ? ` · ${weeksText(edit.move)}` : ''}
+              {move ? ` · ${weeksText(move)}` : ''}
             </span>
             <div className="flex flex-wrap gap-2 *:flex-1">
-              <Button onClick={() => onEdit({ move: (edit?.move ?? 0) - 7 })}>{m.timeline_earlier_week()}</Button>
-              <Button onClick={() => onEdit({ move: (edit?.move ?? 0) + 7 })}>{m.timeline_later_week()}</Button>
+              <Button disabled={!bounds || move - 7 < bounds.min} onClick={() => onEdit({ move: move - 7 })}>
+                {m.timeline_earlier_week()}
+              </Button>
+              <Button disabled={!bounds || move + 7 > bounds.max} onClick={() => onEdit({ move: move + 7 })}>
+                {m.timeline_later_week()}
+              </Button>
             </div>
           </div>
           {canRebalance && (

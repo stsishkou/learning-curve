@@ -3,6 +3,7 @@ export { deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
 export {
   calendarLanes,
   compareLanes,
+  laneMoveBounds,
   laneSpare,
   lanesRange,
   movedSessions,

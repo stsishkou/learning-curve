@@ -347,6 +347,85 @@ export const TwoCoursesInOrder: Story = {
   },
 }
 
+/** A re-balance that leaves sessions without room is a failure too: the course says why and Apply stays shut. */
+export const AnUnplacedRebalanceBlocksApply: Story = {
+  args: {
+    rebalance: fn(async (_plan: Plan, request: RebalanceRequest) => {
+      const result = resultFor(request.calendar, 1)
+      return { ...result, report: { ...result.report, unplaced: 2 } }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    await select(canvasElement, CERTS)
+    await userEvent.click(panel(canvasElement).getByRole('button', { name: m.timeline_finish_by_deadline() }))
+    const reason = m.reschedule_unplaced({ count: 2 })
+    await expect(await panel(canvasElement).findByText(m.reschedule_failed({ reason }))).toBeVisible()
+    await expect(await applyButton(canvasElement)).toBeDisabled()
+  },
+}
+
+const seen = fn(async (_plan: Plan, request: RebalanceRequest) => resultFor(request.calendar, 1))
+
+/** The second course of a draft is re-balanced on the plan the first one's change leaves, not on the plan as it is. */
+export const TheSecondCourseSeesTheFirst: Story = {
+  args: { rebalance: seen },
+  play: async ({ canvasElement }) => {
+    seen.mockClear()
+    const [first] = ahead('hfllm')
+    await select(canvasElement, LLM)
+    await laterWeek(canvasElement)
+    await select(canvasElement, CERTS)
+    await userEvent.click(panel(canvasElement).getByRole('button', { name: m.timeline_finish_by_deadline() }))
+    await waitFor(() => expect(seen).toHaveBeenCalledTimes(1))
+    const [base] = seen.mock.lastCall ?? []
+    await expect(first && base?.events.find((e) => e.uid === first.uid)?.start).toBe(
+      first && toLocalString(parseLocal(first.start) + 7 * DAY),
+    )
+  },
+}
+
+/** The week buttons stop where a drag would: no session moves into the past, and no further than one shift allows. */
+export const WeekButtonsKeepTheirBounds: Story = {
+  play: async ({ canvasElement }) => {
+    const [first] = ahead('certs')
+    await expect(first && parseLocal(first.start) - parseLocal(`${today}T00:00`)).toBeLessThan(7 * DAY)
+    await select(canvasElement, CERTS)
+    const earlier = panel(canvasElement).getByRole('button', { name: m.timeline_earlier_week() })
+    const laterButton = panel(canvasElement).getByRole('button', { name: m.timeline_later_week() })
+    await expect(earlier).toBeDisabled()
+    await userEvent.click(laterButton)
+    await expect(earlier).toBeEnabled()
+    for (let week = 1; week < 52; week++) void fireEvent.click(laterButton)
+    await waitFor(() => expect(laterButton).toBeDisabled())
+    await expect(panel(canvasElement).getByText(/\+52/)).toBeVisible()
+  },
+}
+
+/** The host is told when the page gets a draft and when it loses it, so it can hold its own navigation. */
+export const TellsTheHostAboutTheDraft: Story = {
+  args: { onDraftChange: fn() },
+  play: async ({ args, canvasElement }) => {
+    await select(canvasElement, LLM)
+    await laterWeek(canvasElement)
+    await waitFor(() => expect(args.onDraftChange).toHaveBeenLastCalledWith(true))
+    await userEvent.click(within(await findDraftBar(canvasElement)).getByRole('button', { name: m.timeline_discard() }))
+    await waitFor(() => expect(args.onDraftChange).toHaveBeenLastCalledWith(false))
+  },
+}
+
+/** A navigation the host holds for the draft asks first: stay and keep the draft, or drop it and go. */
+export const AsksBeforeTheHostLeaves: Story = {
+  args: { leaving: { onStay: fn(), onLeave: fn() } },
+  play: async ({ args, canvasElement }) => {
+    const ask = await within(canvasElement.ownerDocument.body).findByRole('dialog')
+    await waitFor(() => expect(within(ask).getByText(m.timeline_leave_title())).toBeVisible())
+    await userEvent.click(within(ask).getByRole('button', { name: m.timeline_stay() }))
+    await expect(args.leaving?.onStay).toHaveBeenCalledTimes(1)
+    await userEvent.click(within(ask).getByRole('button', { name: m.timeline_leave() }))
+    await expect(args.leaving?.onLeave).toHaveBeenCalledTimes(1)
+  },
+}
+
 /** Whether the browser would ask before leaving the page. */
 function leaveAsks() {
   const event = new Event('beforeunload', { cancelable: true })

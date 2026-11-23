@@ -95,6 +95,20 @@ export function laneSpare(lane: CalendarLane): number | null {
   return lane.deadline === null ? null : daysBetween(lane.last, lane.deadline) - 1
 }
 
+// `events.shift` takes at most 366 days; whole weeks keep each session on its weekday.
+const MAX_MOVE = 364
+
+/**
+ * How far, in whole weeks of days, the course's sessions from `today` on may move: back no further than today, forward
+ * no further than one shift allows. Null when nothing from today on is left to move.
+ */
+export function laneMoveBounds(lane: CalendarLane, today: string): { min: number; max: number } | null {
+  const first = lane.sessions.find((s) => s.state !== 'done' && s.day >= today)
+  if (!first) return null
+  const back = Math.min(MAX_MOVE, Math.floor(daysBetween(today, first.day) / 7) * 7)
+  return { min: back === 0 ? 0 : -back, max: MAX_MOVE }
+}
+
 /** The sessions an update gives another time. */
 export function movedSessions(diff: PlanDiff): Set<string> {
   return new Set(

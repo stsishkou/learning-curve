@@ -1,7 +1,8 @@
 import { m } from '@lc/i18n/messages'
 import type { Plan, RebalanceRequest } from '@lc/plan-domain'
 import { TimelinePage } from '@lc/planner'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, useBlocker, useRouter } from '@tanstack/react-router'
+import { useState } from 'react'
 
 import { getPlanState, savePlanChanges, travelPlanHistory } from '#/server/plan'
 import { rebalancePlan } from '#/server/reschedule'
@@ -19,6 +20,9 @@ const rebalance = async (plan: Plan, request: RebalanceRequest) => rebalancePlan
 
 function TimelineRoute() {
   const router = useRouter()
+  const [dirty, setDirty] = useState(false)
+  // The page asks itself before the browser leaves it; this holds a move to another section of the app.
+  const blocker = useBlocker({ shouldBlockFn: () => dirty, enableBeforeUnload: false, withResolver: true })
   return (
     <TimelinePage
       state={Route.useLoaderData()}
@@ -32,6 +36,8 @@ function TimelineRoute() {
       }}
       rebalance={rebalance}
       headerAside={<ShellAside />}
+      onDraftChange={setDirty}
+      leaving={blocker.status === 'blocked' ? { onStay: blocker.reset, onLeave: blocker.proceed } : undefined}
     />
   )
 }

@@ -867,5 +867,9 @@
   "timeline_discard": "Descartar",
   "timeline_applied": "Cambios aplicados: {count}",
   "timeline_review_title": "Qué cambia el borrador",
-  "timeline_empty": "Ningún curso tiene nada por delante."
+  "timeline_empty": "Ningún curso tiene nada por delante.",
+  "timeline_leave_title": "¿Salir sin aplicar el borrador?",
+  "timeline_leave_text": "El borrador no está guardado: si sales, se pierde.",
+  "timeline_stay": "Quedarse",
+  "timeline_leave": "Descartar y salir"
 }

@@ -4,7 +4,7 @@ import type { PlanChange } from './changes'
 import { DAY, parseLocal } from './dates'
 import { deadlineEvent } from './deadlines'
 import { fixtureNow, fixturePlan, itemAt } from './fixtures'
-import { calendarLanes, compareLanes, laneSpare, lanesRange, movedSessions } from './lanes'
+import { calendarLanes, compareLanes, laneMoveBounds, laneSpare, lanesRange, movedSessions } from './lanes'
 import { isSession } from './progress'
 import type { Plan, PlanEvent } from './types'
 import { previewUpdate } from './update'
@@ -141,5 +141,25 @@ describe('compareLanes', () => {
     const lane = laneOf(fixturePlan, fixtureNow, 'pypy')
     expect(lane?.deadline).toBeNull()
     expect(lane && laneSpare(lane)).toBeNull()
+  })
+})
+
+describe('laneMoveBounds', () => {
+  const lane = laneOf(fixturePlan, fixtureNow, 'certs')
+
+  test('the open sessions move back no further than today, in whole weeks', () => {
+    expect(lane?.openFrom).toBe('2026-12-02')
+    expect(lane && laneMoveBounds(lane, '2026-12-02')?.min).toBe(0)
+    expect(lane && laneMoveBounds(lane, '2026-11-29')?.min).toBe(0)
+    expect(lane && laneMoveBounds(lane, '2026-11-25')?.min).toBe(-7)
+    expect(lane && laneMoveBounds(lane, '2026-11-18')?.min).toBe(-14)
+  })
+
+  test('they move forward at most the 52 weeks one shift allows', () => {
+    expect(lane && laneMoveBounds(lane, '2026-12-02')?.max).toBe(364)
+  })
+
+  test('a course with nothing left from today on cannot move', () => {
+    expect(lane && laneMoveBounds(lane, '2026-12-24')).toBeNull()
   })
 })

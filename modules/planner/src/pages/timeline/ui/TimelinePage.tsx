@@ -2,6 +2,7 @@ import { m } from '@lc/i18n/messages'
 import {
   calendarLanes,
   compareLanes,
+  laneMoveBounds,
   lanesRange,
   movedSessions,
   ymd,
@@ -19,6 +20,7 @@ import { useTimelineDraft, type CourseEdit } from '../model/use-timeline-draft'
 import { CoursePanel } from './CoursePanel'
 import { AppliedBar, DraftBar } from './DraftBar'
 import { DraftReview } from './DraftReview'
+import { LeaveDraftDialog } from './LeaveDraftDialog'
 
 /** The plan with what the page needs to know about it; the planner's state fits it as it is */
 export interface TimelineState {
@@ -39,6 +41,10 @@ interface Props {
   rebalance?: Rebalance | undefined
   /** Shown next to the title: controls the host owns, such as the sections of the app */
   headerAside?: ReactNode
+  /** Told whenever the page gets or loses a draft, so the host can hold its own navigation while there is one */
+  onDraftChange?: ((dirty: boolean) => void) | undefined
+  /** A navigation the host holds for the draft: the page asks whether to stay or drop the draft and go */
+  leaving?: { onStay: () => void; onLeave: () => void } | undefined
 }
 
 const NONE: ReadonlySet<string> = new Set()
@@ -49,7 +55,8 @@ const reasonOf = (err: unknown) => (err instanceof Error ? err.message : String(
  * Every course on its lane, changed as a draft: a drag or the panel asks something of a course, the draft works out
  * the changes that would do it and draws them over the plan as it is, and only Apply stores them, in one go.
  */
-export function TimelinePage({ state, onChangeAll, onTravel, rebalance, headerAside }: Props) {
+export function TimelinePage(props: Props) {
+  const { state, onChangeAll, onTravel, rebalance, headerAside, onDraftChange, leaving } = props
   const { plan, canEdit } = state
   const now = useNow()
   const today = now === null ? null : ymd(now)
@@ -75,9 +82,23 @@ export function TimelinePage({ state, onChangeAll, onTravel, rebalance, headerAs
     return () => window.removeEventListener('beforeunload', ask)
   }, [dirty])
 
+  useEffect(() => onDraftChange?.(dirty), [dirty, onDraftChange])
+
   const editable = canEdit && today !== null
   const laneOf = (calendar: string | null) =>
     before.find((lane) => lane.calendar.id === calendar) ?? after.find((lane) => lane.calendar.id === calendar) ?? null
+  const boundsOf = (calendar: string | null) => {
+    const course = laneOf(calendar)
+    return course && today !== null ? laneMoveBounds(course, today) : null
+  }
+
+  /** Adds to the course's move, kept within its bounds: drags add up, and no shift may pass them. */
+  function moveBy(calendar: string, days: number) {
+    const bounds = boundsOf(calendar)
+    if (!bounds) return
+    const move = (draft.courses.get(calendar)?.move ?? 0) + days
+    change(calendar, { move: Math.min(bounds.max, Math.max(bounds.min, move)) })
+  }
 
   function change(calendar: string, patch: CourseEdit | null) {
     draft.set(calendar, patch)
@@ -89,8 +110,7 @@ export function TimelinePage({ state, onChangeAll, onTravel, rebalance, headerAs
   const edit: LaneEditing = {
     onSelect: setSelected,
     ...(editable && {
-      onMove: (calendar: string, days: number) =>
-        change(calendar, { move: (draft.courses.get(calendar)?.move ?? 0) + days }),
+      onMove: moveBy,
       onDeadline: (calendar: string, day: string) =>
         change(calendar, { deadline: day === laneOf(calendar)?.deadline ? undefined : day }),
       ...(rebalance && { onFinish: (calendar: string, day: string) => change(calendar, { finishBy: day }) }),
@@ -162,6 +182,7 @@ export function TimelinePage({ state, onChangeAll, onTravel, rebalance, headerAs
             working={selected !== null && draft.working.has(selected)}
             failed={selected === null ? undefined : draft.failed.get(selected)}
             today={today}
+            bounds={boundsOf(selected)}
             onEdit={editable && selected !== null ? (patch) => change(selected, patch) : undefined}
             canRebalance={rebalance !== undefined}
             onMore={editable && selected !== null ? () => setMore(selected) : undefined}
@@ -203,6 +224,12 @@ export function TimelinePage({ state, onChangeAll, onTravel, rebalance, headerAs
         saving={saving}
         onApply={() => void apply()}
         onClose={() => setReviewing(false)}
+      />
+
+      <LeaveDraftDialog
+        open={leaving !== undefined}
+        onStay={() => leaving?.onStay()}
+        onLeave={() => leaving?.onLeave()}
       />
 
       {today !== null && (

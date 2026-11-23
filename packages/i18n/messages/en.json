@@ -867,5 +867,9 @@
   "timeline_discard": "Discard",
   "timeline_applied": "Changes applied: {count}",
   "timeline_review_title": "What the draft changes",
-  "timeline_empty": "No course has anything ahead."
+  "timeline_empty": "No course has anything ahead.",
+  "timeline_leave_title": "Leave without applying the draft?",
+  "timeline_leave_text": "The draft is not stored: leaving drops it.",
+  "timeline_stay": "Stay",
+  "timeline_leave": "Discard and leave"
 }

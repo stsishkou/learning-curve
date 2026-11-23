@@ -1,3 +1,4 @@
+import { m } from '@lc/i18n/messages'
 import { previewUpdate, rebalanceChange, type Plan, type PlanChange, type UpdatePreview } from '@lc/plan-domain'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -63,6 +64,8 @@ async function changesOf(
   else if (edit.finishBy && rebalance) {
     const base = own.length ? previewUpdate(plan, own).after : plan
     const result = await rebalance(base, finishByRequest(base, { calendar, from: today, finishBy: edit.finishBy }))
+    const { unplaced } = result.report
+    if (unplaced > 0) throw new Error(m.reschedule_unplaced({ count: unplaced }))
     const moves = rebalanceChange(result, calendar)
     if (moves) own.push(moves)
   }

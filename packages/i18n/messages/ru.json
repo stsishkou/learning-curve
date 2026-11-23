@@ -883,5 +883,9 @@
   "timeline_discard": "Отбросить",
   "timeline_applied": "Применено изменений: {count}",
   "timeline_review_title": "Что изменит черновик",
-  "timeline_empty": "Ни в одном курсе ничего не осталось впереди."
+  "timeline_empty": "Ни в одном курсе ничего не осталось впереди.",
+  "timeline_leave_title": "Уйти, не применив черновик?",
+  "timeline_leave_text": "Черновик не сохранён: если уйти, он пропадёт.",
+  "timeline_stay": "Остаться",
+  "timeline_leave": "Сбросить и уйти"
 }
