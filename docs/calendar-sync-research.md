@@ -517,6 +517,17 @@ previews as "no change" (section 2).
 
 ### 11.8 Microsoft and iCloud later
 
+> **Built** (2026-11): Microsoft, through the same engine as Google. The core became app-neutral
+> (`plan-domain/src/calendar-sync.ts`: `Written`, `planPush`, `RemoteEvent`, `readRemote`, `triage`), with each app's
+> format beside it (`google-sync.ts`, `outlook-sync.ts`) and one engine and OAuth flow in
+> `plan-data/src/calendar-sync/`. Graph differs from the sketch below: no MSAL (the same code flow as Google, with the
+> rotated refresh token stored), no category for done (the ✓ in the title, as in Google), and no delta query: a round
+> reads each calendar's events and, when it holds a series, its `calendarView` over a window around today. An absent
+> event is a deletion, an absent repeat of a series that still has others a cancelled one. `changeKey` is checked
+> right before each patch; a changed series is deleted and written again, and a cancelled repeat cannot be restored,
+> so undoing one writes the series again. In the planner both apps sit in one `Integrations` dialog with a shared
+> review. iCloud is not built.
+
 Same `sync.ts` core, different adapters. Graph: immutable ids, `transactionId`, a full `calendarView` read per poll
 compared by `changeKey`, a `learning-curve: done` category in `Preset4`, MSAL cache persistence. iCloud: `tsdav`,
 resource name = base32hex(uid) + `.ics`, `If-None-Match: *` / `If-Match`, `sync-collection`, body written by the

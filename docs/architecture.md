@@ -9,7 +9,7 @@ apps/
   web/                 TanStack Start shell: routes, server functions, HTML document. Composes the modules.
 modules/               microfrontends, composed at build time
   planner/             the planner page: week grid, agenda, budget, runway, event editing
-  calendar-export/     the export button and dialog (.ics, zip, combined calendar)
+  calendar-export/     the export dialog (.ics, zip, combined calendar)
   dashboard/           the progress page at /dashboard: stat tiles and charts, read-only
 packages/
   plan-domain/         the domain: types, Minsk dates, schedule rules, edits, .ics. Pure TypeScript
@@ -64,7 +64,7 @@ Modules do not know about each other, about the router, or about where data come
   onSearchChange={…}
   onChange={…}                                  // persistence: one server function for every PlanChange
   headerAside={<LanguageSwitcher />}            // slot
-  renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}   // another module
+  renderExport={(dialog) => <ExportDialog {...dialog} />}   // another module, opened from the planner's integrations
   commands={shellCommands()}                    // palette entries the app owns: theme, language
 />
 ```
@@ -100,8 +100,8 @@ src/
 
 - **Single responsibility**: one reason to change per package — rules of the plan (`plan-domain`), where it is
   stored (`plan-data`), how it looks (`ui`), what it says (`i18n`), one user-facing area (each module).
-- **Open/closed**: the planner is extended through `headerAside`, `renderActions` and `commands`, not edited, when the app
-  adds an action.
+- **Open/closed**: the planner is extended through `headerAside`, `renderActions`, `renderExport` and `commands`, not
+  edited, when the app adds an action.
 - **Liskov / interface segregation**: components take the narrow data they use (`plan`, `hidden`), not a store or
   a router.
 - **Dependency inversion**: modules declare callbacks (`onChange`, `onSearchChange`); the app supplies the
@@ -123,13 +123,18 @@ src/
   `store.ts`.
 - **State kept for the calendars that read the plan** (the version of each event in the feeds): untracked
   `data/sync.json`, written only by `store.ts`; the rules that compute it are pure, in `plan-domain` (`revisions.ts`).
-- **A calendar the plan is written to** (Google Calendar): what is written, what an edit there means and which edits
-  wait for a decision (`triage`) are pure, in `plan-domain` (`google-sync.ts`); the API calls, the sign-in and the
-  sync round are in `plan-data/src/google/`, tested against a fake Google (`fake-google.ts`). Its state is the
-  `google` part of `data/sync.json`, its client and refresh token are in `data/local.json`, both written through
-  `store.ts`. An edit made there reaches the plan only as a `PlanChange` stored by `saveChanges` with the source
-  `google`, a history step like any other. Server functions in `apps/web/src/server/google.ts`, the sign-in routes in
-  `routes/api/google.*.ts`, the dialogs in the planner feature `google-sync`.
+- **A calendar app the plan is written to** (Google Calendar, Outlook): what is written, what an edit there means and
+  which edits wait for a decision (`triage`) are pure and app-neutral, in `plan-domain` (`calendar-sync.ts`); each
+  app's event format is pure too (`google-sync.ts`, `outlook-sync.ts`). In `plan-data/src/calendar-sync/` one engine
+  runs the round for every app (`engine.ts`) and one OAuth flow signs in to each (`oauth.ts`); an app is a
+  `CalendarKit` (`kit.ts`): its sign-in addresses and an adapter of API calls, in `plan-data/src/google/` and
+  `plan-data/src/outlook/`, each tested against a fake of the app. Its state is the app's part of `data/sync.json`,
+  its client and refresh token are in `data/local.json`, both written through `store.ts`. An edit made there reaches
+  the plan only as a `PlanChange` stored by `saveChanges` with the app as the source, a history step like any other.
+  Server functions in `apps/web/src/server/calendars.ts` take the app as a parameter, the sign-in routes are
+  `routes/api/$provider.connect.ts` and `$provider.callback.ts`, and the planner feature `calendar-sync` holds the
+  integrations dialog, each app's dialog and the shared review. A new app is a kit, an entry in
+  `CALENDAR_PROVIDERS`, a setup component and its messages; the engine, the routes and the review stay as they are.
 - **A shared dependency version**: the `catalog` in `pnpm-workspace.yaml`, referenced as `catalog:`.
 
 ## Trunk-based flow

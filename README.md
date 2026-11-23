@@ -1,7 +1,7 @@
 # learning-curve
 
 Personal study plan as code: a schedule database (`packages/plan-data/data/plan.json`), a viewer built on
-[TanStack Start](https://tanstack.com/start), and `.ics` export for Google Calendar and Outlook.
+[TanStack Start](https://tanstack.com/start), two-way sync with Google Calendar and Outlook, and `.ics` export.
 
 The repository is an [Nx](https://nx.dev) + pnpm workspace: a thin app in `apps/web`, feature modules in
 `modules/`, shared packages in `packages/`. See [docs/architecture.md](docs/architecture.md).
@@ -31,7 +31,7 @@ Run from the repository root; Nx runs the task in every project that has it and 
 | `pnpm run stand:test` | Every story as a test in headless Chromium: it renders, its interactions pass, axe finds no accessibility violation |
 | `pnpm run plan` | Rebuilds `plan.json` from the course content, schedule rules and manual edits |
 | `pnpm run plan --ics` | Same, plus writes `packages/plan-data/exports/*.ics` and import instructions |
-| `pnpm run test` | Unit tests of `plan-domain` and `plan-data`; the Google Calendar sync runs against a fake Google, never the real one |
+| `pnpm run test` | Unit tests of `plan-domain` and `plan-data`; the calendar sync runs against a fake Google and a fake Outlook, never the real ones |
 | `pnpm run check` | Typecheck, lint, Feature-Sliced check, translation check and format check |
 | `pnpm run affected` | The same checks plus build, only for projects changed since `main` |
 | `pnpm run typecheck` | `tsc --noEmit` (TypeScript 7) in every project |
@@ -58,16 +58,16 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Second time zone**: `⋮` → `Second time zone` puts the clock of another zone next to the plan's Minsk time in
   the hour column. The choice is kept in the browser.
 - **Dates**: the `Dates` tab of the side card is a month to jump with: a day or an ISO week number opens it.
-- **Your real calendar behind the plan**: `⋮` → `My calendar behind the plan` takes the secret iCal address of a
-  work or personal calendar (Google: calendar settings → `Secret address in iCal format`; Outlook: `Publish` a
-  calendar and copy the ICS link). Its busy time is then drawn in grey behind the week and day views, and the
-  overlap warning names it. Nothing of it is stored in the plan or exported. The address is kept in the untracked
-  `packages/plan-data/data/local.json`, or set with `BUSY_ICS_URL` on a host without a writable checkout; the
-  browser only ever learns its host. The compact grid keeps the plan's hours: `24 hours` shows the whole day.
+- **Your real calendar behind the plan**: `Integrations` → `My calendar behind the plan` takes the secret iCal
+  address of a work or personal calendar (Google: calendar settings → `Secret address in iCal format`; Outlook:
+  `Publish` a calendar and copy the ICS link). Its busy time is then drawn in grey behind the week and day views,
+  and the overlap warning names it. Nothing of it is stored in the plan or exported. The address is kept in the
+  untracked `packages/plan-data/data/local.json`, or set with `BUSY_ICS_URL` on a host without a writable checkout;
+  the browser only ever learns its host. The compact grid keeps the plan's hours: `24 hours` shows the whole day.
   Titles of that calendar are shown to anyone who can open the planner, so set it only where that is you.
-- **Google Calendar, kept in step**: `⋮` → `Google Calendar` writes the plan into calendars of its own in your
-  Google account and keeps them up to date with every change, see
-  [Keeping the plan in Google Calendar](#keeping-the-plan-in-google-calendar).
+- **Google Calendar and Outlook, kept in step**: `Integrations` → `Google Calendar` or `Outlook Calendar` writes the
+  plan into calendars of its own in your account and keeps them up to date with every change, see
+  [Keeping the plan in Google Calendar or Outlook](#keeping-the-plan-in-google-calendar-or-outlook).
 - **Reminders**: `⋮` → `Reminders` shows a system notification ten minutes before each start, while the planner
   is open in a tab.
 - **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs
@@ -204,11 +204,11 @@ You can also open any `plan.json` in the viewer ("Открыть файл пла
 
 ## Importing into a calendar
 
-Use **Экспорт в календарь** in the viewer (separate calendars as a zip or one `.ics` each, or everything as one
-`.ics` for a single calendar), or `pnpm run plan --ics`. Pick the calendar app under `Where to` (Google Calendar, Outlook,
-Apple Calendar or another) and the dialog shows the import steps for it; the choice is remembered. `Mark finished
-sessions` puts a ✓ before the title of every done session and stops it blocking time; when its real length was
-logged, its notes start with it, `✓ 1:15 / 1:00` (took / planned). `Add a reminder` puts a
+Use `Integrations` → `Export to calendar` in the viewer (separate calendars as a zip or one `.ics` each, or
+everything as one `.ics` for a single calendar), or `pnpm run plan --ics`. Pick the calendar app under `Where to`
+(Google Calendar, Outlook, Apple Calendar or another) and the dialog shows the import steps for it; the choice is
+remembered. `Mark finished sessions` puts a ✓ before the title of every done session and stops it blocking time;
+when its real length was logged, its notes start with it, `✓ 1:15 / 1:00` (took / planned). `Add a reminder` puts a
 10-minute alarm on every timed session that is not done; the calendar app decides whether to keep it.
 
 1. Create the calendars marked "создать календарь" (Gemini Certs, Practical Python, Личное).
@@ -217,31 +217,42 @@ logged, its notes start with it, `✓ 1:15 / 1:00` (took / planned). `Add a remi
    - Google Calendar: Settings → Import & export → Import.
    - Outlook: Add calendar → Upload from file.
 
-## Keeping the plan in Google Calendar
+## Keeping the plan in Google Calendar or Outlook
 
-The planner can write the plan into Google Calendar itself, so a phone shows it without importing or subscribing to
-anything. Each plan calendar becomes a calendar of its own in your account, named the same; the app sees those
-calendars and nothing else (scope `calendar.app.created`, no access to your address or other calendars). Remove an
-imported or subscribed copy of the plan first, or it shows twice.
+The planner can write the plan into Google Calendar, Outlook (Microsoft 365 or Outlook.com) or both, so a phone
+shows it without importing or subscribing to anything. Each plan calendar becomes a calendar of its own in your
+account, named the same. Remove an imported or subscribed copy of the plan first, or it shows twice. Both apps are
+set up and watched from `Integrations` in the header (also in the `⋮` menu), which shows how each stands next to
+the busy-time overlay and the export.
 
-What goes where:
+What goes where, the same for both apps:
 
-- **Plan → Google**: every change saved in the planner or through `POST /api/plan-update`, undo and redo included,
+- **Plan → app**: every change saved in the planner or through `POST /api/plan-update`, undo and redo included,
   is sent right away; a change made by `pnpm run plan` or the MCP server goes with the next round. A round runs when
   the planner opens, when it is shown again after a minute away, about every ten minutes while it is open, and on
   `Sync now`. A done session gets ✓ before its title, stops blocking time and starts its notes with how long it took.
-- **Google → plan**: an edit made in Google is taken into the plan by itself, like one made in the planner: a ✓
+- **App → plan**: an edit made in the app is taken into the plan by itself, like one made in the planner: a ✓
   typed before a title (or taken away), a new title, a single session moved, one repeat of a series moved or
-  deleted, and a deleted session, which goes to the trash. Each is a step of the history marked with the Google
-  icon, and a bar offers `Undo` for the latest ones; undoing writes the plan's version back to Google.
+  deleted, and a deleted session, which goes to the trash. Each is a step of the history marked with the calendar
+  icon and the app's name, and a bar offers `Undo` for the latest ones; undoing writes the plan's version back.
 - **Decisions**: an edit to something the planner changed too since it was last sent (the time of a session moved in
-  both places, say) or one the plan cannot take waits in a bar over the calendar, `Changes from Google Calendar that
-  need a decision`, and is left alone in Google until you pick `Keep plan` or `Use Google's`. A cleared title, a
-  whole series moved in Google and notes edited there are not taken: the plan's version is written back the next
-  time that event changes.
+  both places, say) or one the plan cannot take waits in a bar over the calendar, `Changes from your calendars that
+  need a decision`, and is left alone in the app until you pick `Keep plan` or `Use Google's` / `Use Outlook's`. A
+  cleared title, a whole series moved in the app and notes edited there are not taken: the plan's version is written
+  back the next time that event changes.
 
-Set it up once, with an OAuth client of your own (about ten minutes). `⋮` → `Google Calendar` walks through it, each
-step with a link to its page of Google's console and the value to paste there:
+Each app needs an OAuth client of your own, made once; its dialog walks through it, each step with a link to its
+page of the provider's console and the value to paste there. The client and the sign-in are kept in the untracked
+`packages/plan-data/data/local.json`, readable only by you; `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` and
+`OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET` set the clients instead. What was written to each app and the changes
+waiting for you are in the untracked `data/sync.json`. `Disconnect` signs out and leaves the calendars in the app;
+connecting again picks them up. The app chooses the calendars' colours. Nothing is synced where the plan cannot be
+edited (`PLAN_READONLY=1`).
+
+### Google Calendar
+
+The app sees only the calendars it made (scope `calendar.app.created`, no access to your address or other
+calendars). About ten minutes:
 
 1. [Turn on the Google Calendar API](https://console.cloud.google.com/flows/enableapi?apiid=calendar-json.googleapis.com);
    Google offers to make a project for it.
@@ -259,11 +270,24 @@ step with a link to its page of Google's console and the value to paste there:
 5. In the dialog, load that JSON (or paste the client ID and secret) and press `Save and connect`, then allow access
    on Google's page. The dialog says so when the file lacks the redirect URI of the page you are on.
 
-The client and the sign-in are kept in the untracked `packages/plan-data/data/local.json`, readable only by you;
-`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set the client instead. What was written to Google and the changes
-waiting for you are in the untracked `data/sync.json`. `Disconnect` signs out and leaves the calendars in Google;
-connecting again picks them up. Google chooses the calendars' colours. Nothing is synced where the plan cannot be
-edited (`PLAN_READONLY=1`).
+### Outlook
+
+Microsoft has no scope limited to the calendars an app made, so the app is granted `Calendars.ReadWrite` on the
+whole account; the planner only ever reads and writes the calendars it made. About five minutes, in
+[Microsoft Entra](https://entra.microsoft.com), with a work, school or personal Microsoft account:
+
+1. Under App registrations, `New registration`, any name. For `Supported account types`, pick the option that
+   includes personal Microsoft accounts.
+2. In the same form, under `Redirect URI`, choose `Web` and enter the address you open the planner at plus
+   `/api/outlook/callback` (`http://localhost:3000/api/outlook/callback` for `pnpm run dev`), then `Register`.
+3. Under `Certificates & secrets`, add a `New client secret` and copy its **Value** (not the Secret ID): it is shown
+   only once.
+4. In the dialog, paste the `Application (client) ID` from the registration's `Overview` and the secret, press
+   `Save and connect`, then allow access on Microsoft's page.
+
+With a work or school account, an administrator may have to approve the app first. A Microsoft account without an
+Outlook mailbox has no calendars to write to, and the dialog says so. Outlook cannot bring back a cancelled repeat
+of a series, so undoing one deletes the series and writes it again.
 
 ## API
 
@@ -319,7 +343,7 @@ apps/web/                    TanStack Start shell
                              dashboard.tsx, api/ (plan, ics, ics-zip)
   src/server/                server functions: read the plan, save an event edit
 modules/planner/             planner and focus pages, Feature-Sliced layers inside
-modules/calendar-export/     export button and dialog
+modules/calendar-export/     export dialog
 packages/plan-domain/src/
   content.ts                 courses, sessions, calendars
   schedule.ts                scheduling rules → Plan
