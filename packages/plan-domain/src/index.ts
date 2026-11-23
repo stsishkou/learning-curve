@@ -33,7 +33,7 @@ export {
   type PlanChange,
   type Slot,
 } from './changes'
-export { diffPlans, type PlanDiff } from './diff'
+export { changedFields, diffPlans, type ChangedField, type PlanDiff } from './diff'
 export {
   emptyHistory,
   historyEdits,

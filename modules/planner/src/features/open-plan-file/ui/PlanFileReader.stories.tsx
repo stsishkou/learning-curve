@@ -1,4 +1,5 @@
-import type { PlanFileInfo } from '@lc/plan-domain'
+import { m } from '@lc/i18n/messages'
+import { isSession, type PlanFileInfo } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
@@ -99,5 +100,25 @@ export const AiChat: Story = {
     await expect(dialog.getByText('GE Agent Dev — Extra')).toBeInTheDocument()
     const warnings = dialog.getAllByRole('status').find((status) => status.querySelector('li'))
     await expect(warnings).toHaveTextContent(/GE Agent Dev — Extra/)
+  },
+}
+
+const unfinished = itemAt(fixturePlan.events.filter((e) => isSession(e) && !e.done))
+
+/** An update that only marks a session done is a change too: it is listed with what it does to the session. */
+export const AiChatProgress: Story = {
+  args: { now: fixtureNow, onApply: fn(async () => {}) },
+  play: async ({ canvasElement }) => {
+    const dialog = within(canvasElement.ownerDocument.body)
+    const tabs = itemAt(await dialog.findAllByRole('group'))
+    const buttons = within(tabs).getAllByRole('button')
+    await userEvent.click(itemAt(buttons, buttons.length - 1))
+    const update = { summary: 'Finished one.', changes: [{ type: 'events.done', uids: [unfinished.uid], done: true }] }
+    await userEvent.click(itemAt(dialog.getAllByRole('textbox'), 1))
+    await userEvent.paste(JSON.stringify(update))
+    await expect(await dialog.findByText('Finished one.')).toBeInTheDocument()
+    await expect(dialog.getByText(m.file_changed({ count: 1 }))).toBeInTheDocument()
+    const rows = dialog.getAllByText(unfinished.title).map((title) => title.closest('li'))
+    await expect(rows.some((row) => row?.textContent.endsWith(m.diff_done()))).toBe(true)
   },
 }

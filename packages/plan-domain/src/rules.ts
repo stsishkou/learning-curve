@@ -1,5 +1,5 @@
 import { parseLocal, weekday } from './dates'
-import type { PlanDiff } from './diff'
+import { changedFields, type PlanDiff } from './diff'
 import { overlapping } from './occurrences'
 import { isSession } from './progress'
 import type { Plan, PlanEvent } from './types'
@@ -42,8 +42,11 @@ export function ruleWarnings(after: Plan, diff: PlanDiff): RuleWarning[] {
     if (deadline) warnings.push({ rule: 'deadline', event, deadline })
   }
 
-  for (const { before, after: event } of diff.changed)
-    if (before.done) warnings.push({ rule: 'done', event, removed: false })
+  for (const { before, after: event } of diff.changed) {
+    // Logging how long a finished session took is what finishing it asks for, not a change to it.
+    const timeLogged = event.done === true && changedFields(before, event).every((field) => field === 'actual')
+    if (before.done && !timeLogged) warnings.push({ rule: 'done', event, removed: false })
+  }
   for (const event of diff.removed) if (event.done) warnings.push({ rule: 'done', event, removed: true })
   return warnings
 }

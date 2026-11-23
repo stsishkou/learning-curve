@@ -49,6 +49,11 @@ test('changing or removing a finished session is flagged', () => {
   expect(rules([{ type: 'event.remove', uid: finished.uid }])).toEqual(['done'])
 })
 
+test('logging how long a finished session took is not flagged; taking its done mark away is', () => {
+  expect(rules([{ type: 'event.patch', uid: finished.uid, patch: { actual: 75 } }])).toEqual([])
+  expect(rules([{ type: 'events.done', uids: [finished.uid], done: false }])).toEqual(['done'])
+})
+
 test('a rule the event already broke is not repeated when something else changes', () => {
   const onHoliday = previewUpdate(fixturePlan, [move(first.uid, '2026-12-25T20:00', '2026-12-25T21:00')]).after
   const renamed = previewUpdate(onHoliday, [{ type: 'event.patch', uid: first.uid, patch: { title: 'Renamed' } }])
@@ -61,4 +66,15 @@ test('warnings reach a tool as words, and do not stop the update', () => {
   expect(report.warnings).toEqual([
     { rule: 'holiday', uid: first.uid, message: `"${first.title}" (${first.uid}) falls on 2026-12-25, a holiday` },
   ])
+})
+
+test('a change that only marks a session done, logs its time or skips a repeat is shown as a change', () => {
+  const repeat = itemAt(fixturePlan.events.filter((e) => e.rrule))
+  const day = repeat.start.slice(0, 10)
+  const { diff } = previewUpdate(fixturePlan, [
+    { type: 'events.done', uids: [first.uid], done: true },
+    { type: 'event.patch', uid: finished.uid, patch: { actual: 75 } },
+    { type: 'event.patch', uid: repeat.uid, patch: { skip: [...(repeat.skip ?? []), day] } },
+  ])
+  expect(diff.changed.map((c) => c.after.uid).toSorted()).toEqual([first.uid, finished.uid, repeat.uid].toSorted())
 })

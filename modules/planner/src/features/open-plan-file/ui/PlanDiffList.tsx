@@ -1,6 +1,6 @@
-import { fmtDay } from '@lc/i18n/format'
+import { fmtDay, fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { hm, parseLocal, type Plan, type PlanDiff, type PlanEvent } from '@lc/plan-domain'
+import { changedFields, hm, HOUR, parseLocal, type Plan, type PlanDiff, type PlanEvent } from '@lc/plan-domain'
 import { calendarColor, Dot } from '@lc/ui'
 import type { ReactNode } from 'react'
 
@@ -18,6 +18,19 @@ interface Props {
 const colorOf = (p: Plan, id: string) => p.calendars.find((c) => c.id === id)?.color
 const when = (e: PlanEvent) => `${fmtDay(parseLocal(e.start))} ${hm(parseLocal(e.start))}–${hm(parseLocal(e.end))}`
 
+/** The one thing worth saying about a change, the most visible first. */
+function what(was: PlanEvent, now: PlanEvent): string {
+  const fields = changedFields(was, now)
+  if (fields.includes('start') || fields.includes('end')) return `${when(was)} → ${when(now)}`
+  if (fields.includes('title')) return was.title
+  if (fields.includes('done')) return now.done ? m.diff_done() : m.diff_not_done()
+  if (fields.includes('actual') && now.actual !== undefined)
+    return m.grid_took({ time: fmtDuration((now.actual / 60) * HOUR) })
+  const skipped = (now.skip ?? []).filter((day) => !(was.skip ?? []).includes(day))
+  if (skipped.length) return m.diff_skipped({ days: skipped.map((day) => fmtDay(parseLocal(day))).join(', ') })
+  return m.diff_details()
+}
+
 /** The events one plan adds, removes and changes compared with another, as three folding groups. */
 export function PlanDiffList({ diff, after, before, labels }: Props) {
   return (
@@ -34,12 +47,7 @@ export function PlanDiffList({ diff, after, before, labels }: Props) {
       </Group>
       <Group tone="text-focus" sign="~" label={labels.changed(diff.changed.length)} count={diff.changed.length}>
         {diff.changed.slice(0, SHOWN).map(({ before: was, after: now }) => (
-          <Row
-            key={now.uid}
-            color={colorOf(after, now.calendar)}
-            title={now.title}
-            detail={was.start === now.start && was.end === now.end ? was.title : `${when(was)} → ${when(now)}`}
-          />
+          <Row key={now.uid} color={colorOf(after, now.calendar)} title={now.title} detail={what(was, now)} />
         ))}
       </Group>
     </div>
