@@ -51,7 +51,7 @@ const PINNED =
   'sticky top-0 z-20 -mx-3 -mt-3.5 border-b border-line-soft bg-bg/90 px-3 py-2.5 backdrop-blur-md md:-mx-5 md:-mt-5 md:px-5 md:py-3'
 const PRESSED = 'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg'
 const STEP =
-  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap transition-[background-color,transform] duration-150 hover:bg-surface-2 active:scale-[0.96] disabled:opacity-40 disabled:hover:bg-surface disabled:active:scale-100'
+  'grid size-9 place-items-center rounded-[10px] border border-line bg-surface whitespace-nowrap transition-[background-color,transform] duration-150 hover:bg-surface-2 motion-safe:active:scale-[0.96] disabled:opacity-40 disabled:hover:bg-surface motion-safe:disabled:active:scale-100'
 
 /** Two rows above the calendar: which view and period, search and editing; then the calendars and how they show. */
 export function PlannerToolbar({

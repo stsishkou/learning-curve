@@ -39,7 +39,7 @@ export function ProgressRing({ value, size = 44, stroke = 5, label, children }: 
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={`${filled} ${length}`}
-            className="stroke-cal transition-[stroke-dasharray] duration-500"
+            className="stroke-cal duration-500 motion-safe:transition-[stroke-dasharray]"
           />
         )}
       </svg>

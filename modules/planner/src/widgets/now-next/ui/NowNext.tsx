@@ -44,7 +44,10 @@ export function NowNext({ plan, upcoming, now, onSelect, onFocus }: Props) {
   return (
     <section className="min-w-0 rounded-2xl border border-line bg-surface p-4" style={calendarColor(colorOf(shown))}>
       <h2 className="flex items-center gap-2 text-[12px] font-semibold tracking-wide text-muted uppercase">
-        {current && <i className="size-2 animate-pulse rounded-full bg-today" />}
+        {current && (
+          // A few beats when the session starts, not for its whole length: blinking that goes on distracts.
+          <i className="size-2 rounded-full bg-today motion-safe:animate-pulse motion-safe:[animation-iteration-count:2]" />
+        )}
         {current ? m.now_label() : m.next_label()}
         <Hint title={m.help_next_title()} text={m.help_next()} />
         {shown && (

@@ -54,7 +54,7 @@ export function HelpToggle({ label, className = '' }: ToggleProps) {
   return (
     <button
       type="button"
-      className={`grid size-9 flex-none place-items-center rounded-[10px] border border-line bg-surface text-muted shadow-card transition-[background-color,color,transform] duration-150 hover:bg-surface-2 hover:text-ink active:scale-[0.96] aria-pressed:border-focus aria-pressed:bg-focus aria-pressed:text-surface ${className}`}
+      className={`grid size-9 flex-none place-items-center rounded-[10px] border border-line bg-surface text-muted shadow-card transition-[background-color,color,transform] duration-150 hover:bg-surface-2 hover:text-ink aria-pressed:border-focus aria-pressed:bg-focus aria-pressed:text-surface motion-safe:active:scale-[0.96] ${className}`}
       aria-pressed={on}
       aria-label={label}
       title={label}
@@ -89,7 +89,7 @@ export function Hint({ title, text, children, className = '' }: HintProps) {
     <>
       <button
         type="button"
-        className={`lc-hint-mark inline-grid size-[22px] flex-none place-items-center rounded-full border border-focus bg-[color-mix(in_srgb,var(--focus)_16%,var(--surface))] text-focus transition-transform duration-150 hover:scale-110 ${className}`}
+        className={`lc-hint-mark inline-grid size-[22px] flex-none place-items-center rounded-full border border-focus bg-[color-mix(in_srgb,var(--focus)_16%,var(--surface))] text-focus transition-transform duration-150 motion-safe:hover:scale-110 ${className}`}
         style={{ anchorName: anchor }}
         aria-label={title}
         title={title}

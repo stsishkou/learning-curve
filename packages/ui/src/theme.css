@@ -126,12 +126,6 @@
     outline-offset: 2px;
     border-radius: 6px;
   }
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      transition: none !important;
-      animation: none !important;
-    }
-  }
 }
 
 @keyframes lc-rise {

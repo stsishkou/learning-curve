@@ -94,7 +94,7 @@ const HEAD = 'border-b border-line text-muted'
 const PINNED = 'sticky left-0 z-4 bg-surface'
 const DAY_OFF = 'bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line-soft)_6px_8px)]'
 const EVENT =
-  'absolute animate-[lc-rise_180ms_ease-out] overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink transition-shadow duration-150 hover:z-2 hover:shadow-[0_6px_16px_rgb(10_16_30/0.18)]'
+  'absolute motion-safe:animate-[lc-rise_180ms_ease-out] overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink transition-shadow duration-150 hover:z-2 hover:shadow-[0_6px_16px_rgb(10_16_30/0.18)]'
 const WEEKEND = 'bg-[color-mix(in_srgb,var(--muted)_5%,transparent)]'
 const isWeekend = (d: number) => new Date(d).getUTCDay() % 6 === 0
 const EVENT_BUSY =
@@ -727,7 +727,7 @@ export function WeekGrid({
                   ))}
                 {now !== null && startOfDay(now) === d && (now - d) / HOUR >= minH && (now - d) / HOUR <= maxH && (
                   <div
-                    className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-[''] after:absolute after:-top-[3px] after:-left-1 after:size-2 after:animate-ping after:rounded-full after:bg-today after:content-['']"
+                    className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-[''] after:absolute after:-top-[3px] after:-left-1 after:size-2 after:rounded-full after:bg-today after:content-[''] motion-safe:after:animate-ping motion-safe:after:[animation-iteration-count:3]"
                     style={{ top: ((now - d) / HOUR - minH) * hourHeight }}
                   />
                 )}
