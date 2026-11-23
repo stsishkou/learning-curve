@@ -187,3 +187,37 @@ export const DropIn: Story = {
     await expect(canvasElement.querySelector('[data-draft]')).toBeNull()
   },
 }
+
+const moved = fn<NonNullable<ComponentProps<typeof WeekGrid>['onMove']>>()
+
+/**
+ * An event held above the first hour drawn makes the day longer, an hour at a time, so it can be moved to an early
+ * morning without the full day.
+ */
+export const PastTheHours: Story = {
+  args: { onMove: moved },
+  play: async ({ canvasElement }) => {
+    const firstLabel = () => canvasElement.querySelector('.rounded-bl-2xl > span')?.textContent ?? ''
+    const before = firstLabel()
+    const cards = [...canvasElement.querySelectorAll<HTMLElement>('[data-day] button[data-key]')].filter(
+      (card) => card.closest<HTMLElement>('[data-day]')?.style.height,
+    )
+    const card = cards.toSorted((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).at(0)
+    await expect(card).toBeDefined()
+    if (!card) return
+    const { x, y } = card.getBoundingClientRect()
+    const pointer = { pointerId: 1, pointerType: 'mouse', button: 0, clientX: x + 20 }
+    await fireEvent.pointerDown(card, { ...pointer, clientY: y + 10 })
+    await fireEvent.pointerMove(card, { ...pointer, clientY: y })
+    await fireEvent.pointerMove(card, { ...pointer, clientY: 0 })
+    // The labels name every hour after the first one drawn: the earliest is earlier now.
+    await waitFor(() => expect(firstLabel() < before).toBe(true), { timeout: 2000 })
+    await fireEvent.pointerUp(card, { ...pointer, clientY: 0 })
+    await expect(moved).toHaveBeenCalledOnce()
+    const [occurrence, slot] = moved.mock.calls[0] ?? []
+    await expect(slot && occurrence && slot.s < occurrence.s && slot.e - slot.s === occurrence.e - occurrence.s).toBe(
+      true,
+    )
+    await expect(firstLabel() < before).toBe(true)
+  },
+}

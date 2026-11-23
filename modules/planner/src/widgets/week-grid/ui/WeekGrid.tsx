@@ -18,9 +18,18 @@ import {
   ymd,
 } from '@lc/plan-domain'
 import { calendarColor, GraduationCap, Repeat, Timer } from '@lc/ui'
-import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react'
 
 import { eventKey, useFillHeight, useJustDone } from '../../../shared/lib'
+import { useEdgePull, type Pull } from '../model/use-edge-pull'
 
 interface Props {
   plan: Plan
@@ -123,9 +132,23 @@ const clock = (ms: number) => {
 const shortTitle = (o: Occurrence) =>
   o.kind === 'study' || o.kind === 'lab' || o.kind === 'review' ? o.title.replace(/^[^—]+— /, '') : o.title
 
+/** `day` moves an all-day event between columns */
+type Mode = 'move' | 'resize' | 'resize-start' | 'day'
+
 interface Press {
+  o: Occurrence
+  mode: Mode
+  /** The day column it was pressed in */
+  column: Element
   x: number
   y: number
+  /** Where the pointer is now */
+  at: { x: number; y: number }
+  /** ms past midnight under the pointer when it went down */
+  t0: number
+  /** px from the pointer to the top and to the bottom of the event when it went down */
+  above: number
+  below: number
   columnWidth: number
   moved: boolean
   /** false while a finger waits out the long press */
@@ -135,8 +158,6 @@ interface Press {
 
 interface Drag {
   key: string
-  /** `day` moves an all-day event between columns */
-  mode: 'move' | 'resize' | 'resize-start' | 'day'
   /** new wall-clock ms while the pointer is down */
   s: number
   e: number
@@ -144,15 +165,37 @@ interface Drag {
   shiftX: number
 }
 
+/** A stretch being drawn on an empty part of a day */
+interface Drawing {
+  column: Element
+  day: number
+  /** where the pointer went down: px from the top of the window, and the slot it is in */
+  y: number
+  anchor: number
+  at: number
+  moved: boolean
+}
+
+/** Hours a drag has stretched the grid to, kept while the same days are shown so nothing jumps when it ends */
+interface Reach {
+  view: string
+  top: number
+  bottom: number
+}
+
 const keyOf = eventKey
 const NO_BUSY: BusyBlock[] = []
 const busyLabel = (b: BusyBlock) => b.title || m.busy_block()
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+const snap = (ms: number) => Math.round(ms / SNAP) * SNAP
+/** Which way the pointer has gone since it went down: a hand that shakes on the way does not turn it round. */
+const wayOf = (from: number, to: number) => Math.sign(to - from)
 
 /**
  * Day columns with the events of a week, a work week or one day. With `onMove`, `onRemove` and `onCreate` it is an editor: drag an
  * event to move it, drag its edge to resize, double-click an empty slot to add one, or do the same from the
- * keyboard. On a touch screen a long press picks an event up.
+ * keyboard. On a touch screen a long press picks an event up. Held at the top or the bottom of the visible hours, a
+ * dragged event first scrolls the hidden ones in and then makes the day longer.
  */
 export function WeekGrid({
   plan,
@@ -178,6 +221,14 @@ export function WeekGrid({
   const allDay = items.filter((o) => o.allDay)
   const busyDays = busy.filter((b) => b.allDay)
   const busyTimed = busy.filter((b) => !b.allDay)
+  // Where a carried event would land: the slot under the pointer.
+  const [dropAt, setDropAt] = useState<number | null>(null)
+  const carriedLength = carried ? parseLocal(carried.end) - parseLocal(carried.start) : 0
+  const dropping =
+    carried && onDropIn && dropAt !== null
+      ? { s: dropAt, e: dropAt + carriedLength, title: carried.title, calendar: carried.calendar }
+      : null
+  const [reach, setReach] = useState<Reach | null>(null)
   let minH = 8
   let maxH = 15
   for (const o of timed) {
@@ -185,10 +236,17 @@ export function WeekGrid({
     maxH = Math.max(maxH, Math.ceil((o.e - startOfDay(o.e)) / HOUR) || 24)
   }
   const firstBusyHour = minH
-  // The hours grow to hold the event being created, so its block is never cut off by the last row.
-  if (draft && draft.e > draft.s && draft.s >= weekStart && draft.s < weekStart + dayCount * DAY) {
-    minH = Math.min(minH, new Date(draft.s).getUTCHours())
-    maxH = Math.max(maxH, Math.ceil((draft.e - startOfDay(draft.e)) / HOUR) || 24)
+  // The hours grow to hold the event being created or dropped in, so its block is never cut off by the last row.
+  for (const slot of [draft, dropping]) {
+    if (slot && slot.e > slot.s && slot.s >= weekStart && slot.s < weekStart + dayCount * DAY) {
+      minH = Math.min(minH, new Date(slot.s).getUTCHours())
+      maxH = Math.max(maxH, Math.ceil((slot.e - startOfDay(slot.e)) / HOUR) || 24)
+    }
+  }
+  const view = `${weekStart}/${dayCount}`
+  if (reach?.view === view) {
+    minH = Math.min(minH, reach.top)
+    maxH = Math.max(maxH, reach.bottom)
   }
   if (fullDay) {
     minH = 0
@@ -223,25 +281,36 @@ export function WeekGrid({
     if (fullDay && scroller.current) scroller.current.scrollTop = openAt.current * hourHeight
   }, [fullDay, weekStart, hourHeight])
 
+  // What a drag reads between renders: it is placed again on every frame, while the hours scroll or grow under it.
+  const geometry = useRef({ minH, maxH, hourHeight, weekStart, dayCount })
+  useLayoutEffect(() => {
+    geometry.current = { minH, maxH, hourHeight, weekStart, dayCount }
+  })
+  /** ms past midnight at `y`, px from the top of the window, in a day column */
+  const timeAt = (column: Element, y: number) =>
+    ((y - column.getBoundingClientRect().top) / geometry.current.hourHeight + geometry.current.minH) * HOUR
+  const header = useRef<HTMLDivElement>(null)
+  const edge = useEdgePull({
+    scroller,
+    header,
+    stretch: (way) => {
+      const { minH: top, maxH: bottom } = geometry.current
+      setReach({ view, top: way < 0 ? Math.max(0, top - 1) : top, bottom: way > 0 ? Math.min(24, bottom + 1) : bottom })
+    },
+  })
+
   const [drag, setDrag] = useState<Drag | null>(null)
   // A stretch being drawn on an empty part of a day: `anchor` is where the pointer went down.
   const [drawn, setDrawn] = useState<{ anchor: number; s: number; e: number } | null>(null)
-  const drawing = useRef<{ y: number; columnY: number; day: number; anchor: number } | null>(null)
-  const slotAt = (day: number, y: number) => day + Math.round(((y / hourHeight + minH) * HOUR) / SNAP) * SNAP
-  // Where a carried event would land: the slot under the pointer, kept inside the hours on screen.
-  const [dropAt, setDropAt] = useState<number | null>(null)
-  const carriedLength = carried ? parseLocal(carried.end) - parseLocal(carried.start) : 0
-  const dropping =
-    carried && onDropIn && dropAt !== null
-      ? { s: dropAt, e: dropAt + carriedLength, title: carried.title, calendar: carried.calendar }
-      : null
+  const drawing = useRef<Drawing | null>(null)
   function dragOver(e: DragEvent<HTMLDivElement>, day: number) {
     if (!carried || !onDropIn) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    const y = e.clientY - e.currentTarget.getBoundingClientRect().y
-    const top = Math.max(day + minH * HOUR, day + maxH * HOUR - carriedLength)
-    const at = clamp(day + Math.floor(((y / hourHeight + minH) * HOUR) / SNAP) * SNAP, day + minH * HOUR, top)
+    // It may end past the last hour drawn: the hours grow to hold it.
+    const latest = Math.max(day + minH * HOUR, day + DAY - carriedLength)
+    const slot = Math.floor(timeAt(e.currentTarget, e.clientY) / SNAP) * SNAP
+    const at = clamp(day + slot, day + minH * HOUR, latest)
     if (at !== dropAt) setDropAt(at)
   }
   function drop(e: DragEvent<HTMLDivElement>) {
@@ -255,21 +324,48 @@ export function WeekGrid({
     // A finger scrolls the grid; it adds an event with a double tap or the toolbar button.
     if (!onCreate || e.button !== 0 || e.pointerType === 'touch') return
     if (e.target instanceof Element && e.target.closest('button')) return
-    const columnY = e.currentTarget.getBoundingClientRect().y
-    drawing.current = { y: e.clientY, columnY, day, anchor: slotAt(day, e.clientY - columnY) }
-    e.currentTarget.setPointerCapture(e.pointerId)
+    const column = e.currentTarget
+    const anchor = day + snap(timeAt(column, e.clientY))
+    drawing.current = { column, day, y: e.clientY, anchor, at: e.clientY, moved: false }
+    column.setPointerCapture(e.pointerId)
+  }
+
+  function placeDrawn() {
+    const d = drawing.current
+    if (!d?.moved) return
+    const { minH: first, maxH: last } = geometry.current
+    const at = clamp(d.day + snap(timeAt(d.column, d.at)), d.day + first * HOUR, d.day + last * HOUR)
+    const s = Math.min(d.anchor, at)
+    const end = Math.max(d.anchor, at)
+    setDrawn((prev) => (prev?.s === s && prev.e === end ? prev : { anchor: d.anchor, s, e: end }))
   }
 
   function drawMove(e: PointerEvent<HTMLDivElement>) {
     const d = drawing.current
-    if (!d || (!drawn && Math.abs(e.clientY - d.y) < DRAG_THRESHOLD)) return
-    const at = clamp(slotAt(d.day, e.clientY - d.columnY), d.day + minH * HOUR, d.day + maxH * HOUR)
-    setDrawn({ anchor: d.anchor, s: Math.min(d.anchor, at), e: Math.max(d.anchor, at) })
+    if (!d || (!d.moved && Math.abs(e.clientY - d.y) < DRAG_THRESHOLD)) return
+    d.at = e.clientY
+    if (!d.moved) {
+      d.moved = true
+      edge.start({
+        column: d.column,
+        place: placeDrawn,
+        pull: (): Pull | null => {
+          const way = wayOf(d.y, d.at)
+          return way ? { edge: d.at, way } : null
+        },
+      })
+    }
+    placeDrawn()
+  }
+
+  function drawStop() {
+    drawing.current = null
+    edge.stop()
   }
 
   function drawEnd() {
     const stretch = drawn
-    drawing.current = null
+    drawStop()
     if (!stretch) return
     const end = Math.max(stretch.e, stretch.s + 2 * SNAP)
     // After the click that ends this press: it would land outside the dialog that opens and close it at once.
@@ -309,7 +405,7 @@ export function WeekGrid({
     return () => element.removeEventListener('touchmove', hold)
   }, [])
 
-  function pointerDown(e: PointerEvent<HTMLElement>, o: Occurrence, wanted: Drag['mode']) {
+  function pointerDown(e: PointerEvent<HTMLElement>, o: Occurrence, wanted: Mode) {
     if (!onMove || e.button !== 0) return
     const column = e.currentTarget.closest('[data-day]')
     if (!column) return
@@ -317,10 +413,18 @@ export function WeekGrid({
     const touch = e.pointerType === 'touch'
     // The edges are too thin for a finger: there it always moves, and the length is changed in the event card.
     const mode = touch && wanted !== 'day' ? 'move' : wanted
-    const begin = () => setDrag({ key: keyOf(o), mode, s: o.s, e: o.e, shiftX: 0 })
+    const begin = () => setDrag({ key: keyOf(o), s: o.s, e: o.e, shiftX: 0 })
+    const card = (e.currentTarget.closest('button') ?? e.currentTarget).getBoundingClientRect()
     const next: Press = {
+      o,
+      mode,
+      column,
       x: e.clientX,
       y: e.clientY,
+      at: { x: e.clientX, y: e.clientY },
+      t0: timeAt(column, e.clientY),
+      above: e.clientY - card.top,
+      below: card.bottom - e.clientY,
       columnWidth: column.getBoundingClientRect().width,
       moved: false,
       armed: !touch,
@@ -339,7 +443,45 @@ export function WeekGrid({
     }, LONG_PRESS)
   }
 
-  function pointerMove(e: PointerEvent<HTMLElement>, o: Occurrence) {
+  /** Puts the dragged event where the pointer is now, inside the hours drawn: a pull at an end adds more of them. */
+  function placeDrag() {
+    const p = press.current
+    if (!p?.armed || !p.moved) return
+    const { o, mode } = p
+    const { minH: firstHour, maxH: lastHour, weekStart: firstDay, dayCount: columns } = geometry.current
+    const day = startOfDay(o.s)
+    const first = day + firstHour * HOUR
+    const last = day + lastHour * HOUR
+    const shift = snap(timeAt(p.column, p.at.y) - p.t0)
+    let { s, e } = o
+    let shiftX = 0
+    if (mode === 'resize') e = clamp(o.e + shift, o.s + SNAP, last)
+    else if (mode === 'resize-start') s = clamp(o.s + shift, first, o.e - SNAP)
+    else {
+      const dayIndex = (day - firstDay) / DAY
+      const dayShift = clamp(Math.round((p.at.x - p.x) / p.columnWidth), -dayIndex, columns - 1 - dayIndex)
+      const length = o.e - o.s
+      const start = mode === 'day' ? o.s : clamp(o.s + shift, first, last - length)
+      s = start + dayShift * DAY
+      e = start + length + dayShift * DAY
+      shiftX = dayShift * p.columnWidth
+    }
+    setDrag((prev) =>
+      prev?.s === s && prev.e === e && prev.shiftX === shiftX ? prev : { key: keyOf(o), s, e, shiftX },
+    )
+  }
+
+  /** The edge of the dragged event that leads the way it goes: an edge being resized only pulls outwards. */
+  function pullOfDrag(): Pull | null {
+    const p = press.current
+    const way = p ? wayOf(p.y, p.at.y) : 0
+    if (!p?.moved || !way || p.mode === 'day') return null
+    if ((p.mode === 'resize' && way < 0) || (p.mode === 'resize-start' && way > 0)) return null
+    if (p.mode !== 'move') return { edge: p.at.y, way }
+    return { edge: way < 0 ? p.at.y - p.above : p.at.y + p.below, way }
+  }
+
+  function pointerMove(e: PointerEvent<HTMLElement>) {
     const p = press.current
     if (!p) return
     const dx = e.clientX - p.x
@@ -348,31 +490,19 @@ export function WeekGrid({
       if (Math.hypot(dx, dy) > DRAG_THRESHOLD) release()
       return
     }
-    if (!drag || drag.key !== keyOf(o)) return
     if (!p.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return
-    p.moved = true
-    const day = startOfDay(o.s)
-    const first = day + minH * HOUR
-    const last = day + maxH * HOUR
-    const shift = Math.round(((dy / hourHeight) * HOUR) / SNAP) * SNAP
-    if (drag.mode === 'resize') {
-      setDrag({ ...drag, e: clamp(o.e + shift, o.s + SNAP, last) })
-      return
+    p.at = { x: e.clientX, y: e.clientY }
+    if (!p.moved) {
+      p.moved = true
+      edge.start({ column: p.column, place: placeDrag, pull: pullOfDrag })
     }
-    if (drag.mode === 'resize-start') {
-      setDrag({ ...drag, s: clamp(o.s + shift, first, o.e - SNAP) })
-      return
-    }
-    const dayIndex = (day - weekStart) / DAY
-    const dayShift = clamp(Math.round(dx / p.columnWidth), -dayIndex, dayCount - 1 - dayIndex)
-    const length = o.e - o.s
-    const s = drag.mode === 'day' ? o.s : clamp(o.s + shift, first, last - length)
-    setDrag({ ...drag, s: s + dayShift * DAY, e: s + length + dayShift * DAY, shiftX: dayShift * p.columnWidth })
+    placeDrag()
   }
 
   function release() {
     window.clearTimeout(press.current?.timer)
     press.current = null
+    edge.stop()
     setDrag(null)
   }
 
@@ -415,11 +545,11 @@ export function WeekGrid({
     onMove(o, { s, e: end })
   }
 
-  const handlers = (o: Occurrence, mode: Drag['mode']) => ({
+  const handlers = (o: Occurrence, mode: Mode) => ({
     'data-key': keyOf(o),
     'data-slot': `${o.title}@${o.s}`,
     onPointerDown: (ev: PointerEvent<HTMLElement>) => pointerDown(ev, o, mode),
-    onPointerMove: (ev: PointerEvent<HTMLElement>) => pointerMove(ev, o),
+    onPointerMove: pointerMove,
     onPointerUp: () => pointerUp(o),
     onPointerCancel: release,
     onKeyDown: (ev: KeyboardEvent<HTMLElement>) => keyDown(ev, o),
@@ -445,6 +575,7 @@ export function WeekGrid({
           }}
         >
           <div
+            ref={header}
             className={`${HEAD} ${PINNED} top-0 z-6 flex items-end justify-end gap-2 rounded-tl-2xl pr-2 pb-2 text-[10.5px]`}
           >
             {secondZone && (
@@ -566,7 +697,7 @@ export function WeekGrid({
                 onPointerMove={drawMove}
                 onPointerUp={drawEnd}
                 onPointerCancel={() => {
-                  drawing.current = null
+                  drawStop()
                   setDrawn(null)
                 }}
                 onDragOver={(e) => dragOver(e, d)}

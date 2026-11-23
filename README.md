@@ -78,8 +78,10 @@ a Husky `commit-msg` hook checks them with commitlint.
   rest back. It works the same with the calendar expanded.
 - **Moving things**: every event can be dragged, in the week and in the month: one repeat of a repeating event moves
   alone and the other repeats stay (the event card's buttons and its form change the whole series), an all-day
-  one moves between days. Both edges resize. On a touch screen
-  rest a finger on the event first. With the keyboard: `Alt` + arrows move the focused event, `Alt Shift ↑ ↓`
+  one moves between days. Both edges resize. Held at the top or the bottom of the hours on screen, an event (or a
+  new one being drawn) scrolls the hidden hours in and then makes the day an hour longer at a time, so there is no
+  need to switch to `24 hours` first. On a touch screen rest a finger on the event first. With the keyboard: `Alt`
+  + arrows move the focused event, `Alt Shift ↑ ↓`
   change its length, `Delete` removes it; the event card has the same steps as buttons.
 - **Trash**: any event or calendar can be removed, and a calendar can be cleared. What is removed waits in the
   trash for 30 days and can be restored; one repeat of a series can be skipped instead of deleting the series.
