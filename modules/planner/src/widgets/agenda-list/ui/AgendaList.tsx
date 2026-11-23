@@ -17,7 +17,7 @@ import {
 import { Button, calendarColor, Check, Dot, Segmented, Trash2, X } from '@lc/ui'
 import { useEffect, useRef, useState } from 'react'
 
-import { useFillHeight } from '../../../shared/lib'
+import { eventKey, useFillHeight, useJustDone } from '../../../shared/lib'
 
 type Filter = 'all' | 'open' | 'done' | 'overdue'
 
@@ -52,6 +52,7 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
   const maxHeight = useFillHeight(box)
   const [filter, setFilter] = useState<Filter>('all')
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
+  const justDone = useJustDone(items)
   const today = now === null ? null : startOfDay(now)
   // Scrolls the box, not the page: the toolbar and the budget stay where they are.
   useEffect(() => {
@@ -144,7 +145,9 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
           >
             <Dot className="size-[9px] -translate-y-px" />
             {o.title}
-            {o.done && <span className="text-done-ink no-underline">✓</span>}
+            {o.done && (
+              <span className={`text-done-ink no-underline ${justDone.has(eventKey(o)) ? 'lc-done-pop' : ''}`}>✓</span>
+            )}
             {real !== null && real !== o.e - o.s && (
               <small className="inline-block text-[12px] text-muted tabular-nums">
                 {m.grid_took({ time: fmtDuration(real) })}

@@ -141,6 +141,62 @@
   }
 }
 
+/* An event just marked done: its check springs in and the card glows once in the colour of done. Without motion
+   both stay in their final state: the check in place, the glow gone. */
+@keyframes lc-pop {
+  from {
+    scale: 0.2;
+  }
+}
+@keyframes lc-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes lc-glow {
+  from {
+    opacity: 1;
+  }
+}
+.lc-done-pop {
+  scale: 1;
+  @media (prefers-reduced-motion: no-preference) {
+    /* The overshoot is on scale only: on opacity it would flicker. */
+    animation:
+      lc-pop 700ms
+        linear(
+          0,
+          0.226 2%,
+          1.116 5.4%,
+          1.527 7.7%,
+          1.585 8.8%,
+          1.559 9.8%,
+          0.937 14.3%,
+          0.693 16.6%,
+          0.657 17.7%,
+          0.729 19.8%,
+          1.13 24.5%,
+          1.201 26.7%,
+          1.156 28.8%,
+          0.925 33.4%,
+          0.882 35.6%,
+          0.907 37.7%,
+          1.069 44.5%,
+          0.96 53.4%,
+          1.024 62.3%,
+          0.986 71.2%,
+          1
+        ),
+      lc-fade-in 120ms ease-out;
+  }
+}
+.lc-done-glow {
+  opacity: 0;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: lc-glow 900ms ease-out;
+  }
+}
+
 /* Only the calendar changes between two views or two weeks: it alone gets a name, the rest of the page is one
    picture that does not move. */
 .lc-calendar {

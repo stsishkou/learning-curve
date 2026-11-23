@@ -19,7 +19,7 @@ import {
 import { calendarColor, GraduationCap, Repeat, Timer } from '@lc/ui'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 
-import { eventKey, useFillHeight } from '../../../shared/lib'
+import { eventKey, useFillHeight, useJustDone } from '../../../shared/lib'
 
 interface Props {
   plan: Plan
@@ -166,6 +166,7 @@ export function WeekGrid({
   busy = NO_BUSY,
   selectedKey = null,
 }: Props) {
+  const justDone = useJustDone(items)
   const timed = items.filter((o) => !o.allDay)
   const allDay = items.filter((o) => o.allDay)
   const busyDays = busy.filter((b) => b.allDay)
@@ -609,8 +610,17 @@ export function WeekGrid({
                       {real !== null && real < e - s && (
                         <span aria-hidden className={SLOT_LEFT} style={{ height: `${(1 - real / (e - s)) * 100}%` }} />
                       )}
+                      {justDone.has(keyOf(o)) && (
+                        <span aria-hidden className="lc-done-glow pointer-events-none absolute inset-0 bg-done/35" />
+                      )}
                       <b className={`relative block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
-                        {o.done && <span className="mr-1 inline-block text-done-ink no-underline">✓</span>}
+                        {o.done && (
+                          <span
+                            className={`mr-1 inline-block text-done-ink no-underline ${justDone.has(keyOf(o)) ? 'lc-done-pop' : ''}`}
+                          >
+                            ✓
+                          </span>
+                        )}
                         {shortTitle(o)}
                       </b>
                       <small className="relative text-muted tabular-nums">

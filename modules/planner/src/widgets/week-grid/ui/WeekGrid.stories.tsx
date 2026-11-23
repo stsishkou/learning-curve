@@ -1,7 +1,8 @@
-import { DAY, mondayOf, occurrences, parseLocal, type Plan } from '@lc/plan-domain'
-import { fixtureNow, fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
+import { DAY, isSession, mondayOf, occurrences, parseLocal, type Plan } from '@lc/plan-domain'
+import { fixtureNow, fixturePlan, fixtureWeek, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, within } from 'storybook/test'
+import { useState, type ComponentProps } from 'react'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { WeekGrid } from './WeekGrid'
 
@@ -123,5 +124,40 @@ export const RealTime: Story = {
       .map((button) => button.textContent)
     await expect(times.filter((text) => text.includes('12:00–13:000:40'))).toHaveLength(1)
     await expect(times.filter((text) => text.includes('13:00–14:001:30'))).toHaveLength(1)
+  },
+}
+
+/** A grid whose events turn done when clicked, as they do from the event dialog. */
+function DoneOnClick(props: ComponentProps<typeof WeekGrid>) {
+  const [plan, setPlan] = useState(fixturePlan)
+  return (
+    <WeekGrid
+      {...props}
+      plan={plan}
+      items={occurrences(plan, fixtureWeek, fixtureWeek + 7 * DAY, new Set())}
+      onSelect={(o) =>
+        setPlan({ ...plan, events: plan.events.map((e) => (e.uid === o.uid ? { ...e, done: true } : e)) })
+      }
+    />
+  )
+}
+const open = itemAt(week(fixtureWeek).filter((o) => isSession(o) && !o.done && !o.allDay))
+
+/**
+ * An event marked done gets its check with a spring and a glow that fades, once: events that were done already stay
+ * still. With reduced motion neither moves.
+ */
+export const JustDone: Story = {
+  render: (args) => <DoneOnClick {...args} />,
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.lc-done-pop')).toBeNull()
+    const card = canvasElement.querySelector<HTMLElement>(`[data-key="${open.uid}-${open.s}"]`)
+    await expect(card).not.toBeNull()
+    if (!card) return
+    await userEvent.click(card)
+    await expect(card.querySelector('.lc-done-pop')).not.toBeNull()
+    await expect(card.querySelector('.lc-done-glow')).not.toBeNull()
+    await expect(canvasElement.querySelectorAll('.lc-done-pop')).toHaveLength(1)
+    await waitFor(() => expect(card.querySelector('.lc-done-pop')).toBeNull(), { timeout: 2500 })
   },
 }
