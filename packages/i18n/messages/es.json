@@ -637,5 +637,9 @@
   "streak_ahead": "{date}: {planned} planificado",
   "streak_legend_done": "hecho",
   "streak_legend_missed": "sin hacer",
-  "streak_legend_ahead": "por delante"
+  "streak_legend_ahead": "por delante",
+  "hide_done": "Ocultar lo hecho",
+  "hide_done_hint": "Ocultar las sesiones terminadas en el calendario",
+  "print_view": "Imprimir o PDF",
+  "print_view_hint": "Imprimir el calendario en pantalla o guardarlo como PDF"
 }

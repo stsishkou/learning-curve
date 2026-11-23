@@ -57,7 +57,7 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
   const timeGrid = nav.view === 'week' || nav.view === 'day'
   return (
     // The single column may not grow with its content: the calendar chips scroll inside their row instead.
-    <div className={`mb-3 grid grid-cols-[minmax(0,1fr)] gap-2.5 ${pinned ? PINNED : ''}`}>
+    <div className={`mb-3 grid grid-cols-[minmax(0,1fr)] gap-2.5 print:hidden ${pinned ? PINNED : ''}`}>
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
         <Segmented
           label={m.view()}

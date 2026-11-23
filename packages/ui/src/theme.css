@@ -158,6 +158,21 @@
   }
 }
 
+/* On paper the calendar is whole: nothing scrolls, so every box inside it loses its height limit. */
+@media print {
+  .lc-calendar,
+  .lc-calendar * {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .lc-calendar {
+    border: 0;
+  }
+  .lc-calendar .sticky {
+    position: static;
+  }
+}
+
 /* A help note opens beside its mark. Where anchor positioning is missing the note keeps the browser's own
    place for a popover, the middle of the window, so the rules that take it from there are inside the check. */
 @supports (position-area: block-end) {

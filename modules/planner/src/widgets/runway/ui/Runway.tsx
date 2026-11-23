@@ -47,7 +47,7 @@ export function Runway({ plan, now, onSelect }: Props) {
 
   return (
     <section
-      className="relative mt-5 mb-4 grid items-center gap-x-7 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:grid-cols-[auto_1fr] md:px-5 md:pt-[18px] md:pb-4"
+      className="relative mt-5 mb-4 grid items-center gap-x-7 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:grid-cols-[auto_1fr] md:px-5 md:pt-[18px] md:pb-4 print:hidden"
       aria-label={m.runway_label()}
     >
       <Hint title={m.help_runway_title()} text={m.help_runway()} className="absolute top-2 right-2" />

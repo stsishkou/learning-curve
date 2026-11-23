@@ -102,6 +102,8 @@ export function usePlannerView(plan: Plan, search: PlannerSearch, onSearchChange
     showWeek: (day: number) => onSearchChange({ view: 'week', week: ymd(mondayOf(day)), day: undefined }),
     toggleFullDay: () => onSearchChange({ fullDay: fullDay ? undefined : true }),
     toggleExpanded: () => onSearchChange({ expanded: expanded ? undefined : true }),
+    hideDone: search.hideDone === true,
+    toggleHideDone: () => onSearchChange({ hideDone: search.hideDone ? undefined : true }),
     toggleWorkWeek: () => onSearchChange({ workWeek: workWeek ? undefined : true }),
     canZoomIn: search.zoom !== 'large',
     canZoomOut: search.zoom !== 'compact',

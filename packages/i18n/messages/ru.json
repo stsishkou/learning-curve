@@ -649,5 +649,9 @@
   "streak_ahead": "{date}: запланировано {planned}",
   "streak_legend_done": "сделано",
   "streak_legend_missed": "пропущено",
-  "streak_legend_ahead": "впереди"
+  "streak_legend_ahead": "впереди",
+  "hide_done": "Скрыть сделанное",
+  "hide_done_hint": "Скрыть сделанные занятия в календаре",
+  "print_view": "Печать или PDF",
+  "print_view_hint": "Напечатать календарь на экране или сохранить его в PDF"
 }

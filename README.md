@@ -144,6 +144,9 @@ a Husky `commit-msg` hook checks them with commitlint.
   real calendar included), not on a weekend or a holiday and inside the weekly budget, trying the session's own
   hour first; `Move here` takes it. The card also copies a link to the event and opens Google Calendar with the
   event filled in.
+- **Less on screen, and on paper**: `⋮` → `Hide what is done` (key `X`) leaves the finished sessions out of the
+  day, week and month views. `Print or PDF` prints the calendar alone, whole, without the toolbars and the side
+  panel. The month view shows the hours of study of each day.
 - **Help marks**: the `?` button in the header of every page (in the `⋮` menu on a phone and in the expanded
   calendar) shows a question mark next to the main features; a click on a mark opens a short note about the thing
   beside it. The choice is kept in the browser.

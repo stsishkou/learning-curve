@@ -1,6 +1,16 @@
-import { dowShort, fmtDay } from '@lc/i18n/format'
+import { dowShort, fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, hm, startOfDay, ymd, type Occurrence, type Plan, type PlanEvent } from '@lc/plan-domain'
+import {
+  countsToBudget,
+  DAY,
+  durationHours,
+  hm,
+  startOfDay,
+  ymd,
+  type Occurrence,
+  type Plan,
+  type PlanEvent,
+} from '@lc/plan-domain'
 import { calendarColor, Dot } from '@lc/ui'
 import { useRef, useState, type PointerEvent } from 'react'
 
@@ -82,22 +92,31 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
           const list = byDay.get(d) ?? []
           const outside = new Date(d).getUTCMonth() !== month
           const off = plan.meta.holidays.includes(ymd(d))
+          const study = list.reduce((sum, o) => (countsToBudget(o) ? sum + durationHours(o) : sum), 0)
+          const weekend = new Date(d).getUTCDay() % 6 === 0
           return (
             <div
               key={d}
               data-month-day={d}
-              className={`min-h-[104px] min-w-0 overflow-hidden border-r border-b border-line-soft p-1.5 nth-[7n]:border-r-0 ${outside ? 'bg-surface-2/60' : ''} ${drag?.target === d ? 'bg-[color-mix(in_srgb,var(--focus)_12%,var(--surface))] shadow-[inset_0_0_0_2px_var(--focus)]' : ''}`}
+              className={`min-h-[104px] min-w-0 overflow-hidden border-r border-b border-line-soft p-1.5 nth-[7n]:border-r-0 ${outside ? 'bg-surface-2/60' : weekend ? 'bg-[color-mix(in_srgb,var(--muted)_5%,transparent)]' : ''} ${today !== null && d < today ? 'text-muted' : ''} ${drag?.target === d ? 'bg-[color-mix(in_srgb,var(--focus)_12%,var(--surface))] shadow-[inset_0_0_0_2px_var(--focus)]' : ''}`}
             >
-              <button
-                type="button"
-                className={`mb-1 grid size-7 place-items-center rounded-full text-[13px] font-semibold tabular-nums hover:bg-surface-2 ${
-                  d === today ? 'bg-today text-surface hover:bg-today' : outside ? 'text-muted' : ''
-                }`}
-                aria-label={m.open_week_of({ date: fmtDay(d) })}
-                onClick={() => onPickDay(d)}
-              >
-                {new Date(d).getUTCDate()}
-              </button>
+              <div className="mb-1 flex items-center justify-between">
+                <button
+                  type="button"
+                  className={`grid size-7 place-items-center rounded-full text-[13px] font-semibold tabular-nums hover:bg-surface-2 ${
+                    d === today ? 'bg-today text-surface hover:bg-today' : outside ? 'text-muted' : ''
+                  }`}
+                  aria-label={m.open_week_of({ date: fmtDay(d) })}
+                  onClick={() => onPickDay(d)}
+                >
+                  {new Date(d).getUTCDate()}
+                </button>
+                {study > 0 && (
+                  <small className="pr-0.5 text-[11px] text-muted tabular-nums" title={m.study_that_day()}>
+                    {fmtHours(study)}
+                  </small>
+                )}
+              </div>
               {off && <small className="mb-1 block text-[11px] text-today-ink">{m.day_off()}</small>}
               <div className="grid gap-0.5">
                 {list.slice(0, SHOWN).map((o) => (

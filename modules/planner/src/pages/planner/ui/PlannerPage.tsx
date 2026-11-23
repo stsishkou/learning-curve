@@ -142,9 +142,14 @@ export function PlannerPage({
   const trashCount = session.trash.events.length + session.trash.calendars.length
 
   const weekItems = useMemo(() => occurrences(plan, weekStart, weekStart + 7 * DAY, hidden), [plan, weekStart, hidden])
+  const kept = (o: Occurrence) => !(nav.hideDone && o.done)
   const monthItems =
-    view === 'month' ? occurrences(plan, nav.monthGridStart, nav.monthGridStart + nav.monthWeeks * 7 * DAY, hidden) : []
-  const gridItems = weekItems.filter((o) => o.s >= nav.grid.start && o.s < nav.grid.start + nav.grid.days * DAY)
+    view === 'month'
+      ? occurrences(plan, nav.monthGridStart, nav.monthGridStart + nav.monthWeeks * 7 * DAY, hidden).filter(kept)
+      : []
+  const gridItems = weekItems.filter(
+    (o) => o.s >= nav.grid.start && o.s < nav.grid.start + nav.grid.days * DAY && kept(o),
+  )
   const yearItems = useMemo(
     () => (view === 'year' ? occurrences(plan, Date.UTC(nav.year, 0, 1), Date.UTC(nav.year + 1, 0, 1), hidden) : []),
     [plan, hidden, view, nav.year],
@@ -395,7 +400,7 @@ export function PlannerPage({
         </section>
         {!expanded && (
           // The list is long: on one column the side panel goes above it instead of far below.
-          <aside className={`grid min-w-0 gap-4 ${view === 'list' ? 'order-first lg:order-none' : ''}`}>
+          <aside className={`grid min-w-0 gap-4 print:hidden ${view === 'list' ? 'order-first lg:order-none' : ''}`}>
             <NowNext plan={plan} upcoming={upcoming} now={now} onSelect={select} onFocus={onFocus} />
             <InsightTabs
               plan={plan}

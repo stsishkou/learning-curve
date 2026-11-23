@@ -637,5 +637,9 @@
   "streak_ahead": "{date}: {planned} planned",
   "streak_legend_done": "done",
   "streak_legend_missed": "missed",
-  "streak_legend_ahead": "ahead"
+  "streak_legend_ahead": "ahead",
+  "hide_done": "Hide what is done",
+  "hide_done_hint": "Hide the finished sessions in the calendar",
+  "print_view": "Print or PDF",
+  "print_view_hint": "Print the calendar on screen or save it as a PDF"
 }

@@ -16,6 +16,8 @@ export interface PlannerSearch {
   fullDay?: true
   /** The calendar takes the whole window: the header, the runway and the side panel are hidden */
   expanded?: true
+  /** Sessions marked done are left out of the day, week and month views */
+  hideDone?: true
   /** uid of the event whose dialog is open */
   event?: string
 }
@@ -32,5 +34,6 @@ export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSear
   zoom: search.zoom === 'compact' || search.zoom === 'large' ? search.zoom : undefined,
   fullDay: search.fullDay === true ? true : undefined,
   expanded: search.expanded === true ? true : undefined,
+  hideDone: search.hideDone === true ? true : undefined,
   event: typeof search.event === 'string' && search.event ? search.event : undefined,
 })
