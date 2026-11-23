@@ -7,6 +7,7 @@ import {
   hm,
   HOUR,
   layoutLanes,
+  parseLocal,
   type BusyBlock,
   type Occurrence,
   type Plan,
@@ -17,7 +18,7 @@ import {
   ymd,
 } from '@lc/plan-domain'
 import { calendarColor, GraduationCap, Repeat, Timer } from '@lc/ui'
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent } from 'react'
 
 import { eventKey, useFillHeight, useJustDone } from '../../../shared/lib'
 
@@ -57,6 +58,10 @@ interface Props {
   busy?: BusyBlock[]
   /** `eventKey` of the occurrence whose dialog is open: it gets a ring */
   selectedKey?: string | null | undefined
+  /** An event being dragged in from outside the grid, such as a missed session: a slot under the pointer shows where it lands */
+  carried?: PlanEvent | null | undefined
+  /** Called with the start (wall-clock ms) of the slot `carried` was dropped on; its length stays */
+  onDropIn?: ((start: number) => void) | undefined
 }
 
 export interface DraftSlot {
@@ -165,6 +170,8 @@ export function WeekGrid({
   secondZone = null,
   busy = NO_BUSY,
   selectedKey = null,
+  carried = null,
+  onDropIn,
 }: Props) {
   const justDone = useJustDone(items)
   const timed = items.filter((o) => !o.allDay)
@@ -221,6 +228,28 @@ export function WeekGrid({
   const [drawn, setDrawn] = useState<{ anchor: number; s: number; e: number } | null>(null)
   const drawing = useRef<{ y: number; columnY: number; day: number; anchor: number } | null>(null)
   const slotAt = (day: number, y: number) => day + Math.round(((y / hourHeight + minH) * HOUR) / SNAP) * SNAP
+  // Where a carried event would land: the slot under the pointer, kept inside the hours on screen.
+  const [dropAt, setDropAt] = useState<number | null>(null)
+  const carriedLength = carried ? parseLocal(carried.end) - parseLocal(carried.start) : 0
+  const dropping =
+    carried && onDropIn && dropAt !== null
+      ? { s: dropAt, e: dropAt + carriedLength, title: carried.title, calendar: carried.calendar }
+      : null
+  function dragOver(e: DragEvent<HTMLDivElement>, day: number) {
+    if (!carried || !onDropIn) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    const y = e.clientY - e.currentTarget.getBoundingClientRect().y
+    const top = Math.max(day + minH * HOUR, day + maxH * HOUR - carriedLength)
+    const at = clamp(day + Math.floor(((y / hourHeight + minH) * HOUR) / SNAP) * SNAP, day + minH * HOUR, top)
+    if (at !== dropAt) setDropAt(at)
+  }
+  function drop(e: DragEvent<HTMLDivElement>) {
+    if (!dropping) return
+    e.preventDefault()
+    setDropAt(null)
+    onDropIn?.(dropping.s)
+  }
 
   function drawStart(e: PointerEvent<HTMLDivElement>, day: number) {
     // A finger scrolls the grid; it adds an event with a double tap or the toolbar button.
@@ -540,6 +569,11 @@ export function WeekGrid({
                   drawing.current = null
                   setDrawn(null)
                 }}
+                onDragOver={(e) => dragOver(e, d)}
+                onDragLeave={(e) => {
+                  if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget))) setDropAt(null)
+                }}
+                onDrop={drop}
                 onDoubleClick={(e) => {
                   if (!onCreate || (e.target instanceof Element && e.target.closest('button'))) return
                   const y = e.clientY - e.currentTarget.getBoundingClientRect().y
@@ -672,7 +706,7 @@ export function WeekGrid({
                     ),
                   ]
                 })}
-                {[drawn && { ...drawn, title: '', calendar: '' }, draft]
+                {[drawn && { ...drawn, title: '', calendar: '' }, dropping, draft]
                   .flatMap((slot) => (slot !== null && slot.e > slot.s && startOfDay(slot.s) === d ? [slot] : []))
                   .slice(0, 1)
                   .map((slot) => (

@@ -663,5 +663,7 @@
   "focus_break_left": "Descanso: quedan {time}",
   "focus_break_end": "Volver al trabajo",
   "focus_break_over": "El descanso ha terminado: continúa cuando quieras.",
-  "week_summary": "{done} de {total} hecho · presupuesto {budget}"
+  "week_summary": "{done} de {total} hecho · presupuesto {budget}",
+  "backlog": "Sesiones perdidas",
+  "backlog_hint": "Arrastra una sesión perdida al calendario para darle otra hora, o ábrela para elegirla."
 }

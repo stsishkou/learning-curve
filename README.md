@@ -135,7 +135,9 @@ a Husky `commit-msg` hook checks them with commitlint.
   to catch up. `Catch up` (also in the `⋮` menu) compares whole scenarios side by side: leave the plan, push
   every open session to the next study days (same weekly load, later end), or make the missed sessions up in the
   Saturday buffers and an extra hour a day (same end, heavier weeks). Each shows the day the plan ends, the room
-  before the certificate deadline and the heaviest week, and is applied as one history step. `Shift the plan`
+  before the certificate deadline and the heaviest week, and is applied as one history step. In the week and day
+  views the missed sessions are also listed under the bar as chips: drag one onto a slot of the grid to give it
+  that time (its length stays), or click it to pick a time in its dialog. `Shift the plan`
   moves every session that is not done, from a chosen
   day and optionally in one calendar, by a number of days; it is one history step. An event can be duplicated
   to the next day from its dialog.

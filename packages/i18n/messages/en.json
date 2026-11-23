@@ -663,5 +663,7 @@
   "focus_break_left": "Break: {time} left",
   "focus_break_end": "Back to work",
   "focus_break_over": "The break is over: resume when you are ready.",
-  "week_summary": "{done} of {total} done · budget {budget}"
+  "week_summary": "{done} of {total} done · budget {budget}",
+  "backlog": "Missed sessions",
+  "backlog_hint": "Drag a missed session onto the calendar to give it a new time, or open it to pick one."
 }

@@ -1,8 +1,8 @@
-import { DAY, isSession, mondayOf, occurrences, parseLocal, type Plan } from '@lc/plan-domain'
+import { DAY, isSession, mondayOf, occurrences, parseLocal, ymd, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, fixtureWeek, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState, type ComponentProps } from 'react'
-import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
+import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { WeekGrid } from './WeekGrid'
 
@@ -159,5 +159,31 @@ export const JustDone: Story = {
     await expect(card.querySelector('.lc-done-glow')).not.toBeNull()
     await expect(canvasElement.querySelectorAll('.lc-done-pop')).toHaveLength(1)
     await waitFor(() => expect(card.querySelector('.lc-done-pop')).toBeNull(), { timeout: 2500 })
+  },
+}
+
+const carried = itemAt(fixturePlan.events.filter((e) => isSession(e) && parseLocal(e.end) < fixtureWeek))
+const dropIn = fn<(start: number) => void>()
+
+/**
+ * A missed session dragged in from the backlog: the slot under the pointer shows where it lands, with its title and
+ * its length, and letting go gives that start.
+ */
+export const DropIn: Story = {
+  args: { carried, onDropIn: dropIn },
+  play: async ({ canvasElement }) => {
+    const wednesday = ymd(fixtureWeek + 2 * DAY)
+    const column = canvasElement.querySelector<HTMLElement>(`[data-day="${wednesday}"]`)
+    await expect(column).not.toBeNull()
+    if (!column) return
+    const clientY = column.getBoundingClientRect().y + 120
+    await fireEvent.dragOver(column, { clientY, dataTransfer: new DataTransfer() })
+    const preview = canvasElement.querySelector('[data-draft]')
+    await expect(preview?.textContent).toContain(carried.title.slice(0, 12))
+    await fireEvent.drop(column, { clientY, dataTransfer: new DataTransfer() })
+    await expect(dropIn).toHaveBeenCalledOnce()
+    const [start] = dropIn.mock.calls[0] ?? []
+    await expect(start === undefined ? '' : ymd(start)).toBe(wednesday)
+    await expect(canvasElement.querySelector('[data-draft]')).toBeNull()
   },
 }

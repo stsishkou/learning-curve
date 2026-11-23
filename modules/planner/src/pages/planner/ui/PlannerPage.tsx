@@ -12,6 +12,7 @@ import {
   removeOccurrence,
   reviewOffers,
   startOfDay,
+  toLocalString,
   ymd,
   zoneShift,
   type Occurrence,
@@ -22,6 +23,7 @@ import {
 import { HelpToggle, Hint, useHelpMode } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 
+import { Backlog } from '../../../features/backlog'
 import { BusyFeedDialog, useBusy, type BusySource } from '../../../features/busy-overlay'
 import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
@@ -172,9 +174,27 @@ export function PlannerPage({
 
   // Sessions that should be over and are not marked done: the plan and the reality have drifted apart.
   const overdue = useMemo(
-    () => (now === null ? [] : plan.events.filter((e) => isSession(e) && !e.done && parseLocal(e.end) < now)),
+    () =>
+      now === null
+        ? []
+        : plan.events
+            .filter((e) => isSession(e) && !e.done && parseLocal(e.end) < now)
+            .toSorted((a, b) => a.start.localeCompare(b.start)),
     [plan, now],
   )
+  // A missed session being dragged from the backlog onto the grid.
+  const [carried, setCarried] = useState<PlanEvent | null>(null)
+  const dropCarried = (start: number) => {
+    if (!carried) return
+    // Not left to the end of the drag: the chip may be gone before it, and the grid would go on taking drops.
+    setCarried(null)
+    const length = parseLocal(carried.end) - parseLocal(carried.start)
+    quiet.change({
+      type: 'event.patch',
+      uid: carried.uid,
+      patch: { start: toLocalString(start), end: toLocalString(start + length) },
+    })
+  }
 
   // Finished modules that have no reviews yet; one is offered at a time.
   const declined = useDismissedReviews()
@@ -313,6 +333,10 @@ export function PlannerPage({
         />
       )}
 
+      {canEdit && !overdueHidden && (view === 'week' || view === 'day') && (
+        <Backlog plan={plan} events={overdue} onSelect={select} onCarry={setCarried} />
+      )}
+
       {offer && (
         <ReviewBar
           offer={offer}
@@ -368,6 +392,8 @@ export function PlannerPage({
               secondZone={secondZone}
               busy={taken.blocks}
               selectedKey={selectedKey}
+              carried={carried}
+              onDropIn={canEdit ? dropCarried : undefined}
             />
           )}
           {view === 'month' && (
