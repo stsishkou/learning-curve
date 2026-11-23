@@ -17,4 +17,5 @@ exports
 packages/plan-data/data/history.json
 packages/plan-data/data/local.json
 packages/plan-data/data/library/
+packages/plan-data/data/sync.json
 .claude/worktrees

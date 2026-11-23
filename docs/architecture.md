@@ -121,6 +121,8 @@ src/
   (`busy.ts`), offered by a server function, and passed to the module as a prop with a `load` callback. It never
   becomes a `PlanChange`; a local setting such as its address lives in the untracked `data/local.json`, written by
   `store.ts`.
+- **State kept for the calendars that read the plan** (the version of each event in the feeds): untracked
+  `data/sync.json`, written only by `store.ts`; the rules that compute it are pure, in `plan-domain` (`revisions.ts`).
 - **A shared dependency version**: the `catalog` in `pnpm-workspace.yaml`, referenced as `catalog:`.
 
 ## Trunk-based flow

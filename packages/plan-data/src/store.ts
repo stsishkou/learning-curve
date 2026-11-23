@@ -12,12 +12,15 @@ import {
   isPlan,
   parseEdits,
   parseHistory,
+  parseRevisions,
   purgeTrash,
   recordChange,
+  reviseEvents,
   type Plan,
   type PlanChange,
   type PlanEdits,
   type PlanHistory,
+  type Revisions,
 } from '@lc/plan-domain'
 
 import { bundledPlan } from './bundled'
@@ -40,6 +43,8 @@ const HISTORY_FILE = join(dataDir(), 'history.json')
 
 // Local to a checkout and never committed: it holds a secret address.
 const LOCAL_FILE = join(dataDir(), 'local.json')
+// Local to a checkout: what the calendars subscribed to the feeds were last given.
+const SYNC_FILE = join(dataDir(), 'sync.json')
 
 const readJson = (file: string): unknown => JSON.parse(readFileSync(file, 'utf8'))
 const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
@@ -76,6 +81,31 @@ export function readPlan(): Plan {
   return isPlan(plan) ? plan : bundledPlan
 }
 
+function readSync(): Record<string, unknown> {
+  const stored = existsSync(SYNC_FILE) ? readJson(SYNC_FILE) : null
+  return typeof stored === 'object' && stored !== null ? { ...stored } : {}
+}
+
+const storedRevisions = (sync: Record<string, unknown>): Revisions =>
+  parseRevisions(
+    typeof sync.feed === 'object' && sync.feed !== null && 'revisions' in sync.feed ? sync.feed.revisions : null,
+  )
+
+/**
+ * The version of each event in the feeds, brought up to `plan`: a change counts from the first time it is written
+ * or served, whichever came first, so a plan changed by `git pull` is counted too. Read-only where nothing can be
+ * written, and empty there until something was.
+ */
+export function feedRevisions(plan: Plan): Revisions {
+  const sync = readSync()
+  const stored = storedRevisions(sync)
+  if (!canWrite()) return stored
+  const revised = reviseEvents(stored, plan.events, Date.now())
+  if (JSON.stringify(revised) !== JSON.stringify(stored))
+    writeJson(SYNC_FILE, { ...sync, feed: { revisions: revised } })
+  return revised
+}
+
 /** True when the app runs from a writable checkout. `PLAN_READONLY=1` switches editing off, e.g. on a public host. */
 export function canWrite(): boolean {
   if (process.env.PLAN_READONLY === '1') return false
@@ -107,6 +137,7 @@ export function writePlan(edits: PlanEdits): { plan: Plan; orphans: string[]; ed
   const plan = dated(result.plan)
   writeJson(EDITS_FILE, kept)
   writeJson(PLAN_FILE, plan)
+  feedRevisions(plan)
   return { ...result, plan, edits: kept }
 }
 

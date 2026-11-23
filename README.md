@@ -203,7 +203,8 @@ You can also open any `plan.json` in the viewer ("Открыть файл пла
 Use **Экспорт в календарь** in the viewer (separate calendars as a zip or one `.ics` each, or everything as one
 `.ics` for a single calendar), or `pnpm run plan --ics`. Pick the calendar app under `Where to` (Google Calendar, Outlook,
 Apple Calendar or another) and the dialog shows the import steps for it; the choice is remembered. `Mark finished
-sessions` puts a ✓ before the title of every done session and stops it blocking time. `Add a reminder` puts a
+sessions` puts a ✓ before the title of every done session and stops it blocking time; when its real length was
+logged, its notes start with it, `✓ 1:15 / 1:00` (took / planned). `Add a reminder` puts a
 10-minute alarm on every timed session that is not done; the calendar app decides whether to keep it.
 
 1. Create the calendars marked "создать календарь" (Gemini Certs, Practical Python, Личное).
@@ -223,7 +224,10 @@ sessions` puts a ✓ before the title of every done session and stops it blockin
 
 Once deployed on a public URL, `/api/ics/:calendarId` can be added in Google Calendar or Outlook as a
 subscription ("From URL"). The calendar then updates itself after each deploy, with no re-import and no duplicates.
-Subscribed calendars are read-only and Google refreshes them every few hours.
+Subscribed calendars are read-only; Outlook refreshes them about every 3 hours, Google does not say. Every event
+carries its version (`SEQUENCE`, `LAST-MODIFIED`), counted up with each change in the untracked
+`packages/plan-data/data/sync.json`, and a client that sends back the `ETag` gets `304` while nothing changed.
+`docs/calendar-sync-research.md` compares the ways of keeping a calendar in step.
 
 
 ## For language models and tools

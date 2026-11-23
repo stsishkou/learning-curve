@@ -1,3 +1,5 @@
+import { parseLocal } from './dates'
+import { hashText, type Revisions } from './revisions'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 const escapeText = (s: string) =>
@@ -18,6 +20,12 @@ function fold(line: string): string {
   out.push(cur)
   return out.join('\r\n ')
 }
+
+/** A moment as an iCalendar UTC date-time, `20261123T094000Z` */
+const utc = (ms: number) => new Date(ms).toISOString().replaceAll(/[-:]/g, '').replace(/\.\d+/, '')
+
+/** A length in minutes as `1:15` */
+const clock = (minutes: number) => `${Math.floor(minutes / 60)}:${String(Math.round(minutes % 60)).padStart(2, '0')}`
 
 const compact = (local: string) => local.replaceAll(/[-:]/g, '').slice(0, 15).padEnd(15, '0') // 2026-11-23T12:00 → 20261123T120000
 
@@ -51,6 +59,8 @@ export interface IcsOptions {
   alarm?: number | undefined
   /** The address the file is served from, for a client that subscribed to it (RFC 7986 SOURCE) */
   source?: string
+  /** Versions of the events, written as `SEQUENCE` and `LAST-MODIFIED`: a refreshed feed then says which copy is newer */
+  revisions?: Revisions
 }
 
 /**
@@ -58,7 +68,7 @@ export interface IcsOptions {
  * The fixed Europe/Minsk VTIMEZONE (+03:00, no DST) keeps times correct in both.
  */
 export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string, options: IcsOptions = {}): string {
-  const stamp = new Date().toISOString().replaceAll(/[-:]/g, '').replace(/\.\d+/, '')
+  const stamp = utc(Date.now())
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -85,6 +95,8 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
   ]
   for (const e of events) {
     lines.push('BEGIN:VEVENT', `UID:${e.uid}`, `DTSTAMP:${stamp}`)
+    const revision = options.revisions?.[e.uid]
+    if (revision) lines.push(`SEQUENCE:${revision.seq}`, `LAST-MODIFIED:${utc(revision.modified)}`)
     if (e.allDay) {
       const day = e.start.slice(0, 10).replaceAll('-', '')
       lines.push(`DTSTART;VALUE=DATE:${day}`, `DTEND;VALUE=DATE:${nextDate(day)}`)
@@ -95,7 +107,13 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
     for (const day of e.skip ?? []) lines.push(`EXDATE;TZID=${tz}:${compact(`${day}T${e.start.slice(11, 16)}`)}`)
     const finished = options.markDone === true && e.done === true
     lines.push(`SUMMARY:${escapeText(finished ? `✓ ${e.title}` : e.title)}`)
-    if (e.description) lines.push(`DESCRIPTION:${escapeText(e.description)}`)
+    // How long it really took, first: the calendar shows only the planned slot.
+    const took =
+      finished && e.actual && !e.allDay
+        ? `✓ ${clock(e.actual)} / ${clock((parseLocal(e.end) - parseLocal(e.start)) / 60_000)}`
+        : ''
+    const description = [took, e.description].filter(Boolean).join('\n\n')
+    if (description) lines.push(`DESCRIPTION:${escapeText(description)}`)
     const url = e.description.match(/Module: (\S+)/)?.[1]
     if (url && /^https?:/.test(url)) lines.push(`URL:${url}`)
     lines.push(`TRANSP:${e.availability === 'free' || finished ? 'TRANSPARENT' : 'OPAQUE'}`, 'STATUS:CONFIRMED')
@@ -153,3 +171,9 @@ export const IMPORT_HOWTO = (newCalendars: string[]) =>
   ]
     .filter((l, i, a) => l || a[i - 1])
     .join('\r\n')
+
+/**
+ * A validator of an .ics file for HTTP: two files with the same events get the same one, although each says when it
+ * was written (`DTSTAMP`). Weak, as a byte-for-byte match is not promised.
+ */
+export const icsETag = (ics: string) => `W/"${hashText(ics.replaceAll(/^DTSTAMP:.*\r\n/gm, ''))}"`

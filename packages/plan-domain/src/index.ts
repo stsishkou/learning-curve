@@ -95,10 +95,12 @@ export {
   calendarICS,
   combinedCalendar,
   combinedICS,
+  icsETag,
   icsFileName,
   planFileName,
   type IcsOptions,
 } from './ics'
+export { hashText, parseRevisions, reviseEvents, type Revision, type Revisions } from './revisions'
 export {
   countsToBudget,
   durationHours,

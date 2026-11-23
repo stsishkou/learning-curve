@@ -3,6 +3,7 @@ export { listPlanFiles, readPlanVersion, removePlanFile, renamePlanFile, savePla
 export {
   canWrite,
   currentHistory,
+  feedRevisions,
   readBusyFeed,
   readEdits,
   readHistory,
