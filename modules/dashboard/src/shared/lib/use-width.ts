@@ -6,7 +6,9 @@ export function useWidth(ref: RefObject<HTMLElement | null>): number {
   useEffect(() => {
     const element = ref.current
     if (!element) return undefined
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.round(entry.contentRect.width)))
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) setWidth(Math.round(entry.contentRect.width))
+    })
     observer.observe(element)
     return () => observer.disconnect()
   }, [ref])

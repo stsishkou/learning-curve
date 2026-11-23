@@ -36,7 +36,7 @@ interface Props {
   /** Opens the week view on that day */
   onPickDay: (day: number) => void
   /** Present when the plan can be edited: called with the new slot (wall-clock ms) of an event dropped on a day */
-  onMove?: (o: Occurrence, slot: { s: number; e: number }) => void
+  onMove?: ((o: Occurrence, slot: { s: number; e: number }) => void) | undefined
 }
 
 /** A month at a glance: every day with its first events; the day number opens that week. */

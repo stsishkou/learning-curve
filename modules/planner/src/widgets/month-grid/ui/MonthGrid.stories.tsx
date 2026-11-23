@@ -28,4 +28,4 @@ export const Default: Story = {}
 export const NextMonth: Story = { args: month(1) }
 
 /** Without `onMove` the events cannot be dragged to another day. */
-export const ReadOnly: Story = { args: { onMove: undefined } }
+export const ReadOnly: StoryObj<typeof MonthGrid> = { args: { onMove: undefined } }

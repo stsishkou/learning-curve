@@ -37,14 +37,14 @@ interface Props {
   /** Called with the event that was clicked: the page opens its dialog */
   onSelect: (e: PlanEvent) => void
   /** Present when the plan can be edited: called with the new slot (wall-clock ms) of a dragged or resized event */
-  onMove?: (o: Occurrence, slot: { s: number; e: number }) => void
+  onMove?: ((o: Occurrence, slot: { s: number; e: number }) => void) | undefined
   /** Called when Delete is pressed on a focused event */
-  onRemove?: (o: Occurrence) => void
+  onRemove?: ((o: Occurrence) => void) | undefined
   /**
    * Present when events can be added: called with the slot that was double-clicked, or with the start and the end
    * of the stretch drawn with the pointer on an empty part of a day, `YYYY-MM-DDTHH:MM`
    */
-  onCreate?: (start: string, end?: string) => void
+  onCreate?: ((start: string, end?: string) => void) | undefined
   /** An event that is not stored yet, drawn dashed in its slot while its form is open */
   draft?: DraftSlot | null
   /** A second clock in the hour column: `label` names it, `shift` is what it is ahead of the plan's clock, in ms */
@@ -55,7 +55,7 @@ interface Props {
    */
   busy?: BusyBlock[]
   /** `eventKey` of the occurrence whose dialog is open: it gets a ring */
-  selectedKey?: string | null
+  selectedKey?: string | null | undefined
 }
 
 export interface DraftSlot {

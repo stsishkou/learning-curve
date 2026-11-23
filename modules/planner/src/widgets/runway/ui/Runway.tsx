@@ -36,7 +36,8 @@ export function Runway({ plan, now, onSelect }: Props) {
 
   const groups: Group[] = []
   for (const e of certs) {
-    const name = e.title.split(' — ')[0]
+    const cut = e.title.indexOf(' — ')
+    const name = cut === -1 ? e.title : e.title.slice(0, cut)
     let g = groups.find((it) => it.name === name)
     if (!g) groups.push((g = { name, start: parseLocal(e.start), end: parseLocal(e.end), labs: [] }))
     g.end = Math.max(g.end, parseLocal(e.end))

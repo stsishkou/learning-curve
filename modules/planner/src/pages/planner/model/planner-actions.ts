@@ -16,7 +16,7 @@ export interface PlannerAction {
   /** The text in the `⋮` menu, when the label is a sentence that explains the action */
   menuLabel?: string
   /** A plain key that runs it, shown wherever the action is listed */
-  keys?: string
+  keys?: string | undefined
   icon?: ReactNode
   /** A count or state shown next to it in the menu */
   badge?: ReactNode
@@ -24,7 +24,7 @@ export interface PlannerAction {
   checked?: boolean
   disabled?: boolean
   /** Lists it in the `⋮` menu: always, or only on a narrow screen, where the toolbar has no room for its button */
-  menu?: 'always' | 'narrow'
+  menu?: 'always' | 'narrow' | undefined
   /** false keeps it out of the command search */
   palette?: boolean
   run: () => void

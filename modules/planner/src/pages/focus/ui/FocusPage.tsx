@@ -24,7 +24,7 @@ interface Props {
   /** false on a read-only host: the time can be measured but not logged */
   canEdit: boolean
   /** uid of the session to time, as the host keeps it (in the URL); without it the page picks by the clock */
-  session?: string
+  session?: string | undefined
   /** Called with the uid picked from the queue, or with undefined once it is finished: the host stores it */
   onPick?: (uid: string | undefined) => void
   /** Stores one change. Rejects with the reason when it cannot be stored: the page shows it */

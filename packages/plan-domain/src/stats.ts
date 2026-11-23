@@ -50,6 +50,7 @@ export function planStats(plan: Plan, now: number): PlanStats {
     const end = parseLocal(event.end)
     const hours = (end - start) / HOUR
     const week = stats.weeks[Math.round((mondayOf(start) - first) / (7 * DAY))]
+    if (!week) continue
     week.planned += hours
     week.byCalendar[event.calendar] = (week.byCalendar[event.calendar] ?? 0) + hours
     stats.planned += hours

@@ -43,7 +43,8 @@ export function paceForecast(plan: Plan, now: number, calendar?: string): PaceFo
     planned: null,
     finish: null,
   }
-  if (!open.length) return forecast
+  const last = open.at(-1)
+  if (!last) return forecast
 
   for (const event of open) {
     const hours = plannedHours(event)
@@ -51,7 +52,7 @@ export function paceForecast(plan: Plan, now: number, calendar?: string): PaceFo
     forecast.needed += hours * (event.paced ? 1 : (paceOf.get(event.calendar) ?? 1))
     if (parseLocal(event.end) <= now) forecast.missed += hours
   }
-  const lastDay = startOfDay(parseLocal(open[open.length - 1].start))
+  const lastDay = startOfDay(parseLocal(last.start))
   forecast.planned = lastDay
 
   let left = forecast.needed

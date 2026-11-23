@@ -67,7 +67,7 @@ export function parseStoredFile(value: unknown): StoredPlanFile | null {
  */
 export function withVersion(
   file: StoredPlanFile | null,
-  save: { id: string; name: string; plan: Plan; note?: string },
+  save: { id: string; name: string; plan: Plan; note?: string | undefined },
   now = Date.now(),
 ): StoredPlanFile {
   const name = cleanName(save.name) || file?.name || save.plan.meta.title

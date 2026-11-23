@@ -2,7 +2,7 @@
 import { Ajv2020 } from 'ajv/dist/2020.js'
 import { expect, test } from 'vitest'
 
-import { fixtureNow, fixturePlan } from './fixtures'
+import { fixtureNow, fixturePlan, itemAt } from './fixtures'
 import { compactPlan, planBrief, planGuide } from './guide'
 import { buildPlan } from './schedule'
 import { PLAN_SCHEMA, UPDATE_SCHEMA } from './schema'
@@ -14,7 +14,9 @@ const validUpdate = ajv.compile(UPDATE_SCHEMA)
 
 /** The JSON code blocks of the guide: the examples a model copies. */
 const examples = (guide: string): unknown[] =>
-  [...guide.matchAll(/```json\n([\s\S]*?)```/g)].map((block) => JSON.parse(block[1]) as unknown)
+  [...guide.matchAll(/```json\n([\s\S]*?)```/g)]
+    .flatMap((block) => block[1] ?? [])
+    .map((json) => JSON.parse(json) as unknown)
 
 test('the generated plan and its short copy fit the plan schema', () => {
   const plan = buildPlan()
@@ -37,7 +39,7 @@ test('every example of the guide fits the update schema, parses and applies', ()
 })
 
 test('an update is read out of a chat answer', () => {
-  const uid = fixturePlan.events[0].uid
+  const { uid } = itemAt(fixturePlan.events)
   const answer = `Sure! Here is the update:\n\n\`\`\`json\n${JSON.stringify({ summary: 'Renamed', changes: [{ type: 'event.patch', uid, patch: { title: 'New' } }] })}\n\`\`\`\nTell me if you want more.`
   const update = parseUpdate(answer)
   expect(update.summary).toBe('Renamed')
@@ -103,7 +105,7 @@ test('a change that does not fit the plan stops the update and names itself', ()
 test('a week filled past the budget is reported', () => {
   const day = '2026-11-28'
   const events = Array.from({ length: 6 }, (_, i) => ({
-    calendar: fixturePlan.calendars[0].id,
+    calendar: itemAt(fixturePlan.calendars).id,
     title: `Extra — Session (${i + 1}/6)`,
     start: `${day}T${String(8 + 2 * i).padStart(2, '0')}:00`,
     end: `${day}T${String(10 + 2 * i).padStart(2, '0')}:00`,
@@ -115,6 +117,6 @@ test('a week filled past the budget is reported', () => {
 test('the brief carries the guide, the plan and the request', () => {
   const brief = planBrief(fixturePlan, fixtureNow, { request: 'Add a course' })
   expect(brief).toContain('## How to add a new course')
-  expect(brief).toContain(fixturePlan.events[0].uid)
+  expect(brief).toContain(itemAt(fixturePlan.events).uid)
   expect(brief).toContain('Add a course')
 })

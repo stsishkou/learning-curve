@@ -1,4 +1,4 @@
-import { fixturePlan } from '@lc/plan-domain/fixtures'
+import { fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { fn } from 'storybook/test'
 
@@ -10,7 +10,7 @@ const meta = {
   parameters: { docs: { story: { inline: false, iframeHeight: 520 } } },
   args: {
     plan: fixturePlan,
-    from: fixturePlan.events[0].start.slice(0, 10),
+    from: itemAt(fixturePlan.events).start.slice(0, 10),
     onChange: fn(async () => {}),
     onClose: fn(),
   },

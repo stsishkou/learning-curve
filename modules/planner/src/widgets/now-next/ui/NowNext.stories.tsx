@@ -31,4 +31,4 @@ export const BeforeTheFirstSession: Story = { args: { now: today + 9 * HOUR } }
 export const NothingAhead: Story = { args: { upcoming: [] } }
 
 /** Without `onFocus` there is no focus page to go to: the card only opens events. */
-export const WithoutFocus: Story = { args: { onFocus: undefined, now: today + 9 * HOUR } }
+export const WithoutFocus: StoryObj<typeof NowNext> = { args: { onFocus: undefined, now: today + 9 * HOUR } }

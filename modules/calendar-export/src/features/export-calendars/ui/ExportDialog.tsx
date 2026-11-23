@@ -39,6 +39,7 @@ export function ExportDialog({
     () => Object.fromEntries(plan.calendars.map((c) => [c.id, plan.events.filter((e) => e.calendar === c.id).length])),
     [plan],
   )
+  const countOf = (id: string) => counts[id] ?? 0
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [status, setStatus] = useState('')
   const [mode, setMode] = useState<'separate' | 'single'>('separate')
@@ -141,9 +142,9 @@ export function ExportDialog({
               )}
             </span>
             <em className="text-[13px] whitespace-nowrap text-muted not-italic tabular-nums">
-              {m.events_count({ count: counts[c.id] })}
+              {m.events_count({ count: countOf(c.id) })}
             </em>
-            {mode === 'separate' && counts[c.id] > 0 && (
+            {mode === 'separate' && countOf(c.id) > 0 && (
               <button
                 type="button"
                 className="ml-1.5 rounded-md border border-line bg-surface px-[7px] py-px text-[12px]"

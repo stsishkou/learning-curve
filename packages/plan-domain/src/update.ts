@@ -24,7 +24,7 @@ const fail = (message: string): never => {
 function jsonIn(text: string): unknown[] {
   const candidates = [
     text,
-    ...[...text.matchAll(/```(?:json|jsonc)?\s*\n([\s\S]*?)```/g)].map((block) => block[1]).toReversed(),
+    ...[...text.matchAll(/```(?:json|jsonc)?\s*\n([\s\S]*?)```/g)].flatMap((block) => block[1] ?? []).toReversed(),
     text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1),
   ]
   return candidates.flatMap((candidate) => {

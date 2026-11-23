@@ -49,11 +49,10 @@ export function WeeklyLoad({ plan, stats, now }: Props) {
           x: center(hover),
           title: `${fmtShort(hovered.monday)} – ${fmtShort(hovered.monday + 6 * DAY)}`,
           rows: [
-            ...calendars.flatMap((c) =>
-              hovered.byCalendar[c.id]
-                ? [{ color: c.color, label: c.name, value: fmtHours(hovered.byCalendar[c.id]) }]
-                : [],
-            ),
+            ...calendars.flatMap((c) => {
+              const hours = hovered.byCalendar[c.id]
+              return hours ? [{ color: c.color, label: c.name, value: fmtHours(hours) }] : []
+            }),
             { label: m.dash_planned(), value: fmtHours(hovered.planned) },
             { label: m.dash_done(), value: fmtHours(hovered.done) },
           ],
@@ -86,14 +85,16 @@ export function WeeklyLoad({ plan, stats, now }: Props) {
             {weeks.map((week, i) => {
               let from = 0
               const current = now !== null && now >= week.monday && now < week.monday + 7 * DAY
-              const segments = calendars.filter((c) => week.byCalendar[c.id])
+              const segments = calendars.flatMap((calendar) => {
+                const hours = week.byCalendar[calendar.id]
+                return hours ? [{ calendar, hours }] : []
+              })
               return (
                 <g key={week.monday}>
                   {hover === i && (
                     <rect x={PAD.left + band * i} y={PAD.above} width={band} height={plotH} fill="var(--surface-2)" />
                   )}
-                  {segments.map((c, index) => {
-                    const hours = week.byCalendar[c.id]
+                  {segments.map(({ calendar: c, hours }, index) => {
                     const bottom = y(from)
                     from += hours
                     const last = index === segments.length - 1

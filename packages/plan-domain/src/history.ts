@@ -53,8 +53,10 @@ function subjectOf(plan: Plan, change: PlanChange): string {
     case 'calendar.save':
     case 'course.add':
       return change.name
-    case 'events.add':
-      return change.events.length === 1 ? change.events[0].title : ''
+    case 'events.add': {
+      const [only, ...others] = change.events
+      return only && !others.length ? only.title : ''
+    }
     case 'plan.rename':
       return change.title
     case 'reviews.plan':
@@ -93,7 +95,7 @@ export function recordChange(
   const dropped = Math.max(0, steps.length - HISTORY_LIMIT)
   return {
     version: 1,
-    origin: dropped ? steps[dropped - 1].edits : history.origin,
+    origin: steps.slice(0, dropped).at(-1)?.edits ?? history.origin,
     steps: steps.slice(dropped),
     cursor: steps.length - dropped,
   }
@@ -101,7 +103,7 @@ export function recordChange(
 
 /** The edits at a point of the history: 0 is the start, `steps.length` the latest. */
 export const historyEdits = (history: PlanHistory, cursor = history.cursor): PlanEdits =>
-  cursor > 0 ? history.steps[cursor - 1].edits : history.origin
+  (cursor > 0 ? history.steps[cursor - 1]?.edits : undefined) ?? history.origin
 
 export const travel = (history: PlanHistory, cursor: number): PlanHistory => ({
   ...history,

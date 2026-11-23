@@ -32,7 +32,7 @@ interface Props {
    * Present when the plan can be edited: rows get a checkbox and the selection a bar of actions. Called with the
    * changes of one action, to be stored in order.
    */
-  onChanges?: (changes: PlanChange[]) => void
+  onChanges?: ((changes: PlanChange[]) => void) | undefined
 }
 
 const matches = (o: Occurrence, filter: Filter, now: number | null) =>

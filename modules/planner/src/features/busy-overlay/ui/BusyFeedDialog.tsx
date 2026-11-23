@@ -7,7 +7,7 @@ interface Props {
   /** Host of the calendar that is connected now; null for none */
   host: string | null
   /** Sets the address, or forgets it when given null. Absent where it cannot be changed. Rejects with the reason */
-  onSave?: (url: string | null) => Promise<void>
+  onSave?: ((url: string | null) => Promise<void>) | undefined
   onClose: () => void
 }
 

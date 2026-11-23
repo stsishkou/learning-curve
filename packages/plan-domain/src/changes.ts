@@ -50,22 +50,22 @@ export type PlanChange =
    */
   | { type: 'event.detach'; uid: string; day: string; start: string; end: string }
   /** Without an id a new calendar is created */
-  | { type: 'calendar.save'; id?: string; name: string; color: string }
+  | { type: 'calendar.save'; id?: string | undefined; name: string; color: string }
   /** Moves the calendar and its events to the trash */
   | { type: 'calendar.remove'; id: string }
   /** Moves every event of the calendar to the trash and keeps the calendar */
   | { type: 'calendar.clear'; id: string }
   /** Brings back the listed events and calendars, or the whole trash when neither is given */
-  | { type: 'trash.restore'; events?: string[]; calendars?: string[] }
+  | { type: 'trash.restore'; events?: string[] | undefined; calendars?: string[] | undefined }
   /** Removes everything in the trash for good */
   | { type: 'trash.empty' }
   /**
    * Moves every session that is not done and starts on `from` (`YYYY-MM-DD`) or later by a number of days,
    * in one calendar or in all of them: the way to catch up after time off
    */
-  | { type: 'events.shift'; calendar?: string; from: string; days: number }
+  | { type: 'events.shift'; calendar?: string | undefined; from: string; days: number }
   /** Puts several sessions into new slots as one step: a catch-up scenario */
-  | { type: 'events.move'; moves: SessionMove[]; paced?: boolean }
+  | { type: 'events.move'; moves: SessionMove[]; paced?: boolean | undefined }
   /** Marks several sessions done or not done as one step */
   | { type: 'events.done'; uids: string[]; done: boolean }
   /** Gives the plan another name: the heading of the viewer and the names of the files it downloads */
@@ -270,10 +270,9 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     case 'event.patch': {
       const { uid, patch } = change
       if (patch?.calendar && !calendarExists(patch.calendar)) fail(`Unknown calendar "${patch.calendar}"`)
-      const addedIndex = next.added.findIndex((e) => e.uid === uid)
-      if (addedIndex !== -1) {
+      const current = next.added.find((e) => e.uid === uid)
+      if (current) {
         if (!patch) return next
-        const current = next.added[addedIndex]
         const { rrule, skip, ...fields } = patch
         // Only an event that repeats can change its days or skip one.
         const repeat = current.rrule ? { ...(rrule ? { rrule } : {}), ...(skip ? { skip } : {}) } : {}
@@ -284,7 +283,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
           delete merged.actual
         }
         if (patchProblem(merged, {})) fail('The event must end after it starts')
-        next.added[addedIndex] = merged
+        next.added[next.added.indexOf(current)] = merged
         return next
       }
       const original = base.events.find((e) => e.uid === uid) ?? fail(`Unknown event "${uid}"`)
@@ -429,7 +428,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
 }
 
 /** The sessions an `events.shift` change would move, in `plan` as it is shown. */
-export const shiftTargets = (plan: Plan, change: { calendar?: string; from: string }): PlanEvent[] =>
+export const shiftTargets = (plan: Plan, change: { calendar?: string | undefined; from: string }): PlanEvent[] =>
   plan.events.filter(
     (e) =>
       isSession(e) &&

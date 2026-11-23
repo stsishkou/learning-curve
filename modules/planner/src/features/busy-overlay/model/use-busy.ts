@@ -8,7 +8,7 @@ export interface BusySource {
   /** The busy time between two Minsk wall-clock moments. Rejects with the reason when the calendar cannot be read */
   load: (from: number, to: number) => Promise<BusyBlock[]>
   /** Present where the address can be changed: sets it, or forgets it when given null. Rejects with the reason */
-  save?: (url: string | null) => Promise<void>
+  save?: ((url: string | null) => Promise<void>) | undefined
 }
 
 /** The busy time of the person's own calendar for the stretch on screen, read again when the stretch changes. */

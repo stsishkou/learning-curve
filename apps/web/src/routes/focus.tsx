@@ -7,7 +7,7 @@ import { ShellAside } from '#/shell/ShellAside'
 
 /** The focus page of the planner module at `/focus`: one session and a stopwatch that logs the time it took. */
 /** `?session=<uid>` names the session to time, so a link from the planner opens the one that was picked. */
-const parseSearch = (search: Record<string, unknown>): { session?: string } => ({
+const parseSearch = (search: Record<string, unknown>): { session?: string | undefined } => ({
   session: typeof search.session === 'string' && search.session ? search.session : undefined,
 })
 

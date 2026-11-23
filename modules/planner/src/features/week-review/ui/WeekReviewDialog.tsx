@@ -11,7 +11,7 @@ interface Props {
   /** Minsk wall-clock ms; null before the clock is known */
   now: number | null
   /** Present when the plan can be edited: opens the catch-up scenarios for the sessions that were missed */
-  onCatchUp?: () => void
+  onCatchUp?: (() => void) | undefined
   /** Shows the following week in the calendar */
   onNextWeek: () => void
   onClose: () => void

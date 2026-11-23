@@ -58,16 +58,19 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
     setHover(Math.max(0, Math.min(weeks.length, Math.round(((px - PAD.left) / plotW) * span))))
   }
 
+  const plannedAt = hover === null ? undefined : planned[hover]
+  const doneAt = hover === null ? undefined : done[hover]
+  const doneNow = done[doneUntil]
   const tip: Tip | null =
-    hover === null
+    hover === null || plannedAt === undefined
       ? null
       : {
           x: x(hover),
           title: fmtShort(start + hover * WEEK),
           rows: [
-            { color: 'var(--muted)', label: m.dash_planned(), value: fmtHours(planned[hover]) },
-            ...(hover <= doneUntil
-              ? [{ color: 'var(--done)', label: m.dash_done(), value: fmtHours(done[hover]) }]
+            { color: 'var(--muted)', label: m.dash_planned(), value: fmtHours(plannedAt) },
+            ...(hover <= doneUntil && doneAt !== undefined
+              ? [{ color: 'var(--done)', label: m.dash_done(), value: fmtHours(doneAt) }]
               : []),
           ],
         }
@@ -120,7 +123,7 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
               </g>
             )}
             <path d={path(planned)} fill="none" stroke="var(--muted)" strokeWidth={2} strokeLinejoin="round" />
-            {doneUntil > 0 && (
+            {doneUntil > 0 && doneNow !== undefined && (
               <>
                 <path
                   d={`${path(done.slice(0, doneUntil + 1))}L${x(doneUntil).toFixed(1)},${y(0)}L${x(0)},${y(0)}Z`}
@@ -136,7 +139,7 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
                 />
                 <circle
                   cx={x(doneUntil)}
-                  cy={y(done[doneUntil])}
+                  cy={y(doneNow)}
                   r={4}
                   fill="var(--done)"
                   stroke="var(--surface)"

@@ -50,18 +50,18 @@ export function CatchUpDialog({ plan, open, now, onChange, onShift, onClose }: P
 }
 
 function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open' | 'now'> & { now: number }) {
-  const options = useMemo(() => {
-    const keep: Option = { id: 'keep', moves: [], unplaced: 0, outlook: planOutlook(plan, now) }
+  const { keep, options } = useMemo(() => {
+    const asIs: Option = { id: 'keep', moves: [], unplaced: 0, outlook: planOutlook(plan, now) }
     const scenarios = catchUpScenarios(plan, now).map((scenario): Option => ({
       ...scenario,
       outlook: planOutlook(withMoves(plan, scenario.moves), now),
     }))
-    return [keep, ...scenarios]
+    return { keep: asIs, options: [asIs, ...scenarios] }
   }, [plan, now])
   const [choice, setChoice] = useState<Choice>(options[1]?.id ?? 'keep')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const chosen = options.find((option) => option.id === choice) ?? options[0]
+  const chosen = options.find((option) => option.id === choice) ?? keep
   const budget = plan.meta.weeklyBudgetHours
 
   async function apply() {
@@ -82,8 +82,8 @@ function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open'
       <div className={META}>
         {options.length === 1
           ? m.catchup_nothing()
-          : options[0].outlook.missed
-            ? m.catchup_hint({ count: options[0].outlook.missed })
+          : keep.outlook.missed
+            ? m.catchup_hint({ count: keep.outlook.missed })
             : m.catchup_hint_pace()}
       </div>
       <div className="mt-4 grid gap-2.5" role="radiogroup" aria-label={m.catchup_title()}>

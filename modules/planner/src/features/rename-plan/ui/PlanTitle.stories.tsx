@@ -25,4 +25,4 @@ export const Default: Story = {
 }
 
 /** Without `onRename` the name is a plain heading. */
-export const ReadOnly: Story = { args: { onRename: undefined } }
+export const ReadOnly: StoryObj<typeof PlanTitle> = { args: { onRename: undefined } }

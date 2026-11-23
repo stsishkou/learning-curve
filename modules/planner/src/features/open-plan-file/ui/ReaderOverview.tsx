@@ -11,7 +11,7 @@ interface Props {
   /** The plan to compare with; null when the document is the plan on screen itself */
   compareWith: Plan | null
   /** What that plan is, for the heading: `the previous version`. The plan on screen when left out */
-  compareName?: string
+  compareName?: string | undefined
 }
 
 /** What a plan document holds and, for a file from disk, how it differs from the project plan. */

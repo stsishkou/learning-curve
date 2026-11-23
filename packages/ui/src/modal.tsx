@@ -19,7 +19,7 @@ interface Props {
    * Returns the element the dialog is about. On a wide window the dialog then opens beside that element, on the
    * side with more room, and leaves the page behind it readable; without an element it stays in the middle.
    */
-  anchor?: () => Element | null
+  anchor?: (() => Element | null) | undefined
   children: ReactNode
 }
 

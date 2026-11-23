@@ -19,7 +19,7 @@ interface Props {
   initial: EventFormValues
   calendars: PlanCalendar[]
   /** All-day events have a date only */
-  allDay?: boolean
+  allDay?: boolean | undefined
   /** A repeating event: the note says the change covers every repeat */
   recurring?: boolean
   /** Only a new event chooses whether it counts toward the budget */
@@ -30,9 +30,9 @@ interface Props {
   onSubmit: (values: EventFormValues) => void
   onProblem: (message: string) => void
   /** What a timed, busy event in this slot would overlap, `YYYY-MM-DDTHH:MM` to the same: shown as a warning */
-  overlaps?: (start: string, end: string) => Overlap[]
+  overlaps?: ((start: string, end: string) => Overlap[]) | undefined
   /** Called with the fields as they stand after every change, so the page can show the event before it is saved */
-  onValues?: (values: EventFormValues) => void
+  onValues?: ((values: EventFormValues) => void) | undefined
 }
 
 export function EventForm({

@@ -37,7 +37,7 @@ export interface PlannerState {
 interface OpenFile {
   name: string
   /** id of the library file it is a version of, when it came from there or was saved there */
-  origin?: string
+  origin?: string | undefined
   /** The file as it was read */
   base: Plan
   /** What was changed since, kept in the browser only */
@@ -52,7 +52,7 @@ interface Host {
   /** Moves the plan to a point of its history. Resolves once `state` is fresh. */
   onTravel: (cursor: number) => Promise<void>
   /** Stores several changes in order, all or none. Without it they are sent one by one */
-  onChangeAll?: (changes: PlanChange[]) => Promise<void>
+  onChangeAll?: ((changes: PlanChange[]) => Promise<void>) | undefined
 }
 
 /**
@@ -148,7 +148,7 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onChan
     history,
     travel: go,
     /** The step a bar offers to take back right after it was made */
-    lastStep: justChanged && history.cursor > 0 ? history.steps[history.cursor - 1] : null,
+    lastStep: justChanged && history.cursor > 0 ? (history.steps[history.cursor - 1] ?? null) : null,
     dismissLastStep: () => setJustChanged(false),
     file: file
       ? { name: file.name, origin: file.origin, changes: edited.size + Object.keys(file.edits.calendars).length }

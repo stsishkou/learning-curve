@@ -11,7 +11,9 @@ function declarations(marker: string): Array<[name: string, value: string]> {
   if (start === -1) return []
   const open = css.indexOf('{', start)
   const body = css.slice(open + 1, css.indexOf('}', open))
-  return [...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((match) => [match[1], match[2].trim()])
+  return [...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].flatMap(([, name, value]): [name: string, value: string][] =>
+    name !== undefined && value !== undefined ? [[name, value.trim()]] : [],
+  )
 }
 
 const light = declarations(':root {')

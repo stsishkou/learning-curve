@@ -60,7 +60,8 @@ export function listZones(now: number, regionOf: (zone: string) => string): Zone
 /** The zones that match every word of the query; without a query, the person's own zone and the common ones. */
 export function findZones(zones: ZoneOption[], query: string, mine: string, limit = 40): ZoneOption[] {
   const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean)
-  if (!words.length) {
+  const [lead] = words
+  if (lead === undefined) {
     const first = [mine, ...COMMON.filter((id) => id !== mine)]
     return first.flatMap((id) => zones.find((zone) => zone.id === id) ?? [])
   }
@@ -68,8 +69,7 @@ export function findZones(zones: ZoneOption[], query: string, mine: string, limi
     .filter((zone) => words.every((word) => zone.haystack.includes(word)))
     .toSorted(
       (a, b) =>
-        Number(b.city.toLocaleLowerCase().startsWith(words[0])) -
-        Number(a.city.toLocaleLowerCase().startsWith(words[0])),
+        Number(b.city.toLocaleLowerCase().startsWith(lead)) - Number(a.city.toLocaleLowerCase().startsWith(lead)),
     )
     .slice(0, limit)
 }

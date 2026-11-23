@@ -32,9 +32,9 @@ interface Props {
   menu: MenuItem[]
   onSearch: () => void
   /** Present when the plan can be edited */
-  onNewEvent?: () => void
+  onNewEvent?: (() => void) | undefined
   /** Present when the plan can be edited: `can` says whether there is a step to take */
-  history?: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
+  history?: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void } | undefined
   /** The calendar chips, on the second row */
   children: ReactNode
   /**

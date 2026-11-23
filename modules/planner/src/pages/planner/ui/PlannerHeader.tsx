@@ -9,7 +9,7 @@ import { PlanTitle } from '../../../features/rename-plan'
 interface Props {
   plan: Plan
   /** Present when the plan can be renamed */
-  onRename?: (title: string) => void
+  onRename?: ((title: string) => void) | undefined
   /** Controls the host owns, such as the sections of the app and the language */
   aside?: ReactNode
   /** Buttons that work on the whole plan: its file, its export */

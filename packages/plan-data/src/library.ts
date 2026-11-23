@@ -35,6 +35,8 @@ function write(file: StoredPlanFile): PlanFileInfo {
   return fileInfo(file)
 }
 
+const savedAt = (file: PlanFileInfo) => file.versions[0]?.at ?? ''
+
 /** Every file of the library, the one saved last first. */
 export function listPlanFiles(): PlanFileInfo[] {
   if (!existsSync(dir())) return []
@@ -48,7 +50,7 @@ export function listPlanFiles(): PlanFileInfo[] {
         return []
       }
     })
-    .toSorted((a, b) => b.versions[0].at.localeCompare(a.versions[0].at))
+    .toSorted((a, b) => savedAt(b).localeCompare(savedAt(a)))
 }
 
 /** The plan of one version of a file; the latest when no version is named. */
@@ -60,7 +62,12 @@ export function readPlanVersion(id: string, version?: string): Plan {
 }
 
 /** Saves `plan` as a new version of the file `id`, or as a new file when no id is given. */
-export function savePlanVersion(save: { id?: string; name: string; plan: Plan; note?: string }): PlanFileInfo {
+export function savePlanVersion(save: {
+  id?: string | undefined
+  name: string
+  plan: Plan
+  note?: string | undefined
+}): PlanFileInfo {
   const id = save.id ?? `plan-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
   return write(withVersion(save.id ? read(save.id) : null, { ...save, id }))
 }

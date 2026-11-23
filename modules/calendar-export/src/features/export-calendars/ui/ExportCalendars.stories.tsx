@@ -17,24 +17,24 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-/** The dialog after a click on the button: every calendar is checked. */
-export const DialogOpen: Story = {
-  play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('button'))
-    await expect(canvasElement.querySelector('dialog')).toHaveAttribute('open')
-  },
+const openDialog: NonNullable<Story['play']> = async ({ canvasElement }) => {
+  await userEvent.click(within(canvasElement).getByRole('button'))
+  await expect(canvasElement.querySelector('dialog')).toHaveAttribute('open')
 }
+
+/** The dialog after a click on the button: every calendar is checked. */
+export const DialogOpen: Story = { play: openDialog }
 
 /** Calendars hidden in the planner start unchecked, so the export matches what is on screen. */
 export const SomeCalendarsHidden: Story = {
   args: { hidden: new Set(['journey', 'personal']) },
-  play: DialogOpen.play,
+  play: openDialog,
 }
 
 /** The steps under the list follow the calendar app picked in "Where to". */
 export const ForAppleCalendar: Story = {
   play: async (context) => {
-    await DialogOpen.play?.(context)
+    await openDialog(context)
     const dialog = within(context.canvasElement.ownerDocument.body)
     await userEvent.click(dialog.getByRole('button', { name: /Apple/ }))
     await expect(dialog.getByText(/ Mac: /)).toBeInTheDocument()

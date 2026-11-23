@@ -10,7 +10,7 @@ export interface Command {
   /** Section heading the command is listed under */
   group: string
   /** Keys that run it without the palette, shown on the right */
-  keys?: string
+  keys?: string | undefined
   run: () => void
 }
 
@@ -28,7 +28,7 @@ interface Props {
    * new event, and this is called with it. `now` is the Minsk wall-clock time the words "today" and "tomorrow"
    * are read against.
    */
-  onQuickAdd?: (event: QuickEvent) => void
+  onQuickAdd?: ((event: QuickEvent) => void) | undefined
   now?: number | null
   onClose: () => void
 }
@@ -134,7 +134,7 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onQuickAdd
       >
         {items.map((item, i) => (
           <Fragment key={item.key}>
-            {(i === 0 || items[i - 1].group !== item.group) && (
+            {(i === 0 || items[i - 1]?.group !== item.group) && (
               <div
                 role="presentation"
                 className={`px-2 pb-1.5 text-[11px] font-semibold tracking-[0.08em] text-muted uppercase ${

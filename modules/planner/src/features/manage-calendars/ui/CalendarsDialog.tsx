@@ -4,7 +4,16 @@ import { Button, FOOT, INPUT, META, Modal, TITLE, Trash2 } from '@lc/ui'
 import { useState, type FormEvent } from 'react'
 
 /** Offered for a new calendar: the first one no calendar uses yet. */
-const PALETTE = ['#0f8fc4', '#5b8c2a', '#d8473b', '#b0562b', '#3f51b5', '#00897b', '#9c27b0', '#6b7280']
+const PALETTE: readonly [string, ...string[]] = [
+  '#0f8fc4',
+  '#5b8c2a',
+  '#d8473b',
+  '#b0562b',
+  '#3f51b5',
+  '#00897b',
+  '#9c27b0',
+  '#6b7280',
+]
 
 interface Props {
   plan: Plan
@@ -98,8 +107,8 @@ interface RowProps {
   /** null for the row that adds a calendar */
   events: number | null
   onSave: (name: string, color: string) => Promise<void>
-  onClear?: () => Promise<void>
-  onRemove?: () => Promise<void>
+  onClear?: (() => Promise<void>) | undefined
+  onRemove?: (() => Promise<void>) | undefined
 }
 
 function CalendarRow({ calendar, events, onSave, onClear, onRemove }: RowProps) {

@@ -35,7 +35,8 @@ const TIME = /^(\d{1,2}):(\d{2})$/
 const RANGE = /^(\d{1,2}):(\d{2})[-–—](\d{1,2}):(\d{2})$/
 const AMOUNT = /^(\d+(?:[.,]\d+)?)(\D*)$/
 
-const clock = (hours: string, minutes: string) => {
+// A group that took no part in the match is not a number, so it is not a time either.
+const clock = (hours: string | undefined, minutes: string | undefined) => {
   const value = Number(hours) * HOUR + Number(minutes) * MINUTE
   return Number(hours) < 24 && Number(minutes) < 60 ? value : null
 }
@@ -64,8 +65,9 @@ export function parseQuickEvent(text: string, now: number): QuickEvent | null {
     const word = raw.toLocaleLowerCase()
     const range = RANGE.exec(word)
     const time = TIME.exec(word)
-    const amount = AMOUNT.exec(word)
+    const [, amount, unit] = AMOUNT.exec(word) ?? []
     const next = words[i + 1]?.toLocaleLowerCase() ?? ''
+    const ahead = DAYS_AHEAD[word]
     if (used.has(i)) continue
     if (range && at === null) {
       const from = clock(range[1], range[2])
@@ -76,18 +78,20 @@ export function parseQuickEvent(text: string, now: number): QuickEvent | null {
     } else if (time && at === null) {
       at = clock(time[1], time[2])
       if (at === null) continue
-    } else if (amount && length === null && span(amount[1], amount[2] || next) !== null) {
-      length = span(amount[1], amount[2] || next)
-      if (!amount[2]) used.add(i + 1)
-    } else if (day === null && word in DAYS_AHEAD) {
-      day = startOfDay(now) + DAYS_AHEAD[word] * DAY
+    } else if (amount !== undefined && length === null && span(amount, unit || next) !== null) {
+      length = span(amount, unit || next)
+      if (!unit) used.add(i + 1)
+    } else if (day === null && ahead !== undefined) {
+      day = startOfDay(now) + ahead * DAY
     } else if (day === null && WEEKDAYS.some((names) => names.includes(word))) {
       const wanted = WEEKDAYS.findIndex((names) => names.includes(word))
       day = startOfDay(now) + ((wanted - weekday(now) + 7) % 7) * DAY
     } else if (day === null && /^\d{4}-\d{2}-\d{2}$/.test(word)) {
       day = parseLocal(word)
     } else if (day === null && /^\d{1,2}\.\d{1,2}$/.test(word)) {
-      const [date, month] = word.split('.').map(Number)
+      const dot = word.indexOf('.')
+      const date = Number(word.slice(0, dot))
+      const month = Number(word.slice(dot + 1))
       const year = new Date(now).getUTCFullYear()
       const thisYear = Date.UTC(year, month - 1, date)
       day = thisYear < startOfDay(now) ? Date.UTC(year + 1, month - 1, date) : thisYear
@@ -95,7 +99,8 @@ export function parseQuickEvent(text: string, now: number): QuickEvent | null {
       continue
     }
     used.add(i)
-    for (let before = i - 1; before >= 0 && LINKS.has(words[before].toLocaleLowerCase()); before--) used.add(before)
+    const lastOther = words.slice(0, i).findLastIndex((link) => !LINKS.has(link.toLocaleLowerCase()))
+    for (let before = i - 1; before > lastOther; before--) used.add(before)
   }
 
   const title = words.filter((_, i) => !used.has(i)).join(' ')

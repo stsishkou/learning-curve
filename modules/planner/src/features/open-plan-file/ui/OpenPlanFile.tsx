@@ -10,7 +10,7 @@ export interface OpenedFile {
   name: string
   plan: Plan
   /** id of the library file it came from, when it did */
-  origin?: string
+  origin?: string | undefined
 }
 
 interface Props {
@@ -21,11 +21,11 @@ interface Props {
   /** Called with a file from disk or from the library the person chose to open in the planner */
   onOpen: (file: OpenedFile) => void
   /** Present when the host keeps plan files with versions */
-  library?: PlanLibrary
+  library?: PlanLibrary | undefined
   /** Minsk wall-clock ms; null before the clock is known */
-  now?: number | null
+  now?: number | null | undefined
   /** Stores the changes of an update a chat returned. Absent when the plan cannot be edited */
-  onApply?: (changes: PlanChange[]) => Promise<void>
+  onApply?: ((changes: PlanChange[]) => Promise<void>) | undefined
 }
 
 /** Opens the reader on the plan file; from there a file from disk can be read, compared and opened for editing. */

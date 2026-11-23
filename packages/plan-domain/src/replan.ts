@@ -144,9 +144,13 @@ function squeeze(plan: Plan, now: number): CatchUpScenario {
         : []
     for (const window of windows) {
       let at = window.from
-      while (next < missed.length && at + plannedHours(missed[next]) * HOUR <= window.to) {
-        moves.push(moveTo(missed[next], at))
-        at += plannedHours(missed[next]) * HOUR
+      for (
+        let session = missed[next];
+        session && at + plannedHours(session) * HOUR <= window.to;
+        session = missed[next]
+      ) {
+        moves.push(moveTo(session, at))
+        at += plannedHours(session) * HOUR
         next += 1
       }
     }

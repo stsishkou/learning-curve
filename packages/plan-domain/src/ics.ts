@@ -48,7 +48,7 @@ export interface IcsOptions {
    * Minutes before the start at which every timed, busy event that is not finished asks for a reminder (VALARM).
    * Whether it is kept is up to the calendar app: some replace it with their own default.
    */
-  alarm?: number
+  alarm?: number | undefined
   /** The address the file is served from, for a client that subscribed to it (RFC 7986 SOURCE) */
   source?: string
 }

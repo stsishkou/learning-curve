@@ -23,7 +23,10 @@ export function BudgetPanel({ plan, weekItems, children }: Props) {
     total += durationHours(o)
   }
   const budget = plan.meta.weeklyBudgetHours
-  const rows = plan.calendars.filter((c) => perCalendar[c.id])
+  const rows = plan.calendars.flatMap((calendar) => {
+    const hours = perCalendar[calendar.id]
+    return hours ? [{ calendar, hours }] : []
+  })
 
   return (
     <div>
@@ -39,24 +42,24 @@ export function BudgetPanel({ plan, weekItems, children }: Props) {
           role="img"
           aria-label={m.budget_progress({ total, budget })}
         >
-          {rows.map((c) => (
+          {rows.map(({ calendar: c, hours }) => (
             <i
               key={c.id}
               className="block h-full"
-              style={{ background: c.color, width: `${(perCalendar[c.id] / Math.max(budget, total)) * 100}%` }}
+              style={{ background: c.color, width: `${(hours / Math.max(budget, total)) * 100}%` }}
             />
           ))}
         </div>
       </div>
       <ul className="mt-3.5 grid gap-1.5 text-[13px]">
         {rows.length ? (
-          rows.map((c) => (
+          rows.map(({ calendar: c, hours }) => (
             <li key={c.id} className="flex justify-between gap-2">
               <span className="flex min-w-0 items-center gap-[7px]" style={calendarColor(c.color)}>
                 <Dot className="size-[9px]" />
                 {c.name}
               </span>
-              <em className="text-muted not-italic tabular-nums">{fmtHours(perCalendar[c.id])}</em>
+              <em className="text-muted not-italic tabular-nums">{fmtHours(hours)}</em>
             </li>
           ))
         ) : (

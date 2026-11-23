@@ -72,7 +72,7 @@ interface Props {
   /** Stores the changes of an update in order, all or none. Without it they are sent to `onChange` one by one */
   onChangeAll?: (changes: PlanChange[]) => Promise<void>
   /** Present when the host keeps plan files with versions: the plan file reader lists them */
-  library?: PlanLibrary
+  library?: PlanLibrary | undefined
   /** Shown next to the title: controls the host owns, such as the language switcher */
   headerAside?: ReactNode
   /** More header actions that work on the plan as it is shown now, such as export */
@@ -177,6 +177,7 @@ export function PlannerPage({
   const declined = useDismissedReviews()
   const reviews = useMemo(() => (now === null || !canEdit ? [] : reviewOffers(plan, now)), [plan, now, canEdit])
   const waiting = reviews.filter((offer) => !declined.dismissed.includes(offer.key))
+  const [offer] = waiting
 
   // One repeat of a series, not all of them: the one that was opened, or the first on screen after a reload.
   const selectedShown = selected
@@ -308,12 +309,12 @@ export function PlannerPage({
         />
       )}
 
-      {waiting.length > 0 && (
+      {offer && (
         <ReviewBar
-          offer={waiting[0]}
+          offer={offer}
           more={waiting.length - 1}
-          onPlan={() => quiet.change({ type: 'reviews.plan', reviews: waiting[0].reviews })}
-          onDismiss={() => declined.dismiss(waiting[0].key)}
+          onPlan={() => quiet.change({ type: 'reviews.plan', reviews: offer.reviews })}
+          onDismiss={() => declined.dismiss(offer.key)}
         />
       )}
 

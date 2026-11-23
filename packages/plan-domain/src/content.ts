@@ -27,7 +27,7 @@ function series(prefix: string, topic: string, n: number, course: string, module
   return Array.from({ length: n }, (_, i): QueueItem => ({
     title: `${prefix} — ${topic}${n > 1 ? ` (${i + 1}/${n})` : ''}`,
     hours: 1, kind: 'study',
-    description: d(course, module, Array.isArray(goals) ? goals[i] : goals),
+    description: d(course, module, Array.isArray(goals) ? (goals[i] ?? '') : goals),
   }));
 }
 export const CERT1: QueueItem[] = [

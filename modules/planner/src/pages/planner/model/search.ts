@@ -4,22 +4,22 @@ export type PlannerZoom = 'compact' | 'large'
 /** What the planner keeps in the URL, so a week, a view or an event can be linked and survives a reload. */
 export interface PlannerSearch {
   /** Monday of the visible week, YYYY-MM-DD */
-  week?: string
+  week?: string | undefined
   /** The day of the day view, YYYY-MM-DD; without it the day view shows today */
-  day?: string
-  view?: PlannerView
+  day?: string | undefined
+  view?: PlannerView | undefined
   /** The week grid shows Monday to Friday only */
-  workWeek?: true
+  workWeek?: true | undefined
   /** The time scale of the day and week grids; without it an hour has its usual height */
-  zoom?: PlannerZoom
+  zoom?: PlannerZoom | undefined
   /** The week grid shows all 24 hours instead of only the hours that have events */
-  fullDay?: true
+  fullDay?: true | undefined
   /** The calendar takes the whole window: the header, the runway and the side panel are hidden */
-  expanded?: true
+  expanded?: true | undefined
   /** Sessions marked done are left out of the day, week and month views */
-  hideDone?: true
+  hideDone?: true | undefined
   /** uid of the event whose dialog is open */
-  event?: string
+  event?: string | undefined
 }
 
 const VIEWS: readonly unknown[] = ['day', 'week', 'month', 'year', 'list'] satisfies PlannerView[]

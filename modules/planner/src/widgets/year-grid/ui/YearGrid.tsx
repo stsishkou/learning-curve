@@ -53,7 +53,7 @@ export function YearGrid({ plan, year, items, now, onPickDay, onPickMonth }: Pro
   }
   const today = now === null ? null : startOfDay(now)
   const months = Array.from({ length: 12 }, (_, i) => Date.UTC(year, i, 1))
-  const weekdays = Array.from({ length: 7 }, (_, i) => mondayOf(months[0]) + i * DAY)
+  const weekdays = Array.from({ length: 7 }, (_, i) => mondayOf(Date.UTC(year, 0, 1)) + i * DAY)
   // Like the other views, the year ends where the window does and scrolls inside itself.
   const box = useRef<HTMLDivElement>(null)
   const maxHeight = useFillHeight(box, true, { minWidth: 961 })

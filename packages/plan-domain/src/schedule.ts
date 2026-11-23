@@ -66,13 +66,14 @@ export function buildPlan(
   for (let day = config.certStart; day <= config.certEnd && certQueue.length; day = addDays(day, 1)) {
     if (!isWorkday(day)) continue
     let hour = 12
-    while (hour < 14 && certQueue.length) {
+    while (hour < 14) {
       const next = certQueue[0]
+      if (!next) break
       if (next.hours === 2 && hour === 13) {
         // A lab cannot start at 13:00: pull the next 1 h session forward, run the lab the next day at 12:00.
         const j = certQueue.findIndex((x) => x.hours === 1)
-        if (j > 0) {
-          const [one] = certQueue.splice(j, 1)
+        const [one] = j > 0 ? certQueue.splice(j, 1) : []
+        if (one) {
           push('certs', one, at(day, 13), at(day, 14))
           lastCertDay = day
         }

@@ -13,7 +13,7 @@ export interface LibraryDoc {
   name: string
   plan: Plan
   /** The plan to show the differences from, with what to call it; the plan on screen when left out */
-  compare?: { name: string; plan: Plan }
+  compare?: { name: string; plan: Plan } | undefined
 }
 
 interface Props {
@@ -21,7 +21,7 @@ interface Props {
   /** The plan on screen: what `Save` stores */
   shown: { name: string; plan: Plan }
   /** id of the library file the plan on screen was opened from, when it was */
-  origin?: string
+  origin?: string | undefined
   /** Shows a version in the reader */
   onView: (doc: LibraryDoc) => void
   /** Opens the latest version of a file in the planner, for editing */

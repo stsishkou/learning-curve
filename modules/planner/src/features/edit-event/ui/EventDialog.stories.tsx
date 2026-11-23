@@ -1,11 +1,11 @@
 import { isSession, parseLocal, type PlanEvent } from '@lc/plan-domain'
-import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
+import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 
 import { EventDialog } from './EventDialog'
 
-const pick = (test: (e: PlanEvent) => boolean) => fixturePlan.events.find(test) ?? fixturePlan.events[0]
+const pick = (test: (e: PlanEvent) => boolean) => fixturePlan.events.find(test) ?? itemAt(fixturePlan.events)
 const upcoming = pick((e) => isSession(e) && parseLocal(e.start) > fixtureNow)
 
 const meta = {

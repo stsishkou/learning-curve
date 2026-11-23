@@ -11,7 +11,7 @@ interface Props {
   now: number | null
 }
 
-const DONE = [
+const DONE: readonly [string, string, string] = [
   'var(--done)',
   'color-mix(in srgb, var(--done) 70%, var(--surface))',
   'color-mix(in srgb, var(--done) 40%, var(--surface))',
@@ -42,7 +42,7 @@ export function StudyStreak({ plan, now }: Props) {
   const streak = now === null ? null : studyStreak(plan, now)
   const today = now === null ? null : startOfDay(now)
   const days = streak?.days ?? []
-  const weeks = Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7))
+  const weeks = days.flatMap((monday, i) => (i % 7 === 0 ? [{ monday: monday.day, days: days.slice(i, i + 7) }] : []))
 
   return (
     <Card
@@ -71,19 +71,19 @@ export function StudyStreak({ plan, now }: Props) {
         <div className="min-w-0 flex-1 overflow-x-auto pb-1">
           <div className="flex w-max gap-[3px]">
             <div className="mt-[18px] mr-1 grid grid-rows-7 gap-[3px] text-[10.5px]/[20px] text-muted" aria-hidden>
-              {weeks[0]?.map((d, i) => (
+              {weeks[0]?.days.map((d, i) => (
                 <span key={d.day}>{i % 2 === 0 ? dowShort(d.day) : ''}</span>
               ))}
             </div>
             {weeks.map((week, i) => (
-              <div key={week[0].day} className="grid gap-[3px]">
+              <div key={week.monday} className="grid gap-[3px]">
                 {/* The month is named over the week it starts in. */}
                 <span className="h-[15px] text-[10.5px]/[15px] whitespace-nowrap text-muted" aria-hidden>
-                  {i === 0 || new Date(week[0].day).getUTCMonth() !== new Date(week[0].day - 7 * DAY).getUTCMonth()
-                    ? fmtMonthName(week[0].day).slice(0, 3)
+                  {i === 0 || new Date(week.monday).getUTCMonth() !== new Date(week.monday - 7 * DAY).getUTCMonth()
+                    ? fmtMonthName(week.monday).slice(0, 3)
                     : ''}
                 </span>
-                {week.map((d) => (
+                {week.days.map((d) => (
                   <i
                     key={d.day}
                     role="img"

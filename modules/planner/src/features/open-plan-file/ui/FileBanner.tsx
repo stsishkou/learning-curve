@@ -10,7 +10,7 @@ interface Props {
   /** Saves the file with its changes to disk */
   onDownload: () => void
   /** Present when the host keeps plan files: saves the file as a new version there. Rejects with the reason */
-  onSave?: () => Promise<void>
+  onSave?: (() => Promise<void>) | undefined
   /** Goes back to the project plan */
   onClose: () => void
 }

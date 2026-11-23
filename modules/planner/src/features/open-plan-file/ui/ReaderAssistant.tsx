@@ -23,7 +23,7 @@ interface Props {
   /** Minsk wall-clock ms; null before the clock is known */
   now: number | null
   /** Stores the changes of an update in order. Absent when the plan cannot be edited. Rejects with the reason */
-  onApply?: (changes: PlanChange[]) => Promise<void>
+  onApply?: ((changes: PlanChange[]) => Promise<void>) | undefined
 }
 
 const STEP = 'flex items-center gap-2 text-[14px] font-semibold'
@@ -131,7 +131,7 @@ export function ReaderAssistant({ plan, now, onApply }: Props) {
     try {
       const update = parseUpdate(answer)
       const order = update.changes.map((_, index) => index).filter((index) => !left.has(index))
-      const kept = order.map((index) => update.changes[index])
+      const kept = update.changes.filter((_, index) => !left.has(index))
       return { update, kept, order, preview: previewUpdate(plan, kept), invalid: '' }
     } catch (err) {
       return {

@@ -43,11 +43,11 @@ interface Context {
   hiddenCount: number
   history: { cursor: number; total: number; canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
   /** Name of the second time zone of the hour column, when one is chosen */
-  secondZone?: string
+  secondZone?: string | undefined
   /** Present when the host can read the person's own calendar: `host` is where the connected one lives */
-  busy?: { host: string | null }
+  busy?: { host: string | null } | undefined
   /** Present where the browser can show notifications */
-  reminders?: { on: boolean; toggle: () => void }
+  reminders?: { on: boolean; toggle: () => void } | undefined
   /** The help marks next to the main features */
   help: { on: boolean; toggle: () => void }
   trashCount: number

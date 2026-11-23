@@ -241,7 +241,11 @@ After the person applies an update the uids of new events exist. Ask for the pla
 }
 
 /** One text to paste into a chat: the guide, the plan and, when given, what the person wants. */
-export function planBrief(plan: Plan, now: number, options: { request?: string; descriptions?: boolean } = {}): string {
+export function planBrief(
+  plan: Plan,
+  now: number,
+  options: { request?: string | undefined; descriptions?: boolean } = {},
+): string {
   const request = options.request?.trim()
   return [
     planGuide(plan, now),

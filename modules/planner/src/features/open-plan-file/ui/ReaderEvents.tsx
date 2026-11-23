@@ -49,7 +49,8 @@ export function ReaderEvents({ plan }: { plan: Plan }) {
         {shown.map((e, i) => {
           const s = parseLocal(e.start)
           const end = parseLocal(e.end)
-          const previous = i ? startOfMonth(parseLocal(shown[i - 1].start)) : null
+          const before = shown[i - 1]
+          const previous = before ? startOfMonth(parseLocal(before.start)) : null
           const heading = previous === startOfMonth(s) ? null : fmtMonth(startOfMonth(s))
           const cal = calendarOf(e.calendar)
           return (

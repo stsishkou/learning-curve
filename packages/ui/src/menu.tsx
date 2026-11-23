@@ -8,15 +8,15 @@ export interface MenuItem {
   /** A 16 px icon before the label; a switch that is on shows its check mark there instead */
   icon?: ReactNode
   /** Shortcut shown at the end of the row */
-  keys?: string
+  keys?: string | undefined
   /** A count or state shown next to the label */
   badge?: ReactNode
   /** Makes the item a switch: it shows a check mark and the menu stays open when it is toggled */
-  checked?: boolean
+  checked?: boolean | undefined
   /** Dims the row; focus and the arrow keys skip it */
-  disabled?: boolean
+  disabled?: boolean | undefined
   /** Extra classes for the row, e.g. to show it only on a narrow screen */
-  className?: string
+  className?: string | undefined
   /** Called on a click or Enter; the menu then closes unless the item is a switch */
   run: () => void
 }

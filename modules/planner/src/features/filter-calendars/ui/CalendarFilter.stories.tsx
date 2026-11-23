@@ -1,4 +1,4 @@
-import { fixturePlan } from '@lc/plan-domain/fixtures'
+import { fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, within } from 'storybook/test'
@@ -60,7 +60,7 @@ export const Default: Story = {
 export const SomeHidden: Story = { args: { hidden: new Set(['journey', 'personal']) } }
 
 /** Without `onManage` there is no button for the calendars dialog. */
-export const ReadOnly: Story = { args: { onManage: undefined } }
+export const ReadOnly: StoryObj<typeof CalendarFilter> = { args: { onManage: undefined } }
 
 /**
  * The eye on a chip (it shows under the pointer or with the keyboard focus) leaves that calendar as the only one;
@@ -70,8 +70,8 @@ export const OnlyOne: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     const eyes = canvasElement.querySelectorAll<HTMLButtonElement>('span > button + button')
-    await userEvent.click(eyes[1])
-    await expect(args.onSolo).toHaveBeenCalledWith(fixturePlan.calendars[1].id)
+    await userEvent.click(itemAt(eyes, 1))
+    await expect(args.onSolo).toHaveBeenCalledWith(itemAt(fixturePlan.calendars, 1).id)
     await expect(canvasElement.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1)
     await userEvent.click(canvas.getByRole('button', { name: /Show all|Показать все|Mostrar todos/ }))
     await expect(canvasElement.querySelectorAll('[aria-pressed="false"]')).toHaveLength(0)

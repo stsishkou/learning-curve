@@ -15,9 +15,9 @@ interface Props {
   /** Shows only this calendar, or everything again when it is already the only one */
   onSolo: (id: string) => void
   /** Present when something is hidden: adds the chip that brings every calendar back */
-  onShowAll?: () => void
+  onShowAll?: (() => void) | undefined
   /** Present when calendars can be added and renamed: adds the button that opens their dialog */
-  onManage?: () => void
+  onManage?: (() => void) | undefined
 }
 
 /**

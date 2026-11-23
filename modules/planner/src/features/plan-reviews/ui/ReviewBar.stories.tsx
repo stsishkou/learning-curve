@@ -1,3 +1,4 @@
+import { itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
 
@@ -37,8 +38,7 @@ type Story = StoryObj<typeof meta>
  */
 export const Default: Story = {
   play: async ({ canvasElement, args }) => {
-    const [plan] = within(canvasElement).getAllByRole('button')
-    await userEvent.click(plan)
+    await userEvent.click(itemAt(within(canvasElement).getAllByRole('button')))
     await expect(args.onPlan).toHaveBeenCalled()
   },
 }

@@ -6,7 +6,7 @@ import { useState } from 'react'
 interface Props {
   title: string
   /** Present when the plan can be edited: called with the new name, already trimmed and different from the old one */
-  onRename?: (title: string) => void
+  onRename?: ((title: string) => void) | undefined
 }
 
 /**

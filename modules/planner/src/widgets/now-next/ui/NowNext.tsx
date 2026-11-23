@@ -12,7 +12,7 @@ interface Props {
   /** Called with the event that was clicked: the page opens its dialog */
   onSelect: (e: PlanEvent) => void
   /** Present when there is a focus page: called with the uid of the session to time there */
-  onFocus?: (uid: string) => void
+  onFocus?: ((uid: string) => void) | undefined
 }
 
 /** How many other events of today are listed under the main one */

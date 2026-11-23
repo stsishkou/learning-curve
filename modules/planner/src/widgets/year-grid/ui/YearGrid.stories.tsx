@@ -1,5 +1,5 @@
 import { occurrences } from '@lc/plan-domain'
-import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
+import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
 
@@ -29,7 +29,7 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   play: async ({ canvasElement, args }) => {
     const days = within(canvasElement).getAllByRole('button', { name: /: / })
-    await userEvent.click(days[0])
+    await userEvent.click(itemAt(days))
     await expect(args.onPickDay).toHaveBeenCalled()
   },
 }

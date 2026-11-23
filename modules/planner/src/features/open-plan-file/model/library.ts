@@ -7,7 +7,12 @@ export interface PlanLibrary {
   /** The plan of one version; the latest when no version is named */
   read: (id: string, version?: string) => Promise<Plan>
   /** Saves a plan as a new version of the file `id`, or as a new file without one. Rejects with the reason */
-  save: (file: { id?: string; name: string; plan: Plan; note?: string }) => Promise<PlanFileInfo>
+  save: (file: {
+    id?: string | undefined
+    name: string
+    plan: Plan
+    note?: string | undefined
+  }) => Promise<PlanFileInfo>
   rename: (id: string, name: string) => Promise<void>
   /** Removes one version for good, or the whole file when no version is named */
   remove: (id: string, version?: string) => Promise<void>

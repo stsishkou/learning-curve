@@ -63,7 +63,7 @@ export function PlanMap({ plan, hidden, now, weekStart, onPickWeek }: Props) {
         if (!day) return { hours: 0, color: null, done: false }
         const [main] = [...day.byCalendar].toSorted((a, b) => b[1] - a[1])
         const hours = [...day.byCalendar.values()].reduce((sum, h) => sum + h, 0)
-        return { hours, color: colors.get(main[0]) ?? null, done: day.done === day.sessions }
+        return { hours, color: (main && colors.get(main[0])) ?? null, done: day.done === day.sessions }
       })
       return { monday, cells, hours: cells.reduce((sum, c) => sum + c.hours, 0) }
     })
@@ -74,8 +74,8 @@ export function PlanMap({ plan, hidden, now, weekStart, onPickWeek }: Props) {
     <div>
       <div className="flex gap-[3px]" role="group" aria-label={m.plan_map()}>
         {weeks.map((week, i) => {
-          const monthChanges =
-            i === 0 || new Date(week.monday).getUTCMonth() !== new Date(weeks[i - 1].monday).getUTCMonth()
+          const before = weeks[i - 1]
+          const monthChanges = !before || new Date(week.monday).getUTCMonth() !== new Date(before.monday).getUTCMonth()
           return (
             <button
               key={week.monday}

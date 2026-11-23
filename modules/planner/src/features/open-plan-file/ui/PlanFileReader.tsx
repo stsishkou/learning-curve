@@ -22,9 +22,9 @@ interface PlanDoc {
   /** false for the plan on screen; true for a file from disk or a version from the library */
   fromDisk: boolean
   /** id of the library file it is a version of */
-  origin?: string
+  origin?: string | undefined
   /** The plan its differences are shown from, when that is not the project plan */
-  compare?: { name: string; plan: Plan }
+  compare?: { name: string; plan: Plan } | undefined
 }
 
 type Tab = 'overview' | 'events' | 'source' | 'files' | 'assistant'
@@ -37,15 +37,15 @@ interface Props {
   /** The project plan, to compare a file with */
   project: Plan
   /** Opens a file from disk or from the library in the planner, for viewing in the calendar and editing */
-  onOpen: (file: { name: string; plan: Plan; origin?: string }) => void
+  onOpen: (file: { name: string; plan: Plan; origin?: string | undefined }) => void
   /** Present when the host keeps plan files: adds the tab that lists them with their versions */
-  library?: PlanLibrary
+  library?: PlanLibrary | undefined
   /** id of the library file the plan on screen was opened from */
-  origin?: string
+  origin?: string | undefined
   /** Minsk wall-clock ms, for the brief of the AI chat tab; null before the clock is known */
-  now?: number | null
+  now?: number | null | undefined
   /** Stores the changes of an update a chat returned, in order. Absent when the plan cannot be edited */
-  onApply?: (changes: PlanChange[]) => Promise<void>
+  onApply?: ((changes: PlanChange[]) => Promise<void>) | undefined
   onClose: () => void
 }
 

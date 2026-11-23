@@ -39,7 +39,9 @@ export const ThreeCourses: Story = {
 }
 
 /** Without the three edit callbacks an event can only be opened. */
-export const ReadOnly: Story = { args: { onMove: undefined, onRemove: undefined, onCreate: undefined } }
+export const ReadOnly: StoryObj<typeof WeekGrid> = {
+  args: { onMove: undefined, onRemove: undefined, onCreate: undefined },
+}
 
 /**
  * An event that is being created: pressing on an empty part of a day and dragging draws it, and while its form is
