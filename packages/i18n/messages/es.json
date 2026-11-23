@@ -648,5 +648,6 @@
   "ai_warn_overlap": "{title}: a la misma hora que «{other}»",
   "ai_warn_deadline": "{title}: después de la fecha límite de su curso, {day}",
   "ai_warn_done": "{title}: ya está hecha y la actualización la cambia",
-  "ai_warn_done_removed": "{title}: ya está hecha y la actualización la elimina"
+  "ai_warn_done_removed": "{title}: ya está hecha y la actualización la elimina",
+  "grid_took": "llevó {time}"
 }

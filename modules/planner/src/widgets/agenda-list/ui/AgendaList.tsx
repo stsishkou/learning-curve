@@ -1,4 +1,4 @@
-import { fmtDay, fmtHours } from '@lc/i18n/format'
+import { fmtDay, fmtDuration, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   countsToBudget,
@@ -10,6 +10,7 @@ import {
   type Plan,
   type PlanChange,
   type PlanEvent,
+  realLength,
   startOfDay,
   toLocalString,
 } from '@lc/plan-domain'
@@ -109,6 +110,7 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
         </h2>,
       )
     }
+    const real = realLength(o)
     rows.push(
       <div
         key={`${o.uid}-${o.s}`}
@@ -143,6 +145,11 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
             <Dot className="size-[9px] -translate-y-px" />
             {o.title}
             {o.done && <span className="text-done-ink no-underline">✓</span>}
+            {real !== null && real !== o.e - o.s && (
+              <small className="inline-block text-[12px] text-muted tabular-nums">
+                {m.grid_took({ time: fmtDuration(real) })}
+              </small>
+            )}
           </span>
         </button>
       </div>,

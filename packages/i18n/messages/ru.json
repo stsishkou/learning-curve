@@ -660,5 +660,6 @@
   "ai_warn_overlap": "{title}: в одно время с «{other}»",
   "ai_warn_deadline": "{title}: после дедлайна курса, {day}",
   "ai_warn_done": "{title}: уже пройдено, а обновление его меняет",
-  "ai_warn_done_removed": "{title}: уже пройдено, а обновление его удаляет"
+  "ai_warn_done_removed": "{title}: уже пройдено, а обновление его удаляет",
+  "grid_took": "заняло {time}"
 }

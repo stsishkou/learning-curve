@@ -115,7 +115,10 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Real pace**: a session marked done shows `Time spent` in its card, in quarter-hour steps; without it the
   session counts as planned. From that the planner works out a pace per course (real hours per planned hour) and
   the dashboard's `Forecast at your pace` shows when the rest of each course will really be finished and how
-  that sits against the certificate deadline.
+  that sits against the certificate deadline. In the calendar such a session keeps its planned slot and shows
+  what happened in it: the part it did not need is dashed, a session that ran over gets a hatched tail, and a
+  timer next to its times (and `took …` in the list) gives the real length. The slot is not shortened, because
+  the pace is the difference between the two.
 - **Goals and the week review**: under the weekly budget the side panel lists the goals the schedule implies:
   the modules whose last session falls in the week on screen, what the month asks of each course, and how far
   the certificates are. They tick themselves as sessions are marked done. `Week review` sums the week up: hours

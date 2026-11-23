@@ -26,6 +26,10 @@ export const plannedHours = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.
 /** Hours a done session took: what was logged, or its planned length. */
 export const spentHours = (e: PlanEvent) => (e.actual === undefined ? plannedHours(e) : e.actual / 60)
 
+/** How long a finished session really took, in ms, when that was logged; null for anything else. */
+export const realLength = (e: PlanEvent): number | null =>
+  e.done && e.actual !== undefined && !e.rrule ? (e.actual * HOUR) / 60 : null
+
 const hoursOf = plannedHours
 
 /** Progress of every calendar that has sessions, in calendar order. */

@@ -1,7 +1,7 @@
-import { DAY, mondayOf, occurrences, parseLocal } from '@lc/plan-domain'
+import { DAY, mondayOf, occurrences, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 
 import { WeekGrid } from './WeekGrid'
 
@@ -97,5 +97,31 @@ export const OwnCalendar: Story = {
       { title: '', s: fixtureWeek + 2 * DAY + 13 * 3_600_000, e: fixtureWeek + 2 * DAY + 14.5 * 3_600_000 },
       { title: 'Day off', s: fixtureWeek + 3 * DAY, e: fixtureWeek + 4 * DAY, allDay: true },
     ],
+  },
+}
+
+/** Minutes logged for two finished sessions of the fixture week: one ended early, one ran over. */
+const LOGGED: Record<string, number> = { 'certs-011@learning-curve': 40, 'certs-014@learning-curve': 90 }
+const loggedPlan: Plan = {
+  ...fixturePlan,
+  events: fixturePlan.events.map((e) => {
+    const actual = LOGGED[e.uid]
+    return actual === undefined ? e : { ...e, actual }
+  }),
+}
+
+/**
+ * A finished session with its real time logged keeps its planned slot and shows what happened in it: the part it
+ * did not need is dashed, a session that ran over gets a hatched tail, and a timer next to the times says how
+ * long it took.
+ */
+export const RealTime: Story = {
+  args: { plan: loggedPlan, items: occurrences(loggedPlan, fixtureWeek, fixtureWeek + 7 * DAY, new Set()) },
+  play: async ({ canvasElement }) => {
+    const times = within(canvasElement)
+      .getAllByRole('button')
+      .map((button) => button.textContent)
+    await expect(times.filter((text) => text.includes('12:00–13:000:40'))).toHaveLength(1)
+    await expect(times.filter((text) => text.includes('13:00–14:001:30'))).toHaveLength(1)
   },
 }

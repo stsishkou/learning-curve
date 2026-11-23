@@ -1,4 +1,4 @@
-import { dowShort, fmtDay, fmtHours, fmtShift } from '@lc/i18n/format'
+import { dowShort, fmtDay, fmtDuration, fmtHours, fmtShift } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   countsToBudget,
@@ -11,11 +11,12 @@ import {
   type Occurrence,
   type Plan,
   type PlanEvent,
+  realLength,
   startOfDay,
   toLocalString,
   ymd,
 } from '@lc/plan-domain'
-import { calendarColor, GraduationCap, Repeat } from '@lc/ui'
+import { calendarColor, GraduationCap, Repeat, Timer } from '@lc/ui'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 
 import { eventKey, useFillHeight } from '../../../shared/lib'
@@ -100,8 +101,19 @@ const EVENT_DONE =
   'border-[color-mix(in_srgb,var(--c)_45%,var(--surface))] bg-[color-mix(in_srgb,var(--c)_6%,var(--surface))] text-muted hover:bg-[color-mix(in_srgb,var(--c)_14%,var(--surface))]'
 const BUSY_FILL = 'bg-[repeating-linear-gradient(135deg,var(--line)_0_2px,var(--surface-2)_2px_7px)]'
 const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
+// What a session finished early left of its slot, and what it ran over: the slot itself stays the plan.
+const SLOT_LEFT =
+  'pointer-events-none absolute inset-x-0 bottom-0 border-t border-dashed border-[color-mix(in_srgb,var(--c)_60%,var(--surface))] bg-[color-mix(in_srgb,var(--surface)_70%,transparent)]'
+const OVERRUN =
+  'pointer-events-none absolute z-1 rounded-b-lg border-x-2 border-b-2 border-dashed border-[color-mix(in_srgb,var(--c)_60%,var(--surface))] bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_14%,transparent)_0_4px,transparent_4px_8px)]'
 // A long press picks an event up: it must not select text or open the system menu instead.
 const TOUCH_QUIET = 'select-none [-webkit-touch-callout:none]'
+
+/** A length as hours and minutes, `1:30`: short enough for the narrowest event. */
+const clock = (ms: number) => {
+  const minutes = Math.round(ms / (HOUR / 60))
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
+}
 
 const shortTitle = (o: Occurrence) =>
   o.kind === 'study' || o.kind === 'lab' || o.kind === 'review' ? o.title.replace(/^[^—]+— /, '') : o.title
@@ -575,7 +587,11 @@ export function WeekGrid({
                   const s = dragged?.s ?? o.s
                   const e = dragged?.e ?? o.e
                   const { lane, lanes: count } = lanes.get(o) ?? { lane: 0, lanes: 1 }
-                  return (
+                  const real = dragged ? null : realLength(o)
+                  const left = `calc(${(lane / count) * 100}% + 4px)`
+                  const width = `calc(${100 / count}% - 8px)`
+                  const slotEnd = ((e - d) / HOUR - minH) * hourHeight
+                  return [
                     <button
                       key={keyOf(o)}
                       type="button"
@@ -584,18 +600,28 @@ export function WeekGrid({
                         ...calendarColor(colorOf(o.calendar)),
                         top: ((s - startOfDay(s)) / HOUR - minH) * hourHeight + 1,
                         height: Math.max(22, ((e - s) / HOUR) * hourHeight - 3),
-                        left: `calc(${(lane / count) * 100}% + 4px)`,
-                        width: `calc(${100 / count}% - 8px)`,
+                        left,
+                        width,
                         transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined,
                       }}
                       {...handlers(o, 'move')}
                     >
-                      <b className={`block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
+                      {real !== null && real < e - s && (
+                        <span aria-hidden className={SLOT_LEFT} style={{ height: `${(1 - real / (e - s)) * 100}%` }} />
+                      )}
+                      <b className={`relative block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
                         {o.done && <span className="mr-1 inline-block text-done-ink no-underline">✓</span>}
                         {shortTitle(o)}
                       </b>
-                      <small className="text-muted tabular-nums">
+                      <small className="relative text-muted tabular-nums">
                         {hm(s)}–{hm(e)}
+                        {real !== null && real !== e - s && (
+                          <span className="ml-1 inline-flex items-center gap-0.5">
+                            <Timer aria-hidden size={10} />
+                            <span aria-hidden>{clock(real)}</span>
+                            <span className="sr-only">{m.grid_took({ time: fmtDuration(real) })}</span>
+                          </span>
+                        )}
                       </small>
                       {o.rrule && <Repeat aria-hidden size={11} className="absolute top-1.5 right-1.5 text-muted" />}
                       {now !== null && !dragged && o.s <= now && now < o.e && (
@@ -619,8 +645,22 @@ export function WeekGrid({
                           />
                         </>
                       )}
-                    </button>
-                  )
+                    </button>,
+                    real !== null && real > e - s && (
+                      <div
+                        key={`${keyOf(o)}-over`}
+                        aria-hidden
+                        className={OVERRUN}
+                        style={{
+                          ...calendarColor(colorOf(o.calendar)),
+                          top: slotEnd - 2,
+                          height: Math.min(((real - (e - s)) / HOUR) * hourHeight, height - slotEnd + 2),
+                          left,
+                          width,
+                        }}
+                      />
+                    ),
+                  ]
                 })}
                 {[drawn && { ...drawn, title: '', calendar: '' }, draft]
                   .flatMap((slot) => (slot !== null && slot.e > slot.s && startOfDay(slot.s) === d ? [slot] : []))

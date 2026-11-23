@@ -105,7 +105,7 @@ export {
   type Lane,
   type Occurrence,
 } from './occurrences'
-export { courseProgress, isSession, plannedHours, spentHours, type CourseProgress } from './progress'
+export { courseProgress, isSession, plannedHours, realLength, spentHours, type CourseProgress } from './progress'
 export { planStats, type PlanStats, type WeekStats } from './stats'
 export { DEFAULT_CONFIG, buildPlan, weeklyHours, type ScheduleConfig } from './schedule'
 export {
