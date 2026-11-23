@@ -20,6 +20,8 @@ export interface PlannerSearch {
   hideDone?: true | undefined
   /** uid of the event whose dialog is open */
   event?: string | undefined
+  /** How a sign-in to Google that just came back went; the Google dialog opens to say so */
+  google?: 'connected' | 'failed' | undefined
 }
 
 const VIEWS: readonly unknown[] = ['day', 'week', 'month', 'year', 'list'] satisfies PlannerView[]
@@ -36,4 +38,5 @@ export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSear
   expanded: search.expanded === true ? true : undefined,
   hideDone: search.hideDone === true ? true : undefined,
   event: typeof search.event === 'string' && search.event ? search.event : undefined,
+  google: search.google === 'connected' || search.google === 'failed' ? search.google : undefined,
 })

@@ -16,12 +16,14 @@ interface Props {
 }
 
 const colorOf = (p: Plan, id: string) => p.calendars.find((c) => c.id === id)?.color
-const when = (e: PlanEvent) => `${fmtDay(parseLocal(e.start))} ${hm(parseLocal(e.start))}–${hm(parseLocal(e.end))}`
+/** The day and hours of an event, as a row of a change list shows them. */
+export const slotText = (e: PlanEvent) =>
+  `${fmtDay(parseLocal(e.start))} ${hm(parseLocal(e.start))}–${hm(parseLocal(e.end))}`
 
 /** The one thing worth saying about a change, the most visible first. */
-function what(was: PlanEvent, now: PlanEvent): string {
+export function changeText(was: PlanEvent, now: PlanEvent): string {
   const fields = changedFields(was, now)
-  if (fields.includes('start') || fields.includes('end')) return `${when(was)} → ${when(now)}`
+  if (fields.includes('start') || fields.includes('end')) return `${slotText(was)} → ${slotText(now)}`
   if (fields.includes('title')) return was.title
   if (fields.includes('done')) return now.done ? m.diff_done() : m.diff_not_done()
   if (fields.includes('actual') && now.actual !== undefined)
@@ -37,17 +39,17 @@ export function PlanDiffList({ diff, after, before, labels }: Props) {
     <div className="grid gap-2">
       <Group tone="text-done-ink" sign="+" label={labels.added(diff.added.length)} count={diff.added.length}>
         {diff.added.slice(0, SHOWN).map((e) => (
-          <Row key={e.uid} color={colorOf(after, e.calendar)} title={e.title} detail={when(e)} />
+          <Row key={e.uid} color={colorOf(after, e.calendar)} title={e.title} detail={slotText(e)} />
         ))}
       </Group>
       <Group tone="text-today-ink" sign="−" label={labels.removed(diff.removed.length)} count={diff.removed.length}>
         {diff.removed.slice(0, SHOWN).map((e) => (
-          <Row key={e.uid} color={colorOf(before, e.calendar)} title={e.title} detail={when(e)} />
+          <Row key={e.uid} color={colorOf(before, e.calendar)} title={e.title} detail={slotText(e)} />
         ))}
       </Group>
       <Group tone="text-focus" sign="~" label={labels.changed(diff.changed.length)} count={diff.changed.length}>
         {diff.changed.slice(0, SHOWN).map(({ before: was, after: now }) => (
-          <Row key={now.uid} color={colorOf(after, now.calendar)} title={now.title} detail={what(was, now)} />
+          <Row key={now.uid} color={colorOf(after, now.calendar)} title={now.title} detail={changeText(was, now)} />
         ))}
       </Group>
     </div>

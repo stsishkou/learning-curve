@@ -1,4 +1,13 @@
-import { canWrite, currentHistory, readEdits, readPlan, saveChanges, writeHistory, writePlan } from '@lc/plan-data'
+import {
+  canWrite,
+  currentHistory,
+  readEdits,
+  readPlan,
+  saveChanges,
+  syncGoogle,
+  writeHistory,
+  writePlan,
+} from '@lc/plan-data'
 import {
   buildPlan,
   editedUids,
@@ -36,6 +45,12 @@ function state(plan: Plan): PlanState {
   }
 }
 
+/** The state after a save, which Google Calendar is sent in the background when it is connected. */
+function pushed(plan: Plan): PlanState {
+  void syncGoogle()
+  return state(plan)
+}
+
 const mustWrite = () => {
   if (!canWrite()) throw new Error('The plan is read-only here')
 }
@@ -47,7 +62,7 @@ export const savePlanChange = createServerFn({ method: 'POST' })
   .validator(parseChange)
   .handler(({ data }): PlanState => {
     mustWrite()
-    return state(saveChanges([data]).plan)
+    return pushed(saveChanges([data]).plan)
   })
 
 /** Stores the changes of an update in order, each a step of the history; none when one does not fit. */
@@ -58,7 +73,7 @@ export const savePlanChanges = createServerFn({ method: 'POST' })
   })
   .handler(({ data }): PlanState => {
     mustWrite()
-    return state(saveChanges(data).plan)
+    return pushed(saveChanges(data).plan)
   })
 
 /** Moves the plan to a point of the history: 0 is before the first change, the number of steps the latest. */
@@ -72,5 +87,5 @@ export const travelPlanHistory = createServerFn({ method: 'POST' })
     const history = travel(currentHistory(), data)
     const written = writePlan(historyEdits(history))
     writeHistory(history)
-    return state(written.plan)
+    return pushed(written.plan)
   })

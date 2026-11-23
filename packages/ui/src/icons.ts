@@ -11,6 +11,7 @@ export {
   Calendar,
   CalendarClock,
   CalendarSearch,
+  CalendarSync,
   CalendarPlus,
   CalendarDays,
   Check,

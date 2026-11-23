@@ -4,7 +4,7 @@ import { diffPlans, HOUR, parseLocal, type Plan } from '@lc/plan-domain'
 import { calendarColor, Dot } from '@lc/ui'
 import type { ReactNode } from 'react'
 
-import { PlanDiffList } from './PlanDiffList'
+import { PlanDiffList } from '../../../shared/ui'
 
 interface Props {
   plan: Plan

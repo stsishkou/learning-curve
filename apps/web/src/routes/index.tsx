@@ -5,6 +5,14 @@ import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planne
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { getBusy, getBusyFeed, saveBusyFeed } from '#/server/busy'
+import {
+  acceptGoogleProposals,
+  disconnectGoogleFn,
+  getGoogleStatus,
+  rejectGoogleProposals,
+  saveGoogleClientFn,
+  syncGoogleNow,
+} from '#/server/google'
 import { getPlanFile, getPlanFiles, removeSavedPlan, renameSavedPlan, savePlanFile } from '#/server/library'
 import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory } from '#/server/plan'
 import { ShellAside, STAND_URL } from '#/shell/ShellAside'
@@ -14,8 +22,8 @@ import { setTheme } from '#/shell/theme'
 export const Route = createFileRoute('/')({
   validateSearch: parsePlannerSearch,
   loader: async () => {
-    const [state, feed] = await Promise.all([getPlanState(), getBusyFeed()])
-    return { state, feed }
+    const [state, feed, google] = await Promise.all([getPlanState(), getBusyFeed(), getGoogleStatus()])
+    return { state, feed, google }
   },
   component: PlannerRoute,
 })
@@ -41,7 +49,7 @@ const shellCommands = (open: (to: '/dashboard' | '/focus') => void): PlannerComm
 function PlannerRoute() {
   const navigate = Route.useNavigate()
   const router = useRouter()
-  const { state, feed } = Route.useLoaderData()
+  const { state, feed, google } = Route.useLoaderData()
   return (
     <PlannerPage
       state={state}
@@ -90,6 +98,29 @@ function PlannerRoute() {
             }
           : undefined,
       }}
+      google={
+        google.writable
+          ? {
+              status: google,
+              connectUrl: '/api/google/connect',
+              saveClient: async (id, secret) => {
+                await saveGoogleClientFn({ data: { id, secret } })
+                await router.invalidate()
+              },
+              sync: () => syncGoogleNow(),
+              accept: async (ids) => {
+                const next = await acceptGoogleProposals({ data: ids })
+                await router.invalidate()
+                return next
+              },
+              reject: (ids) => rejectGoogleProposals({ data: ids }),
+              disconnect: async () => {
+                await disconnectGoogleFn()
+                await router.invalidate()
+              },
+            }
+          : undefined
+      }
       onFocus={(session) => void router.navigate({ to: '/focus', search: { session } })}
       commands={shellCommands((to) => void router.navigate({ to }))}
     />

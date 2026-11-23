@@ -17,6 +17,8 @@ import { Route as ApiPlanRouteImport } from './routes/api/plan'
 import { Route as ApiPlanGuideRouteImport } from './routes/api/plan-guide'
 import { Route as ApiPlanSchemaRouteImport } from './routes/api/plan-schema'
 import { Route as ApiPlanUpdateRouteImport } from './routes/api/plan-update'
+import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google.callback'
+import { Route as ApiGoogleConnectRouteImport } from './routes/api/google.connect'
 import { Route as ApiIcsCalendarIdRouteImport } from './routes/api/ics.$calendarId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +61,16 @@ const ApiPlanUpdateRoute = ApiPlanUpdateRouteImport.update({
   path: '/api/plan-update',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGoogleCallbackRoute = ApiGoogleCallbackRouteImport.update({
+  id: '/api/google/callback',
+  path: '/api/google/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGoogleConnectRoute = ApiGoogleConnectRouteImport.update({
+  id: '/api/google/connect',
+  path: '/api/google/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiIcsCalendarIdRoute = ApiIcsCalendarIdRouteImport.update({
   id: '/api/ics/$calendarId',
   path: '/api/ics/$calendarId',
@@ -74,6 +86,8 @@ export interface FileRoutesByFullPath {
   '/api/plan-guide': typeof ApiPlanGuideRoute
   '/api/plan-schema': typeof ApiPlanSchemaRoute
   '/api/plan-update': typeof ApiPlanUpdateRoute
+  '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/google/connect': typeof ApiGoogleConnectRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +99,8 @@ export interface FileRoutesByTo {
   '/api/plan-guide': typeof ApiPlanGuideRoute
   '/api/plan-schema': typeof ApiPlanSchemaRoute
   '/api/plan-update': typeof ApiPlanUpdateRoute
+  '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/google/connect': typeof ApiGoogleConnectRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRoutesById {
@@ -97,6 +113,8 @@ export interface FileRoutesById {
   '/api/plan-guide': typeof ApiPlanGuideRoute
   '/api/plan-schema': typeof ApiPlanSchemaRoute
   '/api/plan-update': typeof ApiPlanUpdateRoute
+  '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/google/connect': typeof ApiGoogleConnectRoute
   '/api/ics/$calendarId': typeof ApiIcsCalendarIdRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +128,8 @@ export interface FileRouteTypes {
     | '/api/plan-guide'
     | '/api/plan-schema'
     | '/api/plan-update'
+    | '/api/google/callback'
+    | '/api/google/connect'
     | '/api/ics/$calendarId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +141,8 @@ export interface FileRouteTypes {
     | '/api/plan-guide'
     | '/api/plan-schema'
     | '/api/plan-update'
+    | '/api/google/callback'
+    | '/api/google/connect'
     | '/api/ics/$calendarId'
   id:
     | '__root__'
@@ -132,6 +154,8 @@ export interface FileRouteTypes {
     | '/api/plan-guide'
     | '/api/plan-schema'
     | '/api/plan-update'
+    | '/api/google/callback'
+    | '/api/google/connect'
     | '/api/ics/$calendarId'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +168,8 @@ export interface RootRouteChildren {
   ApiPlanGuideRoute: typeof ApiPlanGuideRoute
   ApiPlanSchemaRoute: typeof ApiPlanSchemaRoute
   ApiPlanUpdateRoute: typeof ApiPlanUpdateRoute
+  ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
+  ApiGoogleConnectRoute: typeof ApiGoogleConnectRoute
   ApiIcsCalendarIdRoute: typeof ApiIcsCalendarIdRoute
 }
 
@@ -205,6 +231,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPlanUpdateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/google/callback': {
+      id: '/api/google/callback'
+      path: '/api/google/callback'
+      fullPath: '/api/google/callback'
+      preLoaderRoute: typeof ApiGoogleCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/google/connect': {
+      id: '/api/google/connect'
+      path: '/api/google/connect'
+      fullPath: '/api/google/connect'
+      preLoaderRoute: typeof ApiGoogleConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ics/$calendarId': {
       id: '/api/ics/$calendarId'
       path: '/api/ics/$calendarId'
@@ -224,6 +264,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPlanGuideRoute: ApiPlanGuideRoute,
   ApiPlanSchemaRoute: ApiPlanSchemaRoute,
   ApiPlanUpdateRoute: ApiPlanUpdateRoute,
+  ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
+  ApiGoogleConnectRoute: ApiGoogleConnectRoute,
   ApiIcsCalendarIdRoute: ApiIcsCalendarIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -31,6 +31,7 @@ Run from the repository root; Nx runs the task in every project that has it and 
 | `pnpm run stand:test` | Every story as a test in headless Chromium: it renders, its interactions pass, axe finds no accessibility violation |
 | `pnpm run plan` | Rebuilds `plan.json` from the course content, schedule rules and manual edits |
 | `pnpm run plan --ics` | Same, plus writes `packages/plan-data/exports/*.ics` and import instructions |
+| `pnpm run test` | Unit tests of `plan-domain` and `plan-data`; the Google Calendar sync runs against a fake Google, never the real one |
 | `pnpm run check` | Typecheck, lint, Feature-Sliced check, translation check and format check |
 | `pnpm run affected` | The same checks plus build, only for projects changed since `main` |
 | `pnpm run typecheck` | `tsc --noEmit` (TypeScript 7) in every project |
@@ -64,6 +65,9 @@ a Husky `commit-msg` hook checks them with commitlint.
   `packages/plan-data/data/local.json`, or set with `BUSY_ICS_URL` on a host without a writable checkout; the
   browser only ever learns its host. The compact grid keeps the plan's hours: `24 hours` shows the whole day.
   Titles of that calendar are shown to anyone who can open the planner, so set it only where that is you.
+- **Google Calendar, kept in step**: `⋮` → `Google Calendar` writes the plan into calendars of its own in your
+  Google account and keeps them up to date with every change, see
+  [Keeping the plan in Google Calendar](#keeping-the-plan-in-google-calendar).
 - **Reminders**: `⋮` → `Reminders` shows a system notification ten minutes before each start, while the planner
   is open in a tab.
 - **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs
@@ -212,6 +216,44 @@ logged, its notes start with it, `✓ 1:15 / 1:00` (took / planned). `Add a remi
 3. Import each `.ics` into the calendar with the same name:
    - Google Calendar: Settings → Import & export → Import.
    - Outlook: Add calendar → Upload from file.
+
+## Keeping the plan in Google Calendar
+
+The planner can write the plan into Google Calendar itself, so a phone shows it without importing or subscribing to
+anything. Each plan calendar becomes a calendar of its own in your account, named the same; the app sees those
+calendars and nothing else (scope `calendar.app.created`, no access to your address or other calendars). Remove an
+imported or subscribed copy of the plan first, or it shows twice.
+
+What goes where:
+
+- **Plan → Google**: every change saved in the planner or through `POST /api/plan-update`, undo and redo included,
+  is sent right away; a change made by `pnpm run plan` or the MCP server goes with the next round. A round runs when
+  the planner opens, when it is shown again after a minute away, about every ten minutes while it is open, and on
+  `Sync now`. A done session gets ✓ before its title, stops blocking time and starts its notes with how long it took.
+- **Google → plan**: a ✓ typed before a title (or taken away), a single session moved, one repeat of a series moved
+  or deleted, and a deleted session come back as a bar over the calendar: `Changes from Google Calendar to review`.
+  Each change can be accepted, which stores it in the plan as a step Undo takes back (a deleted session goes to the
+  trash), or kept out, which writes the plan's version back to Google. Until you decide, the event is left alone in
+  Google. A title or notes edited in Google are written back without asking: the text belongs to the plan.
+
+Set it up once, with an OAuth client of your own (about five minutes):
+
+1. [Create a Google Cloud project](https://console.cloud.google.com/projectcreate) and
+   [enable the Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) in it.
+2. In [Google Auth Platform](https://console.cloud.google.com/auth/overview), `Get started`: any app name, your
+   address as the support and contact address, audience `External`.
+3. Under `Audience`, either add your Google account as a test user, or `Publish app`. A published personal app
+   needs no verification: Google only shows an "unverified app" screen at sign-in (`Advanced` → `Go to …`). Left in
+   testing, Google ends the sign-in every 7 days and the planner asks to connect again; nothing is lost meanwhile.
+4. Under `Clients`, `Create client` of type **Desktop app**, and copy its client ID and secret.
+5. In the planner, `⋮` → `Google Calendar`: paste both, `Save client`, then `Connect Google Calendar` and allow
+   access. Open the planner on `localhost` or `127.0.0.1` for this: Google sends the answer back to that address.
+
+The client and the sign-in are kept in the untracked `packages/plan-data/data/local.json`, readable only by you;
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set the client instead. What was written to Google and the changes
+waiting for you are in the untracked `data/sync.json`. `Disconnect` signs out and leaves the calendars in Google;
+connecting again picks them up. Google chooses the calendars' colours. Nothing is synced where the plan cannot be
+edited (`PLAN_READONLY=1`).
 
 ## API
 

@@ -8,6 +8,7 @@ import {
   Calendar,
   CalendarClock,
   CalendarDays,
+  CalendarSync,
   Clock,
   Globe,
   History,
@@ -34,6 +35,8 @@ export type DialogName =
   | 'shortcuts'
   | 'zone'
   | 'busy'
+  | 'google'
+  | 'googleReview'
 
 interface Context {
   nav: PlannerViewState
@@ -46,6 +49,8 @@ interface Context {
   secondZone?: string | undefined
   /** Present when the host can read the person's own calendar: `host` is where the connected one lives */
   busy?: { host: string | null } | undefined
+  /** Present when the host can keep the plan in Google Calendar: `waiting` edits made there wait for the person */
+  google?: { waiting: number } | undefined
   /** Present where the browser can show notifications */
   reminders?: { on: boolean; toggle: () => void } | undefined
   /** The help marks next to the main features */
@@ -228,6 +233,19 @@ export function buildActions(ctx: Context): PlannerAction[] {
             badge: ctx.busy.host ?? undefined,
             menu: 'always' as const,
             run: () => ctx.open('busy'),
+          },
+        ]
+      : []),
+    ...(ctx.google
+      ? [
+          {
+            id: 'google',
+            group: plan,
+            label: m.google_calendar(),
+            icon: <CalendarSync {...ICON} />,
+            badge: ctx.google.waiting ? String(ctx.google.waiting) : undefined,
+            menu: 'always' as const,
+            run: () => ctx.open('google'),
           },
         ]
       : []),

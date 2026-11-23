@@ -29,6 +29,13 @@ import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
+import {
+  GoogleReviewBar,
+  GoogleReviewDialog,
+  GoogleSyncDialog,
+  useGoogleSync,
+  type GoogleSyncSource,
+} from '../../../features/google-sync'
 import { HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
@@ -84,6 +91,8 @@ interface Props {
   onFocus?: (uid: string) => void
   /** Present when the host can read the person's own calendar: its busy time is drawn behind the plan */
   busy?: BusySource
+  /** Present when the host can keep the plan in Google Calendar and read edits made there back */
+  google?: GoogleSyncSource | undefined
   /** Host actions listed in the command palette, such as the theme */
   commands?: Command[]
 }
@@ -107,6 +116,7 @@ export function PlannerPage({
   renderActions,
   onFocus,
   busy,
+  google,
   commands,
 }: Props) {
   const now = useNow()
@@ -117,7 +127,10 @@ export function PlannerPage({
   const nav = usePlannerView(plan, search, onSearchChange)
   const { view, expanded, weekStart } = nav
   const quiet = useQuietChange(session)
-  const dialogs = useDialogFlags<DialogName>()
+  // A sign-in to Google comes back to the page with its outcome: the dialog shows how it went.
+  const dialogs = useDialogFlags<DialogName>(search.google ? ['google'] : [])
+  const googleSync = useGoogleSync(google)
+  const googleStatus = googleSync.status
   const drafting = useEventDraft({ plan, hidden, now, first: nav.grid.start, days: nav.grid.days, canEdit })
 
   const [zone, setZone] = useSecondZone()
@@ -232,6 +245,7 @@ export function PlannerPage({
     history: { cursor, total: steps.length, ...quiet },
     secondZone: secondZone?.label,
     busy: busyAction,
+    google: googleStatus ? { waiting: googleStatus.inbox.length } : undefined,
     reminders: reminders.supported ? reminders : undefined,
     help: { on: helpOn, toggle: toggleHelp },
     trashCount,
@@ -335,6 +349,10 @@ export function PlannerPage({
 
       {canEdit && !overdueHidden && (view === 'week' || view === 'day') && (
         <Backlog plan={plan} events={overdue} onSelect={select} onCarry={setCarried} />
+      )}
+
+      {canEdit && googleStatus && googleStatus.inbox.length > 0 && (
+        <GoogleReviewBar count={googleStatus.inbox.length} onReview={() => dialogs.show('googleReview')} />
       )}
 
       {offer && (
@@ -529,6 +547,35 @@ export function PlannerPage({
         onSave={busy?.save}
         onClose={() => dialogs.hide('busy')}
       />
+      {google && googleStatus && (
+        <>
+          <GoogleSyncDialog
+            open={dialogs.isOpen('google')}
+            status={googleStatus}
+            connectUrl={google.connectUrl}
+            failed={search.google === 'failed'}
+            working={googleSync.working}
+            error={googleSync.error}
+            onSaveClient={google.saveClient}
+            onSync={googleSync.sync}
+            onDisconnect={google.disconnect}
+            onClose={() => {
+              dialogs.hide('google')
+              if (search.google) onSearchChange({ google: undefined })
+            }}
+          />
+          <GoogleReviewDialog
+            open={dialogs.isOpen('googleReview') && googleStatus.inbox.length > 0}
+            plan={plan}
+            items={googleStatus.inbox}
+            working={googleSync.working}
+            error={googleSync.error}
+            onAccept={googleSync.accept}
+            onKeep={googleSync.reject}
+            onClose={() => dialogs.hide('googleReview')}
+          />
+        </>
+      )}
       <CommandPalette
         open={dialogs.isOpen('palette')}
         plan={plan}

@@ -123,6 +123,12 @@ src/
   `store.ts`.
 - **State kept for the calendars that read the plan** (the version of each event in the feeds): untracked
   `data/sync.json`, written only by `store.ts`; the rules that compute it are pure, in `plan-domain` (`revisions.ts`).
+- **A calendar the plan is written to** (Google Calendar): what is written and what an edit there proposes is pure,
+  in `plan-domain` (`google-sync.ts`); the API calls, the sign-in and the sync round are in `plan-data/src/google/`,
+  tested against a fake Google (`fake-google.ts`). Its state is the `google` part of `data/sync.json`, its client and
+  refresh token are in `data/local.json`, both written through `store.ts`. An edit made there reaches the plan only
+  as a `PlanChange` the person accepts. Server functions in `apps/web/src/server/google.ts`, the sign-in routes in
+  `routes/api/google.*.ts`, the dialogs in the planner feature `google-sync`.
 - **A shared dependency version**: the `catalog` in `pnpm-workspace.yaml`, referenced as `catalog:`.
 
 ## Trunk-based flow
