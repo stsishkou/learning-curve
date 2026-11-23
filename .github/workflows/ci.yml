@@ -3,7 +3,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # develop is where the work lands; main only moves by release
+    branches: [main, develop]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -15,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # nx affected compares against the last green commit on main, so it needs history
+          # nx affected compares against the last green commit, so it needs history
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -24,6 +25,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
+        with:
+          # a push compares with the last green run of its own branch, a pull request with its target
+          main-branch-name: ${{ github.event_name == 'push' && github.ref_name || github.base_ref }}
       - run: pnpm exec oxfmt --check
       - run: pnpm run affected
       - run: pnpm --filter @lc/stand exec playwright install --with-deps chromium
