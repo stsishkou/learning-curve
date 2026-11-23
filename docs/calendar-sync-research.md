@@ -388,10 +388,16 @@ Effort: S = a day or two, M = about a week, L = several weeks. Latency is from a
 
 ## 11. Recommended design
 
-> **Built** (2026-11): the feed fix as described, and the Google push with reviewed read-back. The names differ
-> from the sketch below: the pure core is `plan-domain/src/google-sync.ts` (`googleBody`, `planPush`,
-> `readGoogleEvent`), the adapter and the round are `plan-data/src/google/`, and the planner feature is
-> `google-sync`. Calendar colours are not set, and an event made in Google in an app calendar is left alone.
+> **Built** (2026-11): the feed fix as described, and the Google push with read-back. The names differ from the
+> sketch below: the pure core is `plan-domain/src/google-sync.ts` (`googleBody`, `planPush`, `readGoogleEvent`,
+> `triage`), the adapter and the round are `plan-data/src/google/`, and the planner feature is `google-sync`.
+> Calendar colours are not set, and an event made in Google in an app calendar is left alone.
+>
+> One change from section 11.6 after use: reviewing every edit asked the person to approve what they had just done
+> in Google, so a round takes edits in as history steps marked as coming from Google, with Undo as the way back, and
+> the inbox keeps only those that clash with a change made in the planner (field by field) or that the plan cannot
+> take. A rename is taken as a title change. The client is a Web application one, whose redirect URI the planner
+> shows, rather than a Desktop one, which Google documents only for loopback addresses without a path.
 
 Two pieces, in order: the feed fix (rank 1) because it is cheap and serves Apple now and everyone after a deployment,
 then the Google push with reviewed read-back (rank 2), which is what keeps a phone calendar in step while the app runs

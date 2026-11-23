@@ -230,31 +230,34 @@ What goes where:
   is sent right away; a change made by `pnpm run plan` or the MCP server goes with the next round. A round runs when
   the planner opens, when it is shown again after a minute away, about every ten minutes while it is open, and on
   `Sync now`. A done session gets ✓ before its title, stops blocking time and starts its notes with how long it took.
-- **Google → plan**: a ✓ typed before a title (or taken away), a single session moved, one repeat of a series moved
-  or deleted, and a deleted session come back as a bar over the calendar: `Changes from Google Calendar to review`.
-  Each change can be accepted, which stores it in the plan as a step Undo takes back (a deleted session goes to the
-  trash), or kept out, which writes the plan's version back to Google. Until you decide, the event is left alone in
-  Google. A title or notes edited in Google are written back without asking: the text belongs to the plan.
+- **Google → plan**: an edit made in Google is taken into the plan by itself, like one made in the planner: a ✓
+  typed before a title (or taken away), a new title, a single session moved, one repeat of a series moved or
+  deleted, and a deleted session, which goes to the trash. Each is a step of the history marked with the Google
+  icon, and a bar offers `Undo` for the latest ones; undoing writes the plan's version back to Google.
+- **Decisions**: an edit to something the planner changed too since it was last sent (the time of a session moved in
+  both places, say) or one the plan cannot take waits in a bar over the calendar, `Changes from Google Calendar that
+  need a decision`, and is left alone in Google until you pick `Keep plan` or `Use Google's`. A cleared title, a
+  whole series moved in Google and notes edited there are not taken: the plan's version is written back the next
+  time that event changes.
 
-Set it up once, with an OAuth client of your own (about ten minutes):
+Set it up once, with an OAuth client of your own (about ten minutes). `⋮` → `Google Calendar` walks through it, each
+step with a link to its page of Google's console and the value to paste there:
 
-1. [Create a Google Cloud project](https://console.cloud.google.com/projectcreate) and
-   [enable the Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) in it.
+1. [Turn on the Google Calendar API](https://console.cloud.google.com/flows/enableapi?apiid=calendar-json.googleapis.com);
+   Google offers to make a project for it.
 2. In [Google Auth Platform](https://console.cloud.google.com/auth/overview), `Get started`: any app name, your
    address as the support and contact address. As the audience, pick `Personal` when it is offered: only your own
    account can sign in, with no weekly sign-out and no verification (it cannot be changed later). Otherwise pick
    `External`, and under `Audience` either `Publish app` (Google shows an "unverified app" screen at sign-in:
    `Advanced` → `Go to …`) or add your account as a test user, which Google signs out every 7 days; the planner
    then asks to connect again, and nothing is lost meanwhile.
-3. Under `Data access`, `Add or remove scopes`, paste `https://www.googleapis.com/auth/calendar.app.created` under
-   `Manually add scopes`, add it to the table and save.
-4. Under `Clients`, `Create client` of type **Desktop app**, and copy its client ID and secret at once: Google shows
-   the secret only when the client is made.
-5. In the planner, `⋮` → `Google Calendar`: paste both, `Save client`, then `Connect Google Calendar` and allow
-   access. Open the planner on `localhost` or `127.0.0.1` for this: Google sends the answer back to that address.
-   Google documents loopback answers without a path; if it refuses this one (`redirect_uri_mismatch`), make a client
-   of type `Web application` instead, with `http://localhost:3000/api/google/callback` (the address you open the
-   planner at) as its authorized redirect URI.
+3. Under [Data access](https://console.cloud.google.com/auth/scopes), `Add or remove scopes`, paste
+   `https://www.googleapis.com/auth/calendar.app.created` under `Manually add scopes`, add it to the table and save.
+4. Under [Clients](https://console.cloud.google.com/auth/clients), `Create client` of type **Web application**, with
+   the address you open the planner at plus `/api/google/callback` (`http://localhost:3000/api/google/callback` for
+   `pnpm run dev`) as its authorized redirect URI. Download the JSON Google offers: the secret is shown only then.
+5. In the dialog, load that JSON (or paste the client ID and secret) and press `Save and connect`, then allow access
+   on Google's page. The dialog says so when the file lacks the redirect URI of the page you are on.
 
 The client and the sign-in are kept in the untracked `packages/plan-data/data/local.json`, readable only by you;
 `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set the client instead. What was written to Google and the changes
