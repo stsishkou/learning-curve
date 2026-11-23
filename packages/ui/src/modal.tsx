@@ -35,7 +35,8 @@ function placeBeside(dlg: HTMLDialogElement, target: Element | null) {
     return
   }
   const at = target.getBoundingClientRect()
-  const { width, height } = dlg.getBoundingClientRect()
+  // The layout size, not the box on screen: that one is still scaled down while the dialog grows in.
+  const { offsetWidth: width, offsetHeight: height } = dlg
   const right = at.right + GAP
   const left = at.left - GAP - width
   const fits = right + width <= window.innerWidth - EDGE
@@ -109,7 +110,7 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, anch
       {...{ closedby: 'any' }}
       aria-label={label}
       // m-auto / mx-auto: Tailwind's reset zeroes the margin that centers a modal dialog
-      className={`${SIZE[size]} ${place} ${backdrop} max-h-[calc(100dvh-32px)] overflow-y-auto rounded-2xl border border-line bg-surface text-ink shadow-[0_24px_60px_rgb(10_16_30/0.25)]`}
+      className={`lc-layer ${SIZE[size]} ${place} ${backdrop} max-h-[calc(100dvh-32px)] overflow-y-auto rounded-2xl border border-line bg-surface text-ink shadow-[0_24px_60px_rgb(10_16_30/0.25)]`}
       onClose={onClose}
       onClick={backdropClick}
     >

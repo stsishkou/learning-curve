@@ -107,7 +107,7 @@ export function Menu({ label, items, className = '' }: Props) {
         ref={panel}
         id={id}
         popover="auto"
-        className="m-0 min-w-[220px] rounded-xl border border-line bg-surface p-1.5 text-ink shadow-[0_16px_40px_rgb(10_16_30/0.25)]"
+        className="lc-layer m-0 min-w-[220px] rounded-xl border border-line bg-surface p-1.5 text-ink shadow-[0_16px_40px_rgb(10_16_30/0.25)]"
         style={{
           positionAnchor: anchor,
           inset: 'auto',

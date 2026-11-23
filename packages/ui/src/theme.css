@@ -191,6 +191,47 @@
   }
 }
 
+/* Dialogs, menus and help notes fade in and out; where motion is welcome they also grow from a little smaller.
+   `overlay` and a transition of `display` keep them in the top layer until they have faded out. Browsers without
+   those (Firefox, Safari) fade them in and close them at once. */
+.lc-layer {
+  opacity: 0;
+  transition-property: opacity, scale, display, overlay;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+  @media (prefers-reduced-motion: no-preference) {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: 100ms;
+  }
+  &::backdrop {
+    opacity: 0;
+    transition-property: opacity, display, overlay;
+    transition-duration: 150ms;
+    transition-behavior: allow-discrete;
+  }
+}
+.lc-layer:is([open], :popover-open) {
+  opacity: 1;
+  @starting-style {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    scale: 1;
+    @starting-style {
+      scale: 0.97;
+    }
+  }
+  &::backdrop {
+    opacity: 1;
+    @starting-style {
+      opacity: 0;
+    }
+  }
+}
+
 /* Only the calendar changes between two views or two weeks: it alone gets a name, the rest of the page is one
    picture that does not move. */
 .lc-calendar {

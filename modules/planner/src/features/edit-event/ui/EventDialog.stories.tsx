@@ -1,7 +1,7 @@
 import { isSession, parseLocal, splitInHalves, type PlanEvent } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { EventDialog } from './EventDialog'
 
@@ -79,7 +79,9 @@ export const Overlapping: Story = {
   },
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await expect(await body.findByText(new RegExp(upcoming.title.slice(0, 12)))).toBeVisible()
+    const other = await body.findByText(new RegExp(upcoming.title.slice(0, 12)))
+    // The dialog fades in: it is visible once its opening transition has begun.
+    await waitFor(() => expect(other).toBeVisible())
   },
 }
 

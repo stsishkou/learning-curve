@@ -103,7 +103,7 @@ export function Hint({ title, text, children, className = '' }: HintProps) {
         id={id}
         popover="auto"
         role="note"
-        className="lc-hint w-[min(340px,calc(100vw-24px))] rounded-xl border border-line bg-surface p-4 text-left text-[13.5px]/[1.5] font-normal tracking-normal whitespace-normal text-ink normal-case shadow-[0_16px_40px_rgb(10_16_30/0.25)]"
+        className="lc-hint lc-layer w-[min(340px,calc(100vw-24px))] rounded-xl border border-line bg-surface p-4 text-left text-[13.5px]/[1.5] font-normal tracking-normal whitespace-normal text-ink normal-case shadow-[0_16px_40px_rgb(10_16_30/0.25)]"
         style={{ positionAnchor: anchor }}
       >
         <b className="block text-[14px] font-semibold">{title}</b>
