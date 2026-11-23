@@ -1,4 +1,5 @@
 export type { BusyBlock } from './busy'
+export { nextFreeSlot, type FreeSlotOptions } from './free-slot'
 export {
   DAY,
   HOUR,

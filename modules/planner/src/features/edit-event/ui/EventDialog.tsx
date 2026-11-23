@@ -5,6 +5,8 @@ import {
   hm,
   isCustomEvent,
   isSession,
+  nextFreeSlot,
+  nowMinsk,
   overlapping,
   parseLocal,
   skipDay,
@@ -15,7 +17,23 @@ import {
   type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
-import { Button, calendarColor, Check, Copy, Dot, ExternalLink, FOOT, META, Modal, TITLE, Trash2, X } from '@lc/ui'
+import {
+  Button,
+  CalendarPlus,
+  calendarColor,
+  CalendarSearch,
+  Check,
+  Copy,
+  Dot,
+  ExternalLink,
+  FOOT,
+  Link2,
+  META,
+  Modal,
+  TITLE,
+  Trash2,
+  X,
+} from '@lc/ui'
 import { useState } from 'react'
 
 import { EventForm } from './EventForm'
@@ -38,6 +56,26 @@ const linkify = (text: string) =>
   )
 
 const NO_BUSY: BusyBlock[] = []
+
+const stamp = (local: string) => `${local.replace(/[-:]/g, '')}00`
+
+/** The page of Google Calendar that creates this event, filled in: nothing is sent until it is saved there. */
+function googleLink(event: PlanEvent, zone: string): string {
+  const query = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${stamp(event.start)}/${stamp(event.end)}`,
+    ctz: zone,
+    details: event.description,
+  })
+  return `https://calendar.google.com/calendar/render?${query.toString()}`
+}
+
+function eventLink(uid: string): string {
+  const url = new URL(location.href)
+  url.searchParams.set('event', uid)
+  return url.toString()
+}
 
 interface Props {
   plan: Plan
@@ -86,9 +124,13 @@ export function EventDialog({
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [free, setFree] = useState<{ uid: string; slot: { s: number; e: number } | null } | null>(null)
+  const [linked, setLinked] = useState(false)
   const close = () => {
     setEditing(false)
     setError('')
+    setFree(null)
+    setLinked(false)
     onClose()
   }
 
@@ -98,6 +140,7 @@ export function EventDialog({
     try {
       await onChange(change)
       setEditing(false)
+      setFree(null)
       if (then === 'close') close()
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
@@ -106,6 +149,17 @@ export function EventDialog({
     }
   }
 
+  async function copyLink(uid: string) {
+    try {
+      await navigator.clipboard.writeText(eventLink(uid))
+      setLinked(true)
+    } catch {
+      setLinked(false)
+    }
+  }
+
+  // An offer made for another event is not shown on this one.
+  const offer = free && free.uid === event?.uid ? free : null
   const calendar = plan.calendars.find((c) => c.id === event?.calendar)
   let when = ''
   if (event) {
@@ -228,6 +282,31 @@ export function EventDialog({
               onLog={(actual) => void run({ type: 'event.patch', uid: event.uid, patch: { actual } })}
             />
           )}
+          {offer && (
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-[13.5px]" role="status">
+              {offer.slot ? (
+                <>
+                  {m.free_slot_offer({ when: `${fmtDay(offer.slot.s)} ${hm(offer.slot.s)}–${hm(offer.slot.e)}` })}
+                  <Button
+                    className="px-2.5 py-1 text-[13px]"
+                    disabled={busy}
+                    onClick={() =>
+                      offer.slot &&
+                      void run({
+                        type: 'event.patch',
+                        uid: event.uid,
+                        patch: { start: toLocalString(offer.slot.s), end: toLocalString(offer.slot.e) },
+                      })
+                    }
+                  >
+                    {m.free_slot_move()}
+                  </Button>
+                </>
+              ) : (
+                m.free_slot_none()
+              )}
+            </p>
+          )}
           {error && (
             <p className="mt-2 text-[13px] text-today-ink" role="alert">
               {error}
@@ -281,6 +360,50 @@ export function EventDialog({
                 >
                   <Copy size={16} aria-hidden />
                 </Button>
+              )}
+              {canEdit && isSession(event) && !event.done && (
+                <Button
+                  className="grid place-items-center px-2.5"
+                  disabled={busy}
+                  aria-label={m.free_slot_find()}
+                  title={`${m.free_slot_find()}. ${m.free_slot_hint()}`}
+                  onClick={() => {
+                    const s = parseLocal(event.start)
+                    const e = parseLocal(event.end)
+                    setFree({
+                      uid: event.uid,
+                      slot: nextFreeSlot(plan, {
+                        from: nowMinsk(),
+                        length: e - s,
+                        preferHour: new Date(s).getUTCHours(),
+                        except: { uid: event.uid, s, e, study: event.calendar !== 'personal' },
+                        busy: taken,
+                      }),
+                    })
+                  }}
+                >
+                  <CalendarSearch size={16} aria-hidden />
+                </Button>
+              )}
+              <Button
+                className={`grid place-items-center px-2.5 ${linked ? 'text-done-ink' : ''}`}
+                aria-label={m.copy_link()}
+                title={linked ? m.copied() : m.copy_link()}
+                onClick={() => void copyLink(event.uid)}
+              >
+                {linked ? <Check size={16} aria-hidden /> : <Link2 size={16} aria-hidden />}
+              </Button>
+              {!event.rrule && !event.allDay && (
+                <a
+                  className="grid place-items-center rounded-[10px] border border-line bg-surface px-2.5 shadow-card transition-colors duration-150 hover:bg-surface-2"
+                  href={googleLink(event, plan.meta.timezone)}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={m.add_to_google()}
+                  title={m.add_to_google()}
+                >
+                  <CalendarPlus size={16} aria-hidden />
+                </a>
               )}
               {courseUrl && (
                 <a

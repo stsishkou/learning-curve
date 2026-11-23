@@ -135,6 +135,13 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Controls**: the toolbar keeps the view switch, the week navigation (the title opens a date picker), search,
   undo/redo and `＋ Event`; History, Trash, Shift the plan, Calendars and Shortcuts live in the `⋮` menu, which
   on a phone also holds search, undo/redo and the view toggles.
+- **The list**: a filter leaves what is open, done or overdue, and each day shows its hours of study. On an
+  editable plan the rows have checkboxes: the ticked events can be marked done or not done, moved a day back, a
+  day or a week forward, or sent to the trash together. A repeat is changed from its own card.
+- **A free slot**: the event card of an open session finds the nearest time with no overlaps (repeats and your
+  real calendar included), not on a weekend or a holiday and inside the weekly budget, trying the session's own
+  hour first; `Move here` takes it. The card also copies a link to the event and opens Google Calendar with the
+  event filled in.
 - **Help marks**: the `?` button in the header of every page (in the `⋮` menu on a phone and in the expanded
   calendar) shows a question mark next to the main features; a click on a mark opens a short note about the thing
   beside it. The choice is kept in the browser.
