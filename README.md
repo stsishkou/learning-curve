@@ -97,7 +97,12 @@ a Husky `commit-msg` hook checks them with commitlint.
   answer back. The chat answers with an *update*, a short JSON list of changes; the tab shows what it would add,
   remove and change, warns about weeks filled past the budget, and applies it as steps of the history that Undo
   takes back. An update is all or nothing: when one change does not fit, the tab says which, in words to send
-  back to the chat. See [For language models and tools](#for-language-models-and-tools).
+  back to the chat. Ready requests fill the text for the common cases (a new course, days off, catching up, a
+  lighter week, marking what is done, a weekly habit); `Copy and open` puts the brief on the clipboard and opens a
+  new conversation in Claude, ChatGPT or Gemini; a single change of an update can be unticked before applying;
+  when an answer does not fit, `Copy a request to fix it` gives the line to send back. `Connect a tool instead of
+  copying` holds an instruction for an agent with HTTP access and the MCP entry.
+  See [For language models and tools](#for-language-models-and-tools).
 - **Progress dashboard**: `/dashboard` (the `Progress` tab) shows how much is done, whether that is ahead of or
   behind the plan, hours added up against the plan, the load of every week by calendar against the budget, and
   a bar per course. Every chart has a hover readout and the same numbers as a table.
