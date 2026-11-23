@@ -88,7 +88,9 @@ const HEAD = 'border-b border-line text-muted'
 const PINNED = 'sticky left-0 z-4 bg-surface'
 const DAY_OFF = 'bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line-soft)_6px_8px)]'
 const EVENT =
-  'absolute overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink'
+  'absolute animate-[lc-rise_180ms_ease-out] overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink transition-shadow duration-150 hover:z-2 hover:shadow-[0_6px_16px_rgb(10_16_30/0.18)]'
+const WEEKEND = 'bg-[color-mix(in_srgb,var(--muted)_5%,transparent)]'
+const isWeekend = (d: number) => new Date(d).getUTCDay() % 6 === 0
 const EVENT_BUSY =
   'bg-[color-mix(in_srgb,var(--c)_16%,var(--surface))] hover:bg-[color-mix(in_srgb,var(--c)_26%,var(--surface))]'
 const EVENT_FREE =
@@ -423,7 +425,7 @@ export function WeekGrid({
             return (
               <div
                 key={d}
-                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''} ${d === days.at(-1) ? 'rounded-tr-2xl' : ''}`}
+                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''} ${d === today ? 'shadow-[inset_0_2px_0_var(--today)]' : ''} ${d === days.at(-1) ? 'rounded-tr-2xl' : ''}`}
               >
                 <span className="flex items-center justify-between gap-1">
                   {dowShort(d)}
@@ -517,7 +519,7 @@ export function WeekGrid({
               <div
                 key={d}
                 data-day={ymd(d)}
-                className="relative border-r border-line-soft select-none last:border-r-0"
+                className={`relative border-r border-line-soft select-none last:border-r-0 ${isWeekend(d) ? WEEKEND : ''}`}
                 style={{ height }}
                 onPointerDown={(e) => drawStart(e, d)}
                 onPointerMove={drawMove}
@@ -537,6 +539,13 @@ export function WeekGrid({
                     style={{ top: (h - minH) * hourHeight }}
                   />
                 ))}
+                {/* What has passed is a shade darker, up to the line of the present moment. */}
+                {now !== null && now > d + minH * HOUR && (
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0 bg-[color-mix(in_srgb,var(--muted)_7%,transparent)]"
+                    style={{ height: Math.min(height, ((now - d) / HOUR - minH) * hourHeight) }}
+                  />
+                )}
                 {busyTimed
                   .filter((b) => b.s < d + maxH * HOUR && b.e > d + minH * HOUR)
                   .map((b) => {
@@ -587,6 +596,13 @@ export function WeekGrid({
                         {hm(s)}–{hm(e)}
                       </small>
                       {o.rrule && <Repeat aria-hidden size={11} className="absolute top-1.5 right-1.5 text-muted" />}
+                      {now !== null && !dragged && o.s <= now && now < o.e && (
+                        <i
+                          aria-hidden
+                          className="absolute bottom-0 left-0 h-[3px] rounded-r-full bg-cal"
+                          style={{ width: `${((now - o.s) / (o.e - o.s)) * 100}%` }}
+                        />
+                      )}
                       {onMove && (
                         <>
                           <span
@@ -625,7 +641,7 @@ export function WeekGrid({
                   ))}
                 {now !== null && startOfDay(now) === d && (now - d) / HOUR >= minH && (now - d) / HOUR <= maxH && (
                   <div
-                    className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-['']"
+                    className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-[''] after:absolute after:-top-[3px] after:-left-1 after:size-2 after:animate-ping after:rounded-full after:bg-today after:content-['']"
                     style={{ top: ((now - d) / HOUR - minH) * hourHeight }}
                   />
                 )}

@@ -47,7 +47,14 @@ function PlannerRoute() {
       state={state}
       search={Route.useSearch()}
       // The same page with another week, view or open event: the router would otherwise scroll it back to the top.
-      onSearchChange={(patch) => void navigate({ search: (prev) => ({ ...prev, ...patch }), resetScroll: false })}
+      onSearchChange={(patch) =>
+        void navigate({
+          search: (prev) => ({ ...prev, ...patch }),
+          resetScroll: false,
+          // Another view or period fades in; opening an event must not, or the grid would blink under its card.
+          viewTransition: 'view' in patch || 'week' in patch || 'day' in patch,
+        })
+      }
       onChange={async (change) => {
         await savePlanChange({ data: change })
         await router.invalidate()

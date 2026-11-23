@@ -3,6 +3,7 @@ import { getLocale, localizeHref } from '@lc/i18n/runtime'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { THEME_BOOT_SCRIPT } from '#/shell/theme'
+import { TodayIcon, todayIcon } from '#/shell/TodayIcon'
 
 import appCss from '../styles.css?url'
 
@@ -23,10 +24,7 @@ export const Route = createRootRoute({
         href: 'https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Unbounded:wght@500;700&display=swap',
       },
       { rel: 'stylesheet', href: appCss },
-      {
-        rel: 'icon',
-        href: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗓️</text></svg>',
-      },
+      { rel: 'icon', href: todayIcon() },
     ],
     scripts: [{ children: THEME_BOOT_SCRIPT }],
   }),
@@ -51,6 +49,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <TodayIcon />
         <Scripts />
       </body>
     </html>

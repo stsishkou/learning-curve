@@ -134,6 +134,30 @@
   }
 }
 
+@keyframes lc-rise {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+/* Only the calendar changes between two views or two weeks: it alone gets a name, the rest of the page is one
+   picture that does not move. */
+.lc-calendar {
+  view-transition-name: lc-calendar;
+}
+::view-transition-old(lc-calendar),
+::view-transition-new(lc-calendar) {
+  animation-duration: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* A help note opens beside its mark. Where anchor positioning is missing the note keeps the browser's own
    place for a popover, the middle of the window, so the rules that take it from there are inside the check. */
 @supports (position-area: block-end) {

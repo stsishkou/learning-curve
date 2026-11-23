@@ -337,7 +337,7 @@ export function PlannerPage({
       )}
 
       <div className={`grid grid-cols-1 items-start gap-4 ${expanded ? '' : 'lg:grid-cols-[1fr_280px]'}`}>
-        <section className="relative min-w-0 rounded-2xl border border-line bg-surface">
+        <section className="lc-calendar relative min-w-0 rounded-2xl border border-line bg-surface">
           {(view === 'week' || view === 'day') && (
             <Hint title={m.help_grid_title()} text={m.help_grid()} className="absolute top-1.5 left-1.5 z-10" />
           )}
