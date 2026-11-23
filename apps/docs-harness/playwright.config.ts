@@ -13,7 +13,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'pnpm --filter @lc/docs run preview',
-      url: 'http://localhost:4310/ru/',
+      url: `http://localhost:4310${process.env.DOCS_BASE ?? '/'}ru/`,
       reuseExistingServer: !process.env.CI,
     },
     { command: 'pnpm exec vite preview', url: 'http://localhost:4320/', reuseExistingServer: !process.env.CI },

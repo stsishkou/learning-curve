@@ -1,6 +1,9 @@
 import { expect, type Page, test } from '@playwright/test'
 
+// The guide may be built for a sub-path (GitHub Pages serves it under /<repo>/); the remote does not care where.
 const DOCS = 'http://localhost:4310'
+const SITE = `${DOCS}${process.env.DOCS_BASE ?? '/'}`
+const HOME = `/?${new URLSearchParams({ remote: `${SITE}remote/v1/mf-manifest.json`, site: SITE }).toString()}`
 
 /** Every URL the page requests from the guide's origin, in order. */
 function docsRequests(page: Page): string[] {
@@ -21,20 +24,20 @@ async function openDocs(page: Page) {
 
 test('nothing is loaded from the guide before the first click, and React is not loaded twice', async ({ page }) => {
   const requests = docsRequests(page)
-  await page.goto('/')
+  await page.goto(HOME)
   await page.waitForLoadState('networkidle')
   expect(requests).toEqual([])
 
   await openDocs(page)
   await page.waitForLoadState('networkidle')
-  expect(requests[0]).toMatch(/^\/remote\/v1\/mf-manifest\.json\?v=\w+$/)
+  expect(requests[0]).toMatch(/\/remote\/v1\/mf-manifest\.json\?v=\w+$/)
   expect(requests.some((url) => /\/remoteEntry-[\w-]+\.js$/.test(url))).toBe(true)
   // The remote ships fallback copies of React for hosts that do not share one; this host does, so none is fetched.
   expect(requests.filter((url) => /react/i.test(url))).toEqual([])
 })
 
 test('the drawer opens on the topic, speaks the host language and follows a change of it', async ({ page }) => {
-  await page.goto('/')
+  await page.goto(HOME)
   await openDocs(page)
   await expect(drawer(page).getByRole('heading', { level: 1 })).toHaveText('Как это устроено')
   await expect(page.getByTestId('events')).toContainText('ready 1.0.0')
@@ -49,13 +52,13 @@ test('the drawer opens on the topic, speaks the host language and follows a chan
 })
 
 test('links move the drawer, not the host page', async ({ page }) => {
-  await page.goto('/')
+  await page.goto(HOME)
   await openDocs(page)
   await drawer(page)
-    .getByRole('link', { name: /Direct manipulation/ })
+    .getByRole('link', { name: /Прямое управление/ })
     .first()
     .click()
-  await expect(drawer(page).getByRole('heading', { level: 1, name: 'Direct manipulation' })).toBeVisible()
+  await expect(drawer(page).getByRole('heading', { level: 1, name: 'Прямое управление' })).toBeVisible()
   await expect(page.getByTestId('events')).toContainText('navigate {"chapterId":"direct-manipulation"}')
   expect(new URL(page.url()).pathname).toBe('/')
 
@@ -64,13 +67,13 @@ test('links move the drawer, not the host page', async ({ page }) => {
 })
 
 test('a chapter can be opened directly', async ({ page }) => {
-  await page.goto('/')
+  await page.goto(HOME)
   await page.getByRole('button', { name: 'Chapter 11' }).click()
-  await expect(drawer(page).getByRole('heading', { level: 1, name: 'Build-time microfrontends' })).toBeVisible()
+  await expect(drawer(page).getByRole('heading', { level: 1, name: 'Микрофронтенды на этапе сборки' })).toBeVisible()
 })
 
 test('the theme follows the host page', async ({ page }) => {
-  await page.goto('/')
+  await page.goto(HOME)
   await openDocs(page)
   const background = () => drawer(page).evaluate((element) => getComputedStyle(element).backgroundColor)
   const light = await background()
@@ -83,7 +86,7 @@ test('the theme follows the host page', async ({ page }) => {
 })
 
 test('styles leak in neither direction', async ({ page }) => {
-  await page.goto('/')
+  await page.goto(HOME)
   const probe = page.getByTestId('probe')
   const look = () =>
     probe.evaluate((element) => {
@@ -106,7 +109,7 @@ test('styles leak in neither direction', async ({ page }) => {
 })
 
 test('keys typed in the guide do not reach the host shortcuts', async ({ page }) => {
-  await page.goto('/')
+  await page.goto(HOME)
   await page.getByTestId('host-input').focus()
   await page.locator('body').click({ position: { x: 5, y: 5 } })
   await page.keyboard.press('t')
@@ -124,10 +127,12 @@ test('keys typed in the guide do not reach the host shortcuts', async ({ page })
 })
 
 test('an unreachable guide shows the fallback link', async ({ page }) => {
-  await page.goto('/?remote=http://localhost:4399/remote/v1/mf-manifest.json&timeout=3000')
+  await page.goto(
+    `/?${new URLSearchParams({ remote: 'http://localhost:4399/mf-manifest.json', site: SITE, timeout: '3000' }).toString()}`,
+  )
   await page.getByRole('button', { name: 'Docs', exact: true }).click()
   const fallback = page.getByTestId('fallback')
   await expect(fallback).toBeVisible()
   await expect(page.getByTestId('status')).toHaveText('status: failed')
-  await expect(fallback.getByRole('link')).toHaveAttribute('href', 'http://localhost:4310/ru/chapters/first-screen/')
+  await expect(fallback.getByRole('link')).toHaveAttribute('href', `${SITE}ru/chapters/first-screen/`)
 })
