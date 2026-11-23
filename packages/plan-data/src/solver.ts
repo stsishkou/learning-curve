@@ -51,20 +51,21 @@ const failed = (status: LpSolution['status']): LpSolution => ({ status, values: 
 const integral = (v: LpVariable, value: number) => (v.kind === 'continuous' ? value : Math.round(value))
 
 /** Solves a model with HiGHS. The solve blocks the thread for at most `timeLimit` seconds. */
-export const solveLp: Solve = async (model, { timeLimit }) => {
+export const solveLp: Solve = async (model, { timeLimit, start }) => {
   const solver = await highs()
   const { modelStatus: codes } = solver.constants
   return solver.withModel({ format: 'lp', data: lpText(model) }, (instance): LpSolution => {
     instance.options.set({ output_flag: false, time_limit: timeLimit })
+    const { numCols } = instance.getDimensions()
+    const names = Array.from({ length: numCols }, (_, i) => instance.getColName(i))
+    if (start) instance.setSolution({ colValue: names.map((name) => start[name] ?? 0) })
     const { modelStatus } = instance.run()
     if (modelStatus === codes.infeasible || modelStatus === codes.unboundedOrInfeasible) return failed('infeasible')
     if (modelStatus !== codes.optimal && modelStatus !== codes.timeLimit) return failed('error')
     // A time limit can stop the search before any feasible point: there is nothing to keep then.
     if (Number(instance.info.get('primal_solution_status')) !== 2) return failed('error')
     const { colValue } = instance.getSolution()
-    const { numCols } = instance.getDimensions()
-    const found = new Map<string, number>()
-    for (let i = 0; i < numCols; i++) found.set(instance.getColName(i), colValue[i] ?? 0)
+    const found = new Map(names.map((name, i) => [name, colValue[i] ?? 0]))
     const values = Object.fromEntries(
       model.variables.map((v) => [v.name, integral(v, found.get(v.name) ?? (Number.isFinite(v.lower) ? v.lower : 0))]),
     )

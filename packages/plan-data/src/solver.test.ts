@@ -59,3 +59,9 @@ test('reports a model without a solution as infeasible', async () => {
   )
   expect(solution.status).toBe('infeasible')
 })
+
+test('takes a feasible start and still proves the best', async () => {
+  const solution = await solveLp(workshop, { timeLimit: 5, start: { chairs: 0, tables: 18 } })
+  expect(solution.status).toBe('optimal')
+  expect(solution.objective).toBeCloseTo(-1100, 6)
+})

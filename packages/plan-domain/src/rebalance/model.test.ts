@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { parseLocal } from '../dates'
 import type { PlanEvent } from '../types'
 import type { LpModel, LpTerm } from './lp'
-import { buildModel, readDays } from './model'
+import { beforeDeadline, buildModel, readDays } from './model'
 import type { Room, RoomDay } from './room'
 import type { RebalanceRequest } from './types'
 
@@ -43,7 +43,7 @@ const own = (start: string, end: string, outside = false) => ({
 /** Four study days in two weeks: room for a lab on the first and the last, none on the second. */
 const room: Room = {
   days: [
-    roomDay(1, '2026-12-07', '2026-12-07', 2, true),
+    roomDay(1, '2026-12-07', '2026-12-07', 3, true),
     roomDay(2, '2026-12-08', '2026-12-07', 0, false),
     roomDay(3, '2026-12-14', '2026-12-14', 1, false),
     roomDay(4, '2026-12-15', '2026-12-14', 2, true),
@@ -74,6 +74,18 @@ const names = (model: Omit<LpModel, 'objective'>) => model.variables.map((v) => 
 const row = (model: Omit<LpModel, 'objective'>, name: string) => model.constraints.find((c) => c.name === name)
 const sum = (...vars: string[]): LpTerm[] => vars.map((v) => ({ v, c: 1 }))
 
+describe('beforeDeadline', () => {
+  test('cuts the room at the deadline when every session can be in time', () => {
+    expect(beforeDeadline(room, sessions, request()).days.map((d) => d.index)).toEqual([1, 2, 3])
+  })
+
+  test('keeps the whole room when a session cannot be in time, and at a pace', () => {
+    const tight: Room = { ...room, days: room.days.map((d) => (d.index === 1 ? { ...d, cap: 2 } : d)) }
+    expect(beforeDeadline(tight, sessions, request()).days).toHaveLength(4)
+    expect(beforeDeadline(room, sessions, request({ target: { mode: 'pace', perDay: 1 } })).days).toHaveLength(4)
+  })
+})
+
 describe('buildModel', () => {
   test('puts a session only on days with room for it, and a lab only where two hours follow each other', () => {
     const { model } = buildModel(room, sessions, request())
@@ -82,27 +94,69 @@ describe('buildModel', () => {
     expect(days(1)).toEqual(['y_1_1', 'y_1_4'])
   })
 
+  test('never puts a session before the earliest day it can reach in order', () => {
+    // With two hours on the first day the lab cannot follow the first session there, so it reaches day 4 at best,
+    // and the last session cannot come after it at all.
+    const tight: Room = { ...room, days: room.days.map((d) => (d.index === 1 ? { ...d, cap: 2 } : d)) }
+    const { model } = buildModel(tight, sessions, request())
+    expect(names(model).filter((n) => n.startsWith('y_1_'))).toEqual(['y_1_4'])
+    expect(names(model).filter((n) => n.startsWith('y_2_'))).toEqual([])
+  })
+
+  test('starts from the earliest placement, which meets every row', () => {
+    for (const overBudget of [false, true]) {
+      for (const target of [{ mode: 'deadline' }, { mode: 'pace', perDay: 1 }] as const) {
+        const { model, start } = buildModel(room, sessions, request({ overBudget, target }))
+        expect(Object.keys(start).toSorted()).toEqual(names(model).toSorted())
+        for (const { name, terms, op, rhs } of model.constraints) {
+          const value = terms.reduce((total, { v, c }) => total + c * (start[v] ?? Number.NaN), 0)
+          const ok = op === '=' ? Math.abs(value - rhs) < 1e-9 : op === '<=' ? value <= rhs + 1e-9 : value >= rhs - 1e-9
+          expect(ok, `${name}: ${value} ${op} ${rhs}`).toBe(true)
+        }
+        expect([start.y_0_1, start.y_1_1, start.y_2_2]).toEqual([1, 1, 1])
+      }
+    }
+  })
+
   test('a session outside the study hours may stay on its own day, outside the day room', () => {
     const { model } = buildModel(room, sessions, request())
     expect(names(model)).toContain('y_2_2')
     expect(row(model, 'room_2')).toBeUndefined()
-    expect(row(model, 'room_1')?.terms.map((t) => t.v)).toEqual(['y_0_1', 'y_1_1', 'y_2_1'])
+    expect(row(model, 'room_1')?.terms.map((t) => t.v)).toEqual(['y_0_1', 'y_1_1'])
   })
 
-  test('keeps the order of the sessions, and the unplaced ones are the tail', () => {
+  test('keeps the order of the sessions through running sums, and the unplaced ones are the tail', () => {
     const { model } = buildModel(room, sessions, request())
-    expect(row(model, 'order_0')).toEqual({
-      name: 'order_0',
+    // Y_i_d: session i is on day d or before. The next session can never be further along than this one.
+    expect(row(model, 'reach_0_3')).toEqual({
+      name: 'reach_0_3',
       terms: [
-        { v: 't_0', c: 1 },
-        { v: 't_1', c: -1 },
-        { v: 'u_1', c: -4 },
+        { v: 'Y_0_3', c: 1 },
+        { v: 'Y_0_2', c: -1 },
+        { v: 'y_0_3', c: -1 },
+      ],
+      op: '=',
+      rhs: 0,
+    })
+    expect(row(model, 'reach_1_2')?.terms).toEqual([
+      { v: 'Y_1_2', c: 1 },
+      { v: 'Y_1_1', c: -1 },
+    ])
+    expect(row(model, 'order_0_2')).toEqual({
+      name: 'order_0_2',
+      terms: [
+        { v: 'Y_1_2', c: 1 },
+        { v: 'Y_0_2', c: -1 },
       ],
       op: '<=',
       rhs: 0,
     })
-    expect(row(model, 'order_1')).toBeDefined()
-    expect(row(model, 'order_2')).toBeUndefined()
+    expect(row(model, 'order_1_4')).toBeDefined()
+    expect(row(model, 'order_2_1')).toBeUndefined()
+    expect(row(model, 'once_0')?.terms).toEqual([
+      { v: 'Y_0_4', c: 1 },
+      { v: 'u_0', c: 1 },
+    ])
     expect(row(model, 'tail_0')?.terms).toEqual([
       { v: 'u_0', c: 1 },
       { v: 'u_1', c: -1 },

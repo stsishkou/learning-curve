@@ -210,3 +210,6 @@ export {
   type RebalanceResult,
   type RebalanceTarget,
 } from './rebalance/types'
+export { MAX_SESSIONS, planRebalance } from './rebalance'
+export { movingSessions } from './rebalance/request'
+export { roomOf, type Room, type RoomDay } from './rebalance/room'

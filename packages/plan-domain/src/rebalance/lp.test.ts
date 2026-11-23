@@ -31,9 +31,9 @@ const answer = (status: LpSolution['status'], objective = 0, gap = 0): LpSolutio
 
 /** A solver that hands out the given answers in turn and keeps what it was asked. */
 function recording(...answers: LpSolution[]) {
-  const asked: { model: LpModel; timeLimit: number }[] = []
-  const solve: Solve = (sent, { timeLimit }) => {
-    asked.push({ model: sent, timeLimit })
+  const asked: { model: LpModel; timeLimit: number; start: Record<string, number> | undefined }[] = []
+  const solve: Solve = (sent, { timeLimit, start }) => {
+    asked.push({ model: sent, timeLimit, start })
     return Promise.resolve(answers[asked.length - 1] ?? answer('error'))
   }
   return { asked, solve }
@@ -58,10 +58,25 @@ describe('solveInOrder', () => {
     expect(asked[1]?.model.constraints.at(-1)?.rhs).toBeCloseTo(-2000 + 0.002, 9)
   })
 
+  test('starts each level from the solution of the level before it, which still meets every bound', async () => {
+    const { asked, solve } = recording(answer('optimal', 0), answer('optimal', 4))
+    await solveInOrder(model, [X, Y], solve)
+    expect(asked.map((a) => a.start)).toEqual([undefined, { x: 0, y: 4 }])
+  })
+
+  test('starts the first level from a given feasible solution', async () => {
+    const { asked, solve } = recording(answer('optimal', 0), answer('optimal', 4))
+    await solveInOrder(model, [X, Y], solve, { start: { x: 1, y: 1 } })
+    expect(asked.map((a) => a.start)).toEqual([
+      { x: 1, y: 1 },
+      { x: 0, y: 4 },
+    ])
+  })
+
   test('gives every level two seconds unless told otherwise', async () => {
     const { asked, solve } = recording(answer('optimal'), answer('optimal'))
     await solveInOrder(model, [X], solve)
-    await solveInOrder(model, [Y], solve, 5)
+    await solveInOrder(model, [Y], solve, { timeLimit: 5 })
     expect(asked.map((a) => a.timeLimit)).toEqual([2, 5])
   })
 

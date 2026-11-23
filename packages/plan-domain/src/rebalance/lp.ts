@@ -37,9 +37,12 @@ export interface LpSolution {
 
 /**
  * Solves one model. Injected, so the domain stays free of the solver: plan-data passes HiGHS, tests pass a fake.
- * `timeLimit` is in seconds.
+ * `timeLimit` is in seconds; `start` is a feasible solution to begin from.
  */
-export type Solve = (model: LpModel, options: { timeLimit: number }) => Promise<LpSolution>
+export type Solve = (
+  model: LpModel,
+  options: { timeLimit: number; start?: Record<string, number> | undefined },
+) => Promise<LpSolution>
 
 export interface OrderedSolution {
   values: Record<string, number>
@@ -52,23 +55,25 @@ export interface OrderedSolution {
 /**
  * Minimises the levels one after another: each level is solved with every level before it held at its best value,
  * so a later aim can never buy itself a worse result in an earlier one. The slack keeps a bound that the solver
- * met within its own tolerance from making the next model infeasible.
+ * met within its own tolerance from making the next model infeasible. `start`, a feasible solution, is where the
+ * first level begins; `timeLimit` is in seconds a level.
  */
 export async function solveInOrder(
   model: Omit<LpModel, 'objective'>,
   levels: LpTerm[][],
   solve: Solve,
-  timeLimit = 2,
+  { timeLimit = 2, start }: { timeLimit?: number; start?: Record<string, number> | undefined } = {},
 ): Promise<OrderedSolution> {
   const constraints = [...model.constraints]
-  let values: Record<string, number> = {}
+  let values = start
   let provenBest = true
   let gap = 0
   for (const [index, objective] of levels.entries()) {
+    // The level before's solution meets every bound so far, so a level stopped by its time limit keeps at least that.
     // oxlint-disable-next-line no-await-in-loop -- each level needs the bounds of the levels before it
     const solution = await solve(
       { variables: model.variables, constraints: [...constraints], objective },
-      { timeLimit },
+      { timeLimit, start: values },
     )
     if (solution.status === 'infeasible' || solution.status === 'error') {
       if (index === 0) throw new Error('The model has no solution')
@@ -83,5 +88,5 @@ export async function solveInOrder(
     const rhs = solution.objective + 1e-6 * Math.max(1, Math.abs(solution.objective))
     constraints.push({ name: `level_${index + 1}`, terms: objective, op: '<=', rhs })
   }
-  return { values, provenBest, gap }
+  return { values: values ?? {}, provenBest, gap }
 }

@@ -8,6 +8,66 @@ const hoursOf = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.start)) / HO
 /** The room a session takes: its length rounded up to the half-hour grid */
 const roomOf = (e: PlanEvent) => Math.ceil(hoursOf(e) * 2 - 1e-9) / 2
 const term = (v: string, c = 1): LpTerm => ({ v, c })
+const EPSILON = 1e-9
+
+/**
+ * The earliest study day (its index) each session can reach, or null for none. Sessions go in order, each on the
+ * first day from the one before it where it fits by the model's own rules: the day's room (or its own day, for a
+ * session outside the study hours), one lab a day, and the week's room unless going over is allowed.
+ *
+ * In any placement the model allows, no session is earlier than this: the sessions before it are each no earlier
+ * than theirs, so on every day it skips they would leave it even less room. The model builds nothing before it, and
+ * this placement is the first solution the solver starts from. Towards a deadline it is also the most sessions that
+ * can finish in time.
+ */
+export function earliestDays(room: Room, sessions: PlanEvent[], request: RebalanceRequest): (number | null)[] {
+  const used = new Map<number, number>()
+  const labs = new Set<number>()
+  const weeks = new Map<string, number>()
+  const out: (number | null)[] = []
+  let from = 0
+  for (const e of sessions) {
+    const own = room.own.get(e.uid)
+    const keep = own?.outside ? own.day : null
+    const at =
+      out.at(-1) === null
+        ? -1
+        : room.days.findIndex((d, k) => {
+            if (k < from) return false
+            const outside = d.day === keep
+            const lab = e.kind !== 'lab' || ((outside || d.lab) && !labs.has(d.index))
+            const fits = outside || (used.get(d.index) ?? 0) + roomOf(e) <= d.cap + EPSILON
+            const week =
+              request.overBudget ||
+              (weeks.get(d.week) ?? 0) + hoursOf(e) <= (room.weeks.get(d.week)?.left ?? 0) + EPSILON
+            return lab && fits && week
+          })
+    const day = room.days[at]
+    if (!day) {
+      out.push(null)
+      continue
+    }
+    from = at
+    if (day.day !== keep) used.set(day.index, (used.get(day.index) ?? 0) + roomOf(e))
+    if (e.kind === 'lab') labs.add(day.index)
+    weeks.set(day.week, (weeks.get(day.week) ?? 0) + hoursOf(e))
+    out.push(day.index)
+  }
+  return out
+}
+
+/**
+ * The room up to the deadline, when every session can be placed before it. Only being left out ranks above being
+ * late, so then no best answer uses a later day, and the model is spared every one of them.
+ */
+export function beforeDeadline(room: Room, sessions: PlanEvent[], request: RebalanceRequest): Room {
+  const { deadline } = room
+  if (request.target.mode !== 'deadline' || deadline === null) return room
+  const before = room.days.filter((d) => d.day < deadline)
+  const last = before.at(-1)?.index ?? 0
+  const inTime = earliestDays(room, sessions, request).every((index) => index !== null && index <= last)
+  return inTime ? { ...room, days: before } : room
+}
 
 /**
  * Step 2 of a re-balance: which session goes on which study day, as an integer program solved level by level.
@@ -15,7 +75,10 @@ const term = (v: string, c = 1): LpTerm => ({ v, c })
  *
  * - `y_i_d` (binary) puts session `i` on study day `d`; it exists only where the session fits, so most of the
  *   matrix is never built. `u_i` leaves it out; left-out sessions are always the tail of the course.
- * - `t_i` is the index of its day; `t_i ≤ t_{i+1}` keeps the order (relaxed for a left-out next session).
+ * - `Y_i_d` is 1 once session `i` is placed on day `d` or before, a running sum of its `y`. `Y_{i+1,d} ≤ Y_{i,d}`
+ *   keeps the order: the precedence written with prefix sums, at three nonzeros a row. A big-M order on day indices
+ *   is smaller, but its relaxation is so weak that the solver cannot place a real course within its time limit.
+ * - `t_i` is the index of its day, for the last tie-break.
  * - `L_d` is the load of day `d` and `C_d` the hours placed by then: a running sum instead of prefix sums over `y`,
  *   which would cost about a million nonzeros. `e_d` is how far `C_d` is from the ideal line.
  * - `over_w` is the week's load over its room, a variable only when the person allows it.
@@ -27,7 +90,7 @@ export function buildModel(
   room: Room,
   sessions: PlanEvent[],
   request: RebalanceRequest,
-): { model: Omit<LpModel, 'objective'>; levels: LpTerm[][] } {
+): { model: Omit<LpModel, 'objective'>; levels: LpTerm[][]; start: Record<string, number> } {
   const variables: LpVariable[] = []
   const constraints: LpConstraint[] = []
   const binary = (name: string) => variables.push({ name, kind: 'binary', lower: 0, upper: 1 })
@@ -41,10 +104,13 @@ export function buildModel(
   const total = sessions.reduce((sum, e) => sum + hoursOf(e), 0)
 
   // Where each session may go.
+  const earliest = earliestDays(room, sessions, request)
   const placed = sessions.map((e, i) => {
     const own = room.own.get(e.uid)
     const keep = own?.outside ? own.day : null
+    const first = earliest[i] ?? Number.POSITIVE_INFINITY
     const options = room.days
+      .filter((d) => d.index >= first)
       .filter((d) => d.day === keep || ((e.kind !== 'lab' || d.lab) && d.cap >= roomOf(e)))
       .map((d) => ({ d, v: `y_${i}_${d.index}`, outside: d.day === keep, e }))
     return { i, own: own?.day, options }
@@ -61,6 +127,7 @@ export function buildModel(
   for (const [i] of sessions.entries()) binary(`u_${i}`)
   if (deadline !== null) for (const [i] of sessions.entries()) binary(`late_${i}`)
   for (const [i] of sessions.entries()) continuous(`t_${i}`, D)
+  for (const [i] of sessions.entries()) for (const d of room.days) continuous(`Y_${i}_${d.index}`, 1)
   for (const d of room.days) continuous(`L_${d.index}`)
   for (const d of room.days) continuous(`C_${d.index}`)
   for (const d of room.days) continuous(`e_${d.index}`)
@@ -70,12 +137,20 @@ export function buildModel(
   continuous('Pd')
 
   for (const { i, options } of placed) {
-    row(`once_${i}`, [...options.map(({ v }) => term(v)), term(`u_${i}`)], '=', 1)
-    row(`day_${i}`, [term(`t_${i}`), ...options.map(({ d, v }) => term(v, -d.index))], '=', 0)
-    if (i + 1 < sessions.length) {
-      row(`tail_${i}`, [term(`u_${i}`), term(`u_${i + 1}`, -1)], '<=', 0)
-      row(`order_${i}`, [term(`t_${i}`), term(`t_${i + 1}`, -1), term(`u_${i + 1}`, -D)], '<=', 0)
+    const on = new Map(options.map((o) => [o.d.index, o.v]))
+    for (const { index: d } of room.days) {
+      const y = on.get(d)
+      row(
+        `reach_${i}_${d}`,
+        [term(`Y_${i}_${d}`), ...(d > 1 ? [term(`Y_${i}_${d - 1}`, -1)] : []), ...(y ? [term(y, -1)] : [])],
+        '=',
+        0,
+      )
+      if (i + 1 < sessions.length) row(`order_${i}_${d}`, [term(`Y_${i + 1}_${d}`), term(`Y_${i}_${d}`, -1)], '<=', 0)
     }
+    row(`once_${i}`, [...(D ? [term(`Y_${i}_${D}`)] : []), term(`u_${i}`)], '=', 1)
+    row(`day_${i}`, [term(`t_${i}`), ...options.map(({ d, v }) => term(v, -d.index))], '=', 0)
+    if (i + 1 < sessions.length) row(`tail_${i}`, [term(`u_${i}`), term(`u_${i + 1}`, -1)], '<=', 0)
     if (deadline !== null) {
       const after = options.filter(({ d }) => d.day >= deadline).map(({ v }) => term(v, -1))
       row(`late_${i}`, [term(`late_${i}`), ...after], '=', 0)
@@ -140,7 +215,58 @@ export function buildModel(
     deadline === null
       ? [unplaced, line, over, [term('Pw')], [term('Pd')], stay, early]
       : [unplaced, late, over, [term('Pw')], [term('Pd')], line, stay, early]
-  return { model: { variables, constraints }, levels: levels.filter((level) => level.length > 0) }
+  return {
+    model: { variables, constraints },
+    levels: levels.filter((level) => level.length > 0),
+    start: startOf(variables, earliest, { room, sessions, request, weeks, ideal }),
+  }
+}
+
+/** Every variable's value for a placement of the sessions on day indices (null: left out). */
+function startOf(
+  variables: LpVariable[],
+  days: (number | null)[],
+  context: {
+    room: Room
+    sessions: PlanEvent[]
+    request: RebalanceRequest
+    weeks: string[]
+    ideal: (index: number) => number
+  },
+): Record<string, number> {
+  const { room, sessions, request, weeks, ideal } = context
+  const deadline = request.target.mode === 'deadline' ? room.deadline : null
+  const values: Record<string, number> = Object.fromEntries(variables.map((v) => [v.name, 0]))
+  const load = new Map<number, number>()
+  for (const [i, e] of sessions.entries()) {
+    const index = days[i] ?? null
+    if (index === null) {
+      values[`u_${i}`] = 1
+      continue
+    }
+    values[`y_${i}_${index}`] = 1
+    values[`t_${i}`] = index
+    for (const d of room.days) if (d.index >= index) values[`Y_${i}_${d.index}`] = 1
+    const day = room.days.find((d) => d.index === index)?.day ?? ''
+    if (deadline !== null && day >= deadline) values[`late_${i}`] = 1
+    load.set(index, (load.get(index) ?? 0) + hoursOf(e))
+  }
+  let sum = 0
+  for (const d of room.days) {
+    const hours = load.get(d.index) ?? 0
+    sum += hours
+    values[`L_${d.index}`] = hours
+    values[`C_${d.index}`] = sum
+    values[`e_${d.index}`] = Math.abs(sum - ideal(d.index))
+    values.Pd = Math.max(values.Pd ?? 0, hours)
+  }
+  for (const [w, week] of weeks.entries()) {
+    const hours = room.days.filter((d) => d.week === week).reduce((total, d) => total + (load.get(d.index) ?? 0), 0)
+    const { left = 0, fixed = 0 } = room.weeks.get(week) ?? {}
+    if (request.overBudget) values[`over_${w + 1}`] = Math.max(0, hours - left)
+    values.Pw = Math.max(values.Pw ?? 0, fixed + hours)
+  }
+  return values
 }
 
 /** The day of each session in a solution, `null` for one left out, and whether it lands on or after the deadline. */
