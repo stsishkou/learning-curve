@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import { getLocale, localizeHref } from '@lc/i18n/runtime'
-import { Tooltips } from '@lc/ui'
+import { ICONS_ONLY_BOOT, Tooltips } from '@lc/ui'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { THEME_BOOT_SCRIPT } from '#/shell/theme'
@@ -27,7 +27,7 @@ export const Route = createRootRoute({
       { rel: 'stylesheet', href: appCss },
       { rel: 'icon', href: todayIcon() },
     ],
-    scripts: [{ children: THEME_BOOT_SCRIPT }],
+    scripts: [{ children: THEME_BOOT_SCRIPT }, { children: ICONS_ONLY_BOOT }],
   }),
   shellComponent: RootDocument,
   notFoundComponent: () => (
@@ -44,7 +44,8 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={getLocale()}>
+    // The head script marks <html> for the icons-only mode before React takes the page over.
+    <html lang={getLocale()} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

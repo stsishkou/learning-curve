@@ -110,9 +110,12 @@ export function ReaderSource({ text }: { text: string }) {
         <Button disabled={!ready} onClick={() => view.current?.expand()}>
           {m.reader_expand()}
         </Button>
-        <Button className="flex items-center gap-1.5" onClick={() => void copy()}>
-          <Copy size={15} aria-hidden /> {m.copy()}
-        </Button>
+        <Button
+          className="flex items-center gap-1.5"
+          icon={<Copy size={15} aria-hidden />}
+          label={m.copy()}
+          onClick={() => void copy()}
+        />
         {/* Outside the button: a live region inside one is not announced reliably. */}
         <span className={`text-[12.5px] ${copied === 'failed' ? 'text-today-ink' : 'text-done-ink'}`} role="status">
           {copied === 'yes' ? m.copied() : copied === 'failed' ? m.copy_failed() : ''}

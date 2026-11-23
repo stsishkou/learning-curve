@@ -33,9 +33,12 @@ export function OpenPlanFile({ shown, project, onOpen, library, now, onApply }: 
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button className="flex items-center justify-center gap-1.5" onClick={() => setOpen(true)}>
-        <FileText size={16} aria-hidden /> {m.open_plan_file()}
-      </Button>
+      <Button
+        className="flex items-center justify-center gap-1.5"
+        icon={<FileText size={16} aria-hidden />}
+        label={m.open_plan_file()}
+        onClick={() => setOpen(true)}
+      />
       <PlanFileReader
         open={open}
         shown={shown}

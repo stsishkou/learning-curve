@@ -108,15 +108,23 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
       )}
       <div className={FOOT}>
         <span className="mr-auto flex flex-wrap gap-2">
-          <Button className="flex items-center gap-1.5" disabled={cursor === 0} onClick={() => void go(cursor - 1)}>
-            <Undo2 size={15} aria-hidden /> {m.undo()} <Kbd>{mod} Z</Kbd>
+          <Button
+            className="flex items-center gap-1.5"
+            disabled={cursor === 0}
+            icon={<Undo2 size={15} aria-hidden />}
+            label={m.undo()}
+            onClick={() => void go(cursor - 1)}
+          >
+            <Kbd>{mod} Z</Kbd>
           </Button>
           <Button
             className="flex items-center gap-1.5"
             disabled={cursor >= steps.length}
+            icon={<Redo2 size={15} aria-hidden />}
+            label={m.redo()}
             onClick={() => void go(cursor + 1)}
           >
-            <Redo2 size={15} aria-hidden /> {m.redo()} <Kbd>{mod} ⇧ Z</Kbd>
+            <Kbd>{mod} ⇧ Z</Kbd>
           </Button>
         </span>
         <Button onClick={onClose}>{m.close()}</Button>

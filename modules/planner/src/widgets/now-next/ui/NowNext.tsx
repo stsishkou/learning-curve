@@ -80,10 +80,10 @@ export function NowNext({ plan, upcoming, now, onSelect, onFocus }: Props) {
           {onFocus && canFocus(shown) && (
             <Button
               className="mt-3 flex w-full items-center justify-center gap-1.5 text-[13.5px]"
+              icon={<Timer size={15} aria-hidden />}
+              label={m.focus_start_this()}
               onClick={() => onFocus(shown.uid)}
-            >
-              <Timer size={15} aria-hidden /> {m.focus_start_this()}
-            </Button>
+            />
           )}
         </>
       ) : (

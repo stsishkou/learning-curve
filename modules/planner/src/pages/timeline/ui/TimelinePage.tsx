@@ -10,7 +10,7 @@ import {
   type Plan,
   type PlanChange,
 } from '@lc/plan-domain'
-import { HelpToggle, Hint, PageHeader, useFullscreen, useShortcuts } from '@lc/ui'
+import { HelpToggle, IconsToggle, Hint, PageHeader, useFullscreen, useShortcuts } from '@lc/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { RescheduleDialog, type Rebalance } from '../../../features/reschedule'
@@ -170,7 +170,15 @@ export function TimelinePage(props: Props) {
       className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1400px] pt-3.5 pb-32 md:pt-5'}`}
     >
       {!wide && (
-        <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
+        <PageHeader
+          aside={headerAside}
+          actions={
+            <>
+              <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:flex-none!" />
+              <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
+            </>
+          }
+        >
           <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
             {m.timeline()}
             <Hint title={m.help_timeline_title()} text={m.help_timeline()} />

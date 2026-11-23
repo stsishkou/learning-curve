@@ -139,8 +139,13 @@ export function PlannerToolbar({
         )}
         <div className="ml-auto flex items-center gap-1.5">
           <Hint title={m.help_event_title()} text={m.help_event()} />
-          <Button className="hidden items-center gap-2 text-muted md:flex" onClick={onSearch}>
-            <Search size={15} aria-hidden /> {m.search()} <Kbd>{mod} K</Kbd>
+          <Button
+            className="hidden items-center gap-2 text-muted md:flex"
+            icon={<Search size={15} aria-hidden />}
+            label={m.search()}
+            onClick={onSearch}
+          >
+            <Kbd>{mod} K</Kbd>
           </Button>
           {history && (
             <div role="group" aria-label={m.history()} className="hidden gap-1.5 md:flex">
@@ -167,9 +172,14 @@ export function PlannerToolbar({
             </div>
           )}
           {onNewEvent && (
-            <Button primary className="flex items-center gap-1.5" data-tip={m.new_event_hint()} onClick={onNewEvent}>
-              <Plus size={16} aria-hidden /> {m.event()}
-            </Button>
+            <Button
+              primary
+              className="flex items-center gap-1.5"
+              icon={<Plus size={16} aria-hidden />}
+              label={m.event()}
+              data-tip={m.new_event_hint()}
+              onClick={onNewEvent}
+            />
           )}
           {history && <Hint title={m.help_history_title()} text={m.help_history()} className="max-md:hidden" />}
           <Menu label={m.more_actions()} items={menu} />
@@ -209,21 +219,21 @@ export function PlannerToolbar({
               <Button
                 className={`flex items-center gap-1.5 ${PRESSED}`}
                 aria-pressed={nav.workWeek}
+                icon={<Briefcase size={15} aria-hidden />}
+                label={m.work_week()}
                 data-tip={m.work_week_hint()}
                 onClick={nav.toggleWorkWeek}
-              >
-                <Briefcase size={15} aria-hidden /> {m.work_week()}
-              </Button>
+              />
             )}
             {timeGrid && (
               <Button
                 className={`flex items-center gap-1.5 ${PRESSED}`}
                 aria-pressed={nav.fullDay}
+                icon={<Clock size={15} aria-hidden />}
+                label={m.full_day()}
                 data-tip={m.full_day_hint()}
                 onClick={nav.toggleFullDay}
-              >
-                <Clock size={15} aria-hidden /> {m.full_day()}
-              </Button>
+              />
             )}
             <ScreenButtons
               expanded={nav.expanded}

@@ -281,3 +281,32 @@
   pointer-events: none;
   box-shadow: 0 6px 18px rgb(10 16 30 / 0.25);
 }
+
+/* Icons only (icons-only.tsx): a button with an icon keeps its word for a screen reader but does not show it, and
+   its tooltip names it. Shortcut keys go with the word. */
+:root[data-icons='only'] [data-label] {
+  padding-inline: 0.625rem;
+  & > .lc-label {
+    /* Left where it was, a word at the end of a row that scrolls sideways would get out of the row and widen the page. */
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  & kbd {
+    display: none;
+  }
+}
+.lc-tip > b {
+  display: block;
+  font-weight: 600;
+}
+.lc-tip > b + span {
+  display: block;
+  font-weight: 400;
+  opacity: 0.8;
+}

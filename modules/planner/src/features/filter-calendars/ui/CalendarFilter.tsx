@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import type { PlanCalendar } from '@lc/plan-domain'
-import { calendarColor, Dot, Eye, Plus } from '@lc/ui'
+import { calendarColor, Dot, Eye, Label, Plus } from '@lc/ui'
 
 const CHIP =
   'group inline-flex shrink-0 items-center gap-[7px] rounded-full border border-line bg-surface py-[5px] pr-[11px] pl-[9px] text-[13px] whitespace-nowrap'
@@ -58,13 +58,25 @@ export function CalendarFilter({ calendars, hidden, onToggle, onSolo, onShowAll,
         </span>
       ))}
       {onShowAll && (
-        <button type="button" className={`${CHIP} font-medium text-focus`} onClick={onShowAll}>
-          <Eye size={14} aria-hidden /> {m.calendars_show_all()}
+        <button
+          type="button"
+          className={`${CHIP} font-medium text-focus`}
+          data-label={m.calendars_show_all()}
+          onClick={onShowAll}
+        >
+          <Eye size={14} aria-hidden />
+          <Label>{m.calendars_show_all()}</Label>
         </button>
       )}
       {onManage && (
-        <button type="button" className={`${CHIP} border-dashed text-muted hover:text-ink`} onClick={onManage}>
-          <Plus size={14} aria-hidden /> {m.manage_calendars()}
+        <button
+          type="button"
+          className={`${CHIP} border-dashed text-muted hover:text-ink`}
+          data-label={m.manage_calendars()}
+          onClick={onManage}
+        >
+          <Plus size={14} aria-hidden />
+          <Label>{m.manage_calendars()}</Label>
         </button>
       )}
     </div>

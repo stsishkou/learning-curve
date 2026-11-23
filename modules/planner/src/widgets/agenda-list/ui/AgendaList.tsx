@@ -168,9 +168,12 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
         {chosen.length > 0 ? (
           <div role="group" aria-label={m.bulk_actions()} className="flex flex-wrap items-center gap-1.5">
             <b className="mr-1 font-semibold tabular-nums">{m.list_selected({ count: chosen.length })}</b>
-            <Button className={BULK} onClick={() => act([{ type: 'events.done', uids, done: true }])}>
-              <Check size={14} aria-hidden /> {m.bulk_done()}
-            </Button>
+            <Button
+              className={BULK}
+              icon={<Check size={14} aria-hidden />}
+              label={m.bulk_done()}
+              onClick={() => act([{ type: 'events.done', uids, done: true }])}
+            />
             <Button className={BULK} onClick={() => act([{ type: 'events.done', uids, done: false }])}>
               {m.bulk_undone()}
             </Button>
@@ -183,9 +186,12 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
             <Button className={BULK} onClick={() => act(moveBy(7))}>
               {m.bulk_week_forward()}
             </Button>
-            <Button className={BULK} onClick={() => act(uids.map((uid) => ({ type: 'event.remove', uid })))}>
-              <Trash2 size={14} aria-hidden /> {m.bulk_trash()}
-            </Button>
+            <Button
+              className={BULK}
+              icon={<Trash2 size={14} aria-hidden />}
+              label={m.bulk_trash()}
+              onClick={() => act(uids.map((uid) => ({ type: 'event.remove', uid })))}
+            />
             <Button
               className={BULK}
               aria-label={m.bulk_clear()}

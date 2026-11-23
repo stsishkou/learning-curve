@@ -13,7 +13,7 @@ import {
   ymd,
 } from '@lc/plan-domain'
 import { fixtureEdited, fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
-import { fakeFullscreen } from '@lc/ui/testing'
+import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
@@ -170,5 +170,29 @@ export const NoFullScreenWhereTheBrowserCannot: Story = {
     const page = within(canvasElement)
     await expect(await page.findByRole('button', { name: m.expand() })).toBeVisible()
     await expect(page.queryByRole('button', { name: m.fullscreen() })).toBeNull()
+  },
+}
+
+const forgetIconsOnly = () => {
+  clearIconsOnly()
+  return clearIconsOnly
+}
+
+/**
+ * `Icons only` in the header leaves the toolbar's buttons with their icons: each keeps its name for a screen reader
+ * and in its tooltip. The `⋮` menu offers the same switch, for a phone and the expanded calendar.
+ */
+export const IconsOnly: Story = {
+  beforeEach: forgetIconsOnly,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await userEvent.click(await page.findByRole('button', { name: m.icons_only() }))
+    const event = page.getByRole('button', { name: m.event() })
+    await expect(within(event).getByText(m.event()).getBoundingClientRect().width).toBeLessThanOrEqual(1)
+    await userEvent.click(page.getByRole('button', { name: m.more_actions() }))
+    await expect(await page.findByRole('menuitemcheckbox', { name: m.icons_only() })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
   },
 }

@@ -1,7 +1,7 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
-import { HelpToggle, PageHeader, ScreenButtons, useFullscreen, useShortcuts } from '@lc/ui'
+import { HelpToggle, IconsToggle, PageHeader, ScreenButtons, useFullscreen, useShortcuts } from '@lc/ui'
 import { useMemo, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
@@ -56,7 +56,15 @@ export function DashboardPage({ plan, headerAside, now: fixed, expanded = false,
       className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1240px] pt-3.5 pb-10 md:pt-5 md:pb-12'}`}
     >
       {!wide && (
-        <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
+        <PageHeader
+          aside={headerAside}
+          actions={
+            <>
+              <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:flex-none!" />
+              <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
+            </>
+          }
+        >
           <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
         </PageHeader>
       )}

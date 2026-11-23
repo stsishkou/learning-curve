@@ -38,3 +38,9 @@ export function fakeFullscreen({ enabled = true }: { enabled?: boolean } = {}) {
     },
   }
 }
+
+/** Turns the icons-only mode off and forgets it, so a story starts with every word shown. */
+export function clearIconsOnly() {
+  localStorage.removeItem('lc-icons-only')
+  document.documentElement.removeAttribute('data-icons')
+}

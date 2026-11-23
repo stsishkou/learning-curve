@@ -9,6 +9,7 @@ import {
   Dot,
   ExternalLink,
   HelpToggle,
+  IconsToggle,
   Hint,
   PageHeader,
   Pause,
@@ -152,7 +153,15 @@ export function FocusPage(props: Props) {
       className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1240px] pt-3.5 pb-10 md:pt-5 md:pb-12'}`}
     >
       {!wide && (
-        <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
+        <PageHeader
+          aside={headerAside}
+          actions={
+            <>
+              <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:flex-none!" />
+              <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
+            </>
+          }
+        >
           <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
             {m.focus()}
             <Hint title={m.help_focus_title()} text={m.help_focus()} />
@@ -222,13 +231,13 @@ export function FocusPage(props: Props) {
                         <Button
                           primary
                           className="flex items-center gap-1.5"
+                          icon={<Coffee size={16} aria-hidden />}
+                          label={m.focus_break_take()}
                           onClick={() => {
                             watch.pause()
                             breaks.take()
                           }}
-                        >
-                          <Coffee size={16} aria-hidden /> {m.focus_break_take()}
-                        </Button>
+                        />
                         <Button onClick={breaks.skip}>{m.focus_break_skip()}</Button>
                       </>
                     ) : (
@@ -247,23 +256,29 @@ export function FocusPage(props: Props) {
 
                 <div className="flex flex-wrap justify-center gap-2">
                   {running ? (
-                    <Button className="flex items-center gap-1.5" onClick={watch.pause}>
-                      <Pause size={16} aria-hidden /> {m.focus_pause()}
-                    </Button>
+                    <Button
+                      className="flex items-center gap-1.5"
+                      icon={<Pause size={16} aria-hidden />}
+                      label={m.focus_pause()}
+                      onClick={watch.pause}
+                    />
                   ) : (
-                    <Button primary className="flex items-center gap-1.5" onClick={() => watch.start(session.uid)}>
-                      <Play size={16} aria-hidden /> {elapsed ? m.focus_resume() : m.focus_start()}
-                    </Button>
+                    <Button
+                      primary
+                      className="flex items-center gap-1.5"
+                      icon={<Play size={16} aria-hidden />}
+                      label={elapsed ? m.focus_resume() : m.focus_start()}
+                      onClick={() => watch.start(session.uid)}
+                    />
                   )}
                   {canEdit && (
                     <Button
                       className="flex items-center gap-1.5 border-done text-done-ink"
                       disabled={busy || !elapsed}
+                      icon={<Check size={16} aria-hidden />}
+                      label={m.focus_finish({ time: fmtDuration(loggedMinutes(elapsed) * MINUTE) })}
                       onClick={() => void finish(session)}
-                    >
-                      <Check size={16} aria-hidden />
-                      {m.focus_finish({ time: fmtDuration(loggedMinutes(elapsed) * MINUTE) })}
-                    </Button>
+                    />
                   )}
                   <Button
                     className="grid place-items-center px-2.5"

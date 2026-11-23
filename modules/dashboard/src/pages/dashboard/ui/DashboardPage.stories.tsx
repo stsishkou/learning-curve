@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
-import { fakeFullscreen } from '@lc/ui/testing'
+import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
@@ -96,5 +96,19 @@ export const ExpandAndFullScreenByKeys: Story = {
     await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
     await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
+  },
+}
+
+/** `Icons only` in the header leaves Expand and Full screen with their icons, named in their tooltips. */
+export const IconsOnly: Story = {
+  beforeEach: () => {
+    clearIconsOnly()
+    return clearIconsOnly
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await userEvent.click(page.getByRole('button', { name: m.icons_only() }))
+    const expand = page.getByRole('button', { name: m.expand() })
+    await expect(within(expand).getByText(m.expand()).getBoundingClientRect().width).toBeLessThanOrEqual(1)
   },
 }

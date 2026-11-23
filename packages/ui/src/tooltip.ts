@@ -6,7 +6,8 @@ const DELAY = 300
 const WARM = 500
 const GAP = 6
 const EDGE = 8
-const TIPPED = '[data-tip]'
+// `data-label` is the hidden word of a button in the icons-only mode (icons-only.tsx).
+const TIPPED = '[data-tip], [data-label]'
 
 const tippedFrom = (target: EventTarget | null) => (target instanceof Element ? target.closest(TIPPED) : null)
 
@@ -46,13 +47,23 @@ function install(): () => void {
 
   function show(el: Element) {
     pending = null
-    const text = el.getAttribute('data-tip') ?? ''
-    if (!text || !el.isConnected) {
+    const word =
+      document.documentElement.getAttribute('data-icons') === 'only' ? (el.getAttribute('data-label') ?? '') : ''
+    const hint = el.getAttribute('data-tip') ?? ''
+    if (!(word || hint) || !el.isConnected) {
       hide()
       return
     }
     owner = el
-    tip.textContent = text
+    if (word && hint) {
+      const name = document.createElement('b')
+      const more = document.createElement('span')
+      name.textContent = word
+      more.textContent = hint
+      tip.replaceChildren(name, more)
+    } else {
+      tip.textContent = word || hint
+    }
     // Shown anew each time, so it lands on top of a dialog that opened since.
     if (tip.matches(':popover-open')) tip.hidePopover()
     try {
@@ -121,9 +132,10 @@ function install(): () => void {
 }
 
 /**
- * The tooltips of the page: anything with `data-tip` shows that text under itself a moment after the pointer rests
- * on it, and at once when the keyboard reaches it. One element serves them all, in the top layer, so no scrolling
- * box clips it and it shows over dialogs. Render it once, at the root of the page.
+ * The tooltips of the page. Anything with `data-tip` shows that text under itself a moment after the pointer rests
+ * on it, and at once when the keyboard reaches it; in the icons-only mode a button's hidden word (`data-label`)
+ * comes first. One element serves them all, in the top layer, so no scrolling box clips it and it shows over
+ * dialogs. Render it once, at the root of the page.
  */
 export function Tooltips() {
   useEffect(install, [])

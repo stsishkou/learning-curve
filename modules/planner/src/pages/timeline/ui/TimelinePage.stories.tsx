@@ -26,7 +26,7 @@ import {
   type RebalanceResult,
 } from '@lc/plan-domain'
 import { fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
-import { fakeFullscreen } from '@lc/ui/testing'
+import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
@@ -582,5 +582,19 @@ export const TheHintFolds: Story = {
     await userEvent.click(page.getByText(m.timeline_how()))
     await waitFor(() => expect(page.getByText(m.timeline_page_hint())).not.toBeVisible())
     await expect(localStorage.getItem('learning-curve:timeline-hint')).toBe('folded')
+  },
+}
+
+/** `Icons only` in the header leaves Expand and Full screen with their icons, named in their tooltips. */
+export const IconsOnly: Story = {
+  beforeEach: () => {
+    clearIconsOnly()
+    return clearIconsOnly
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await userEvent.click(page.getByRole('button', { name: m.icons_only() }))
+    const expand = within(await chart(canvasElement)).getByRole('button', { name: m.expand() })
+    await expect(within(expand).getByText(m.expand()).getBoundingClientRect().width).toBeLessThanOrEqual(1)
   },
 }

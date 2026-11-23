@@ -200,6 +200,10 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Help marks**: the `?` button in the header of every page (in the `⋮` menu on a phone and in the expanded
   calendar) shows a question mark next to the main features; a click on a mark opens a short note about the thing
   beside it. The choice is kept in the browser.
+- **Icons only**: the `T` button next to `?` (in the `⋮` menu on a phone and in the expanded calendar) hides the
+  word of every button that has an icon, so a toolbar takes less room. The word stays the button's name for a
+  screen reader, and its tooltip shows it. Tooltips come a moment after the pointer rests on a button, at once
+  along a toolbar and when the keyboard reaches it. The choice is kept in the browser.
 - **Keyboard**: `Ctrl/⌘ K` or `/` searches events and commands (including the theme and the language), `?` lists
   the shortcuts: `D` `W` `M` `Y` `L` for the views, `5` for the work week, `+` `-` for the time scale, `E` to
   expand and `Shift F` for full screen.

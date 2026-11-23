@@ -437,11 +437,10 @@ export function EventDialog({
               <Button
                 className={`flex items-center gap-1.5 ${event.done ? '' : 'border-done text-done-ink'}`}
                 disabled={busy}
+                icon={event.done ? undefined : <Check size={15} aria-hidden />}
+                label={event.done ? m.mark_not_done() : m.mark_done()}
                 onClick={() => void run({ type: 'event.patch', uid: event.uid, patch: { done: !event.done } })}
-              >
-                {!event.done && <Check size={15} aria-hidden />}
-                {event.done ? m.mark_not_done() : m.mark_done()}
-              </Button>
+              />
             )}
             {canEdit && (
               <Button primary onClick={() => setEditing(true)}>

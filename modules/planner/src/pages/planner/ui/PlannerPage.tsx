@@ -24,7 +24,17 @@ import {
   type RebalanceRequest,
   type RebalanceResult,
 } from '@lc/plan-domain'
-import { Button, CalendarSync, HelpToggle, Hint, useFullscreen, useHelpMode, useShortcuts } from '@lc/ui'
+import {
+  Button,
+  CalendarSync,
+  HelpToggle,
+  Hint,
+  IconsToggle,
+  useFullscreen,
+  useHelpMode,
+  useIconsOnly,
+  useShortcuts,
+} from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 
 import { Backlog } from '../../../features/backlog'
@@ -223,6 +233,7 @@ export function PlannerPage({
 
   const reminders = useReminders(upcoming)
   const [helpOn, toggleHelp] = useHelpMode()
+  const [iconsOnly, toggleIconsOnly] = useIconsOnly()
 
   // Sessions that should be over and are not marked done: the plan and the reality have drifted apart.
   const overdue = useMemo(
@@ -287,6 +298,7 @@ export function PlannerPage({
     reminders: reminders.supported ? reminders : undefined,
     fullscreen: fullscreen.supported ? fullscreen : undefined,
     help: { on: helpOn, toggle: toggleHelp },
+    iconsOnly: { on: iconsOnly, toggle: toggleIconsOnly },
     trashCount,
     overdueCount: overdue.length,
     open: dialogs.show,
@@ -334,7 +346,8 @@ export function PlannerPage({
             onRename={canEdit ? (title) => quiet.change({ type: 'plan.rename', title }) : undefined}
             aside={headerAside}
           >
-            {/* On a phone the two plan buttons fill the row: the switch is in the menu there. */}
+            {/* On a phone the two plan buttons fill the row: the switches are in the menu there. */}
+            <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:hidden" />
             <HelpToggle label={m.help_toggle()} className="max-md:hidden" />
             <Hint title={m.help_file_title()} text={m.help_file()} className="self-center max-md:hidden" />
             <OpenPlanFile
@@ -352,9 +365,10 @@ export function PlannerPage({
             {renderActions?.({ plan, hidden })}
             <Button
               className="relative flex items-center justify-center gap-1.5"
+              icon={<CalendarSync size={16} aria-hidden />}
+              label={m.integrations()}
               onClick={() => dialogs.show('integrations')}
             >
-              <CalendarSync size={16} aria-hidden /> {m.integrations()}
               {attention && (
                 <span
                   aria-hidden

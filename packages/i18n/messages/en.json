@@ -626,6 +626,8 @@
   "zone_not_found": "No such zone. Try the city in Latin letters or an offset such as UTC+2.",
   "zone_plan_short": "plan",
   "help_toggle": "Help marks: what is on this page",
+  "icons_only": "Icons only",
+  "icons_only_hint": "Buttons with an icon hide their word: it shows on hover",
   "help_views_title": "Calendar views",
   "help_views": "Day, week, month, year and the whole plan as a list. Keys D, W, M, Y, L switch the view, the ← → arrows move by a period, and the date in the title opens a day picker.\nOn a wide screen there are also the time scale (+ and −), Work week, 24 hours and Expand, which gives the calendar the whole window.",
   "help_event_title": "New event and search",

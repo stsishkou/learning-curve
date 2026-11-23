@@ -19,6 +19,7 @@ import {
   Redo2,
   Search,
   Trash2,
+  Type,
   Undo2,
 } from '@lc/ui'
 
@@ -57,6 +58,8 @@ interface Context {
   fullscreen?: { on: boolean; toggle: () => void } | undefined
   /** The help marks next to the main features */
   help: { on: boolean; toggle: () => void }
+  /** Buttons with an icon show only the icon */
+  iconsOnly: { on: boolean; toggle: () => void }
   trashCount: number
   overdueCount: number
   open: (dialog: DialogName) => void
@@ -273,6 +276,15 @@ export function buildActions(ctx: Context): PlannerAction[] {
       checked: ctx.help.on,
       menu: 'always',
       run: ctx.help.toggle,
+    },
+    {
+      id: 'icons-only',
+      group: plan,
+      label: m.icons_only(),
+      icon: <Type {...ICON} />,
+      checked: ctx.iconsOnly.on,
+      menu: 'always',
+      run: ctx.iconsOnly.toggle,
     },
     {
       id: 'shortcuts',

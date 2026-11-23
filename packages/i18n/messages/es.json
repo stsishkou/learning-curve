@@ -626,6 +626,8 @@
   "zone_not_found": "No existe esa zona. Prueba la ciudad en letras latinas o un desfase como UTC+2.",
   "zone_plan_short": "plan",
   "help_toggle": "Ayuda: qué hay en la página",
+  "icons_only": "Solo iconos",
+  "icons_only_hint": "Los botones con icono ocultan su texto: se ve al pasar el cursor",
   "help_views_title": "Vistas del calendario",
   "help_views": "Día, semana, mes, año y todo el plan como lista. Las teclas D, W, M, Y, L cambian la vista, las flechas ← → pasan de período y la fecha del título abre un selector de día.\nEn una pantalla ancha están también la escala de tiempo (+ y −), Semana laboral, 24 horas y Ampliar, que da al calendario toda la ventana.",
   "help_event_title": "Nuevo evento y búsqueda",

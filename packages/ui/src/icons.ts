@@ -54,6 +54,7 @@ export {
   Timer,
   Trash2,
   TriangleAlert,
+  Type,
   Undo2,
   X,
   ZoomIn,

@@ -1,7 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import { isSession } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
-import { fakeFullscreen } from '@lc/ui/testing'
+import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
@@ -157,5 +157,22 @@ export const ExpandAndFullScreenByKeys: Story = {
     await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
     await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
+  },
+}
+
+/** In the icons-only mode the stopwatch's buttons show only their icons; their names stay for a screen reader. */
+export const IconsOnly: Story = {
+  beforeEach: () => {
+    clearIconsOnly()
+    localStorage.setItem('lc-icons-only', '1')
+    return clearIconsOnly
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: m.icons_only() })).toHaveAttribute('aria-pressed', 'true'),
+    )
+    const start = page.getByRole('button', { name: START })
+    await expect(within(start).getByText(START).getBoundingClientRect().width).toBeLessThanOrEqual(1)
   },
 }
