@@ -1,0 +1,86 @@
+import { DAY, mondayOf, parseLocal, startOfDay, ymd } from './dates'
+import { deadlineOf } from './deadlines'
+import { isSession } from './progress'
+import type { Plan, PlanCalendar } from './types'
+
+export type LaneSessionState = 'done' | 'open' | 'missed'
+
+export interface LaneSession {
+  uid: string
+  /** `YYYY-MM-DD` */
+  day: string
+  state: LaneSessionState
+}
+
+/** One calendar on the timeline: its span of sessions, their state and its deadline. Days are `YYYY-MM-DD`. */
+export interface CalendarLane {
+  calendar: PlanCalendar
+  first: string
+  last: string
+  deadline: string | null
+  /** In the order they start */
+  sessions: LaneSession[]
+  done: number
+  total: number
+  /** The day of the first session that is not done; null when all are done */
+  openFrom: string | null
+}
+
+const MIN_DAYS = 28
+
+/**
+ * A lane for every shown calendar that has sessions and still has something ahead: a session not done, or a deadline
+ * from today on. Before the clock is known (`now` null) nothing counts as missed and every deadline is ahead.
+ */
+export function calendarLanes(plan: Plan, now: number | null, hidden: ReadonlySet<string>): CalendarLane[] {
+  const today = now === null ? '' : ymd(now)
+  return plan.calendars.flatMap((calendar) => {
+    if (hidden.has(calendar.id)) return []
+    const events = plan.events
+      .filter((e) => e.calendar === calendar.id && isSession(e))
+      .toSorted((a, b) => a.start.localeCompare(b.start))
+    const [head] = events
+    const tail = events.at(-1)
+    if (!head || !tail) return []
+    const deadline = deadlineOf(plan, calendar.id)
+    const open = events.find((e) => !e.done)
+    if (!open && (deadline === null || deadline < today)) return []
+    const sessions = events.map((e): LaneSession => ({
+      uid: e.uid,
+      day: e.start.slice(0, 10),
+      state: e.done ? 'done' : now !== null && parseLocal(e.end) <= now ? 'missed' : 'open',
+    }))
+    return [
+      {
+        calendar,
+        first: head.start.slice(0, 10),
+        last: tail.start.slice(0, 10),
+        deadline,
+        sessions,
+        done: sessions.filter((s) => s.state === 'done').length,
+        total: sessions.length,
+        openFrom: open ? open.start.slice(0, 10) : null,
+      },
+    ]
+  })
+}
+
+const dayOf = (day: string) => parseLocal(day)
+
+/**
+ * The days the timeline draws, as day ms with `end` excluded: from the Monday of the week before today to the day
+ * after the last session or deadline, at least four weeks. Before the clock is known, the first open session stands in
+ * for today. null when there are no lanes.
+ */
+export function lanesRange(lanes: CalendarLane[], now: number | null): { start: number; end: number } | null {
+  if (!lanes.length) return null
+  const anchors = lanes.map((lane) => lane.openFrom).filter((day) => day !== null)
+  const anchor = now ?? Math.min(...(anchors.length ? anchors : lanes.map((lane) => lane.first)).map(dayOf))
+  const start = mondayOf(startOfDay(anchor)) - 7 * DAY
+  const end = Math.max(
+    ...lanes
+      .flatMap((lane) => [dayOf(lane.last), ...(lane.deadline ? [dayOf(lane.deadline)] : [])])
+      .map((t) => t + DAY),
+  )
+  return { start, end: Math.max(end, start + MIN_DAYS * DAY) }
+}

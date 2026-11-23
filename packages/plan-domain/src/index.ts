@@ -1,5 +1,6 @@
 export type { BusyBlock } from './busy'
 export { deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
+export { calendarLanes, lanesRange, type CalendarLane, type LaneSession, type LaneSessionState } from './lanes'
 export { nextFreeSlot, type FreeSlotOptions } from './free-slot'
 export { studyStreak, type StudyDay, type StudyStreak } from './streak'
 export {
