@@ -17,8 +17,8 @@ interface Context {
   today: number | null
   canEdit: boolean
   canRebalance: boolean
-  /** Where the history stands now */
-  cursor: number
+  /** The change of the step the Undo bar offers to take back; null when it shows none */
+  lastChange: PlanChange | null
   change: (change: PlanChange) => void
   open: (request: RescheduleRequest) => void
 }
@@ -28,8 +28,8 @@ interface Context {
  * Undo; a move that does, and a new end, open Reschedule so the result is seen before it is stored. Right after a
  * deadline moves, the Undo bar offers to re-balance the course to it.
  */
-export function useTimelineEdit({ plan, today, canEdit, canRebalance, cursor, change, open }: Context) {
-  const [moved, setMoved] = useState<{ calendar: string; day: string; cursor: number } | null>(null)
+export function useTimelineEdit({ plan, today, canEdit, canRebalance, lastChange, change, open }: Context) {
+  const [moved, setMoved] = useState<{ calendar: string; day: string; step: PlanChange } | null>(null)
   if (!canEdit || today === null) return { edit: undefined, offer: undefined }
   const from = ymd(today)
 
@@ -48,12 +48,12 @@ export function useTimelineEdit({ plan, today, canEdit, canRebalance, cursor, ch
       const step = deadlineChange(plan, calendar, day)
       if (!step) return
       change(step)
-      // The step lands one past the cursor: the offer holds only while that step is the last one.
-      setMoved({ calendar, day, cursor: cursor + 1 })
+      setMoved({ calendar, day, step })
     },
   }
+  // Only while that very step is the one just made: an undo, a failed save or another change takes the offer away.
   const offer =
-    canRebalance && moved?.cursor === cursor
+    canRebalance && moved && lastChange && JSON.stringify(lastChange) === JSON.stringify(moved.step)
       ? {
           label: m.timeline_rebalance_to_deadline(),
           run: () =>

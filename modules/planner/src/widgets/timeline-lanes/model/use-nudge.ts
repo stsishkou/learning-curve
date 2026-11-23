@@ -17,11 +17,15 @@ export interface NudgeOptions {
 }
 
 interface Press {
+  /** The pointer that pressed: another finger is not this press */
+  id: number
   x: number
   y: number
   perPixel: number
   armed: boolean
   moved: boolean
+  /** Escape put the thing back: the press only waits to be let go */
+  cancelled: boolean
   timer?: number
   /** Stops the page from scrolling under a finger that has picked the thing up */
   hold?: (e: TouchEvent) => void
@@ -36,6 +40,11 @@ const KEY_STEPS: Record<string, number> = {
   PageDown: -7,
 }
 
+function forget(p: Press | null) {
+  window.clearTimeout(p?.timer)
+  if (p?.hold) document.removeEventListener('touchmove', p.hold)
+}
+
 /**
  * A thing on the timeline moved by days: dragged with a mouse or, after a long press, a finger, or stepped by keys
  * as a slider. The offset is only shown until it is committed, on drop or with Enter; Escape puts it back.
@@ -48,11 +57,13 @@ export function useNudge({ days, step, min, max, onCommit }: NudgeOptions) {
 
   const clamp = (n: number) => Math.max(min, Math.min(max, n))
   const offsetAt = (p: Press, clientX: number) => clamp(Math.round(((clientX - p.x) * p.perPixel) / step) * step)
+  const own = (e: PointerEvent<HTMLElement>) => {
+    const p = press.current
+    return p?.id === e.pointerId ? p : null
+  }
 
   function release(moved: boolean) {
-    const p = press.current
-    window.clearTimeout(p?.timer)
-    if (p?.hold) document.removeEventListener('touchmove', p.hold)
+    forget(press.current)
     press.current = null
     setDragging(false)
     setOffset(0)
@@ -63,20 +74,41 @@ export function useNudge({ days, step, min, max, onCommit }: NudgeOptions) {
     }
   }
 
+  /** Puts the thing back; the press stays until it is let go, so the click that follows is still swallowed. */
+  function cancel() {
+    const p = press.current
+    if (!p || p.cancelled) return
+    p.cancelled = true
+    window.clearTimeout(p.timer)
+    setDragging(false)
+    setOffset(0)
+  }
+
+  useEffect(() => () => forget(press.current), [])
+
   useEffect(() => {
     if (!dragging) return undefined
-    const cancel = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') release(press.current?.moved ?? false)
+    const onEscape = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') cancel()
     }
-    window.addEventListener('keydown', cancel)
-    return () => window.removeEventListener('keydown', cancel)
+    // Capture: a handler on the way down must not keep a drag alive by stopping the key.
+    window.addEventListener('keydown', onEscape, true)
+    return () => window.removeEventListener('keydown', onEscape, true)
   }, [dragging])
 
   function onPointerDown(e: PointerEvent<HTMLElement>) {
-    if (e.button !== 0) return
+    if (e.button !== 0 || !e.isPrimary || press.current) return
     const width = e.currentTarget.closest('[data-track]')?.getBoundingClientRect().width ?? 0
     const touch = e.pointerType === 'touch'
-    const next: Press = { x: e.clientX, y: e.clientY, perPixel: days / Math.max(1, width), armed: !touch, moved: false }
+    const next: Press = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      perPixel: days / Math.max(1, width),
+      armed: !touch,
+      moved: false,
+      cancelled: false,
+    }
     press.current = next
     if (!touch) {
       e.currentTarget.setPointerCapture(e.pointerId)
@@ -84,7 +116,7 @@ export function useNudge({ days, step, min, max, onCommit }: NudgeOptions) {
     }
     // Only a non-passive listener can keep the page still: it lives as long as the press.
     next.hold = (event) => {
-      if (next.armed) event.preventDefault()
+      if (next.armed && !next.cancelled) event.preventDefault()
     }
     document.addEventListener('touchmove', next.hold, { passive: false })
     next.timer = window.setTimeout(() => {
@@ -95,8 +127,8 @@ export function useNudge({ days, step, min, max, onCommit }: NudgeOptions) {
   }
 
   function onPointerMove(e: PointerEvent<HTMLElement>) {
-    const p = press.current
-    if (!p) return
+    const p = own(e)
+    if (!p || p.cancelled) return
     const dx = e.clientX - p.x
     if (!p.armed) {
       if (Math.hypot(dx, e.clientY - p.y) > TOUCH_SLOP) release(false)
@@ -109,19 +141,25 @@ export function useNudge({ days, step, min, max, onCommit }: NudgeOptions) {
   }
 
   function onPointerUp(e: PointerEvent<HTMLElement>) {
-    const p = press.current
+    const p = own(e)
     if (!p) return
-    const moved = p.moved
-    const by = moved ? offsetAt(p, e.clientX) : 0
-    release(moved)
+    const by = p.moved && !p.cancelled ? offsetAt(p, e.clientX) : 0
+    release(p.moved)
     if (by !== 0) onCommit(by)
   }
 
-  function onPointerCancel() {
-    release(press.current?.moved ?? false)
+  function onPointerCancel(e: PointerEvent<HTMLElement>) {
+    const p = own(e)
+    if (p) release(p.moved)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLElement>) {
+    // While a pointer holds the thing, the drop decides; Escape still puts it back.
+    if (press.current) {
+      if (e.key === 'Escape' || e.key === 'Enter') e.preventDefault()
+      if (e.key === 'Escape') cancel()
+      return
+    }
     if (e.key === 'Enter') {
       e.preventDefault()
       setOffset(0)

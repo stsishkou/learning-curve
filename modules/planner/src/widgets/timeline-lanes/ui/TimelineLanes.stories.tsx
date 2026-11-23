@@ -105,7 +105,8 @@ const editing = () => ({ onOpen: fn(), onMove: fn(), onFinish: fn(), onDeadline:
 const drawn = lanesRange(calendarLanes(fixturePlan, fixtureNow, NONE), fixtureNow)
 const RANGE_DAYS = drawn ? (drawn.end - drawn.start) / DAY : 1
 const LLM = /Hugging Face: LLM Course/
-const MOUSE = { pointerId: 1, pointerType: 'mouse', button: 0 }
+const MOUSE = { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true }
+const pause = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /** Presses a lane in its middle and moves the pointer sideways by `weeks` of the track. */
 async function pressAndMove(lane: HTMLElement, weeks: number) {
@@ -142,13 +143,14 @@ export const DragALaneByAWeek: Story = {
   },
 }
 
-/** Escape during a drag puts the lane back: nothing moves and nothing opens. */
+/** Escape during a drag puts the lane back: letting go a moment later moves nothing and opens nothing. */
 export const EscapeCancelsADrag: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
     const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
     const end = await pressAndMove(lane, 1.2)
     await fireEvent.keyDown(lane, { key: 'Escape' })
+    await pause(150)
     await fireEvent.pointerUp(lane, end)
     await fireEvent.click(lane)
     await expect(args.edit?.onMove).not.toHaveBeenCalled()
@@ -194,5 +196,56 @@ export const ReadOnly: Story = {
     const region = within(strip(canvasElement))
     await expect(region.queryAllByRole('slider')).toEqual([])
     await expect(region.queryByRole('button', { name: LLM })).toBeNull()
+  },
+}
+
+/** Keys pressed while the deadline is dragged: Escape cancels the drag, Enter leaves the drop to store it once. */
+export const KeysDuringAHandleDrag: Story = {
+  args: { edit: editing() },
+  play: async ({ args, canvasElement }) => {
+    const deadline = within(strip(canvasElement)).getByRole('slider', {
+      name: m.timeline_deadline({ name: 'Gemini Certs' }),
+    })
+    const cancelled = await pressAndMove(deadline, 3 / 7)
+    await fireEvent.keyDown(deadline, { key: 'Escape' })
+    await fireEvent.pointerUp(deadline, cancelled)
+    await expect(args.edit?.onDeadline).not.toHaveBeenCalled()
+
+    const dropped = await pressAndMove(deadline, 2 / 7)
+    await fireEvent.keyDown(deadline, { key: 'Enter' })
+    await fireEvent.pointerUp(deadline, dropped)
+    await expect(args.edit?.onDeadline).toHaveBeenCalledTimes(1)
+    await expect(args.edit?.onDeadline).toHaveBeenCalledWith('certs', '2027-01-01')
+  },
+}
+
+/** A second finger on a lane is ignored: once both have lifted, the page still scrolls by touch. */
+export const SecondFinger: Story = {
+  args: { edit: editing() },
+  play: async ({ canvasElement }) => {
+    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const box = lane.getBoundingClientRect()
+    const at = { pointerType: 'touch', button: 0, clientX: box.left + box.width / 2, clientY: box.top + 10 }
+    await fireEvent.pointerDown(lane, { ...at, pointerId: 2, isPrimary: true })
+    await fireEvent.pointerDown(lane, { ...at, pointerId: 3, isPrimary: false, clientX: at.clientX + 40 })
+    await fireEvent.pointerUp(lane, { ...at, pointerId: 3, isPrimary: false, clientX: at.clientX + 40 })
+    await fireEvent.pointerUp(lane, { ...at, pointerId: 2, isPrimary: true })
+    await pause(500)
+    const swipe = new Event('touchmove', { bubbles: true, cancelable: true })
+    canvasElement.ownerDocument.dispatchEvent(swipe)
+    await expect(swipe.defaultPrevented).toBe(false)
+  },
+}
+
+/** The course that ends last can still end later: the drawn days run two weeks past it. */
+export const LastCourseEndsLater: Story = {
+  args: { edit: editing() },
+  play: async ({ args, canvasElement }) => {
+    const finish = within(strip(canvasElement)).getByRole('slider', {
+      name: m.timeline_finish({ name: 'Practical Python' }),
+    })
+    finish.focus()
+    await userEvent.keyboard('{ArrowRight}{Enter}')
+    await expect(args.edit?.onFinish).toHaveBeenCalledWith('pypy', '2027-03-10')
   },
 }

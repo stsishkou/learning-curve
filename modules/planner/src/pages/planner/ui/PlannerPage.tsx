@@ -280,7 +280,7 @@ export function PlannerPage({
     today,
     canEdit,
     canRebalance: rebalance !== undefined,
-    cursor,
+    lastChange: session.lastStep?.change ?? null,
     change: quiet.change,
     open: setReschedule,
   })
