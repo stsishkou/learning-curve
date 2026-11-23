@@ -104,8 +104,10 @@ export {
 export { hashText, parseRevisions, reviseEvents, type Revision, type Revisions } from './revisions'
 export {
   bodyHash,
+  fileProposals,
   googleBody,
   googleEventId,
+  parseGoogleSync,
   planPush,
   readGoogleEvent,
   rowOf,
@@ -116,6 +118,8 @@ export {
   type GoogleEvent,
   type GoogleRow,
   type GoogleState,
+  type GoogleSync,
+  type InboxItem,
   type GoogleTime,
   type Proposal,
   type PushPlan,

@@ -5,12 +5,15 @@ import { applyEdits, emptyEdits } from './edits'
 import { fixturePlan, itemAt } from './fixtures'
 import {
   bodyHash,
+  fileProposals,
   googleBody,
   googleEventId,
+  parseGoogleSync,
   planPush,
   readGoogleEvent,
   rowOf,
   uidOfGoogleId,
+  wallOf,
   type GoogleEvent,
   type GoogleState,
 } from './google-sync'
@@ -63,7 +66,15 @@ test('the first round writes every calendar and event; a plan in step writes not
   expect(first.create).toHaveLength(fixturePlan.calendars.length)
   expect(first.insert).toHaveLength(0)
   const state = synced(fixturePlan)
-  expect(planPush(fixturePlan, state)).toEqual({ create: [], rename: [], insert: [], move: [], patch: [], remove: [] })
+  expect(planPush(fixturePlan, state)).toEqual({
+    create: [],
+    rename: [],
+    insert: [],
+    move: [],
+    patch: [],
+    remove: [],
+    drop: [],
+  })
   const { calendars } = state
   expect(planPush(fixturePlan, { calendars, events: {} }).insert).toHaveLength(fixturePlan.events.length)
 })
@@ -145,7 +156,37 @@ test('a title edited in Google is written back; a deleted session asks; a delete
     kind: 'proposal',
     proposals: [{ change: { type: 'event.patch', uid: repeat.uid, patch: { skip: [...(repeat.skip ?? []), day] } } }],
   })
+  expect(readGoogleEvent({ ...cancelled, status: 'confirmed' }, fixturePlan, state)).toEqual({ kind: 'none' })
   expect(readGoogleEvent({ id: 'madeingoogle', etag: '"y"', summary: 'Lunch' }, fixturePlan, state)).toEqual({
-    kind: 'foreign',
+    kind: 'none',
   })
+})
+
+test('a time without an offset is read on its own clock, whatever the zone of the machine', () => {
+  expect(wallOf({ dateTime: '2026-12-01T18:30:00', timeZone: TZ })).toBe('2026-12-01T18:30')
+  expect(wallOf({ dateTime: '2026-12-01T15:30:00Z' })).toBe('2026-12-01T18:30')
+  expect(wallOf({ date: '2026-12-01' })).toBe('2026-12-01')
+  expect(rowOf(googleBody(session, TZ), 'g', 'e')).toMatchObject({ start: session.start, end: session.end })
+})
+
+test('a calendar gone from the plan is dropped; a new reading of an event replaces what it proposed', () => {
+  const state = synced(fixturePlan)
+  const gone = itemAt(fixturePlan.calendars)
+  const without = { ...fixturePlan, calendars: fixturePlan.calendars.filter((c) => c.id !== gone.id) }
+  expect(planPush(without, state).drop).toEqual([gone.id])
+
+  const read = (summary: string) => readGoogleEvent(inGoogle(session.uid, { summary }), fixturePlan, state)
+  const ticked = read(`✓ ${session.title}`)
+  const proposals = ticked.kind === 'proposal' ? ticked.proposals : []
+  const source = googleEventId(session.uid)
+  const inbox = fileProposals([], source, proposals)
+  expect(inbox).toHaveLength(1)
+  expect(inbox[0]?.source).toBe(source)
+  expect(fileProposals(inbox, source, [])).toEqual([])
+  expect(fileProposals(inbox, 'other', [])).toEqual(inbox)
+
+  const stored = structuredClone({ ...state, inbox, lastRound: 5, junk: 1 })
+  expect(parseGoogleSync(stored)).toEqual({ ...state, inbox, lastRound: 5, error: undefined })
+  expect(parseGoogleSync({ inbox: [{ id: 'x' }, ...inbox], events: { a: 1 } }).inbox).toEqual(inbox)
+  expect(parseGoogleSync(null)).toEqual({ calendars: {}, events: {}, inbox: [] })
 })

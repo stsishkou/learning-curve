@@ -1,6 +1,6 @@
 // Node-only: reads and writes the plan database on disk. Import it from server code and scripts, never from components.
 // `PLAN_DATA_DIR` points it at another directory.
-import { accessSync, constants, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { accessSync, chmodSync, constants, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import {
@@ -49,6 +49,31 @@ const SYNC_FILE = join(dataDir(), 'sync.json')
 const readJson = (file: string): unknown => JSON.parse(readFileSync(file, 'utf8'))
 const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
 
+/** An object read from a file; empty when the file is missing or holds something else. */
+function readObject(file: string): Record<string, unknown> {
+  const stored = existsSync(file) ? readJson(file) : null
+  return typeof stored === 'object' && stored !== null && !Array.isArray(stored) ? { ...stored } : {}
+}
+
+/** Settings of this checkout (`data/local.json`), some of them secret: never send them to the browser. */
+export const readLocal = () => readObject(LOCAL_FILE)
+
+/** Changes some settings and keeps the others; one given `undefined` is forgotten. Readable by its owner only. */
+export function writeLocal(patch: Record<string, unknown>) {
+  writeJson(LOCAL_FILE, { ...readLocal(), ...patch })
+  chmodSync(LOCAL_FILE, 0o600)
+}
+
+/** What the calendars that follow the plan were last given (`data/sync.json`). */
+export const readSync = () => readObject(SYNC_FILE)
+
+/** Replaces one part of `data/sync.json`; the file is written whole or not at all. */
+export function writeSync(part: string, value: unknown) {
+  const temporary = `${SYNC_FILE}.${process.pid}.tmp`
+  writeJson(temporary, { ...readSync(), [part]: value })
+  renameSync(temporary, SYNC_FILE)
+}
+
 export function readEdits(): PlanEdits {
   return parseEdits(existsSync(EDITS_FILE) ? readJson(EDITS_FILE) : null)
 }
@@ -65,25 +90,17 @@ export const writeHistory = (history: PlanHistory) => writeJson(HISTORY_FILE, hi
  */
 export function readBusyFeed(): string | null {
   if (process.env.BUSY_ICS_URL) return process.env.BUSY_ICS_URL
-  if (!existsSync(LOCAL_FILE)) return null
-  const local = readJson(LOCAL_FILE)
-  return typeof local === 'object' && local !== null && 'busyFeed' in local && typeof local.busyFeed === 'string'
-    ? local.busyFeed
-    : null
+  const { busyFeed } = readLocal()
+  return typeof busyFeed === 'string' ? busyFeed : null
 }
 
-export const writeBusyFeed = (url: string | null) => writeJson(LOCAL_FILE, url ? { busyFeed: url } : {})
+export const writeBusyFeed = (url: string | null) => writeLocal({ busyFeed: url ?? undefined })
 
 /** The plan on disk, so edits saved since the last build are visible; the bundled copy when the repo is not around. */
 export function readPlan(): Plan {
   if (!existsSync(PLAN_FILE)) return bundledPlan
   const plan = readJson(PLAN_FILE)
   return isPlan(plan) ? plan : bundledPlan
-}
-
-function readSync(): Record<string, unknown> {
-  const stored = existsSync(SYNC_FILE) ? readJson(SYNC_FILE) : null
-  return typeof stored === 'object' && stored !== null ? { ...stored } : {}
 }
 
 const storedRevisions = (sync: Record<string, unknown>): Revisions =>
@@ -97,12 +114,10 @@ const storedRevisions = (sync: Record<string, unknown>): Revisions =>
  * written, and empty there until something was.
  */
 export function feedRevisions(plan: Plan): Revisions {
-  const sync = readSync()
-  const stored = storedRevisions(sync)
+  const stored = storedRevisions(readSync())
   if (!canWrite()) return stored
   const revised = reviseEvents(stored, plan.events, Date.now())
-  if (JSON.stringify(revised) !== JSON.stringify(stored))
-    writeJson(SYNC_FILE, { ...sync, feed: { revisions: revised } })
+  if (JSON.stringify(revised) !== JSON.stringify(stored)) writeSync('feed', { revisions: revised })
   return revised
 }
 

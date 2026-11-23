@@ -10,6 +10,7 @@
     "plan": "tsx scripts/build-plan.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "vitest run",
     "mcp": "tsx scripts/mcp.ts"
   },
   "dependencies": {
@@ -19,7 +20,8 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "vitest": "catalog:"
   },
   "nx": {
     "tags": [

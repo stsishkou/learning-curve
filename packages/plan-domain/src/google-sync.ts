@@ -1,7 +1,7 @@
 // What keeping the plan in Google Calendar means, without the API itself: how a plan event is written there, what
 // has to be sent after a change, and what a person's edit in Google proposes for the plan. The plan stays the source
 // of truth: nothing read from Google changes it until the person accepts it as a change.
-import type { PlanChange } from './changes'
+import { parseChange, type PlanChange } from './changes'
 import { DAY, parseLocal, toLocalString, toMinsk, ymd } from './dates'
 import { tookNote } from './ics'
 import { skipDay } from './occurrence-changes'
@@ -114,7 +114,11 @@ export function googleBody(event: PlanEvent, timeZone: string): GoogleBody {
 /** A Google time as a plan wall-clock string, `YYYY-MM-DDTHH:MM`, or a bare `YYYY-MM-DD` for a whole day. */
 export function wallOf(time: GoogleTime | undefined): string | null {
   if (time?.date) return time.date
-  const instant = time?.dateTime ? Date.parse(time.dateTime) : Number.NaN
+  const at = time?.dateTime
+  if (!at) return null
+  // Without an offset it is on the event's own clock, which the app writes in the plan's zone.
+  if (!/(Z|[+-]\d\d:\d\d)$/.test(at)) return at.slice(0, 16)
+  const instant = Date.parse(at)
   return Number.isNaN(instant) ? null : toLocalString(toMinsk(instant))
 }
 
@@ -165,6 +169,8 @@ export interface PushPlan {
   move: { uid: string; from: string; to: string }[]
   patch: { uid: string; calendar: string; body: GoogleBody; etag: string }[]
   remove: { uid: string; calendar: string; etag: string }[]
+  /** Plan calendars that are gone: their Google calendar is deleted once its events are */
+  drop: string[]
 }
 
 /**
@@ -173,7 +179,7 @@ export interface PushPlan {
  * proposal waiting (`frozen`) are left as they are in Google until the person decides.
  */
 export function planPush(plan: Plan, state: GoogleState, frozen: ReadonlySet<string> = new Set()): PushPlan {
-  const out: PushPlan = { create: [], rename: [], insert: [], move: [], patch: [], remove: [] }
+  const out: PushPlan = { create: [], rename: [], insert: [], move: [], patch: [], remove: [], drop: [] }
   for (const calendar of plan.calendars) {
     const row = state.calendars[calendar.id]
     if (!row) out.create.push(calendar)
@@ -196,12 +202,18 @@ export function planPush(plan: Plan, state: GoogleState, frozen: ReadonlySet<str
   for (const [uid, row] of Object.entries(state.events)) {
     if (!kept.has(uid) && !frozen.has(uid)) out.remove.push({ uid, calendar: row.calendar, etag: row.etag })
   }
+  const calendars = new Set(plan.calendars.map((c) => c.id))
+  out.drop = Object.keys(state.calendars).filter((id) => !calendars.has(id))
   return out
 }
 
 /** An edit made in Google, offered to the person as a change to the plan. */
 export interface Proposal {
   uid: string
+  /** The Google event it was read from: the event itself, or one repeat of it */
+  source: string
+  /** The day of that repeat, when it is one */
+  day?: string | undefined
   /** The change; null for a session deleted in Google, where the person picks between the trash and putting it back */
   change: PlanChange | null
   /** Google's etag of the event when it was read */
@@ -217,9 +229,10 @@ export type Reading =
   /** Its title was edited: the plan owns the text, so the next round writes it back */
   | { kind: 'reset'; uid: string; etag: string }
   | { kind: 'proposal'; proposals: Proposal[] }
-  /** Not an event the app wrote, or one it is not keeping any more */
-  | { kind: 'foreign' }
+  /** Nothing to note: not an event the app keeps, or a repeat that matches the plan again */
+  | { kind: 'none' }
 
+const NONE: Reading = { kind: 'none' }
 const plain = (summary: string) => summary.replace(/^✓\s*/, '')
 const marked = (summary: string) => summary.startsWith('✓')
 
@@ -235,26 +248,26 @@ export function readGoogleEvent(item: GoogleEvent, plan: Plan, state: GoogleStat
   const uid = item.extendedProperties?.private?.lcUid ?? uidOfGoogleId(item.recurringEventId ?? item.id)
   const event = uid ? plan.events.find((e) => e.uid === uid) : undefined
   const row = uid ? state.events[uid] : undefined
-  if (!uid || !event || !row) return { kind: 'foreign' }
+  if (!uid || !event || !row) return NONE
   const etag = item.etag ?? ''
-  if (etag === row.etag) return { kind: 'seen', uid, etag }
+  const day = item.recurringEventId ? wallOf(item.originalStartTime)?.slice(0, 10) : undefined
   const basis = bodyHash(googleBody(event, plan.meta.timezone))
   const propose = (...changes: (PlanChange | null)[]): Reading => ({
     kind: 'proposal',
-    proposals: changes.map((change) => ({ uid, change, etag, basis })),
+    proposals: changes.map((change) => ({ uid, source: item.id, day, change, etag, basis })),
   })
 
+  // A repeat has its own etag; the series' row is never noted from it.
   if (item.recurringEventId) {
-    const day = wallOf(item.originalStartTime)?.slice(0, 10)
-    if (!day) return { kind: 'seen', uid, etag }
-    if (item.status === 'cancelled')
-      return event.skip?.includes(day) ? { kind: 'seen', uid, etag } : propose(skipDay(event, day))
+    if (!day) return NONE
+    if (item.status === 'cancelled') return event.skip?.includes(day) ? NONE : propose(skipDay(event, day))
     const start = wallOf(item.start)
     const end = wallOf(item.end)
     const slot = `${day}T${event.start.slice(11, 16)}`
-    if (!start || !end || event.allDay || start === slot) return { kind: 'seen', uid, etag }
+    if (!start || !end || event.allDay || start === slot) return NONE
     return propose({ type: 'event.detach', uid, day, start, end })
   }
+  if (etag === row.etag) return { kind: 'seen', uid, etag }
 
   if (item.status === 'cancelled') return propose(null)
 
@@ -276,4 +289,73 @@ export function readGoogleEvent(item: GoogleEvent, plan: Plan, state: GoogleStat
   const retitled = plain(summary) !== plain(row.summary)
   const reshaped = event.rrule !== undefined && (start !== row.start || end !== row.end)
   return retitled || reshaped ? { kind: 'reset', uid, etag } : { kind: 'seen', uid, etag }
+}
+
+/** A proposal waiting for the person, with an id to accept or reject it by. */
+export interface InboxItem extends Proposal {
+  id: string
+}
+
+/** The Google part of `data/sync.json`. */
+export interface GoogleSync extends GoogleState {
+  inbox: InboxItem[]
+  /** When the last round ended, UTC epoch ms */
+  lastRound?: number | undefined
+  /** Why the last round failed: `reconnect` when Google no longer takes the app's sign-in */
+  error?: string | undefined
+}
+
+/** The inbox with what one Google event proposes now in place of what it proposed before. */
+export const fileProposals = (inbox: InboxItem[], source: string, proposals: Proposal[]): InboxItem[] => [
+  ...inbox.filter((item) => item.source !== source),
+  ...proposals.map((p) => ({ ...p, id: hashText(JSON.stringify([p.source, p.etag, p.change])) })),
+]
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+const text = (value: unknown) => (typeof value === 'string' ? value : '')
+
+function entries<T>(value: unknown, parse: (record: Record<string, unknown>) => T): Record<string, T> {
+  if (!isRecord(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, v]): [string, T][] => (isRecord(v) ? [[key, parse(v)]] : [])),
+  )
+}
+
+function parseItem(value: unknown): InboxItem[] {
+  if (!isRecord(value)) return []
+  const { id, uid, source, day, etag, basis } = value
+  if (typeof id !== 'string' || typeof uid !== 'string' || typeof source !== 'string') return []
+  if (typeof etag !== 'string' || typeof basis !== 'string') return []
+  try {
+    const change = value.change === null ? null : parseChange(value.change)
+    return [{ id, uid, source, day: typeof day === 'string' ? day : undefined, change, etag, basis }]
+  } catch {
+    return []
+  }
+}
+
+/** The Google sync state read from a file; what is not part of it is left out. */
+export function parseGoogleSync(value: unknown): GoogleSync {
+  const record = isRecord(value) ? value : {}
+  const calendars = entries(record.calendars, (row) => ({
+    id: text(row.id),
+    summary: text(row.summary),
+    syncToken: typeof row.syncToken === 'string' ? row.syncToken : undefined,
+  }))
+  const events = entries(record.events, (row) => ({
+    calendar: text(row.calendar),
+    etag: text(row.etag),
+    hash: text(row.hash),
+    summary: text(row.summary),
+    start: text(row.start),
+    end: text(row.end),
+  }))
+  return {
+    calendars: Object.fromEntries(Object.entries(calendars).filter(([, row]) => row.id)),
+    events: Object.fromEntries(Object.entries(events).filter(([, row]) => row.calendar)),
+    inbox: Array.isArray(record.inbox) ? record.inbox.flatMap(parseItem) : [],
+    lastRound: typeof record.lastRound === 'number' ? record.lastRound : undefined,
+    error: typeof record.error === 'string' ? record.error : undefined,
+  }
 }
