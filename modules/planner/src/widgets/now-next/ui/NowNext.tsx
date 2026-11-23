@@ -1,7 +1,7 @@
 import { fmtDay, fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { hm, isSession, startOfDay, type Occurrence, type Plan, type PlanEvent } from '@lc/plan-domain'
-import { Button, calendarColor, Dot, Timer } from '@lc/ui'
+import { Button, calendarColor, Dot, Hint, Timer } from '@lc/ui'
 
 interface Props {
   plan: Plan
@@ -46,6 +46,7 @@ export function NowNext({ plan, upcoming, now, onSelect, onFocus }: Props) {
       <h2 className="flex items-center gap-2 text-[12px] font-semibold tracking-wide text-muted uppercase">
         {current && <i className="size-2 animate-pulse rounded-full bg-today" />}
         {current ? m.now_label() : m.next_label()}
+        <Hint title={m.help_next_title()} text={m.help_next()} />
         {shown && (
           <em className="ml-auto font-medium tracking-normal normal-case not-italic tabular-nums">
             {current

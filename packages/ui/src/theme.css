@@ -133,3 +133,17 @@
     }
   }
 }
+
+/* A help note opens beside its mark. Where anchor positioning is missing the note keeps the browser's own
+   place for a popover, the middle of the window, so the rules that take it from there are inside the check. */
+@supports (position-area: block-end) {
+  .lc-hint {
+    inset: auto;
+    margin: 6px 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+  }
+}

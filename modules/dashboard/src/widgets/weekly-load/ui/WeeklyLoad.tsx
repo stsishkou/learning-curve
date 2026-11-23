@@ -1,6 +1,7 @@
 import { fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, type Plan, type PlanStats } from '@lc/plan-domain'
+import { Hint } from '@lc/ui'
 import { useRef, useState } from 'react'
 
 import { niceTicks, useWidth } from '../../../shared/lib'
@@ -62,6 +63,7 @@ export function WeeklyLoad({ plan, stats, now }: Props) {
     <Card
       title={m.dash_weekly()}
       hint={m.dash_weekly_hint({ hours: fmtHours(budget) })}
+      help={<Hint title={m.help_weekly_title()} text={m.help_weekly()} />}
       aside={
         <span className="flex flex-wrap gap-x-3.5 gap-y-1">
           {calendars.map((c) => (

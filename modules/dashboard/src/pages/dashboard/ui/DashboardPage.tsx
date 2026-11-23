@@ -1,7 +1,7 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
-import { PageHeader } from '@lc/ui'
+import { HelpToggle, PageHeader } from '@lc/ui'
 import { useMemo, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
@@ -38,7 +38,7 @@ export function DashboardPage({ plan, headerAside, now: fixed }: Props) {
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   return (
     <div className="mx-auto grid max-w-[1240px] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <PageHeader aside={headerAside}>
+      <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
         <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
         <p className="mt-1 text-[14px] text-muted">
           {plan.meta.title} · {m.dash_until({ date: fmtDay(parseLocal(plan.meta.planEnd)) })}

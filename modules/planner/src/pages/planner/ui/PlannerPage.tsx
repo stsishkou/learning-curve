@@ -19,6 +19,7 @@ import {
   type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
+import { HelpToggle, Hint, useHelpMode } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 
 import { BusyFeedDialog, useBusy, type BusySource } from '../../../features/busy-overlay'
@@ -159,6 +160,7 @@ export function PlannerPage({
   )
 
   const reminders = useReminders(upcoming)
+  const [helpOn, toggleHelp] = useHelpMode()
 
   // Sessions that should be over and are not marked done: the plan and the reality have drifted apart.
   const overdue = useMemo(
@@ -202,6 +204,7 @@ export function PlannerPage({
     secondZone: secondZone?.label,
     busy: busyAction,
     reminders: reminders.supported ? reminders : undefined,
+    help: { on: helpOn, toggle: toggleHelp },
     trashCount,
     overdueCount: overdue.length,
     open: dialogs.show,
@@ -249,6 +252,8 @@ export function PlannerPage({
             onRename={canEdit ? (title) => quiet.change({ type: 'plan.rename', title }) : undefined}
             aside={headerAside}
           >
+            <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
+            <Hint title={m.help_file_title()} text={m.help_file()} className="self-center max-md:flex-none!" />
             <OpenPlanFile
               shown={{ name: session.file?.name ?? planFileName(plan), plan, origin: session.file?.origin }}
               project={state.plan}
@@ -277,6 +282,7 @@ export function PlannerPage({
         history={canEdit ? quiet : undefined}
         pinned={expanded}
       >
+        <Hint title={m.help_calendars_title()} text={m.help_calendars()} />
         <CalendarFilter
           calendars={plan.calendars}
           hidden={hidden}
@@ -330,7 +336,10 @@ export function PlannerPage({
       )}
 
       <div className={`grid grid-cols-1 items-start gap-4 ${expanded ? '' : 'lg:grid-cols-[1fr_280px]'}`}>
-        <section className="min-w-0 rounded-2xl border border-line bg-surface">
+        <section className="relative min-w-0 rounded-2xl border border-line bg-surface">
+          {(view === 'week' || view === 'day') && (
+            <Hint title={m.help_grid_title()} text={m.help_grid()} className="absolute top-1.5 left-1.5 z-10" />
+          )}
           {(view === 'week' || view === 'day') && (
             <WeekGrid
               plan={plan}

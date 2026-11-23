@@ -1,7 +1,7 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, courseProgress, paceForecast, parseLocal, startOfDay, type Plan } from '@lc/plan-domain'
-import { calendarColor, Dot } from '@lc/ui'
+import { calendarColor, Dot, Hint } from '@lc/ui'
 
 import { Card } from '../../../shared/ui'
 
@@ -36,7 +36,11 @@ export function PaceForecast({ plan, now }: Props) {
   const margin = certs.finish === null ? null : days(deadline - certs.finish)
 
   return (
-    <Card title={m.dash_forecast_title()} hint={m.dash_forecast_hint()}>
+    <Card
+      title={m.dash_forecast_title()}
+      hint={m.dash_forecast_hint()}
+      help={<Hint title={m.help_forecast_title()} text={m.help_forecast()} />}
+    >
       {!logged && <p className="mb-3 text-[13px] text-muted">{m.dash_forecast_none()}</p>}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-[13px] tabular-nums">

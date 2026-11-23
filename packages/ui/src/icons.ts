@@ -15,6 +15,7 @@ export {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  CircleHelp,
   Clock,
   Copy,
   Download,

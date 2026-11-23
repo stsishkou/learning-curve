@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Hint,
   Kbd,
   Maximize2,
   Menu,
@@ -70,6 +71,7 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
           ]}
           onChange={nav.show}
         />
+        <Hint title={m.help_views_title()} text={m.help_views()} />
         {nav.view !== 'list' && (
           <div
             role="group"
@@ -106,6 +108,7 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
           </div>
         )}
         <div className="ml-auto flex items-center gap-1.5">
+          <Hint title={m.help_event_title()} text={m.help_event()} />
           <Button className="hidden items-center gap-2 text-muted md:flex" onClick={onSearch}>
             <Search size={15} aria-hidden /> {m.search()} <Kbd>{mod} K</Kbd>
           </Button>
@@ -138,7 +141,9 @@ export function PlannerToolbar({ nav, mod, menu, onSearch, onNewEvent, history, 
               <Plus size={16} aria-hidden /> {m.event()}
             </Button>
           )}
+          {history && <Hint title={m.help_history_title()} text={m.help_history()} className="max-md:hidden" />}
           <Menu label={m.more_actions()} items={menu} />
+          <Hint title={m.help_more_title()} text={m.help_more()} />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">

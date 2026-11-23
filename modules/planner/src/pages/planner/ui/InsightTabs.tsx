@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import type { Occurrence, Plan, PlanEvent } from '@lc/plan-domain'
-import { Segmented } from '@lc/ui'
+import { Hint, Segmented } from '@lc/ui'
 import { useRef, useState } from 'react'
 
 import { useFillHeight } from '../../../shared/lib'
@@ -11,6 +11,13 @@ import { MiniMonth } from '../../../widgets/mini-month'
 import { PlanMap } from '../../../widgets/plan-map'
 
 type Tab = 'week' | 'courses' | 'map' | 'dates'
+
+const HELP: Record<Tab, { title: () => string; text: () => string }> = {
+  week: { title: m.help_budget_title, text: m.help_budget },
+  courses: { title: m.help_courses_title, text: m.help_courses },
+  map: { title: m.help_map_title, text: m.help_map },
+  dates: { title: m.help_dates_title, text: m.help_dates },
+}
 
 interface Props {
   plan: Plan
@@ -48,7 +55,7 @@ export function InsightTabs({
   const maxHeight = useFillHeight(body, true, { minWidth: 961, minHeight: 80, bottomGap: 66 })
   return (
     <section className="min-w-0 rounded-2xl border border-line bg-surface p-4">
-      <div className="mb-3.5 text-[13px]">
+      <div className="mb-3.5 grid justify-items-end gap-2 text-[13px] *:first:w-full">
         <Segmented
           label={m.insights()}
           fill
@@ -61,6 +68,7 @@ export function InsightTabs({
           ]}
           onChange={setTab}
         />
+        <Hint title={HELP[tab].title()} text={HELP[tab].text()} />
       </div>
       {/* Capped on a wide screen so a long course list scrolls inside the card instead of stretching the page. */}
       <div ref={body} className="lg:overflow-y-auto lg:pr-3" style={{ maxHeight }}>

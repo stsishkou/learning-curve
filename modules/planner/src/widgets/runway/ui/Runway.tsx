@@ -1,6 +1,7 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, HOUR, parseLocal, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
+import { Hint } from '@lc/ui'
 
 interface Props {
   plan: Plan
@@ -46,9 +47,10 @@ export function Runway({ plan, now, onSelect }: Props) {
 
   return (
     <section
-      className="mt-5 mb-4 grid items-center gap-x-7 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:grid-cols-[auto_1fr] md:px-5 md:pt-[18px] md:pb-4"
+      className="relative mt-5 mb-4 grid items-center gap-x-7 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:grid-cols-[auto_1fr] md:px-5 md:pt-[18px] md:pb-4"
       aria-label={m.runway_label()}
     >
+      <Hint title={m.help_runway_title()} text={m.help_runway()} className="absolute top-2 right-2" />
       <div className="flex min-w-[150px] items-baseline gap-2.5 md:flex-col md:items-stretch md:gap-0">
         <b className="font-display text-[40px] leading-none font-bold tracking-[-0.03em] tabular-nums md:text-[54px]">
           {days === null ? '–' : Math.max(0, days)}

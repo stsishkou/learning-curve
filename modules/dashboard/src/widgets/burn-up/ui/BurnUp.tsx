@@ -1,6 +1,7 @@
 import { fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, type PlanStats } from '@lc/plan-domain'
+import { Hint } from '@lc/ui'
 import { useRef, useState, type PointerEvent } from 'react'
 
 import { niceTicks, useWidth } from '../../../shared/lib'
@@ -75,6 +76,7 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
     <Card
       title={m.dash_burnup()}
       hint={m.dash_burnup_hint()}
+      help={<Hint title={m.help_burnup_title()} text={m.help_burnup()} />}
       aside={
         <span className="flex gap-3.5">
           <LegendKey shape="line" color="var(--muted)" label={m.dash_planned()} />

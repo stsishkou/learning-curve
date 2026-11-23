@@ -2,6 +2,7 @@ import { m } from '@lc/i18n/messages'
 import type { PlanCalendar } from '@lc/plan-domain'
 import {
   Bell,
+  CircleHelp,
   Briefcase,
   Calendar,
   CalendarClock,
@@ -45,6 +46,8 @@ interface Context {
   busy?: { host: string | null }
   /** Present where the browser can show notifications */
   reminders?: { on: boolean; toggle: () => void }
+  /** The help marks next to the main features */
+  help: { on: boolean; toggle: () => void }
   trashCount: number
   overdueCount: number
   open: (dialog: DialogName) => void
@@ -222,6 +225,15 @@ export function buildActions(ctx: Context): PlannerAction[] {
       : []),
     { id: 'review', group: view, label: m.review_open(), run: () => ctx.open('review') },
     ...(ctx.canEdit ? editing : []),
+    {
+      id: 'help',
+      group: plan,
+      label: m.help_toggle(),
+      icon: <CircleHelp {...ICON} />,
+      checked: ctx.help.on,
+      menu: 'always',
+      run: ctx.help.toggle,
+    },
     {
       id: 'shortcuts',
       group: plan,
