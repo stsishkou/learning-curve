@@ -1,6 +1,15 @@
 // Node-only: reads and writes the plan database on disk. Import it from server code and scripts, never from components.
 // `PLAN_DATA_DIR` points it at another directory.
-import { accessSync, chmodSync, constants, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import {
+  accessSync,
+  chmodSync,
+  constants,
+  existsSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import {
@@ -131,6 +140,20 @@ export function canWrite(): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * Moves whenever the plan, its edits or its history are written, by this server or by anything else, such as the MCP
+ * server or `pnpm run plan`. Null where nothing can change them.
+ */
+export function planRevision(): string | null {
+  if (!canWrite()) return null
+  return [PLAN_FILE, EDITS_FILE, HISTORY_FILE]
+    .map((file) => {
+      const stat = statSync(file, { bigint: true, throwIfNoEntry: false })
+      return stat ? `${stat.mtimeNs}:${stat.size}` : '-'
+    })
+    .join('/')
 }
 
 /** The plan to write, dated as the one on disk when nothing else in it changed. */

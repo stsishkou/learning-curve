@@ -1,6 +1,7 @@
 import {
   canWrite,
   currentHistory,
+  planRevision,
   readEdits,
   readPlan,
   saveChanges,
@@ -56,6 +57,9 @@ const mustWrite = () => {
 }
 
 export const getPlanState = createServerFn({ method: 'GET' }).handler((): PlanState => state(readPlan()))
+
+/** Moves whenever the plan on disk changes, whoever changed it; null on a read-only host. */
+export const getPlanRevision = createServerFn({ method: 'GET' }).handler(() => planRevision())
 
 /** Applies one change to data/edits.json, regenerates data/plan.json and adds the change to the history. */
 export const savePlanChange = createServerFn({ method: 'POST' })

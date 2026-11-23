@@ -377,6 +377,10 @@ an update to pass to `preview_update` and `apply_update`, with the same report t
 `pnpm --silent run mcp` from the repository root (`--silent` keeps stdout for the protocol). `pnpm run test`
 checks that the schemas, the examples of the guide and the parser agree.
 
+Every open page follows the plan on disk: a change made in another tab or window, the AI chat, the MCP server, a
+calendar sync or `pnpm run plan` shows on the planner, the timeline, Focus and Progress within two seconds, without
+a reload. A page out of sight checks again when it comes back.
+
 ## Structure
 
 ```
