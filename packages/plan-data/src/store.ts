@@ -87,14 +87,27 @@ export function canWrite(): boolean {
   }
 }
 
-/** Regenerates the schedule, applies `edits` without what has outstayed the trash, and writes both files. */
+/** The plan to write, dated as the one on disk when nothing else in it changed. */
+function dated(plan: Plan): Plan {
+  if (!existsSync(PLAN_FILE)) return plan
+  const stored = readJson(PLAN_FILE)
+  if (!isPlan(stored)) return plan
+  const kept = { ...plan, meta: { ...plan.meta, generated: stored.meta.generated } }
+  return JSON.stringify(kept) === JSON.stringify(stored) ? kept : plan
+}
+
+/**
+ * Regenerates the schedule, applies `edits` without what has outstayed the trash, and writes both files. The date
+ * in the plan moves only with its content, so a save that changes nothing leaves the tracked file as it was.
+ */
 export function writePlan(edits: PlanEdits): { plan: Plan; orphans: string[]; edits: PlanEdits } {
   const base = buildPlan()
   const kept = purgeTrash(base, edits)
   const result = applyEdits(base, kept)
+  const plan = dated(result.plan)
   writeJson(EDITS_FILE, kept)
-  writeJson(PLAN_FILE, result.plan)
-  return { ...result, edits: kept }
+  writeJson(PLAN_FILE, plan)
+  return { ...result, plan, edits: kept }
 }
 
 /** The stored history, or an empty one starting now when the edits were changed past it. */
