@@ -2,6 +2,7 @@ import { m } from '@lc/i18n/messages'
 import { ArrowDown, ArrowUp, Button, Copy, INPUT } from '@lc/ui'
 import { useEffect, useRef, useState } from 'react'
 
+import { composing } from '../../../shared/lib'
 import type { JsonView } from '../lib/json-view'
 import { loadJsonView } from '../lib/load-json-view'
 
@@ -75,7 +76,7 @@ export function ReaderSource({ text }: { text: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+            if (e.key !== 'Enter' || composing(e)) return
             e.preventDefault()
             show(index + (e.shiftKey ? -1 : 1))
           }}

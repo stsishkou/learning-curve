@@ -4,6 +4,8 @@ import { hm, parseLocal, parseQuickEvent, type Plan, type PlanEvent, type QuickE
 import { calendarColor, Dot, Kbd, Modal, Plus } from '@lc/ui'
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
+import { composing } from '../../../shared/lib'
+
 export interface Command {
   id: string
   label: string
@@ -96,7 +98,7 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onQuickAdd
 
   function keyDown(e: KeyboardEvent) {
     // Enter that confirms an IME composition must not run a command.
-    if (e.nativeEvent.isComposing) return
+    if (composing(e)) return
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       const step = e.key === 'ArrowDown' ? 1 : -1

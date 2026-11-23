@@ -1,3 +1,4 @@
+export { composing } from './composing'
 export { downloadText } from './download'
 export { eventKey } from './event-key'
 export { useFillHeight } from './use-fill-height'

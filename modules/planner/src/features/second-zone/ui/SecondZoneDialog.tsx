@@ -4,6 +4,7 @@ import { hm, zoneShift } from '@lc/plan-domain'
 import { Button, Check, FOOT, INPUT, META, Modal, TITLE } from '@lc/ui'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
+import { composing } from '../../../shared/lib'
 import { cityOf, findZones, listZones } from '../model/zones'
 
 interface Props {
@@ -55,7 +56,7 @@ export function SecondZoneDialog({ open, zone, now, onChoose, onClose }: Props) 
   }, [current])
 
   function keyDown(e: KeyboardEvent) {
-    if (e.nativeEvent.isComposing) return
+    if (composing(e)) return
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       const step = e.key === 'ArrowDown' ? 1 : -1

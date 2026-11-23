@@ -3,6 +3,8 @@ import { TITLE_MAX } from '@lc/plan-domain'
 import { Pencil } from '@lc/ui'
 import { useState } from 'react'
 
+import { composing } from '../../../shared/lib'
+
 interface Props {
   title: string
   /** Present when the plan can be edited: called with the new name, already trimmed and different from the old one */
@@ -39,10 +41,11 @@ export function PlanTitle({ title, onRename }: Props) {
           onFocus={(e) => e.target.select()}
           onBlur={save}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') save()
-            if (e.key === 'Escape') setDraft(null)
             // The page's own shortcuts must not fire while a name is typed.
             e.stopPropagation()
+            if (composing(e)) return
+            if (e.key === 'Enter') save()
+            if (e.key === 'Escape') setDraft(null)
           }}
         />
       </h1>
