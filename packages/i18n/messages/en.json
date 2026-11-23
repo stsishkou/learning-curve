@@ -628,5 +628,14 @@
   "free_slot_move": "Move here",
   "free_slot_none": "There is no free time inside the budget in the next four weeks.",
   "copy_link": "Copy a link to the event",
-  "add_to_google": "Add to Google Calendar"
+  "add_to_google": "Add to Google Calendar",
+  "dash_streak": "Study streak",
+  "dash_streak_hint": "How many study days in a row had at least one session done. A day with no session does not break the run.",
+  "dash_streak_best": "best run: {days}",
+  "streak_done": "{date}: {done} of {planned} done",
+  "streak_missed": "{date}: {planned} missed",
+  "streak_ahead": "{date}: {planned} planned",
+  "streak_legend_done": "done",
+  "streak_legend_missed": "missed",
+  "streak_legend_ahead": "ahead"
 }

@@ -640,5 +640,14 @@
   "free_slot_move": "Перенести сюда",
   "free_slot_none": "В ближайшие четыре недели свободного времени в пределах бюджета нет.",
   "copy_link": "Скопировать ссылку на событие",
-  "add_to_google": "Добавить в Google Календарь"
+  "add_to_google": "Добавить в Google Календарь",
+  "dash_streak": "Серия занятий",
+  "dash_streak_hint": "Сколько учебных дней подряд сделано хотя бы одно занятие. День без занятий серию не прерывает.",
+  "dash_streak_best": "лучшая серия: {days}",
+  "streak_done": "{date}: сделано {done} из {planned}",
+  "streak_missed": "{date}: пропущено {planned}",
+  "streak_ahead": "{date}: запланировано {planned}",
+  "streak_legend_done": "сделано",
+  "streak_legend_missed": "пропущено",
+  "streak_legend_ahead": "впереди"
 }

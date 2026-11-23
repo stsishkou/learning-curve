@@ -628,5 +628,14 @@
   "free_slot_move": "Mover aquí",
   "free_slot_none": "No hay hueco libre dentro del presupuesto en las próximas cuatro semanas.",
   "copy_link": "Copiar un enlace al evento",
-  "add_to_google": "Añadir a Google Calendar"
+  "add_to_google": "Añadir a Google Calendar",
+  "dash_streak": "Racha de estudio",
+  "dash_streak_hint": "Cuántos días de estudio seguidos tuvieron al menos una sesión hecha. Un día sin sesiones no rompe la racha.",
+  "dash_streak_best": "mejor racha: {days}",
+  "streak_done": "{date}: hecho {done} de {planned}",
+  "streak_missed": "{date}: {planned} sin hacer",
+  "streak_ahead": "{date}: {planned} planificado",
+  "streak_legend_done": "hecho",
+  "streak_legend_missed": "sin hacer",
+  "streak_legend_ahead": "por delante"
 }

@@ -105,7 +105,9 @@ a Husky `commit-msg` hook checks them with commitlint.
   See [For language models and tools](#for-language-models-and-tools).
 - **Progress dashboard**: `/dashboard` (the `Progress` tab) shows how much is done, whether that is ahead of or
   behind the plan, hours added up against the plan, the load of every week by calendar against the budget, and
-  a bar per course. Every chart has a hover readout and the same numbers as a table.
+  a bar per course. Every chart has a hover readout and the same numbers as a table. `Study streak` counts the
+  study days in a row on which something was done (a day with no session does not break the run) and draws every
+  day of the plan as a cell: done, missed or still ahead.
 - **History**: every change is a step you can take back and redo: `↶` `↷` in the toolbar, `Ctrl/⌘ Z` and
   `Ctrl/⌘ Shift Z`, or the `History` window (`H`), where any point of the timeline can be picked. The last 100
   steps are kept in `packages/plan-data/data/history.json`, which is local and not committed.

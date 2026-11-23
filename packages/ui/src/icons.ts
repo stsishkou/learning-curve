@@ -25,6 +25,7 @@ export {
   ExternalLink,
   Eye,
   FileText,
+  Flame,
   Globe,
   GraduationCap,
   History,
