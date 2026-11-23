@@ -10,6 +10,7 @@ import {
   planBrief,
   planGuide,
   previewUpdate,
+  rebalanceChange,
   reportPreview,
   updateOutcome,
   type Plan,
@@ -85,7 +86,7 @@ const TOOLS = [
     name: 'rebalance_calendar',
     title: 'Re-balance a calendar',
     description:
-      'Works out new days and times for the sessions of one calendar from a day on, keeping the order of the course: evenly at a pace (sessions a study day), or towards a deadline (the calendar\'s milestone unless one is given), inside the study hours and the weekly budget, around holidays, other events and the person\'s busy time. Nothing is stored. The answer is an `update` (an events.move with reason "rebalance", or null when nothing moves) to check with preview_update and store with apply_update once the person agrees, and a `report`: the finish, the heaviest week and day, weeks over the budget, late and unplaced sessions, and the reasons nothing better exists. It can take several seconds.',
+      'Works out new days and times for the sessions of one calendar from a day on, keeping the order of the course: evenly at a pace (sessions a study day), or towards a deadline (the calendar\'s milestone unless one is given), inside the study hours and the weekly budget, around holidays, other events and the person\'s busy time. Nothing is stored. The answer is an `update` (an events.move with reason "rebalance"; null when nothing moves, or while a session finds no room, as the rest would move around it) to check with preview_update and store with apply_update once the person agrees, and a `report`: the finish, the heaviest week and day, weeks over the budget, late and unplaced sessions, and the reasons nothing better exists. It can take several seconds.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -208,9 +209,9 @@ server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
       }
       case 'rebalance_calendar': {
         const request = requestFromTool(args, plan)
-        const { moves, report } = await rebalanceCalendar(plan, request, nowMinsk())
-        const changes = [{ type: 'events.move', moves, reason: 'rebalance', calendar: request.calendar }]
-        return json({ update: moves.length ? { changes } : null, report })
+        const result = await rebalanceCalendar(plan, request, nowMinsk())
+        const change = rebalanceChange(result, request.calendar)
+        return json({ update: change ? { changes: [change] } : null, report: result.report })
       }
       default:
         return refused(`Unknown tool "${params.name}"`)
