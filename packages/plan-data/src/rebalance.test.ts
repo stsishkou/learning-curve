@@ -302,8 +302,9 @@ describe('planRebalance in particular cases', () => {
 })
 
 /**
- * The best a deadline can get on a small case, by trying every placement: each session on one of the first study
- * days in order, within each day's room, one lab a day, and each week's room. The heaviest week of the best one.
+ * The best a deadline can get on a small case, by trying every placement: each session on one of the study days
+ * before it in order, within each day's room, one lab a day, and each week's room. The fewest sessions the busiest
+ * day of such a placement must hold, or null when none finishes in time.
  */
 function bruteForce(plan: Plan, request: RebalanceRequest): number | null {
   const sessions = movingSessions(plan, request)
@@ -323,13 +324,14 @@ function bruteForce(plan: Plan, request: RebalanceRequest): number | null {
         const day = days[d]
         if (!day || h > day.cap + 1e-9 || (labs.get(d) ?? 0) > (day.lab ? 1 : 0)) return
       }
-      let peak = 0
-      for (const [week, { left, fixed }] of room.weeks) {
+      for (const [week, { left }] of room.weeks) {
         const placed = [...load].filter(([d]) => days[d]?.week === week).reduce((sum, [, h]) => sum + h, 0)
         if (placed > left + 1e-9) return
-        peak = Math.max(peak, fixed + placed)
       }
-      if (best === null || peak < best) best = peak
+      const count = new Map<number, number>()
+      for (const d of chosen) count.set(d, (count.get(d) ?? 0) + 1)
+      const busiest = Math.max(...count.values())
+      if (best === null || busiest < best) best = busiest
       return
     }
     for (let d = first; d < days.length; d++) pick(i + 1, d, [...chosen, d])
@@ -339,32 +341,137 @@ function bruteForce(plan: Plan, request: RebalanceRequest): number | null {
 }
 
 describe('towards a deadline, against every possible placement', () => {
-  test.each([11, 12, 13, 14, 15])('seed %i finishes in time whenever that is possible, as gently', async (seed) => {
-    const next = random(seed)
-    const sessions = course(3 + Math.floor(next() * 4), next)
-    const fixed = Array.from({ length: 8 }, (_, k) =>
-      event('c1', `c1-${k}`, MONDAY + Math.floor(next() * 10) * DAY + (11 + Math.floor(next() * 3)) * HOUR, HOUR),
+  test.each([11, 12, 13, 14, 15])(
+    'seed %i finishes in time whenever that is possible, no day busier than it must',
+    async (seed) => {
+      const next = random(seed)
+      const sessions = course(3 + Math.floor(next() * 4), next)
+      const fixed = Array.from({ length: 8 }, (_, k) =>
+        event('c1', `c1-${k}`, MONDAY + Math.floor(next() * 10) * DAY + (11 + Math.floor(next() * 3)) * HOUR, HOUR),
+      )
+      const plan = planOf([...sessions, ...fixed])
+      // Eight study days before the deadline: two weeks of weekdays less two days.
+      const request: RebalanceRequest = {
+        calendar: 'c0',
+        from: '2026-12-07',
+        deadline: '2026-12-17',
+        target: { mode: 'deadline' },
+        overBudget: false,
+        hours: { from: '11:00', to: '14:00' },
+      }
+      const best = bruteForce(plan, request)
+      const result = await rebalance(plan, request)
+      if (best === null) return
+      expect(result.report.late).toBe(0)
+      expect(result.report.unplaced).toBe(0)
+      expect(crowd(plan, request, result)).toBe(best)
+    },
+  )
+})
+
+/** The day of each moving session once the moves are applied, in order. */
+const daysAfter = (plan: Plan, request: RebalanceRequest, result: RebalanceResult) =>
+  movingSessions(withMoves(plan, result.moves), request).map((e) => e.start.slice(0, 10))
+
+/** The most sessions of the course on one day once the moves are applied. */
+const crowd = (plan: Plan, request: RebalanceRequest, result: RebalanceResult) => {
+  const count = new Map<string, number>()
+  for (const day of daysAfter(plan, request, result)) count.set(day, (count.get(day) ?? 0) + 1)
+  return Math.max(0, ...count.values())
+}
+
+const paceRequest = (calendar: string, from: string, perDay: number): RebalanceRequest => ({
+  calendar,
+  from,
+  target: { mode: 'pace', perDay },
+  overBudget: false,
+  hours: { from: '11:00', to: '14:00' },
+})
+
+describe('a re-balance never makes up for lost days with a crunch', () => {
+  test('from a day already past, the missed sessions start again today, one a day', async () => {
+    // One a weekday from Monday 7 December; it is now Wednesday 16 December, so seven of them were missed.
+    const plan = planOf(course(15, () => 0.5))
+    const now = parseLocal('2026-12-16T08:00')
+    const request = paceRequest('c0', '2026-12-07', 1)
+    const result = await rebalance(plan, request, now)
+    expect(crowd(plan, request, result)).toBe(1)
+    expect(daysAfter(plan, request, result)[0]).toBe('2026-12-16')
+    expectValid(plan, request, result, now, [])
+  })
+
+  test('after a week with no budget left, the course keeps its own rhythm', async () => {
+    // Another course takes the whole budget of the week of 7 December in the evenings; this one starts on the 14th.
+    const sessions = course(10, () => 0.5, MONDAY + 7 * DAY)
+    const evenings = Array.from({ length: 6 }, (_, k) =>
+      event('c1', `c1-${k}`, parseLocal('2026-12-07T17:00') + k * DAY, 2 * HOUR),
     )
-    const plan = planOf([...sessions, ...fixed])
-    // Eight study days before the deadline: two weeks of weekdays less two days.
-    const request: RebalanceRequest = {
-      calendar: 'c0',
-      from: '2026-12-07',
-      deadline: '2026-12-17',
-      target: { mode: 'deadline' },
-      overBudget: false,
-      hours: { from: '11:00', to: '14:00' },
-    }
-    const best = bruteForce(plan, request)
-    const { report } = await rebalance(plan, request)
-    if (best === null) return
-    expect(report.late).toBe(0)
-    expect(report.unplaced).toBe(0)
-    expect(report.peakWeek).toBeCloseTo(best, 6)
+    const plan = planOf([...sessions, ...evenings])
+    const request = paceRequest('c0', '2026-12-07', 1)
+    const result = await rebalance(plan, request)
+    expect(crowd(plan, request, result)).toBe(1)
+    expect(result.moves).toEqual([])
+  })
+
+  test('a course studied on Saturdays keeps one a Saturday, or one every other Saturday', async () => {
+    const saturday = parseLocal('2026-12-12T00:00')
+    const sessions = Array.from({ length: 10 }, (_, i) =>
+      event('c0', `c0-${String(i).padStart(3, '0')}`, saturday + i * 7 * DAY + 11 * HOUR, HOUR),
+    )
+    const plan = planOf(sessions)
+    const now = parseLocal('2026-12-12T08:00')
+    const weekly = await rebalance(plan, paceRequest('c0', '2026-12-12', 1), now)
+    expect(weekly.moves).toEqual([])
+    const request = paceRequest('c0', '2026-12-12', 1 / 2)
+    const fortnightly = await rebalance(plan, request, now)
+    const days = daysAfter(plan, request, fortnightly).map((day) => parseLocal(`${day}T00:00`))
+    expect(days.slice(1).map((d, i) => (d - (days[i] ?? 0)) / DAY)).toEqual(Array.from({ length: 9 }, () => 14))
   })
 })
 
 describe('on the generated schedule of this repository', () => {
+  const START = parseLocal('2027-01-04T08:00')
+
+  // Each pace solves a real course of some 35 sessions; a level may take its two seconds.
+  test.each(PACES.map((perDay) => [perDay]))(
+    'HF LLM at %d a day finds room for every session and never crowds a day beyond the pace',
+    async (perDay) => {
+      const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
+      const request = paceRequest('hfllm', '2027-01-04', perDay)
+      const result = await rebalance(plan, request, START)
+      expect(result.report.unplaced).toBe(0)
+      expect(crowd(plan, request, result)).toBeLessThanOrEqual(Math.ceil(perDay))
+      expectValid(plan, request, result, START, [])
+    },
+    30_000,
+  )
+
+  test('HF LLM at one every three days moves the course and ends later than at one a day', async () => {
+    const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
+    const slow = await rebalance(plan, paceRequest('hfllm', '2027-01-04', 1 / 3), START)
+    const daily = await rebalance(plan, paceRequest('hfllm', '2027-01-04', 1), START)
+    expect(slow.moves.length).toBeGreaterThan(0)
+    expect((slow.report.finish ?? '') > (daily.report.finish ?? '')).toBe(true)
+  }, 30_000)
+
+  test.each([['2027-03-31'], ['2027-05-31']])(
+    'HF LLM towards a far deadline of %s starts at once and spreads out, one session a day at most',
+    async (deadline) => {
+      const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
+      const request: RebalanceRequest = {
+        ...paceRequest('hfllm', '2027-01-04', 1),
+        deadline,
+        target: { mode: 'deadline' },
+      }
+      const result = await rebalance(plan, request, START)
+      expect(result.report).toMatchObject({ late: 0, unplaced: 0 })
+      expect(daysAfter(plan, request, result)[0]).toBe('2027-01-04')
+      expect(crowd(plan, request, result)).toBe(1)
+      expectValid(plan, request, result, START, [])
+    },
+    30_000,
+  )
+
   test('HF LLM from 4 January finishes before 16 February within the weekly budget', async () => {
     const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
     const request: RebalanceRequest = {

@@ -4,7 +4,7 @@ import { isSession } from '../progress'
 import type { SessionMove } from '../replan'
 import type { Plan, PlanEvent } from '../types'
 import { solveInOrder, type OrderedSolution, type Solve } from './lp'
-import { beforeDeadline, buildModel, readDays } from './model'
+import { buildModel, reachOf, readDays } from './model'
 import { placeDay } from './placement'
 import { reportOf } from './report'
 import { movingSessions } from './request'
@@ -96,7 +96,7 @@ export async function planRebalance(
   if (sessions.length) {
     const usual = usualStarts(plan, request)
     for (let round = 1; round <= ROUNDS; round++) {
-      const { model, levels, start } = buildModel(beforeDeadline(room, sessions, request), sessions, request)
+      const { model, levels, start } = buildModel(reachOf(room, sessions, request), sessions, request)
       // oxlint-disable-next-line no-await-in-loop -- each round solves the room the round before it lowered
       solved = await solveInOrder(model, levels, solve, { start })
       const result = place(room, sessions, readDays(solved.values, room, sessions).days, usual)

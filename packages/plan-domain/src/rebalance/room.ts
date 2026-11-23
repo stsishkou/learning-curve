@@ -8,7 +8,7 @@ import type { RebalanceRequest } from './types'
 
 const MINUTE = 60_000
 export const HALF_HOUR = 30 * MINUTE
-/** The longest a re-balance looks ahead, in days from its first day */
+/** How far a re-balance looks ahead, in days from its first day; the model keeps only the part it needs */
 export const MAX_DAYS = 366
 const NO_CALENDARS: ReadonlySet<string> = new Set()
 
@@ -43,19 +43,6 @@ export interface Room {
 
 const minutesOf = (hhmm: string) => (Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))) * MINUTE
 
-/**
- * The first day after the horizon. Room for one and a half times the days the pace needs, and two weeks more, so a
- * slow stretch never runs out of days; towards a deadline it is counted from the deadline, so a course that does not
- * fit shows as late sessions, not as unplaced ones.
- */
-function horizonEnd(request: RebalanceRequest, sessions: number, deadline: string | null): number {
-  const from = parseLocal(`${request.from}T00:00`)
-  const perDay = request.target.mode === 'pace' ? request.target.perDay : 1
-  const spare = Math.ceil(1.5 * Math.ceil(sessions / perDay)) + 14
-  const start = request.target.mode === 'deadline' && deadline ? parseLocal(`${deadline}T00:00`) : from
-  return Math.min(from + MAX_DAYS * DAY, start + spare * DAY)
-}
-
 /** True when `count` slots of the list follow each other without a gap. */
 function hasRun(slots: number[], count: number): boolean {
   let run = 0
@@ -67,8 +54,9 @@ function hasRun(slots: number[], count: number): boolean {
 }
 
 /**
- * Step 1 of a re-balance: the study days up to the horizon and the free time on each, the room left in each week's
- * budget, and the current slot of each moving session.
+ * Step 1 of a re-balance: the study days of the year from the first day and the free time on each, the room left in
+ * each week's budget, and the current slot of each moving session. A year, whatever the pace: a course kept to a few
+ * weekend days, or squeezed by a full budget, needs far more calendar days than it has sessions.
  *
  * A study day is a weekday, or a weekend day of the kind the moving sessions already use; a calendar studied only at
  * weekends keeps to them. Holidays and days the busy calendar takes whole are not study days. Every busy occurrence
@@ -85,7 +73,7 @@ export function roomOf(
   const deadline = request.deadline ?? deadlineOf(plan, request.calendar)
   const moving = new Set(sessions.map((e) => e.uid))
   const from = parseLocal(`${request.from}T00:00`)
-  const end = horizonEnd(request, sessions.length, deadline)
+  const end = from + MAX_DAYS * DAY
   const open = minutesOf(request.hours.from)
   const close = minutesOf(request.hours.to)
 

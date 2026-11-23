@@ -100,9 +100,10 @@ describe('the worked example of docs/rebalancing.md', () => {
     })
   })
 
-  test('towards a deadline of 15 January the crunch comes forward, evenly, and the first three stay', async () => {
+  test('towards a deadline of 15 January the course spreads evenly to the day before it, and the first two stay', async () => {
     const { moves, report } = await rebalance(plan, ask({ mode: 'deadline' }, '2027-01-15'))
     expect(moves).toEqual([
+      { uid: 's3', ...at('2027-01-08', '11:00', '12:00') },
       { uid: 's4', ...at('2027-01-11', '11:00', '13:00') },
       { uid: 's5', ...at('2027-01-13', '11:00', '12:00') },
       { uid: 's6', ...at('2027-01-14', '11:00', '12:00') },
@@ -114,7 +115,7 @@ describe('the worked example of docs/rebalancing.md', () => {
       peakWeek: 5,
       peakDay: 2,
       overWeeks: [],
-      moved: 3,
+      moved: 4,
       late: 0,
       unplaced: 0,
       provenBest: true,
@@ -122,16 +123,17 @@ describe('the worked example of docs/rebalancing.md', () => {
     })
   })
 
-  test('at one session every two study days the crunch spreads out and the course still ends on 20 January', async () => {
+  test('at one session every two study days the crunch spreads out and the course ends a day sooner', async () => {
     const { moves, report } = await rebalance(plan, ask({ mode: 'pace', perDay: 0.5 }))
     expect(moves).toEqual([
       { uid: 's2', ...at('2027-01-06', '11:00', '12:00') },
       { uid: 's3', ...at('2027-01-11', '11:00', '12:00') },
       { uid: 's4', ...at('2027-01-13', '11:00', '13:00') },
-      { uid: 's5', ...at('2027-01-18', '11:00', '12:00') },
+      { uid: 's5', ...at('2027-01-15', '11:00', '12:00') },
+      { uid: 's6', ...at('2027-01-19', '11:00', '12:00') },
     ])
-    expect(report).toMatchObject({ finish: '2027-01-20', finishBefore: '2027-01-20', peakWeek: 4, peakDay: 2 })
-    expect(report).toMatchObject({ moved: 4, late: 0, unplaced: 0, provenBest: true, reasons: [] })
+    expect(report).toMatchObject({ finish: '2027-01-19', finishBefore: '2027-01-20', peakWeek: 5, peakDay: 2 })
+    expect(report).toMatchObject({ moved: 5, late: 0, unplaced: 0, provenBest: true, reasons: [] })
   })
 
   test('asking the same again moves nothing', async () => {

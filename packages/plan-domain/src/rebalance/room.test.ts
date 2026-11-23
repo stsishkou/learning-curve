@@ -152,19 +152,14 @@ describe('roomOf', () => {
     expect(r.weeks.get('2026-12-07')).toEqual({ left: 12, fixed: 0 })
   })
 
-  test('the horizon covers the pace with room to spare', () => {
-    // Two sessions at one a day: ⌈1.5 × 2⌉ + 14 = 17 days from the first day.
-    expect(room(busyTuesday).days.at(-1)?.day).toBe('2026-12-23')
-  })
-
-  test('towards a deadline the horizon runs as far past it, so a shortfall shows as late', () => {
+  test('the room is the year from the first day, at any pace and towards any deadline', () => {
+    // A course on a few weekend days, or a tight budget, can need many weeks: the model cuts what it does not use.
+    expect(room(busyTuesday).days.at(-1)?.day).toBe('2027-12-07')
     const towards = room(busyTuesday, { target: { mode: 'deadline' }, deadline: '2027-02-01' })
     expect(towards.deadline).toBe('2027-02-01')
-    expect(towards.days.at(-1)?.day).toBe('2027-02-17')
-  })
-
-  test('the horizon never runs past a year', () => {
-    const r = room(busyTuesday, { target: { mode: 'deadline' }, deadline: '2028-06-01' })
-    expect(r.days.at(-1)?.day).toBe('2027-12-07')
+    expect(towards.days.at(-1)?.day).toBe('2027-12-07')
+    expect(room(busyTuesday, { target: { mode: 'deadline' }, deadline: '2028-06-01' }).days.at(-1)?.day).toBe(
+      '2027-12-07',
+    )
   })
 })

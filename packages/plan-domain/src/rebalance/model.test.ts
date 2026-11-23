@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { parseLocal } from '../dates'
 import type { PlanEvent } from '../types'
 import type { LpModel, LpTerm } from './lp'
-import { beforeDeadline, buildModel, readDays } from './model'
+import { buildModel, earliestDays, reachOf, readDays, rhythmDays, targetDays } from './model'
 import type { Room, RoomDay } from './room'
 import type { RebalanceRequest } from './types'
 
@@ -74,15 +74,90 @@ const names = (model: Omit<LpModel, 'objective'>) => model.variables.map((v) => 
 const row = (model: Omit<LpModel, 'objective'>, name: string) => model.constraints.find((c) => c.name === name)
 const sum = (...vars: string[]): LpTerm[] => vars.map((v) => ({ v, c: 1 }))
 
-describe('beforeDeadline', () => {
-  test('cuts the room at the deadline when every session can be in time', () => {
-    expect(beforeDeadline(room, sessions, request()).days.map((d) => d.index)).toEqual([1, 2, 3])
+/** `count` study days from 4 January 2027, each with three free hours and a lab block, in one roomy week. */
+const plainRoom = (count: number, change: (d: RoomDay) => RoomDay = (d) => d): Room => ({
+  days: Array.from({ length: count }, (_, k) =>
+    change(roomDay(k + 1, `2027-01-${String(k + 4).padStart(2, '0')}`, '2027-01-04', 3, true)),
+  ),
+  weeks: new Map([['2027-01-04', { left: 100, fixed: 0 }]]),
+  deadline: null,
+  daysOff: [],
+  own: new Map(),
+})
+
+/** `count` one-hour sessions, the first of them on `day`. */
+const hours = (count: number, day = '2027-01-04') =>
+  Array.from({ length: count }, (_, k) => session(k + 1, `${day}T11:00`, `${day}T12:00`))
+
+describe('rhythmDays', () => {
+  test('one every two study days, starting again from where a session had to wait for room', () => {
+    const blocked = plainRoom(10, (d) => (d.index === 3 ? { ...d, cap: 0 } : d))
+    expect(rhythmDays(blocked, hours(5), request(), 2)).toEqual([1, 4, 6, 8, 10])
   })
 
-  test('keeps the whole room when a session cannot be in time, and at a pace', () => {
+  test('three in two days keeps its fraction: two, one, two, one', () => {
+    expect(rhythmDays(plainRoom(6), hours(6), request(), 2 / 3)).toEqual([1, 1, 2, 3, 3, 4])
+  })
+
+  test('without a gap it is the earliest placement', () => {
+    expect(rhythmDays(room, sessions, request(), 0)).toEqual(earliestDays(room, sessions, request()))
+    expect(earliestDays(plainRoom(4), hours(5), request())).toEqual([1, 1, 1, 2, 2])
+  })
+
+  test('a session that finds no day leaves the rest of the course without one too', () => {
+    expect(rhythmDays(plainRoom(5), hours(4), request(), 2)).toEqual([1, 3, 5, null])
+  })
+})
+
+describe('targetDays', () => {
+  test('at a pace the rhythm starts at the first session of the course, not at the first day', () => {
+    const pace = request({ target: { mode: 'pace', perDay: 1 } })
+    expect(targetDays(plainRoom(8), hours(3, '2027-01-06'), pace)).toEqual([3, 4, 5])
+  })
+
+  test('towards a deadline it is the slowest rhythm that still ends before it', () => {
+    // Seven study days before the deadline and four sessions: every other day is the slowest that fits.
+    const due: Room = { ...plainRoom(10), deadline: '2027-01-11' }
+    expect(targetDays(due, hours(4), request())).toEqual([1, 3, 5, 7])
+  })
+
+  test('towards a deadline the rhythm starts at the first day when that lets it run slower', () => {
+    // From the course's own start on day 5, four sessions would need two a day; from day 1, one every other day fits.
+    const due: Room = { ...plainRoom(10), deadline: '2027-01-11' }
+    expect(targetDays(due, hours(4, '2027-01-08'), request())).toEqual([1, 3, 5, 7])
+  })
+
+  test('towards a deadline the budget holds whenever that still ends in time, even where going over is allowed', () => {
+    // Two hours left in the first five days: every other day would put three sessions there.
+    const split: Room = {
+      ...plainRoom(10, (d) => ({ ...d, week: d.index <= 5 ? '2027-01-04' : '2027-01-11' })),
+      weeks: new Map([
+        ['2027-01-04', { left: 2, fixed: 0 }],
+        ['2027-01-11', { left: 100, fixed: 0 }],
+      ]),
+      deadline: '2027-01-11',
+    }
+    const within = targetDays(split, hours(4), request())
+    expect(within).not.toEqual([1, 3, 5, 7])
+    expect(targetDays(split, hours(4), request({ overBudget: true }))).toEqual(within)
+  })
+
+  test('towards a deadline nothing can meet, it is the earliest placement', () => {
+    const due: Room = { ...plainRoom(10), deadline: '2027-01-05' }
+    expect(targetDays(due, hours(4), request())).toEqual(earliestDays(due, hours(4), request()))
+  })
+})
+
+describe('reachOf', () => {
+  test('cuts the room at the deadline when every session can be in time', () => {
+    expect(reachOf(room, sessions, request()).days.map((d) => d.index)).toEqual([1, 2, 3])
+  })
+
+  test('otherwise keeps ten study days after the furthest day a session aims at', () => {
     const tight: Room = { ...room, days: room.days.map((d) => (d.index === 1 ? { ...d, cap: 2 } : d)) }
-    expect(beforeDeadline(tight, sessions, request()).days).toHaveLength(4)
-    expect(beforeDeadline(room, sessions, request({ target: { mode: 'pace', perDay: 1 } })).days).toHaveLength(4)
+    expect(reachOf(tight, sessions, request()).days).toHaveLength(4)
+    const pace = request({ target: { mode: 'pace', perDay: 1 } })
+    expect(reachOf(plainRoom(40), hours(5), pace).days.at(-1)?.index).toBe(15)
   })
 })
 
@@ -103,7 +178,7 @@ describe('buildModel', () => {
     expect(names(model).filter((n) => n.startsWith('y_2_'))).toEqual([])
   })
 
-  test('starts from the earliest placement, which meets every row', () => {
+  test('starts from the days the sessions aim at, or the earliest when those leave one out, meeting every row', () => {
     for (const overBudget of [false, true]) {
       for (const target of [{ mode: 'deadline' }, { mode: 'pace', perDay: 1 }] as const) {
         const { model, start } = buildModel(room, sessions, request({ overBudget, target }))
@@ -184,30 +259,37 @@ describe('buildModel', () => {
     })
   })
 
-  test('towards a deadline the ideal line runs straight to the last study day before it', () => {
-    const { model } = buildModel(room, sessions, request())
-    // Four hours over the three study days before 15 December.
-    expect(row(model, 'above_1')?.rhs).toBeCloseTo(4 / 3, 9)
-    expect(row(model, 'above_3')?.rhs).toBeCloseTo(4, 9)
-    expect(row(model, 'above_4')?.rhs).toBeCloseTo(4, 9)
+  test('towards a deadline a session pays its hours for each study day it lands away from its target', () => {
+    // Targets: days 1, 1 and 2, the slowest rhythm before 15 December. The lab costs two hours a day off.
+    const { levels } = buildModel(room, sessions, request())
+    expect(levels[2]).toEqual([
+      { v: 'y_0_3', c: 2 },
+      { v: 'y_0_4', c: 3 },
+      { v: 'y_1_4', c: 6 },
+      { v: 'y_2_3', c: 1 },
+      { v: 'y_2_4', c: 2 },
+    ])
   })
 
-  test('at a pace the ideal line is the rhythm asked for, until the course is done', () => {
-    const { model } = buildModel(room, sessions, request({ target: { mode: 'pace', perDay: 1 / 2 } }))
-    // Half a session a day of 4/3 hours on average.
-    expect(row(model, 'above_1')?.rhs).toBeCloseTo(2 / 3, 9)
-    expect(row(model, 'above_4')?.rhs).toBeCloseTo(8 / 3, 9)
+  test('at a pace the target is the rhythm asked for, and a session it cannot place has none', () => {
+    // One every two days: day 1, then the lab waits for day 4, and nothing fits after it.
+    const { levels } = buildModel(room, sessions, request({ target: { mode: 'pace', perDay: 1 / 2 } }))
+    expect(levels[1]).toEqual([
+      { v: 'y_0_3', c: 2 },
+      { v: 'y_0_4', c: 3 },
+      { v: 'y_1_1', c: 6 },
+    ])
   })
 
-  test('towards a deadline: nothing unplaced, then nothing late, then the least over the budget', () => {
+  test('towards a deadline: nothing unplaced, nothing late, the least over the budget, then the rhythm', () => {
     const { levels } = buildModel(room, sessions, request({ overBudget: true }))
-    expect(levels.slice(0, 5)).toEqual([
+    expect(levels.slice(0, 3)).toEqual([
       sum('u_0', 'u_1', 'u_2'),
       sum('late_0', 'late_1', 'late_2'),
       sum('over_1', 'over_2'),
-      sum('Pw'),
-      sum('Pd'),
     ])
+    expect(levels[3]?.every(({ v }) => v.startsWith('y_'))).toBe(true)
+    expect(levels.slice(4, 6)).toEqual([sum('Pw'), sum('Pd')])
     // The lab's own day has no two free hours, so only two sessions can keep their day.
     expect(levels.at(-2)).toEqual([
       { v: 'y_0_1', c: -1 },
@@ -218,7 +300,7 @@ describe('buildModel', () => {
 
   test('at a pace: nothing unplaced, then the rhythm, and a level without terms is left out', () => {
     const { levels } = buildModel(room, sessions, request({ target: { mode: 'pace', perDay: 1 } }))
-    expect(levels[1]).toEqual(sum('e_1', 'e_2', 'e_3', 'e_4'))
+    expect(levels[1]?.every(({ v }) => v.startsWith('y_'))).toBe(true)
     expect(levels[2]).toEqual(sum('Pw'))
   })
 })
