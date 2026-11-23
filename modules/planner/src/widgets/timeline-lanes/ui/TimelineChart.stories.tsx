@@ -537,3 +537,26 @@ export const DragTheDaysToPan: Story = {
     await expect(box.scrollLeft).toBe(400)
   },
 }
+
+/** Given a height, the chart fills it: the lanes scroll up and down inside, under the days that stay at the top. */
+export const FillsAHeight: Story = {
+  args: { height: 220 },
+  play: async ({ canvasElement }) => {
+    await expect(Math.round(chart(canvasElement).getBoundingClientRect().height)).toBe(220)
+    const box = scroller(canvasElement)
+    await expect(box.scrollHeight).toBeGreaterThan(box.clientHeight)
+    box.scrollTop = 60
+    const axis = canvasElement.querySelector('[data-axis]')
+    await waitFor(() =>
+      expect(Math.abs((axis?.getBoundingClientRect().top ?? 0) - box.getBoundingClientRect().top)).toBeLessThan(2),
+    )
+  },
+}
+
+/** Controls the host owns, such as how much of the screen the chart takes, sit at the end of the chart's own bar. */
+export const WithTools: Story = {
+  args: { tools: <button type="button">Host tool</button> },
+  play: async ({ canvasElement }) => {
+    await expect(within(chart(canvasElement)).getByRole('button', { name: 'Host tool' })).toBeVisible()
+  },
+}

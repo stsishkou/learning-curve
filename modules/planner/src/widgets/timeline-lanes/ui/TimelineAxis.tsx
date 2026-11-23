@@ -33,7 +33,7 @@ export function TimelineAxis({ scale, ticks, now, pxPerDay, ref }: Props) {
       ref={ref}
       data-axis
       aria-hidden
-      className="relative h-12 overflow-hidden border-b border-line text-[11.5px] text-muted"
+      className="sticky top-0 z-[25] h-12 overflow-hidden border-b border-line bg-surface text-[11.5px] text-muted"
     >
       {ticks.months.map((t) => (
         <i key={t} className="absolute inset-y-0 w-px bg-line" style={{ left: `${scale.at(t)}%` }} />

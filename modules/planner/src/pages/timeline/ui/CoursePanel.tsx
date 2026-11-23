@@ -1,7 +1,7 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { addDays, laneSpare, parseLocal, type CalendarLane, type LaneChange, type RuleWarning } from '@lc/plan-domain'
-import { Button, calendarColor, Dot, FIELD, INPUT } from '@lc/ui'
+import { Button, calendarColor, Dot, FIELD, INPUT, X } from '@lc/ui'
 
 import { RuleWarningList } from '../../../shared/ui'
 import type { CourseEdit } from '../model/use-timeline-draft'
@@ -29,6 +29,8 @@ interface Props {
   canRebalance: boolean
   /** Opens Reschedule for the course, with every option it has */
   onMore?: (() => void) | undefined
+  /** Present where the panel can be put away: the course is no longer picked */
+  onClose?: (() => void) | undefined
 }
 
 const day = (ymd: string) => parseLocal(`${ymd}T00:00`)
@@ -73,7 +75,7 @@ function Fact({ label, now, draft }: FactProps) {
 
 /** The picked course: its dates, deadline and spare days now and in the draft, and the ways to change them. */
 export function CoursePanel(props: Props) {
-  const { lane, change, edit, warnings, working, failed, today, bounds, onEdit, canRebalance, onMore } = props
+  const { lane, change, edit, warnings, working, failed, today, bounds, onEdit, canRebalance, onMore, onClose } = props
   if (!lane) {
     return (
       <section aria-label={m.timeline_course()} className="rounded-2xl border border-line bg-surface p-4 md:p-5">
@@ -90,10 +92,23 @@ export function CoursePanel(props: Props) {
       className="grid grid-cols-[minmax(0,1fr)] gap-3 rounded-2xl border border-line bg-surface p-4 md:p-5"
       style={calendarColor(lane.calendar.color)}
     >
-      <h2 className="flex min-w-0 items-center gap-2 text-[16px]/[1.3] font-semibold">
-        <Dot className="size-2.5 flex-none" />
-        <span className="min-w-0">{lane.calendar.name}</span>
-      </h2>
+      <div className="flex items-start gap-2">
+        <h2 className="flex min-w-0 items-center gap-2 text-[16px]/[1.3] font-semibold">
+          <Dot className="size-2.5 flex-none" />
+          <span className="min-w-0">{lane.calendar.name}</span>
+        </h2>
+        {onClose && (
+          <button
+            type="button"
+            className="-mt-1 -mr-1 ml-auto grid size-7 flex-none place-items-center rounded-md text-muted hover:bg-surface-2 hover:text-ink"
+            aria-label={m.close()}
+            title={m.close()}
+            onClick={onClose}
+          >
+            <X size={16} aria-hidden />
+          </button>
+        )}
+      </div>
       <table className="w-full text-[13px] tabular-nums">
         <thead>
           <tr className="text-[12px] text-muted">

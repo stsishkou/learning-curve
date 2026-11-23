@@ -10,17 +10,20 @@ import {
   type Plan,
   type PlanChange,
 } from '@lc/plan-domain'
-import { HelpToggle, Hint, PageHeader } from '@lc/ui'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { HelpToggle, Hint, PageHeader, useFullscreen } from '@lc/ui'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
+import { useShortcuts } from '../../../features/keyboard-shortcuts'
 import { RescheduleDialog, type Rebalance } from '../../../features/reschedule'
-import { useNow } from '../../../shared/lib'
+import { useFillHeight, useNow } from '../../../shared/lib'
+import { ScreenButtons } from '../../../shared/ui'
 import { TimelineChart, type LaneEditing } from '../../../widgets/timeline-lanes'
 import { useTimelineDraft, type CourseEdit } from '../model/use-timeline-draft'
 import { CoursePanel } from './CoursePanel'
 import { AppliedBar, DraftBar } from './DraftBar'
 import { DraftReview } from './DraftReview'
 import { LeaveDraftDialog } from './LeaveDraftDialog'
+import { PageHint } from './PageHint'
 
 /** The plan with what the page needs to know about it; the planner's state fits it as it is */
 export interface TimelineState {
@@ -45,6 +48,10 @@ interface Props {
   onDraftChange?: ((dirty: boolean) => void) | undefined
   /** A navigation the host holds for the draft: the page asks whether to stay or drop the draft and go */
   leaving?: { onStay: () => void; onLeave: () => void } | undefined
+  /** The timeline takes the whole window: no page header, and the course panel only while a course is picked */
+  expanded?: boolean | undefined
+  /** Present when the host keeps `expanded`: the page then offers Expand */
+  onExpandedChange?: ((expanded: boolean) => void) | undefined
 }
 
 const NONE: ReadonlySet<string> = new Set()
@@ -56,7 +63,8 @@ const reasonOf = (err: unknown) => (err instanceof Error ? err.message : String(
  * the changes that would do it and draws them over the plan as it is, and only Apply stores them, in one go.
  */
 export function TimelinePage(props: Props) {
-  const { state, onChangeAll, onTravel, rebalance, headerAside, onDraftChange, leaving } = props
+  const { state, onChangeAll, onTravel, rebalance, headerAside, onDraftChange, leaving, expanded = false } = props
+  const { onExpandedChange } = props
   const { plan, canEdit } = state
   const now = useNow()
   const today = now === null ? null : ymd(now)
@@ -75,6 +83,18 @@ export function TimelinePage(props: Props) {
   const changes = useMemo(() => compareLanes(before, after, moved), [before, after, moved])
   const range = useMemo(() => lanesRange([...before, ...after], now), [before, after, now])
   const dirty = draft.courses.size > 0
+  const fullscreen = useFullscreen()
+  // The whole screen is for the timeline: it is laid out as Expand lays it out.
+  const wide = expanded || fullscreen.on
+  const toggleExpanded = onExpandedChange && (() => onExpandedChange(!expanded))
+  const chartBox = useRef<HTMLDivElement>(null)
+  // Clear of the bar that floats at the bottom while there is a draft or a word about the last Apply.
+  const fill = useFillHeight(chartBox, wide, { minWidth: 701, bottomGap: dirty || applied !== null ? 88 : 16 })
+
+  useShortcuts({
+    ...(toggleExpanded && { e: toggleExpanded }),
+    ...(fullscreen.supported && { 'shift+f': fullscreen.toggle }),
+  })
 
   useEffect(() => {
     if (!dirty) return undefined
@@ -147,14 +167,18 @@ export function TimelinePage(props: Props) {
   const course = selected === null ? undefined : draft.courses.get(selected)
 
   return (
-    <div className="mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)] gap-4 px-3 pt-3.5 pb-32 md:px-5 md:pt-5">
-      <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
-        <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
-          {m.timeline()}
-          <Hint title={m.help_timeline_title()} text={m.help_timeline()} />
-        </h1>
-        <p className="mt-1 max-w-[72ch] text-[14px] text-muted">{m.timeline_page_hint()}</p>
-      </PageHeader>
+    <div
+      className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1400px] pt-3.5 pb-32 md:pt-5'}`}
+    >
+      {!wide && (
+        <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
+          <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
+            {m.timeline()}
+            <Hint title={m.help_timeline_title()} text={m.help_timeline()} />
+          </h1>
+          <PageHint text={m.timeline_page_hint()} />
+        </PageHeader>
+      )}
 
       {error !== null && !dirty && (
         <p className="text-[13.5px] text-today-ink" role="alert">
@@ -163,30 +187,51 @@ export function TimelinePage(props: Props) {
       )}
 
       {range ? (
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <TimelineChart
-            lanes={after}
-            changes={changes}
-            moved={moved}
-            range={range}
-            now={now}
-            selected={selected}
-            working={draft.working}
-            edit={edit}
-          />
-          <CoursePanel
-            lane={lane}
-            change={selected === null ? undefined : changes.get(selected)}
-            edit={course}
-            warnings={preview?.warnings.filter((w) => w.event.calendar === selected) ?? []}
-            working={selected !== null && draft.working.has(selected)}
-            failed={selected === null ? undefined : draft.failed.get(selected)}
-            today={today}
-            bounds={boundsOf(selected)}
-            onEdit={editable && selected !== null ? (patch) => change(selected, patch) : undefined}
-            canRebalance={rebalance !== undefined}
-            onMore={editable && selected !== null ? () => setMore(selected) : undefined}
-          />
+        <div
+          className={`grid grid-cols-1 items-start gap-4 ${!wide || lane ? 'lg:grid-cols-[minmax(0,1fr)_340px]' : ''}`}
+        >
+          <div ref={chartBox} className="min-w-0">
+            <TimelineChart
+              height={fill}
+              tools={
+                toggleExpanded && (
+                  <ScreenButtons
+                    expanded={expanded}
+                    expandHint={m.timeline_expand_hint()}
+                    onToggleExpanded={toggleExpanded}
+                    fullscreen={fullscreen.supported ? fullscreen : undefined}
+                    className="py-1! text-[13px]"
+                  />
+                )
+              }
+              lanes={after}
+              changes={changes}
+              moved={moved}
+              range={range}
+              now={now}
+              selected={selected}
+              working={draft.working}
+              edit={edit}
+            />
+          </div>
+          {(!wide || lane) && (
+            <div className="min-w-0 overflow-y-auto" style={fill === undefined ? undefined : { maxHeight: fill }}>
+              <CoursePanel
+                lane={lane}
+                change={selected === null ? undefined : changes.get(selected)}
+                edit={course}
+                warnings={preview?.warnings.filter((w) => w.event.calendar === selected) ?? []}
+                working={selected !== null && draft.working.has(selected)}
+                failed={selected === null ? undefined : draft.failed.get(selected)}
+                today={today}
+                bounds={boundsOf(selected)}
+                onEdit={editable && selected !== null ? (patch) => change(selected, patch) : undefined}
+                canRebalance={rebalance !== undefined}
+                onMore={editable && selected !== null ? () => setMore(selected) : undefined}
+                onClose={wide ? () => setSelected(null) : undefined}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <p className="rounded-2xl border border-line bg-surface px-5 py-10 text-center text-[14px] text-muted">

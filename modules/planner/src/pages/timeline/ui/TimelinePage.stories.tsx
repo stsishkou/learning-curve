@@ -26,6 +26,7 @@ import {
   type RebalanceResult,
 } from '@lc/plan-domain'
 import { fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
+import { fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
@@ -111,6 +112,7 @@ function heldSolver() {
 function Host(props: ComponentProps<typeof TimelinePage>) {
   const base = props.state.plan
   const [history, setHistory] = useState(emptyHistory)
+  const [expanded, setExpanded] = useState(props.expanded ?? false)
   const state = useMemo(
     () => ({ ...props.state, plan: applyEdits(base, historyEdits(history)).plan, history: historyView(history) }),
     [props.state, base, history],
@@ -119,6 +121,11 @@ function Host(props: ComponentProps<typeof TimelinePage>) {
     <TimelinePage
       {...props}
       state={state}
+      expanded={expanded}
+      onExpandedChange={(next) => {
+        props.onExpandedChange?.(next)
+        setExpanded(next)
+      }}
       onChangeAll={async (changes) => {
         await props.onChangeAll(changes)
         setHistory((prev) =>
@@ -144,6 +151,7 @@ const meta = {
     state: { plan, canEdit: true, history: historyView(emptyHistory()) },
     onChangeAll: fn(async () => {}),
     onTravel: fn(async () => {}),
+    onExpandedChange: fn(),
     rebalance: fn(async (_plan: Plan, request: RebalanceRequest) => resultFor(request.calendar, 1)),
   },
   argTypes: { state: { control: false } },
@@ -502,5 +510,77 @@ export const Phone: Story = {
     const hit = canvasElement.ownerDocument.elementFromPoint(bar.left + 40, bar.top + bar.height / 2)
     await expect(top.contains(hit)).toBe(true)
     window.scrollTo(0, 0)
+  },
+}
+
+// The browser's full screen as the story sees it; set up anew before each story that uses it.
+let screen: ReturnType<typeof fakeFullscreen> | null = null
+const withScreen = () => {
+  screen = fakeFullscreen()
+  return screen.restore
+}
+
+/**
+ * Expand gives the timeline the whole window: the page header goes, the chart reaches the bottom of the window and
+ * the course panel shows only while a course is picked, with a way to close it. Collapse brings the page back.
+ */
+export const ExpandFillsTheWindow: Story = {
+  play: async ({ args, canvasElement }) => {
+    const page = within(canvasElement)
+    await expect(page.getByRole('heading', { level: 1, name: m.timeline() })).toBeVisible()
+    await userEvent.click(within(await chart(canvasElement)).getByRole('button', { name: m.expand() }))
+    await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
+    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
+    const region = await chart(canvasElement)
+    await waitFor(() => expect(window.innerHeight - region.getBoundingClientRect().bottom).toBeLessThan(40))
+    await expect(page.queryByRole('region', { name: m.timeline_course() })).toBeNull()
+    await select(canvasElement, LLM)
+    const course = page.getByRole('region', { name: m.timeline_course() })
+    await expect(course).toBeVisible()
+    await userEvent.click(within(course).getByRole('button', { name: m.close() }))
+    await waitFor(() => expect(page.queryByRole('region', { name: m.timeline_course() })).toBeNull())
+    await userEvent.click(within(region).getByRole('button', { name: m.collapse() }))
+    await expect(args.onExpandedChange).toHaveBeenLastCalledWith(false)
+    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.timeline() })).toBeVisible())
+  },
+}
+
+/** Full screen lays the timeline out as Expand does, across the whole screen; leaving it brings the page back. */
+export const FullScreen: Story = {
+  beforeEach: withScreen,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    const region = within(await chart(canvasElement))
+    await userEvent.click(region.getByRole('button', { name: m.fullscreen() }))
+    await expect(screen?.calls.requests).toBe(1)
+    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
+    await expect(region.queryByRole('button', { name: m.expand() })).toBeNull()
+    await userEvent.click(region.getByRole('button', { name: m.fullscreen_exit() }))
+    await expect(screen?.calls.exits).toBe(1)
+    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.timeline() })).toBeVisible())
+  },
+}
+
+/** The planner's keys work here too: E expands, Shift + F fills the screen. */
+export const ExpandAndFullScreenByKeys: Story = {
+  beforeEach: withScreen,
+  play: async ({ args, canvasElement }) => {
+    await chart(canvasElement)
+    await userEvent.keyboard('e')
+    await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
+    await userEvent.keyboard('{Shift>}F{/Shift}')
+    await expect(screen?.calls.requests).toBe(1)
+  },
+}
+
+/** The how-to under the title folds to one line, and stays folded in this browser. */
+export const TheHintFolds: Story = {
+  beforeEach: () => localStorage.removeItem('learning-curve:timeline-hint'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await expect(page.getByText(m.timeline_page_hint())).toBeVisible()
+    await userEvent.click(page.getByText(m.timeline_how()))
+    await waitFor(() => expect(page.getByText(m.timeline_page_hint())).not.toBeVisible())
+    await expect(localStorage.getItem('learning-curve:timeline-hint')).toBe('folded')
   },
 }

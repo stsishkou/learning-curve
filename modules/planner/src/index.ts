@@ -9,4 +9,4 @@ export {
   type PlannerState,
   type PlannerView,
 } from './pages/planner'
-export { TimelinePage, type TimelineState } from './pages/timeline'
+export { parseTimelineSearch, TimelinePage, type TimelineSearch, type TimelineState } from './pages/timeline'

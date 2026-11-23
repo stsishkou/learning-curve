@@ -166,7 +166,10 @@ a Husky `commit-msg` hook checks them with commitlint.
   chooses, with a worked example: [docs/rebalancing.md](docs/rebalancing.md).
 - **Timeline**: `/timeline` (the `Timeline` tab) is a lane per course, in its colour: its sessions from the first
   to the last (done, open, missed), the spare days before its deadline (◆) or the late ones after it, and today.
-  The whole plan fits the width; `Month` and `Week` zoom in and scroll, `Today` jumps back. Drag a lane to move its
+  The whole plan fits the width; `Month` and `Week` zoom in and scroll (the mouse wheel, Shift + wheel or a swipe,
+  or grab the empty days and drag), keeping the day in the middle of the view; `Today` jumps back. `Expand` (`E`)
+  gives the chart the whole window and `Full screen` (`Shift F`) the whole screen; the how-to under the title folds
+  away. Drag a lane to move its
   open sessions by whole weeks, its end to re-balance the course to finish by that day, ◆ to move the deadline; the
   end and ◆ also move with the arrow keys and Enter. Or pick a course and change it on the panel beside the chart,
   which shows its dates, deadline and spare days now and in the draft; `More options…` opens Reschedule for it.
@@ -174,7 +177,7 @@ a Husky `commit-msg` hook checks them with commitlint.
   course was, moved sessions ringed, the days it moves by), and the bar at the bottom counts the courses and
   sessions it changes and the rules it breaks. `Review` lists every session old → new, `Discard` drops the draft and
   `Apply` stores it in one go, each change a history step, with Undo for all of them. A re-balance is worked out on
-  the server while the course says so; Apply waits for it.
+  the server while the course says so; Apply waits for it. Leaving for another section with a draft asks first.
 - **Controls**: the toolbar keeps the view switch, the week navigation (the title opens a date picker), search,
   undo/redo and `＋ Event`; History, Trash, Reschedule, Calendars and Shortcuts live in the `⋮` menu, which
   on a phone also holds search, undo/redo and the view toggles.

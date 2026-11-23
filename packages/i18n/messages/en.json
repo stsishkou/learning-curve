@@ -849,6 +849,8 @@
   "timeline_changed": "changed",
   "timeline_days": "Days on the timeline",
   "timeline_page_hint": "Every course on its lane. Drag a course, its end or its ◆ deadline, or pick a course and change it on the panel. Changes gather in a draft and are saved only when you press Apply.",
+  "timeline_how": "How it works",
+  "timeline_expand_hint": "The timeline across the whole window: no header or hint",
   "timeline_course": "Course",
   "timeline_pick": "Pick a course on the timeline: its dates, deadline and spare days show here, with ways to change them.",
   "timeline_now": "Now",

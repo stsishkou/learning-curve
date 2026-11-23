@@ -849,6 +849,8 @@
   "timeline_changed": "cambiado",
   "timeline_days": "Días de la escala",
   "timeline_page_hint": "Cada curso en su carril. Arrastra un curso, su final o su ◆ fecha límite, o elige un curso y cámbialo en el panel. Los cambios se reúnen en un borrador y solo se guardan al pulsar Aplicar.",
+  "timeline_how": "Cómo funciona",
+  "timeline_expand_hint": "La escala en toda la ventana: sin encabezado ni ayuda",
   "timeline_course": "Curso",
   "timeline_pick": "Elige un curso en el cronograma: aquí aparecen sus fechas, su fecha límite y su margen, con formas de cambiarlos.",
   "timeline_now": "Ahora",

@@ -8,11 +8,7 @@ import {
   Clock,
   Hint,
   Kbd,
-  Maximize,
-  Maximize2,
   Menu,
-  Minimize,
-  Minimize2,
   Plus,
   Redo2,
   Search,
@@ -25,6 +21,7 @@ import {
 } from '@lc/ui'
 import { useRef, type ReactNode } from 'react'
 
+import { ScreenButtons } from '../../../shared/ui'
 import type { PlannerViewState } from '../model/use-planner-view'
 
 interface Props {
@@ -216,29 +213,12 @@ export function PlannerToolbar({
                 <Clock size={15} aria-hidden /> {m.full_day()}
               </Button>
             )}
-            {/* In full screen the calendar is always laid out across it: there is nothing to expand. */}
-            {!fullscreen?.on && (
-              <Button
-                className={`flex items-center gap-1.5 ${PRESSED}`}
-                aria-pressed={nav.expanded}
-                title={m.expand_hint()}
-                onClick={nav.toggleExpanded}
-              >
-                {nav.expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
-                {nav.expanded ? m.collapse() : m.expand()}
-              </Button>
-            )}
-            {fullscreen && (
-              <Button
-                className={`flex items-center gap-1.5 ${PRESSED}`}
-                aria-pressed={fullscreen.on}
-                title={m.fullscreen_hint()}
-                onClick={fullscreen.toggle}
-              >
-                {fullscreen.on ? <Minimize size={15} aria-hidden /> : <Maximize size={15} aria-hidden />}
-                {fullscreen.on ? m.fullscreen_exit() : m.fullscreen()}
-              </Button>
-            )}
+            <ScreenButtons
+              expanded={nav.expanded}
+              expandHint={m.expand_hint()}
+              onToggleExpanded={nav.toggleExpanded}
+              fullscreen={fullscreen}
+            />
           </div>
         </div>
       </div>

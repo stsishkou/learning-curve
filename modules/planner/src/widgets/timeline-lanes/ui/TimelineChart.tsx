@@ -1,7 +1,7 @@
 import { m } from '@lc/i18n/messages'
 import { DAY, type CalendarLane, type LaneChange } from '@lc/plan-domain'
 import { Button, Segmented } from '@lc/ui'
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { scaleOf, ticksOf } from '../lib/scale'
 import { daysInView, wheelSideways } from '../lib/scroll'
@@ -34,6 +34,10 @@ interface Props {
   working?: ReadonlySet<string> | undefined
   /** Without it the lanes only show */
   edit?: LaneEditing | undefined
+  /** Pixels the chart fills: its lanes then scroll up and down inside it. Without it the chart is as tall as its lanes */
+  height?: number | undefined
+  /** Controls the host owns, at the end of the chart's own bar */
+  tools?: ReactNode
 }
 
 const NO_CHANGES: ReadonlyMap<string, LaneChange> = new Map()
@@ -57,6 +61,8 @@ export function TimelineChart({
   selected = null,
   working = NONE,
   edit,
+  height,
+  tools,
 }: Props) {
   const id = useId()
   const [zoom, setZoom] = useZoom()
@@ -140,7 +146,8 @@ export function TimelineChart({
     // Its own stack: the sticky names stay over the days, never over a page header that stays at the top.
     <section
       aria-label={m.timeline()}
-      className="isolate min-w-0 rounded-2xl border border-line bg-surface print:hidden"
+      className={`isolate min-w-0 rounded-2xl border border-line bg-surface print:hidden ${height === undefined ? '' : 'flex flex-col'}`}
+      style={height === undefined ? undefined : { height }}
     >
       <div className="flex flex-wrap items-center gap-2 px-3.5 pt-3 pb-2.5 text-[13px] md:px-5">
         <Segmented label={m.timeline_zoom()} value={zoom} options={zooms} onChange={chooseZoom} />
@@ -149,17 +156,20 @@ export function TimelineChart({
             {m.go_today()}
           </Button>
         )}
-        {changes.size > 0 && (
-          <label className="ml-auto flex cursor-pointer items-center gap-2 font-medium">
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--focus)]"
-              checked={showBefore}
-              onChange={(e) => setShowBefore(e.target.checked)}
-            />
-            {m.timeline_show_before()}
-          </label>
-        )}
+        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2">
+          {changes.size > 0 && (
+            <label className="flex cursor-pointer items-center gap-2 font-medium">
+              <input
+                type="checkbox"
+                className="size-4 accent-[var(--focus)]"
+                checked={showBefore}
+                onChange={(e) => setShowBefore(e.target.checked)}
+              />
+              {m.timeline_show_before()}
+            </label>
+          )}
+          {tools}
+        </div>
       </div>
       {/* Focusable, so the days can be scrolled by keys even when nothing in them can be pressed. */}
       <div
@@ -169,14 +179,15 @@ export function TimelineChart({
         aria-label={m.timeline_days()}
         // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scroller has to take focus to be scrolled
         tabIndex={0}
-        className={`overflow-x-auto overscroll-x-contain border-t border-line-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus ${zoom === 'fit' ? '' : '[&_[data-axis]]:cursor-grab [&_[data-track]]:cursor-grab'} ${pan.panning ? 'select-none [&_*]:cursor-grabbing!' : ''}`}
+        className={`overflow-x-auto overscroll-x-contain border-t ${height === undefined ? '' : 'min-h-0 flex-1'} border-line-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus ${zoom === 'fit' ? '' : '[&_[data-axis]]:cursor-grab [&_[data-track]]:cursor-grab'} ${pan.panning ? 'select-none [&_*]:cursor-grabbing!' : ''}`}
         onPointerDown={pan.onPointerDown}
       >
         <div
           className="grid grid-cols-[var(--names)_var(--track)] [--names:136px] md:[--names:240px]"
           style={{ '--track': track }}
         >
-          <div className="sticky left-0 z-20 border-b border-line bg-surface" />
+          {/* Over the names and the days alike while the lanes scroll under them. */}
+          <div className="sticky top-0 left-0 z-30 border-b border-line bg-surface" />
           <TimelineAxis ref={axis} scale={scale} ticks={ticks} now={now} pxPerDay={pxPerDay} />
           {lanes.map((lane) => (
             <LaneRow
