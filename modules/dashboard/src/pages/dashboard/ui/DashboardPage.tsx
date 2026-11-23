@@ -1,7 +1,7 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
-import { HelpToggle, IconsToggle, PageHeader, ScreenButtons, useFullscreen, useShortcuts } from '@lc/ui'
+import { HelpToggle, IconsToggle, PageHeader, ScreenButtons, stickyTop, useFullscreen, useShortcuts } from '@lc/ui'
 import { useMemo, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
@@ -23,6 +23,10 @@ interface Props {
   /** Present when the host keeps `expanded`: the page then offers Expand */
   onExpandedChange?: ((expanded: boolean) => void) | undefined
 }
+
+// The negative margins take the bar to the edges of the page padding, as the page header does.
+const PINNED =
+  'sticky top-0 z-20 -mx-3 -mt-3 border-b border-line-soft bg-bg/90 px-3 py-2.5 backdrop-blur-md md:-mx-5 md:px-5'
 
 /** Each week with its hours and the running totals up to it. */
 function tableRows(weeks: WeekStats[]) {
@@ -68,8 +72,12 @@ export function DashboardPage({ plan, headerAside, now: fixed, expanded = false,
           <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
         </PageHeader>
       )}
-      {/* Out of the header, so the plan stays named while the header is hidden. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {/* Out of the header, so the plan stays named while the header is hidden; it then takes the header's place at
+          the top. */}
+      <div
+        ref={wide ? stickyTop : undefined}
+        className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${wide ? PINNED : ''}`}
+      >
         <p className="min-w-0 flex-1 basis-[240px] text-[14px] text-muted">
           {plan.meta.title} · {m.dash_until({ date: fmtDay(parseLocal(plan.meta.planEnd)) })}
         </p>

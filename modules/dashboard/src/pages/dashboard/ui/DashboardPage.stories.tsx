@@ -72,6 +72,19 @@ export const ExpandSpreadsTheCharts: Story = {
   },
 }
 
+/** Expanded, the bar with the plan's name and Collapse stays at the top while the charts scroll under it. */
+export const ExpandedKeepsItsBar: Story = {
+  args: { expanded: true },
+  play: async ({ canvasElement }) => {
+    const collapse = within(canvasElement).getByRole('button', { name: m.collapse() })
+    window.scrollTo(0, document.documentElement.scrollHeight)
+    await waitFor(() => expect(window.scrollY).toBeGreaterThan(200))
+    await expect(collapse.getBoundingClientRect().top).toBeGreaterThanOrEqual(0)
+    await expect(collapse.getBoundingClientRect().bottom).toBeLessThan(80)
+    window.scrollTo(0, 0)
+  },
+}
+
 /** Full screen lays the page out as Expand does, across the whole screen; leaving it brings the page back. */
 export const FullScreen: Story = {
   beforeEach: withScreen,
