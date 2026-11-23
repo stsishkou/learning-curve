@@ -216,6 +216,12 @@ const change = (type: string, description: string, properties: Schema, required:
   properties: { type: { const: type }, ...properties },
 })
 
+/** The change needs at least one of `keys`. */
+const withOneOf = (keys: string[], schema: Schema): Schema => ({
+  ...schema,
+  anyOf: keys.map((key) => ({ required: [key] })),
+})
+
 const CHANGES: Schema[] = [
   change(
     'course.add',
@@ -320,23 +326,38 @@ const CHANGES: Schema[] = [
           properties: { uid: UID, start: LOCAL_TIME, end: LOCAL_TIME },
         },
       },
+      reason: {
+        enum: ['rebalance'],
+        description: 'Only when the moves are the re-balance of one calendar, given with that `calendar`.',
+      },
+      calendar: { type: 'string', description: 'The `id` of the calendar that was re-balanced.' },
     },
     ['moves'],
   ),
-  change(
-    'events.shift',
-    'Moves every session that is not done and starts on `from` or later by a whole number of days, in one calendar or in all: the way to make room after time off. It does not skip weekends or holidays: check where the sessions land.',
-    {
-      from: DAY,
-      days: {
-        type: 'integer',
-        minimum: -366,
-        maximum: 366,
-        description: 'Days to move by; negative moves earlier. Not 0.',
+  withOneOf(
+    ['days', 'hours'],
+    change(
+      'events.shift',
+      'Moves every session that is not done and starts on `from` or later by whole days, by whole or half hours, or both, in one calendar or in all: the way to make room after time off, or to study later in the day. It does not skip weekends or holidays: check where the sessions land. A session that would cross midnight stops the change.',
+      {
+        from: DAY,
+        days: {
+          type: 'integer',
+          minimum: -366,
+          maximum: 366,
+          description: 'Days to move by; negative moves earlier.',
+        },
+        hours: {
+          type: 'number',
+          multipleOf: 0.5,
+          minimum: -23.5,
+          maximum: 23.5,
+          description: 'Hours to move by, whole or half; negative moves earlier. Give `days`, `hours` or both, not 0.',
+        },
+        calendar: { type: 'string', description: 'The `id` of the only calendar to shift. Leave out to shift all.' },
       },
-      calendar: { type: 'string', description: 'The `id` of the only calendar to shift. Leave out to shift all.' },
-    },
-    ['from', 'days'],
+      ['from'],
+    ),
   ),
   change(
     'events.done',

@@ -1,7 +1,9 @@
+import { fmtHours } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
 import type { HistoryView } from '@lc/plan-domain'
 import { fixtureNow } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, waitFor, within } from 'storybook/test'
 
 import { HistoryDialog } from './HistoryDialog'
 
@@ -42,3 +44,40 @@ type Story = StoryObj<typeof meta>
 export const OneStepBack: Story = {}
 
 export const Empty: Story = { args: { history: { cursor: 0, steps: [] } } }
+
+/**
+ * A shift by a day and back an hour, a shift of every calendar by half an hour, and a re-balance: each says how far
+ * and which calendar.
+ */
+export const ShiftsAndRebalance: Story = {
+  args: {
+    history: {
+      cursor: 3,
+      steps: [
+        {
+          at: '2026-12-03T08:00:00Z',
+          subject: 'Gemini Certs',
+          change: { type: 'events.shift', calendar: 'certs', from: '2026-12-03', days: 1, hours: -1 },
+        },
+        { at: '2026-12-03T08:10:00Z', subject: '', change: { type: 'events.shift', from: '2026-12-03', hours: 0.5 } },
+        {
+          at: '2026-12-03T08:20:00Z',
+          subject: 'Gemini Certs',
+          change: {
+            type: 'events.move',
+            moves: [{ uid: 'a', start: '2026-12-04T13:00', end: '2026-12-04T14:00' }],
+            reason: 'rebalance',
+            calendar: 'certs',
+          },
+        },
+      ],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const amount = `+${m.duration_d({ count: 1 })} −${fmtHours(1)}`
+    await waitFor(() => expect(body.getByText(m.history_shifted({ amount, name: 'Gemini Certs' }))).toBeVisible())
+    await expect(body.getByText(m.history_shifted({ amount: `+${fmtHours(0.5)}`, name: m.shift_all() }))).toBeVisible()
+    await expect(body.getByText(m.history_rebalanced({ name: 'Gemini Certs' }))).toBeVisible()
+  },
+}

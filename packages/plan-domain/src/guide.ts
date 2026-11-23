@@ -192,7 +192,7 @@ The changes you can use:
 | \`event.split\` | Splits the session \`uid\` into \`parts\` (\`start\`, \`end\`) that add up to its length; the first part keeps the uid |
 | \`event.remove\` | Moves the event \`uid\` to the trash (restorable for 30 days) |
 | \`events.move\` | New \`start\` and \`end\` for several sessions (\`moves\`), as one step |
-| \`events.shift\` | Moves every not-done session from the day \`from\` on by \`days\`, in one \`calendar\` or in all |
+| \`events.shift\` | Moves every not-done session from the day \`from\` on by \`days\`, \`hours\` or both, in one \`calendar\` or in all |
 | \`events.done\` | Marks the sessions \`uids\` done or not done |
 | \`calendar.save\` | Renames or recolors the calendar \`id\` |
 | \`plan.rename\` | Gives the plan another \`title\` |
@@ -238,6 +238,8 @@ ${code(habit)}
   They must add up to its length. A lab stays one block.
 - **Time off or a late start**: \`events.shift\` from the first affected day, then check that nothing landed on a
   holiday or a weekend and fix those with \`events.move\`.
+- **Studying at another time of day**: \`events.shift\` with \`hours\` (whole or half, negative for earlier). A session
+  that would cross midnight stops the change: shift fewer sessions or move that one with \`events.move\`.
 - **A course is dropped**: \`event.remove\` for each session that is not done. Removing a calendar is left to the
   person.
 - **Renaming**: \`event.patch\` with \`title\`, keeping the naming pattern.

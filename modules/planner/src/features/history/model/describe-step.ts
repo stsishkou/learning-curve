@@ -1,5 +1,16 @@
+import { fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import type { HistoryStep } from '@lc/plan-domain'
+
+const sign = (n: number) => (n < 0 ? '−' : '+')
+
+/** `+1 d 2 h`, `−1 h`: the hours carry a sign of their own only when they go the other way. */
+function shiftAmount(days = 0, hours = 0): string {
+  const parts: string[] = []
+  if (days) parts.push(`${sign(days)}${m.duration_d({ count: Math.abs(days) })}`)
+  if (hours) parts.push(`${days && sign(days) === sign(hours) ? '' : sign(hours)}${fmtHours(Math.abs(hours))}`)
+  return parts.join(' ')
+}
 
 /** One line that says what a step of the history did. */
 export function describeStep({ change, subject }: HistoryStep): string {
@@ -18,16 +29,15 @@ export function describeStep({ change, subject }: HistoryStep): string {
     case 'trash.empty':
       return m.history_trash_emptied()
     case 'events.shift':
-      return m.history_shifted({
-        days: change.days > 0 ? `+${change.days}` : change.days,
-        name: subject || m.shift_all(),
-      })
+      return m.history_shifted({ amount: shiftAmount(change.days, change.hours), name: subject || m.shift_all() })
     case 'event.detach':
       return m.history_moved({ name: subject })
     case 'event.split':
       return m.history_split({ name: subject, count: change.parts.length })
     case 'events.move':
-      return m.history_replanned({ count: change.moves.length })
+      return change.reason === 'rebalance'
+        ? m.history_rebalanced({ name: subject })
+        : m.history_replanned({ count: change.moves.length })
     case 'events.done':
       if (subject && change.uids.length === 1) {
         return change.done ? m.history_done({ name: subject }) : m.history_not_done({ name: subject })

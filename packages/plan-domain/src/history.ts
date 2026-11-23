@@ -71,12 +71,12 @@ function subjectOf(plan: Plan, change: PlanChange): string {
     case 'calendar.clear':
       return plan.calendars.find((c) => c.id === change.id)?.name ?? ''
     case 'events.shift':
+    case 'events.move':
       return change.calendar ? (plan.calendars.find((c) => c.id === change.calendar)?.name ?? '') : ''
     case 'events.done': {
       const [only, ...others] = change.uids
       return only && !others.length ? (plan.events.find((e) => e.uid === only)?.title ?? '') : ''
     }
-    case 'events.move':
     case 'trash.restore':
     case 'trash.empty':
       return ''

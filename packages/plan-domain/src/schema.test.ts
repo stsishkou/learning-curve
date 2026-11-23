@@ -82,6 +82,9 @@ test('what the schema refuses the parser refuses too', () => {
       ],
     },
     { changes: [] },
+    { changes: [{ type: 'events.shift', from: '2026-11-25', hours: 0.25 }] },
+    { changes: [{ type: 'events.shift', from: '2026-11-25' }] },
+    { changes: [{ type: 'events.move', moves: [], reason: 'tidy' }] },
   ]
   for (const update of bad) {
     expect(validUpdate(update), JSON.stringify(update)).toBe(false)

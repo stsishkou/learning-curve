@@ -1,10 +1,13 @@
+import { Ajv2020 } from 'ajv/dist/2020.js'
 import { describe, expect, test } from 'vitest'
 
 import { applyChange, parseChange, splitInHalves, type NewEvent, type PlanChange } from './changes'
+import { parseLocal } from './dates'
 import { applyEdits, emptyEdits, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
+import { emptyHistory, recordChange } from './history'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
-import { UPDATE_CHANGE_TYPES } from './schema'
+import { UPDATE_CHANGE_TYPES, UPDATE_SCHEMA } from './schema'
 import { TRASH_DAYS, trashOf } from './trash'
 import type { Plan, PlanEvent } from './types'
 import { parseUpdate, previewUpdate } from './update'
@@ -32,6 +35,15 @@ const session = (overrides: Partial<NewEvent> = {}): NewEvent => ({
 })
 /** A session of a new course: its calendar is the course */
 const { calendar: _calendar, ...courseSession } = session()
+
+const length = (event: PlanEvent | undefined) => (event ? parseLocal(event.end) - parseLocal(event.start) : 0)
+const shift = (by: { days?: number; hours?: number }): PlanChange => ({
+  type: 'events.shift',
+  calendar: 'certs',
+  from: '2026-11-23',
+  ...by,
+})
+const parseShift = (by: object) => () => parseChange({ type: 'events.shift', from: '2026-11-23', ...by })
 
 /**
  * One example of every kind of change. The type makes a new kind fail to compile here until it has an example, so
@@ -61,8 +73,13 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   'calendar.clear': { type: 'calendar.clear', id: 'journey' },
   'trash.restore': { type: 'trash.restore' },
   'trash.empty': { type: 'trash.empty' },
-  'events.shift': { type: 'events.shift', calendar: 'certs', from: '2026-11-23', days: 1 },
-  'events.move': { type: 'events.move', moves: [{ uid: SESSION, start: '2026-11-23T19:00', end: '2026-11-23T20:00' }] },
+  'events.shift': { type: 'events.shift', calendar: 'certs', from: '2026-11-23', days: 1, hours: 0.5 },
+  'events.move': {
+    type: 'events.move',
+    moves: [{ uid: SESSION, start: '2026-11-23T19:00', end: '2026-11-23T20:00' }],
+    reason: 'rebalance',
+    calendar: 'certs',
+  },
   'events.done': { type: 'events.done', uids: [SESSION], done: true },
   'plan.rename': { type: 'plan.rename', title: 'Another plan' },
   'reviews.plan': { type: 'reviews.plan', reviews: [session({ title: 'Review' })] },
@@ -78,6 +95,11 @@ describe('every kind of change', () => {
 
   test.each(Object.values(EXAMPLES))('$type applies to the generated plan', (change) => {
     expect(() => apply([change])).not.toThrow()
+  })
+
+  const validUpdate = new Ajv2020({ strict: false }).compile(UPDATE_SCHEMA)
+  test.each(UPDATE_CHANGE_TYPES)('%s with all its fields fits the update schema', (type) => {
+    expect(validUpdate({ changes: [EXAMPLES[type]] }), JSON.stringify(validUpdate.errors)).toBe(true)
   })
 
   test.each(UPDATE_CHANGE_TYPES)('%s goes from an update through the preview without a problem', (type) => {
@@ -194,8 +216,36 @@ describe('several sessions', () => {
     const done = apply([{ type: 'events.done', uids: [SESSION], done: true }])
     const plan = planOf(apply([EXAMPLES['events.shift']], done))
     expect(find(plan, SESSION)?.start).toBe(itemAt(base.events).start)
-    expect(find(plan, NEXT)?.start).toBe('2026-11-24T13:00')
+    expect(find(plan, NEXT)?.start).toBe('2026-11-24T13:30')
     expect(find(plan, GYM)?.start).toBe(find(base, GYM)?.start)
+  })
+
+  test('events.shift by hours moves the start and keeps the length', () => {
+    const plan = planOf(apply([shift({ hours: 1 })]))
+    expect(find(base, SESSION)?.start).toBe('2026-11-23T12:00')
+    expect(find(plan, SESSION)?.start).toBe('2026-11-23T13:00')
+    expect(length(find(plan, SESSION))).toBe(length(find(base, SESSION)))
+  })
+
+  test('events.shift combines days and hours', () => {
+    expect(find(planOf(apply([shift({ days: 1, hours: -1 })])), SESSION)?.start).toBe('2026-11-24T11:00')
+  })
+
+  test('events.shift takes whole or half hours and something to shift by', () => {
+    expect(parseShift({ hours: 0.25 })).toThrow(/hours must be whole or half/)
+    expect(parseShift({ hours: 24 })).toThrow(/hours must be whole or half/)
+    expect(parseShift({})).toThrow(/days or hours/)
+    expect(parseShift({ days: 0, hours: 0 })).toThrow(/days or hours/)
+    expect(parseShift({ hours: -1.5 })()).toEqual({ type: 'events.shift', from: '2026-11-23', hours: -1.5 })
+  })
+
+  test('events.shift refuses a session that would cross midnight and moves nothing', () => {
+    const late = apply([
+      { type: 'event.patch', uid: NEXT, patch: { start: '2026-11-23T22:30', end: '2026-11-23T23:30' } },
+    ])
+    const title = find(base, NEXT)?.title ?? ''
+    expect(() => apply([shift({ hours: 1 })], late)).toThrow(`"${title}" would cross midnight`)
+    expect(() => apply([shift({ hours: -13 })])).toThrow(/would cross midnight/)
   })
 
   test('events.shift refuses when nothing would move', () => {
@@ -205,6 +255,17 @@ describe('several sessions', () => {
   test('events.move moves all as one step and marks them paced when asked', () => {
     const plan = planOf(apply([{ ...EXAMPLES['events.move'], paced: true }]))
     expect(find(plan, SESSION)).toMatchObject({ start: '2026-11-23T19:00', paced: true })
+  })
+
+  test('a re-balance is one step of the history, named after its calendar', () => {
+    const change = EXAMPLES['events.move']
+    const history = recordChange(emptyHistory(), base, change, apply([change]))
+    expect(history.steps).toHaveLength(1)
+    expect(history.steps[0]?.subject).toBe(base.calendars.find((c) => c.id === 'certs')?.name)
+  })
+
+  test('events.move refuses an unknown reason', () => {
+    expect(() => parseChange({ ...EXAMPLES['events.move'], reason: 'tidy' })).toThrow(/reason/)
   })
 
   test('events.done marks the sessions it knows and skips the rest', () => {

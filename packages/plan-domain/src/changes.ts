@@ -1,4 +1,4 @@
-import { DAY, HOUR, parseLocal, toLocalString, weekday } from './dates'
+import { DAY, HOUR, parseLocal, startOfDay, toLocalString, weekday } from './dates'
 import {
   HEX_COLOR,
   LOCAL_TIME,
@@ -66,12 +66,24 @@ export type PlanChange =
   /** Removes everything in the trash for good */
   | { type: 'trash.empty' }
   /**
-   * Moves every session that is not done and starts on `from` (`YYYY-MM-DD`) or later by a number of days,
-   * in one calendar or in all of them: the way to catch up after time off
+   * Moves every session that is not done and starts on `from` (`YYYY-MM-DD`) or later by days, hours or both, in one
+   * calendar or in all of them: the way to catch up after time off, or to study later in the day
    */
-  | { type: 'events.shift'; calendar?: string | undefined; from: string; days: number }
-  /** Puts several sessions into new slots as one step: a catch-up scenario */
-  | { type: 'events.move'; moves: SessionMove[]; paced?: boolean | undefined }
+  | {
+      type: 'events.shift'
+      calendar?: string | undefined
+      from: string
+      days?: number | undefined
+      hours?: number | undefined
+    }
+  /** Puts several sessions into new slots as one step: a catch-up scenario, or the re-balance of `calendar` */
+  | {
+      type: 'events.move'
+      moves: SessionMove[]
+      paced?: boolean | undefined
+      reason?: 'rebalance' | undefined
+      calendar?: string | undefined
+    }
   /** Marks several sessions done or not done as one step */
   | { type: 'events.done'; uids: string[]; done: boolean }
   /** Gives the plan another name: the heading of the viewer and the names of the files it downloads */
@@ -221,22 +233,33 @@ export function parseChange(input: unknown): PlanChange {
     case 'trash.empty':
       return { type: 'trash.empty' }
     case 'events.shift': {
-      const { days, calendar } = input
-      if (typeof days !== 'number' || !Number.isInteger(days) || days === 0 || Math.abs(days) > 366) {
-        return fail('days must be a whole number of days, not zero')
+      const amount = (key: 'days' | 'hours', valid: (n: number) => boolean, message: string): number | undefined => {
+        const value = input[key]
+        if (value === undefined || value === 0) return undefined
+        return typeof value === 'number' && valid(value) ? value : fail(message)
       }
+      const days = amount('days', (n) => Number.isInteger(n) && Math.abs(n) <= 366, 'days must be a whole number')
+      const hours = amount(
+        'hours',
+        (n) => Number.isInteger(n * 2) && Math.abs(n) <= 23.5,
+        'hours must be whole or half, less than a day',
+      )
+      if (days === undefined && hours === undefined) return fail('Give days or hours to shift by, not zero')
       const from = text('from')
       if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) return fail('from must look like 2026-11-23')
+      const { calendar } = input
       return {
         type: 'events.shift',
         calendar: typeof calendar === 'string' && calendar ? calendar : undefined,
         from,
         days,
+        hours,
       }
     }
     case 'events.move': {
-      const { moves } = input
+      const { moves, reason, calendar } = input
       if (!Array.isArray(moves) || !moves.length) return fail('moves must be a list of sessions and their slots')
+      if (reason !== undefined && reason !== 'rebalance') return fail('reason can only be "rebalance"')
       return {
         type: 'events.move',
         moves: moves.map((move: unknown) => {
@@ -253,6 +276,8 @@ export function parseChange(input: unknown): PlanChange {
           return { uid, start, end }
         }),
         paced: input.paced === true ? true : undefined,
+        reason: reason === 'rebalance' ? 'rebalance' : undefined,
+        calendar: typeof calendar === 'string' && calendar ? calendar : undefined,
       }
     }
     case 'events.done': {
@@ -445,15 +470,25 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       if (change.calendar && !calendarExists(change.calendar)) fail(`Unknown calendar "${change.calendar}"`)
       const moved = shiftTargets(applyEdits(base, next).plan, change)
       if (!moved.length) fail('No sessions to move')
-      return moved.reduce((sofar, event) => {
-        const patch = {
-          start: toLocalString(parseLocal(event.start) + change.days * DAY),
-          end: toLocalString(parseLocal(event.end) + change.days * DAY),
+      const days = change.days ?? 0
+      const by = days * DAY + (change.hours ?? 0) * HOUR
+      // Every session is checked before any moves, so a refused shift changes nothing.
+      const patches = moved.map((event) => {
+        const start = parseLocal(event.start) + by
+        const end = parseLocal(event.end) + by
+        const day = startOfDay(parseLocal(event.start)) + days * DAY
+        if (change.hours && (startOfDay(start) !== day || end > day + DAY)) {
+          fail(`"${event.title}" would cross midnight`)
         }
-        return applyChange(base, sofar, { type: 'event.patch', uid: event.uid, patch }, now)
-      }, next)
+        return { uid: event.uid, patch: { start: toLocalString(start), end: toLocalString(end) } }
+      })
+      return patches.reduce(
+        (sofar, { uid, patch }) => applyChange(base, sofar, { type: 'event.patch', uid, patch }, now),
+        next,
+      )
     }
     case 'events.move':
+      if (change.calendar && !calendarExists(change.calendar)) fail(`Unknown calendar "${change.calendar}"`)
       return change.moves.reduce(
         (sofar, { uid, start, end }) =>
           applyChange(
