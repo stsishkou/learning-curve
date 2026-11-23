@@ -252,8 +252,9 @@ export function PlannerPage({
             onRename={canEdit ? (title) => quiet.change({ type: 'plan.rename', title }) : undefined}
             aside={headerAside}
           >
-            <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
-            <Hint title={m.help_file_title()} text={m.help_file()} className="self-center max-md:flex-none!" />
+            {/* On a phone the two plan buttons fill the row: the switch is in the menu there. */}
+            <HelpToggle label={m.help_toggle()} className="max-md:hidden" />
+            <Hint title={m.help_file_title()} text={m.help_file()} className="self-center max-md:hidden" />
             <OpenPlanFile
               shown={{ name: session.file?.name ?? planFileName(plan), plan, origin: session.file?.origin }}
               project={state.plan}
