@@ -5,6 +5,7 @@ import { EyeOff, Hint, Menu } from '@lc/ui'
 import { useId, useMemo } from 'react'
 
 import { scaleOf } from '../lib/scale'
+import type { LaneEditing } from '../model/editing'
 import type { TimelinePosition } from '../model/use-timeline-position'
 import { LaneRow } from './LaneRow'
 
@@ -16,6 +17,8 @@ interface Props {
   now: number | null
   position: Exclude<TimelinePosition, 'hidden'>
   onPosition: (next: TimelinePosition) => void
+  /** Without it the lanes only show */
+  edit?: LaneEditing | undefined
 }
 
 // The labels at the ends of the axis step aside for today's own label.
@@ -25,7 +28,7 @@ const NEAR_EDGE = 18
  * A thin lane per calendar with sessions ahead: its span from the first to the last session, each session, the spare
  * or late days around its deadline, and one today line. Nothing when no calendar has anything ahead.
  */
-export function TimelineLanes({ plan, hidden, now, position, onPosition }: Props) {
+export function TimelineLanes({ plan, hidden, now, position, onPosition, edit }: Props) {
   const id = useId()
   const lanes = useMemo(() => calendarLanes(plan, now, hidden), [plan, now, hidden])
   const range = lanesRange(lanes, now)
@@ -70,7 +73,15 @@ export function TimelineLanes({ plan, hidden, now, position, onPosition }: Props
       </div>
       <div className="grid grid-cols-1 gap-y-1 md:grid-cols-[140px_minmax(0,1fr)] md:gap-x-4">
         {lanes.map((lane, i) => (
-          <LaneRow key={lane.calendar.id} lane={lane} scale={scale} now={now} first={i === 0} />
+          <LaneRow
+            key={lane.calendar.id}
+            lane={lane}
+            scale={scale}
+            now={now}
+            first={i === 0}
+            edit={edit}
+            keysHint={`${id}-keys`}
+          />
         ))}
         <div className="relative h-4 text-[11.5px] text-muted md:col-start-2">
           <span className={`absolute left-0 ${today !== null && today < NEAR_EDGE ? 'invisible' : ''}`}>
@@ -89,6 +100,9 @@ export function TimelineLanes({ plan, hidden, now, position, onPosition }: Props
           )}
         </div>
       </div>
+      <p id={`${id}-keys`} hidden>
+        {m.timeline_keys()}
+      </p>
     </section>
   )
 }

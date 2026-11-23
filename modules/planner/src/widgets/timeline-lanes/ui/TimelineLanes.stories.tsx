@@ -1,8 +1,9 @@
+import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { isSession, parseLocal, type Plan } from '@lc/plan-domain'
+import { calendarLanes, DAY, isSession, lanesRange, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
 
 import { TimelineLanes } from './TimelineLanes'
 
@@ -97,5 +98,101 @@ export const NoLanes: Story = {
   args: { hidden: new Set(fixturePlan.calendars.map((c) => c.id)) },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('section')).toBeNull()
+  },
+}
+
+const editing = () => ({ onOpen: fn(), onMove: fn(), onFinish: fn(), onDeadline: fn() })
+const drawn = lanesRange(calendarLanes(fixturePlan, fixtureNow, NONE), fixtureNow)
+const RANGE_DAYS = drawn ? (drawn.end - drawn.start) / DAY : 1
+const LLM = /Hugging Face: LLM Course/
+const MOUSE = { pointerId: 1, pointerType: 'mouse', button: 0 }
+
+/** Presses a lane in its middle and moves the pointer sideways by `weeks` of the track. */
+async function pressAndMove(lane: HTMLElement, weeks: number) {
+  const box = lane.getBoundingClientRect()
+  const track = (lane.parentElement ?? lane).getBoundingClientRect()
+  const at = { clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 }
+  const week = (track.width / RANGE_DAYS) * 7
+  await fireEvent.pointerDown(lane, { ...MOUSE, ...at })
+  await fireEvent.pointerMove(lane, { ...MOUSE, ...at, clientX: at.clientX + (week * weeks) / 2 })
+  await fireEvent.pointerMove(lane, { ...MOUSE, ...at, clientX: at.clientX + week * weeks })
+  return { ...MOUSE, ...at, clientX: at.clientX + week * weeks }
+}
+
+/** A click on a lane opens Reschedule for that calendar; nothing moves. */
+export const OpenFromALane: Story = {
+  args: { edit: editing() },
+  play: async ({ args, canvasElement }) => {
+    await userEvent.click(within(strip(canvasElement)).getByRole('button', { name: LLM }))
+    await expect(args.edit?.onOpen).toHaveBeenCalledWith('hfllm')
+    await expect(args.edit?.onMove).not.toHaveBeenCalled()
+  },
+}
+
+/** A lane dragged a week and a bit moves its open sessions by one week; the click after the drop opens nothing. */
+export const DragALaneByAWeek: Story = {
+  args: { edit: editing() },
+  play: async ({ args, canvasElement }) => {
+    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const end = await pressAndMove(lane, 1.2)
+    await fireEvent.pointerUp(lane, end)
+    await fireEvent.click(lane)
+    await expect(args.edit?.onMove).toHaveBeenCalledWith('hfllm', 7)
+    await expect(args.edit?.onOpen).not.toHaveBeenCalled()
+  },
+}
+
+/** Escape during a drag puts the lane back: nothing moves and nothing opens. */
+export const EscapeCancelsADrag: Story = {
+  args: { edit: editing() },
+  play: async ({ args, canvasElement }) => {
+    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const end = await pressAndMove(lane, 1.2)
+    await fireEvent.keyDown(lane, { key: 'Escape' })
+    await fireEvent.pointerUp(lane, end)
+    await fireEvent.click(lane)
+    await expect(args.edit?.onMove).not.toHaveBeenCalled()
+    await expect(args.edit?.onOpen).not.toHaveBeenCalled()
+  },
+}
+
+/** The deadline moves by keys: two days later and Enter stores it; Escape puts back a day that was not stored. */
+export const DeadlineByKeys: Story = {
+  args: { edit: editing() },
+  play: async ({ args, canvasElement }) => {
+    const deadline = within(strip(canvasElement)).getByRole('slider', {
+      name: m.timeline_deadline({ name: 'Gemini Certs' }),
+    })
+    await expect(deadline).toHaveAccessibleDescription(m.timeline_keys())
+    deadline.focus()
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{Enter}')
+    await expect(args.edit?.onDeadline).toHaveBeenCalledWith('certs', '2027-01-01')
+    await userEvent.keyboard('{ArrowRight}')
+    await expect(deadline).toHaveAttribute('aria-valuetext', fmtDay(parseLocal('2026-12-31')))
+    await userEvent.keyboard('{Escape}')
+    await expect(deadline).toHaveAttribute('aria-valuetext', fmtDay(parseLocal('2026-12-30')))
+    await expect(args.edit?.onDeadline).toHaveBeenCalledTimes(1)
+  },
+}
+
+/** The end of a course a week earlier by keys asks to re-balance it to finish by that day. */
+export const FinishByKeys: Story = {
+  args: { edit: editing() },
+  play: async ({ args, canvasElement }) => {
+    const finish = within(strip(canvasElement)).getByRole('slider', {
+      name: m.timeline_finish({ name: 'Hugging Face: LLM Course' }),
+    })
+    finish.focus()
+    await userEvent.keyboard('{PageDown}{Enter}')
+    await expect(args.edit?.onFinish).toHaveBeenCalledWith('hfllm', '2027-02-15')
+  },
+}
+
+/** Without editing the lanes are a picture: nothing to press or drag. */
+export const ReadOnly: Story = {
+  play: async ({ canvasElement }) => {
+    const region = within(strip(canvasElement))
+    await expect(region.queryAllByRole('slider')).toEqual([])
+    await expect(region.queryByRole('button', { name: LLM })).toBeNull()
   },
 }

@@ -1,10 +1,13 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, type CalendarLane, type LaneSessionState } from '@lc/plan-domain'
+import { DAY, startOfDay, type CalendarLane, type LaneSessionState } from '@lc/plan-domain'
 import { calendarColor, Dot } from '@lc/ui'
 import type { CSSProperties } from 'react'
 
-import { clampPct, dayMs, type Scale } from '../lib/scale'
+import { dayMs, type Scale } from '../lib/scale'
+import type { LaneEditing } from '../model/editing'
+import { BAND, span } from './lane-parts'
+import { DeadlineHandle, FinishHandle, LaneBody } from './LaneHandles'
 
 interface Props {
   lane: CalendarLane
@@ -13,6 +16,10 @@ interface Props {
   now: number | null
   /** Draws the first lane without the gap a phone puts above the others */
   first: boolean
+  /** Without it the lane only shows; it also waits for the clock, which says what "from today on" is */
+  edit?: LaneEditing | undefined
+  /** Id of the text that tells the slider keys */
+  keysHint: string
 }
 
 const MARK: Record<LaneSessionState, string> = {
@@ -20,7 +27,6 @@ const MARK: Record<LaneSessionState, string> = {
   open: 'bg-[color-mix(in_srgb,var(--c)_55%,var(--surface))]',
   missed: 'bg-surface ring-[1.5px] ring-today',
 }
-const BAND = 'absolute top-1/2 h-2 -translate-y-1/2'
 const FADE = 24
 
 type Cut = 'start' | 'end' | 'both'
@@ -37,14 +43,8 @@ function fadeOf(cut: Cut | undefined): CSSProperties {
   return {}
 }
 
-/** Left edge and width of the days from `a` to `b` on the track, clamped to it. */
-function span(scale: Scale, a: number, b: number): CSSProperties {
-  const left = clampPct(scale.at(a))
-  return { left: `${left}%`, width: `${Math.max(0, clampPct(scale.at(b)) - left)}%` }
-}
-
 /** One calendar on the timeline: its name, and a track with its sessions, its spare or late days and its deadline. */
-export function LaneRow({ lane, scale, now, first }: Props) {
+export function LaneRow({ lane, scale, now, first, edit, keysHint }: Props) {
   const { calendar } = lane
   const color = calendarColor(calendar.color)
   const start = dayMs(lane.first)
@@ -53,7 +53,12 @@ export function LaneRow({ lane, scale, now, first }: Props) {
   const from = scale.at(start)
   const to = scale.at(end)
   const cut: Cut | undefined = from < 0 ? (to > 100 ? 'both' : 'start') : to > 100 ? 'end' : undefined
-  const today = now === null ? null : scale.at(now)
+  const today = now === null ? null : startOfDay(now)
+  const todayAt = now === null ? null : scale.at(now)
+  // The sessions a move takes along: the ones not done, from today on, as `events.shift` picks them.
+  const moving = today === null ? [] : lane.sessions.filter((s) => s.state !== 'done' && dayMs(s.day) >= today)
+  const handles = edit && today !== null ? { lane, scale, today } : null
+  const { onFinish, onDeadline, onMove } = edit ?? {}
 
   return (
     <>
@@ -64,8 +69,8 @@ export function LaneRow({ lane, scale, now, first }: Props) {
           {lane.done}/{lane.total}
         </span>
       </div>
-      <div className="relative h-9 md:h-6" style={color}>
-        <div className="absolute inset-0 overflow-hidden">
+      <div data-track className="relative h-9 md:h-6" style={color}>
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div
             data-bar
             data-cut={cut}
@@ -93,22 +98,43 @@ export function LaneRow({ lane, scale, now, first }: Props) {
             />
           ))}
         </div>
-        {deadline !== null && (
-          <span
-            data-deadline
-            role="img"
-            aria-label={m.deadline_on({ date: fmtDay(deadline) })}
-            title={m.deadline_on({ date: fmtDay(deadline) })}
-            className="absolute top-1/2 size-2.5 -translate-1/2 rotate-45 rounded-[2px] bg-ink ring-2 ring-surface"
-            style={{ left: `${scale.at(deadline)}%` }}
+        {handles && edit && (
+          <LaneBody
+            {...handles}
+            moving={moving}
+            onOpen={() => edit.onOpen(calendar.id)}
+            onMove={onMove && ((days) => onMove(calendar.id, days))}
           />
         )}
-        {today !== null && today >= 0 && today <= 100 && (
+        {handles && onFinish && moving.length > 0 && (
+          <FinishHandle {...handles} describedBy={keysHint} onFinish={(day) => onFinish(calendar.id, day)} />
+        )}
+        {lane.deadline !== null &&
+          (handles && onDeadline ? (
+            <DeadlineHandle
+              {...handles}
+              describedBy={keysHint}
+              deadline={lane.deadline}
+              onDeadline={(day) => onDeadline(calendar.id, day)}
+            />
+          ) : (
+            deadline !== null && (
+              <span
+                data-deadline
+                role="img"
+                aria-label={m.deadline_on({ date: fmtDay(deadline) })}
+                title={m.deadline_on({ date: fmtDay(deadline) })}
+                className="absolute top-1/2 size-2.5 -translate-1/2 rotate-45 rounded-[2px] bg-ink ring-2 ring-surface"
+                style={{ left: `${scale.at(deadline)}%` }}
+              />
+            )
+          ))}
+        {todayAt !== null && todayAt >= 0 && todayAt <= 100 && (
           <i
             data-today
             aria-hidden
-            className="absolute -inset-y-0.5 -ml-px w-0.5 bg-today"
-            style={{ left: `${today}%` }}
+            className="pointer-events-none absolute -inset-y-0.5 -ml-px w-0.5 bg-today"
+            style={{ left: `${todayAt}%` }}
           />
         )}
       </div>
