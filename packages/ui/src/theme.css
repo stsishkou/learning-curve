@@ -60,7 +60,8 @@
 
 @layer base {
   html {
-    scroll-padding-top: env(safe-area-inset-top, 0px);
+    /* Below the bars that stick to the top (see sticky-top.ts), so a focused control is never hidden under them. */
+    scroll-padding-top: calc(var(--lc-sticky-top, 0px) + env(safe-area-inset-top, 0px));
     /* Where scrollbars take room, the page keeps its width when its scrollbar comes and goes. */
     scrollbar-gutter: stable;
   }
