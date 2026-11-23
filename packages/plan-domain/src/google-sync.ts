@@ -1,12 +1,14 @@
 // What keeping the plan in Google Calendar means, without the API itself: how a plan event is written there, what
-// has to be sent after a change, and what a person's edit in Google proposes for the plan. The plan stays the source
-// of truth: nothing read from Google changes it until the person accepts it as a change.
+// has to be sent after a change, and what a person's edit in Google means for the plan. The plan stays the source of
+// truth: an edit made in Google reaches it as a change, like one made in the planner, and Undo takes it back.
 import { parseChange, type PlanChange } from './changes'
 import { DAY, parseLocal, toLocalString, toMinsk, ymd } from './dates'
+import type { EventPatch } from './edits'
 import { tookNote } from './ics'
 import { skipDay } from './occurrence-changes'
 import { hashText } from './revisions'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
+import { previewUpdate } from './update'
 
 const BASE32HEX = '0123456789abcdefghijklmnopqrstuv'
 const DONE = '✓ '
@@ -207,14 +209,14 @@ export function planPush(plan: Plan, state: GoogleState, frozen: ReadonlySet<str
   return out
 }
 
-/** An edit made in Google, offered to the person as a change to the plan. */
+/** An edit made in Google, as a change to the plan. */
 export interface Proposal {
   uid: string
   /** The Google event it was read from: the event itself, or one repeat of it */
   source: string
   /** The day of that repeat, when it is one */
   day?: string | undefined
-  /** The change; null for a session deleted in Google, where the person picks between the trash and putting it back */
+  /** The change; null for a session deleted in Google, which goes to the trash */
   change: PlanChange | null
   /** Google's etag of the event when it was read */
   etag: string
@@ -226,7 +228,7 @@ export interface Proposal {
 export type Reading =
   /** Nothing the plan follows changed (the app's own write coming back, a colour, a reminder): note the etag */
   | { kind: 'seen'; uid: string; etag: string }
-  /** Its title was edited: the plan owns the text, so the next round writes it back */
+  /** Its title was cleared, or a whole series was moved: the plan cannot take that, so its version is written back */
   | { kind: 'reset'; uid: string; etag: string }
   | { kind: 'proposal'; proposals: Proposal[] }
   /** Nothing to note: not an event the app keeps, or a repeat that matches the plan again */
@@ -276,24 +278,78 @@ export function readGoogleEvent(item: GoogleEvent, plan: Plan, state: GoogleStat
   if (marked(summary) !== marked(row.summary) && marked(summary) !== (event.done === true)) {
     changes.push({ type: 'events.done', uids: [uid], done: marked(summary) })
   }
+  const patch: EventPatch = {}
+  const title = plain(summary).trim()
+  const retitled = title !== plain(row.summary)
+  if (retitled && title && title !== event.title) patch.title = title
   const start = wallOf(item.start)
   const end = wallOf(item.end)
   // A series moved as a whole in Google would need its rule rewritten: the plan's own series is written back.
   if (!event.rrule && start && end && (start !== row.start || end !== row.end)) {
     const from = wallStart(start)
     const to = event.allDay ? toLocalString(parseLocal(from) + parseLocal(event.end) - parseLocal(event.start)) : end
-    if (from !== event.start || to !== event.end)
-      changes.push({ type: 'event.patch', uid, patch: { start: from, end: to } })
+    if (from !== event.start || to !== event.end) Object.assign(patch, { start: from, end: to })
   }
+  if (Object.keys(patch).length) changes.push({ type: 'event.patch', uid, patch })
   if (changes.length) return propose(...changes)
-  const retitled = plain(summary) !== plain(row.summary)
   const reshaped = event.rrule !== undefined && (start !== row.start || end !== row.end)
-  return retitled || reshaped ? { kind: 'reset', uid, etag } : { kind: 'seen', uid, etag }
+  return (retitled && !title) || reshaped ? { kind: 'reset', uid, etag } : { kind: 'seen', uid, etag }
 }
 
-/** A proposal waiting for the person, with an id to accept or reject it by. */
+/** The change a proposal makes in the plan: a session deleted in Google goes to the trash. */
+export const changeOf = (proposal: Proposal): PlanChange =>
+  proposal.change ?? { type: 'event.remove', uid: proposal.uid }
+
+/** Why an edit made in Google waits for the person: the planner changed that event too, or the plan cannot take it. */
+export type Hold = 'both' | 'misfit'
+
+/**
+ * Whether the planner changed, since `written` went to Google, what `change` changes there too: then only the person
+ * knows which one stands. `now` is the event as the plan would write it now.
+ */
+function clashes(change: PlanChange | null, written: GoogleRow, now: GoogleRow): boolean {
+  const moved = now.start !== written.start || now.end !== written.end
+  if (change?.type === 'events.done') return marked(now.summary) !== marked(written.summary)
+  if (change?.type === 'event.detach') return moved
+  if (change?.type !== 'event.patch') return now.hash !== written.hash
+  const { title, start, end, skip } = change.patch ?? {}
+  const retitled = title !== undefined && plain(now.summary) !== plain(written.summary)
+  return retitled || (moved && (start ?? end ?? skip) !== undefined)
+}
+
+/**
+ * Which edits read from Google go into the plan now. An edit there is the person's own decision, so it is taken like
+ * one made in the planner, Undo being the way back. Two kinds wait for them instead: an edit to something the planner
+ * changed too since it was last written to Google, and one the plan cannot take. The edits of one Google event are
+ * taken or held together.
+ */
+export function triage(
+  plan: Plan,
+  state: GoogleState,
+  proposals: Proposal[],
+): { take: Proposal[]; hold: (Proposal & { hold: Hold })[] } {
+  const take: Proposal[] = []
+  const hold: (Proposal & { hold: Hold })[] = []
+  for (const source of new Set(proposals.map((p) => p.source))) {
+    const group = proposals.filter((p) => p.source === source)
+    const [first] = group
+    const event = plan.events.find((e) => e.uid === first?.uid)
+    const written = first && state.events[first.uid]
+    const now = event && written && rowOf(googleBody(event, plan.meta.timezone), written.calendar, written.etag)
+    const both = !now || !written || group.some((p) => clashes(p.change, written, now))
+    const changes = [...take, ...group].map(changeOf)
+    const why: Hold | null = both ? 'both' : previewUpdate(plan, changes).problem ? 'misfit' : null
+    if (why) hold.push(...group.map((p) => ({ ...p, hold: why })))
+    else take.push(...group)
+  }
+  return { take, hold }
+}
+
+/** An edit waiting for the person, with an id to accept or reject it by. */
 export interface InboxItem extends Proposal {
   id: string
+  /** Why it was not taken; absent on items filed before edits were taken */
+  hold?: Hold | undefined
 }
 
 /** The Google part of `data/sync.json`. */
@@ -301,12 +357,18 @@ export interface GoogleSync extends GoogleState {
   inbox: InboxItem[]
   /** When the last round ended, UTC epoch ms */
   lastRound?: number | undefined
+  /** When an edit made in Google was last taken into the plan, UTC epoch ms */
+  takenAt?: number | undefined
   /** Why the last round failed: `reconnect` when Google no longer takes the app's sign-in */
   error?: string | undefined
 }
 
 /** The inbox with what one Google event proposes now in place of what it proposed before. */
-export const fileProposals = (inbox: InboxItem[], source: string, proposals: Proposal[]): InboxItem[] => [
+export const fileProposals = (
+  inbox: InboxItem[],
+  source: string,
+  proposals: (Proposal & { hold?: Hold | undefined })[],
+): InboxItem[] => [
   ...inbox.filter((item) => item.source !== source),
   ...proposals.map((p) => ({ ...p, id: hashText(JSON.stringify([p.source, p.etag, p.change])) })),
 ]
@@ -324,12 +386,13 @@ function entries<T>(value: unknown, parse: (record: Record<string, unknown>) => 
 
 function parseItem(value: unknown): InboxItem[] {
   if (!isRecord(value)) return []
-  const { id, uid, source, day, etag, basis } = value
+  const { id, uid, source, day, etag, basis, hold } = value
   if (typeof id !== 'string' || typeof uid !== 'string' || typeof source !== 'string') return []
   if (typeof etag !== 'string' || typeof basis !== 'string') return []
   try {
     const change = value.change === null ? null : parseChange(value.change)
-    return [{ id, uid, source, day: typeof day === 'string' ? day : undefined, change, etag, basis }]
+    const why = hold === 'both' || hold === 'misfit' ? hold : undefined
+    return [{ id, uid, source, day: typeof day === 'string' ? day : undefined, change, etag, basis, hold: why }]
   } catch {
     return []
   }
@@ -356,6 +419,7 @@ export function parseGoogleSync(value: unknown): GoogleSync {
     events: Object.fromEntries(Object.entries(events).filter(([, row]) => row.calendar)),
     inbox: Array.isArray(record.inbox) ? record.inbox.flatMap(parseItem) : [],
     lastRound: typeof record.lastRound === 'number' ? record.lastRound : undefined,
+    takenAt: typeof record.takenAt === 'number' ? record.takenAt : undefined,
     error: typeof record.error === 'string' ? record.error : undefined,
   }
 }

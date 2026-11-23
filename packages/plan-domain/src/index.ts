@@ -45,6 +45,7 @@ export {
   type HistoryStep,
   type HistoryView,
   type PlanHistory,
+  type StepSource,
 } from './history'
 export { moveOccurrence, removeOccurrence, skipDay } from './occurrence-changes'
 export { parseQuickEvent, type QuickEvent } from './quick-event'
@@ -104,6 +105,7 @@ export {
 export { hashText, parseRevisions, reviseEvents, type Revision, type Revisions } from './revisions'
 export {
   bodyHash,
+  changeOf,
   fileProposals,
   googleBody,
   googleEventId,
@@ -111,6 +113,7 @@ export {
   planPush,
   readGoogleEvent,
   rowOf,
+  triage,
   uidOfGoogleId,
   wallOf,
   type GoogleBody,
@@ -121,6 +124,7 @@ export {
   type GoogleSync,
   type InboxItem,
   type GoogleTime,
+  type Hold,
   type Proposal,
   type PushPlan,
   type Reading,

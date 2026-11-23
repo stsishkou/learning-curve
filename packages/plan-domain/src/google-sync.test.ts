@@ -12,10 +12,12 @@ import {
   planPush,
   readGoogleEvent,
   rowOf,
+  triage,
   uidOfGoogleId,
   wallOf,
   type GoogleEvent,
   type GoogleState,
+  type Proposal,
 } from './google-sync'
 import { isSession } from './progress'
 import type { Plan } from './types'
@@ -137,9 +139,16 @@ test('a ✓ typed in Google proposes done, and a move proposes the new slot', ()
   if (moved.kind === 'proposal') expect(moved.proposals[0]?.basis).toBe(bodyHash(googleBody(session, TZ)))
 })
 
-test('a title edited in Google is written back; a deleted session asks; a deleted repeat is skipped', () => {
+test('a title edited in Google renames the session; a cleared one is written back; deletions are read', () => {
   const state = synced(fixturePlan)
-  expect(readGoogleEvent(inGoogle(session.uid, { summary: 'Something else' }), fixturePlan, state).kind).toBe('reset')
+  expect(readGoogleEvent(inGoogle(session.uid, { summary: '✓ Something else ' }), fixturePlan, state)).toMatchObject({
+    kind: 'proposal',
+    proposals: [
+      { change: { type: 'events.done', done: true } },
+      { change: { type: 'event.patch', uid: session.uid, patch: { title: 'Something else' } } },
+    ],
+  })
+  expect(readGoogleEvent(inGoogle(session.uid, { summary: '' }), fixturePlan, state).kind).toBe('reset')
   expect(readGoogleEvent(inGoogle(session.uid, { status: 'cancelled' }), fixturePlan, state)).toMatchObject({
     kind: 'proposal',
     proposals: [{ uid: session.uid, change: null }],
@@ -189,4 +198,35 @@ test('a calendar gone from the plan is dropped; a new reading of an event replac
   expect(parseGoogleSync(stored)).toEqual({ ...state, inbox, lastRound: 5, error: undefined })
   expect(parseGoogleSync({ inbox: [{ id: 'x' }, ...inbox], events: { a: 1 } }).inbox).toEqual(inbox)
   expect(parseGoogleSync(null)).toEqual({ calendars: {}, events: {}, inbox: [] })
+})
+
+/** What reading `edit` of the session in Google proposes. */
+const proposed = (edit: Partial<GoogleEvent>, state = synced(fixturePlan)): Proposal[] => {
+  const reading = readGoogleEvent(inGoogle(session.uid, edit), fixturePlan, state)
+  return reading.kind === 'proposal' ? reading.proposals : []
+}
+
+test('an edit made in Google is taken unless the planner changed the same thing since it was written', () => {
+  const day = session.start.slice(0, 10)
+  const move = { start: { dateTime: `${day}T06:00:00+03:00` }, end: { dateTime: `${day}T07:00:00+03:00` } }
+  const tick = { summary: `✓ ${session.title}` }
+  expect(triage(fixturePlan, synced(fixturePlan), proposed(move))).toMatchObject({ take: [{}], hold: [] })
+
+  // The planner renamed the session since it was written: a move in Google does not touch the title.
+  const renamed = changed(fixturePlan, { type: 'event.patch', uid: session.uid, patch: { title: 'Renamed' } })
+  const state = synced(fixturePlan)
+  expect(triage(renamed, state, proposed(move, state)).take).toHaveLength(1)
+  expect(triage(renamed, state, proposed(tick, state)).take).toHaveLength(1)
+  expect(triage(renamed, state, proposed({ summary: 'Other' }, state)).hold).toMatchObject([{ hold: 'both' }])
+
+  // The planner moved it too: Google's move waits, and so does a deletion of what the planner changed.
+  const later = { start: session.start.replace(/T\d\d/, 'T20'), end: session.end.replace(/T\d\d/, 'T21') }
+  const moved = changed(fixturePlan, { type: 'event.patch', uid: session.uid, patch: later })
+  expect(triage(moved, state, proposed(move, state)).hold).toMatchObject([{ hold: 'both' }])
+  expect(triage(moved, state, proposed({ status: 'cancelled' }, state)).hold).toHaveLength(1)
+  expect(triage(fixturePlan, state, proposed({ status: 'cancelled' }, state)).take).toHaveLength(1)
+
+  // One the plan cannot take waits too.
+  const backwards = { start: { dateTime: `${day}T08:00:00+03:00` }, end: { dateTime: `${day}T07:00:00+03:00` } }
+  expect(triage(fixturePlan, state, proposed(backwards, state)).hold).toMatchObject([{ hold: 'misfit' }])
 })

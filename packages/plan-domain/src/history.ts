@@ -5,6 +5,9 @@ import type { Plan } from './types'
 /** Older steps are dropped: the state before them becomes the new starting point. */
 export const HISTORY_LIMIT = 100
 
+/** Where a change was made, when not in the planner or by a tool: `google` for an edit made in Google Calendar. */
+export type StepSource = 'google'
+
 /** One change in the history, as the viewer shows it. */
 export interface HistoryStep {
   /** When it was made, an ISO instant */
@@ -12,6 +15,7 @@ export interface HistoryStep {
   change: PlanChange
   /** Title of the event or name of the calendar it touched, as it was then; empty when it touched neither */
   subject: string
+  source?: StepSource | undefined
 }
 
 interface StoredStep extends HistoryStep {
@@ -67,7 +71,10 @@ function subjectOf(plan: Plan, change: PlanChange): string {
       return plan.calendars.find((c) => c.id === change.id)?.name ?? ''
     case 'events.shift':
       return change.calendar ? (plan.calendars.find((c) => c.id === change.calendar)?.name ?? '') : ''
-    case 'events.done':
+    case 'events.done': {
+      const [only, ...others] = change.uids
+      return only && !others.length ? (plan.events.find((e) => e.uid === only)?.title ?? '') : ''
+    }
     case 'events.move':
     case 'trash.restore':
     case 'trash.empty':
@@ -84,12 +91,14 @@ export function recordChange(
   before: Plan,
   change: PlanChange,
   after: PlanEdits,
+  source?: StepSource,
   now = Date.now(),
 ): PlanHistory {
   const step: StoredStep = {
     at: new Date(now).toISOString(),
     change,
     subject: subjectOf(before, change),
+    ...(source ? { source } : {}),
     edits: after,
   }
   const steps = [...history.steps.slice(0, history.cursor), step]
@@ -117,7 +126,12 @@ export const inSync = (history: PlanHistory, edits: PlanEdits) =>
 
 export const historyView = (history: PlanHistory): HistoryView => ({
   cursor: history.cursor,
-  steps: history.steps.map(({ at, change, subject }) => ({ at, change, subject })),
+  steps: history.steps.map(({ at, change, subject, source }) => ({
+    at,
+    change,
+    subject,
+    ...(source ? { source } : {}),
+  })),
 })
 
 /** Reads a history from untrusted input; anything malformed gives an empty one. */
@@ -130,6 +144,7 @@ export function parseHistory(value: unknown): PlanHistory {
         at: raw.at,
         change: parseChange(raw.change),
         subject: typeof raw.subject === 'string' ? raw.subject : '',
+        ...(raw.source === 'google' ? { source: raw.source } : {}),
         edits: parseEdits(raw.edits),
       }
     })

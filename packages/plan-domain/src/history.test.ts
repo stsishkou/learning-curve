@@ -49,7 +49,16 @@ test('the history no longer describes edits changed past it', () => {
 })
 
 test('a history survives JSON, and a broken one reads as empty', () => {
-  const history = travel(record([rename('One'), rename('Two')]), 1)
+  const recorded = record([rename('One')])
+  const fromGoogle = recordChange(
+    recorded,
+    base,
+    rename('Two'),
+    applyChange(base, historyEdits(recorded), rename('Two')),
+    'google',
+  )
+  expect(fromGoogle.steps.map((step) => step.source)).toEqual([undefined, 'google'])
+  const history = travel(fromGoogle, 1)
   const stored = JSON.stringify(history)
   expect(parseHistory(JSON.parse(stored))).toEqual(history)
   expect(parseHistory({ steps: [{ at: 'now', change: { type: 'nope' } }] })).toEqual(emptyHistory())
