@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+@import '@lc/ui/theme.css';
+
+@source '../../../packages/ui/src';
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* Hostile on purpose: element and class rules the guide's own markup would match if styles leaked into it. */
+body {
+  letter-spacing: 0.2em;
+}
+h1,
+h2,
+h3,
+p,
+li {
+  text-transform: uppercase;
+  color: rgb(200 0 0);
+}
+.lc-card,
+.lc-link {
+  outline: 4px dashed rgb(200 0 0);
+}
