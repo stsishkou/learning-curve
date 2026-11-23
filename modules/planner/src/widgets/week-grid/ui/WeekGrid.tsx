@@ -582,7 +582,7 @@ export function WeekGrid({
               <>
                 {/* Two clocks, each over its own column of hours: the other zone with how far it is from the
                     plan, then the plan's own. */}
-                <span className="w-[42px] text-right" title={secondZone.label}>
+                <span className="w-[42px] text-right" data-tip={secondZone.label}>
                   <span className="block truncate">{secondZone.label}</span>
                   <span className="block tabular-nums">{fmtShift(secondZone.shift) || '='}</span>
                 </span>
@@ -605,7 +605,7 @@ export function WeekGrid({
                   {studyHours(d) > 0 && (
                     <small
                       className="flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-px text-[11px] font-medium whitespace-nowrap tabular-nums"
-                      title={m.study_that_day()}
+                      data-tip={m.study_that_day()}
                     >
                       <GraduationCap size={11} aria-hidden />
                       <span className="sr-only">{m.study_that_day()}: </span>
@@ -639,7 +639,7 @@ export function WeekGrid({
                         key={`${b.s}-${b.title}`}
                         data-busy
                         className={`${BUSY_FILL} truncate rounded-md px-1.5 py-[3px] text-[12px] text-muted`}
-                        title={m.busy_from_calendar({ title: busyLabel(b), time: m.all_day() })}
+                        data-tip={m.busy_from_calendar({ title: busyLabel(b), time: m.all_day() })}
                       >
                         <span className="rounded-sm bg-surface px-1">{busyLabel(b)}</span>
                       </span>
@@ -654,7 +654,7 @@ export function WeekGrid({
                           type="button"
                           className={`${TOUCH_QUIET} truncate rounded-md bg-[color-mix(in_srgb,var(--today)_14%,var(--surface))] px-1.5 py-[3px] text-left text-[12px] font-semibold text-today-ink ${onMove ? 'cursor-grab' : ''} ${dragged ? 'relative z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''}`}
                           style={{ transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined }}
-                          title={`${fmtDay(o.s)}: ${o.title}`}
+                          data-tip={`${fmtDay(o.s)}: ${o.title}`}
                           {...handlers(o, 'day')}
                         >
                           {o.title}
@@ -733,10 +733,12 @@ export function WeekGrid({
                     const lower = ((Math.min(b.e, d + maxH * HOUR) - d) / HOUR - minH) * hourHeight
                     const label = m.busy_from_calendar({ title: busyLabel(b), time: `${hm(b.s)}–${hm(b.e)}` })
                     return (
-                      <div key={`${b.s}-${b.e}-${b.title}`} data-busy title={label}>
+                      <div key={`${b.s}-${b.e}-${b.title}`} data-busy>
+                        {/* The tooltip sits on the block itself: the wrapper has no size of its own to place it by. */}
                         <div
                           className={`${BUSY_FILL} absolute inset-x-0.5 overflow-hidden rounded-md px-1.5 py-0.5 text-[11px]/[1.3] text-muted`}
                           style={{ top: upper + 1, height: Math.max(8, lower - upper - 2) }}
+                          data-tip={label}
                         >
                           <span className="rounded-sm bg-surface px-1">{busyLabel(b)}</span>
                         </div>

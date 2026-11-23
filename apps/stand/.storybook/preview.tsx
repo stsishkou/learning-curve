@@ -1,3 +1,4 @@
+import { Tooltips } from '@lc/ui'
 import { DocsContainer, type DocsContainerProps } from '@storybook/addon-docs/blocks'
 import type { Decorator, Preview } from '@storybook/react-vite'
 import { Fragment, useSyncExternalStore, type PropsWithChildren } from 'react'
@@ -34,6 +35,7 @@ const withToolbar: Decorator = (Story, { globals, parameters }) => {
   askPage()
   return (
     <Localized>
+      <Tooltips />
       {parameters.dialog ? (
         <Reopenable>
           <Story />

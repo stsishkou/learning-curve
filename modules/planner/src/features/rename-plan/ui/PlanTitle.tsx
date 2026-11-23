@@ -57,7 +57,7 @@ export function PlanTitle({ title, onRename }: Props) {
       <button
         type="button"
         className="group -mx-1.5 inline-flex max-w-full items-center gap-2 rounded-lg px-1.5 text-left hover:bg-surface-2"
-        title={m.rename_plan()}
+        data-tip={m.rename_plan()}
         onClick={() => setDraft(title)}
       >
         <span className="min-w-0 truncate">{title}</span>

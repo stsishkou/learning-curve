@@ -110,7 +110,7 @@ export function Runway({ plan, now, onSelect }: Props) {
                     left: x(parseLocal(lab.start) + 12 * HOUR),
                     color: i ? `color-mix(in srgb, ${color} 60%, var(--ink))` : color,
                   }}
-                  title={`${lab.title} — ${fmtDay(parseLocal(lab.start))}`}
+                  data-tip={`${lab.title} — ${fmtDay(parseLocal(lab.start))}`}
                   aria-label={`${lab.title}, ${fmtDay(parseLocal(lab.start))}`}
                   onClick={() => onSelect(lab)}
                 >

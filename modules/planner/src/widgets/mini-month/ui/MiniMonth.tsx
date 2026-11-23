@@ -45,7 +45,7 @@ export function MiniMonth({ plan, hidden, now, shown, onPickDay, onPickWeek }: P
         </button>
       </div>
       <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-y-0.5 text-center text-[12px] tabular-nums">
-        <span className="pr-1.5 text-[10.5px] text-muted" title={m.week_number()}>
+        <span className="pr-1.5 text-[10.5px] text-muted" data-tip={m.week_number()}>
           {m.week_short()}
         </span>
         {Array.from({ length: 7 }, (_, i) => (

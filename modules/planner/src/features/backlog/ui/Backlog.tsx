@@ -35,7 +35,7 @@ export function Backlog({ plan, events, onSelect, onCarry }: Props) {
             <button
               type="button"
               draggable
-              title={e.title}
+              data-tip={e.title}
               className="flex max-w-[260px] cursor-grab items-baseline gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-left text-[12.5px] hover:bg-surface-2 active:cursor-grabbing"
               onClick={() => onSelect(e)}
               onDragStart={(ev) => {

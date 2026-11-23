@@ -102,7 +102,7 @@ export function CoursePanel(props: Props) {
             type="button"
             className="-mt-1 -mr-1 ml-auto grid size-7 flex-none place-items-center rounded-md text-muted hover:bg-surface-2 hover:text-ink"
             aria-label={m.close()}
-            title={m.close()}
+            data-tip={m.close()}
             onClick={onClose}
           >
             <X size={16} aria-hidden />

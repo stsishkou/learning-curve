@@ -89,7 +89,7 @@ export function ReaderSource({ text }: { text: string }) {
         <Button
           className={ICON_BUTTON}
           aria-label={m.reader_previous_match()}
-          title={m.reader_previous_match()}
+          data-tip={m.reader_previous_match()}
           disabled={!total}
           onClick={() => show(index - 1)}
         >
@@ -98,7 +98,7 @@ export function ReaderSource({ text }: { text: string }) {
         <Button
           className={ICON_BUTTON}
           aria-label={m.reader_next_match()}
-          title={m.reader_next_match()}
+          data-tip={m.reader_next_match()}
           disabled={!total}
           onClick={() => show(index + 1)}
         >

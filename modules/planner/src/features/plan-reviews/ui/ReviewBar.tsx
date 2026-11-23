@@ -39,7 +39,7 @@ export function ReviewBar({ offer, more, onPlan, onDismiss }: Props) {
         type="button"
         className="grid place-items-center text-muted hover:text-ink"
         aria-label={m.reviews_decline()}
-        title={m.reviews_decline()}
+        data-tip={m.reviews_decline()}
         onClick={onDismiss}
       >
         <X size={16} aria-hidden />

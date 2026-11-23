@@ -88,7 +88,7 @@ export function StudyStreak({ plan, now }: Props) {
                     key={d.day}
                     role="img"
                     aria-label={label(d, today)}
-                    title={label(d, today)}
+                    data-tip={label(d, today)}
                     className={`block size-5 rounded-[5px] ${d.planned === 0 ? 'border border-line-soft' : ''} ${d.day === today ? 'outline-2 outline-offset-1 outline-today' : ''}`}
                     style={{ background: fill(d, today) }}
                   />

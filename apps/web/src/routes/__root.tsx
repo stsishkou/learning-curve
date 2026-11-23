@@ -1,5 +1,6 @@
 import { m } from '@lc/i18n/messages'
 import { getLocale, localizeHref } from '@lc/i18n/runtime'
+import { Tooltips } from '@lc/ui'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import { THEME_BOOT_SCRIPT } from '#/shell/theme'
@@ -50,6 +51,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         {children}
         <TodayIcon />
+        <Tooltips />
         <Scripts />
       </body>
     </html>

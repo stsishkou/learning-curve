@@ -85,7 +85,7 @@ export function PlanMap({ plan, hidden, now, weekStart, onPickWeek }: Props) {
               }`}
               aria-current={week.monday === weekStart ? 'true' : undefined}
               aria-label={m.plan_map_week({ date: fmtShort(week.monday), hours: fmtHours(week.hours) })}
-              title={m.plan_map_week({ date: fmtShort(week.monday), hours: fmtHours(week.hours) })}
+              data-tip={m.plan_map_week({ date: fmtShort(week.monday), hours: fmtHours(week.hours) })}
               onClick={() => onPickWeek(week.monday)}
             >
               <span className="flex items-end" style={{ height: BAR_HEIGHT }}>

@@ -96,14 +96,20 @@ export function PlannerToolbar({
             aria-label={m.palette_navigate()}
             className="order-last flex w-full items-center gap-1.5 md:order-none md:w-auto"
           >
-            <button type="button" className={STEP} aria-label={m.previous_period()} onClick={() => nav.step(-1)}>
+            <button
+              type="button"
+              className={STEP}
+              aria-label={m.previous_period()}
+              data-tip={m.previous_period()}
+              onClick={() => nav.step(-1)}
+            >
               <ChevronLeft size={18} aria-hidden />
             </button>
             <h2 className="relative mx-0.5 flex-1 text-center md:min-w-[170px] md:flex-none">
               <button
                 type="button"
                 className="w-full rounded-lg px-2 py-1.5 text-[14px]/[1.2] font-semibold whitespace-nowrap hover:bg-surface-2 md:text-[16px]/[1.2]"
-                title={m.jump_to_date()}
+                data-tip={m.jump_to_date()}
                 onClick={() => datePicker.current?.showPicker()}
               >
                 {nav.title}
@@ -119,7 +125,13 @@ export function PlannerToolbar({
                 onChange={(e) => e.target.value && nav.goTo(parseLocal(`${e.target.value}T00:00`))}
               />
             </h2>
-            <button type="button" className={STEP} aria-label={m.next_period()} onClick={() => nav.step(1)}>
+            <button
+              type="button"
+              className={STEP}
+              aria-label={m.next_period()}
+              data-tip={m.next_period()}
+              onClick={() => nav.step(1)}
+            >
               <ChevronRight size={18} aria-hidden />
             </button>
             <Button onClick={nav.today}>{m.go_today()}</Button>
@@ -136,7 +148,7 @@ export function PlannerToolbar({
                 type="button"
                 className={STEP}
                 aria-label={m.undo()}
-                title={m.undo()}
+                data-tip={m.undo()}
                 disabled={!history.canUndo}
                 onClick={history.undo}
               >
@@ -146,7 +158,7 @@ export function PlannerToolbar({
                 type="button"
                 className={STEP}
                 aria-label={m.redo()}
-                title={m.redo()}
+                data-tip={m.redo()}
                 disabled={!history.canRedo}
                 onClick={history.redo}
               >
@@ -155,7 +167,7 @@ export function PlannerToolbar({
             </div>
           )}
           {onNewEvent && (
-            <Button primary className="flex items-center gap-1.5" title={m.new_event_hint()} onClick={onNewEvent}>
+            <Button primary className="flex items-center gap-1.5" data-tip={m.new_event_hint()} onClick={onNewEvent}>
               <Plus size={16} aria-hidden /> {m.event()}
             </Button>
           )}
@@ -175,7 +187,7 @@ export function PlannerToolbar({
                   type="button"
                   className={STEP}
                   aria-label={m.zoom_out()}
-                  title={m.zoom_out()}
+                  data-tip={m.zoom_out()}
                   disabled={!nav.canZoomOut}
                   onClick={nav.zoomOut}
                 >
@@ -185,7 +197,7 @@ export function PlannerToolbar({
                   type="button"
                   className={STEP}
                   aria-label={m.zoom_in()}
-                  title={m.zoom_in()}
+                  data-tip={m.zoom_in()}
                   disabled={!nav.canZoomIn}
                   onClick={nav.zoomIn}
                 >
@@ -197,7 +209,7 @@ export function PlannerToolbar({
               <Button
                 className={`flex items-center gap-1.5 ${PRESSED}`}
                 aria-pressed={nav.workWeek}
-                title={m.work_week_hint()}
+                data-tip={m.work_week_hint()}
                 onClick={nav.toggleWorkWeek}
               >
                 <Briefcase size={15} aria-hidden /> {m.work_week()}
@@ -207,7 +219,7 @@ export function PlannerToolbar({
               <Button
                 className={`flex items-center gap-1.5 ${PRESSED}`}
                 aria-pressed={nav.fullDay}
-                title={m.full_day_hint()}
+                data-tip={m.full_day_hint()}
                 onClick={nav.toggleFullDay}
               >
                 <Clock size={15} aria-hidden /> {m.full_day()}

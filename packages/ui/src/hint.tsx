@@ -57,7 +57,7 @@ export function HelpToggle({ label, className = '' }: ToggleProps) {
       className={`grid size-9 flex-none place-items-center rounded-[10px] border border-line bg-surface text-muted shadow-card transition-[background-color,color,transform] duration-150 hover:bg-surface-2 hover:text-ink aria-pressed:border-focus aria-pressed:bg-focus aria-pressed:text-surface motion-safe:active:scale-[0.96] ${className}`}
       aria-pressed={on}
       aria-label={label}
-      title={label}
+      data-tip={label}
       onClick={flip}
     >
       <CircleHelp size={18} aria-hidden />
@@ -92,7 +92,7 @@ export function Hint({ title, text, children, className = '' }: HintProps) {
         className={`lc-hint-mark inline-grid size-[22px] flex-none place-items-center rounded-full border border-focus bg-[color-mix(in_srgb,var(--focus)_16%,var(--surface))] text-focus transition-transform duration-150 motion-safe:hover:scale-110 ${className}`}
         style={{ anchorName: anchor }}
         aria-label={title}
-        title={title}
+        data-tip={title}
         popoverTarget={id}
         // A mark often sits inside something clickable: opening the note must not also press that.
         onClick={(e) => e.stopPropagation()}

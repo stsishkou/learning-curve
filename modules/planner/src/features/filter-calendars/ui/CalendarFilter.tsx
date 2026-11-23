@@ -38,7 +38,7 @@ export function CalendarFilter({ calendars, hidden, onToggle, onSolo, onShowAll,
             className={`${CHIP} aria-[pressed=false]:border-line-soft aria-[pressed=false]:bg-transparent aria-[pressed=false]:text-muted`}
             style={calendarColor(c.color)}
             aria-pressed={!hidden.has(c.id)}
-            title={m.calendar_chip_hint()}
+            data-tip={m.calendar_chip_hint()}
             onClick={(e) => (e.altKey ? onSolo(c.id) : onToggle(c.id))}
             onDoubleClick={() => onSolo(c.id)}
           >
@@ -50,7 +50,7 @@ export function CalendarFilter({ calendars, hidden, onToggle, onSolo, onShowAll,
             type="button"
             className="absolute top-1/2 right-[3px] grid size-6 -translate-y-1/2 place-items-center rounded-full border border-line bg-surface text-muted opacity-0 group-hover/chip:opacity-100 hover:text-ink focus-visible:opacity-100 [@media(hover:none)]:hidden"
             aria-label={m.calendar_only({ name: c.name })}
-            title={m.calendar_only({ name: c.name })}
+            data-tip={m.calendar_only({ name: c.name })}
             onClick={() => onSolo(c.id)}
           >
             <Eye size={14} aria-hidden />

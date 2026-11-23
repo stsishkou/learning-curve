@@ -100,7 +100,7 @@ export function NowNext({ plan, upcoming, now, onSelect, onFocus }: Props) {
                 <button
                   type="button"
                   className="-ml-1.5 flex min-w-0 flex-1 items-baseline gap-2 rounded-md px-1.5 py-1 text-left text-[13px]/[1.35] hover:bg-surface-2"
-                  title={o.title}
+                  data-tip={o.title}
                   onClick={() => onSelect(o)}
                 >
                   <Dot className="size-2 flex-none -translate-y-px" />
@@ -118,7 +118,7 @@ export function NowNext({ plan, upcoming, now, onSelect, onFocus }: Props) {
                     type="button"
                     className="grid size-7 flex-none place-items-center rounded-md text-focus hover:bg-surface-2"
                     aria-label={m.focus_on({ title: o.title })}
-                    title={m.focus_on({ title: o.title })}
+                    data-tip={m.focus_on({ title: o.title })}
                     onClick={() => onFocus(o.uid)}
                   >
                     <Timer size={15} aria-hidden />

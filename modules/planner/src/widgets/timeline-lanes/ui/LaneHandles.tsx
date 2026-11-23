@@ -217,7 +217,7 @@ export function DeadlineHandle({
         aria-valuenow={valueOf(scale, day)}
         aria-valuetext={fmtDay(day)}
         aria-describedby={describedBy}
-        title={m.deadline_on({ date: fmtDay(day) })}
+        data-tip={m.deadline_on({ date: fmtDay(day) })}
         className={`${HANDLE} z-[15] -ml-3 grid place-items-center`}
         style={{ left: `${clampPct(scale.at(day))}%` }}
         onPointerDown={nudge.onPointerDown}

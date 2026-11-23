@@ -66,7 +66,7 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
           <span className="flex min-w-0 items-center gap-1.5">
             <span className={`min-w-0 truncate ${undone ? 'line-through decoration-line' : ''}`}>{label}</span>
             {source && (
-              <span className="flex flex-none text-muted" title={appTitle(source)}>
+              <span className="flex flex-none text-muted" data-tip={appTitle(source)}>
                 <CalendarSync size={13} aria-hidden />
                 <span className="sr-only">{appTitle(source)}</span>
               </span>

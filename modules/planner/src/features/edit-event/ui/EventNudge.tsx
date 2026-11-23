@@ -51,7 +51,7 @@ export function EventNudge({ event, day, disabled, onMove }: Props) {
   }
 
   const key = (label: string, sign: ReactNode, run: () => void, off = false) => (
-    <button type="button" className={KEY} aria-label={label} title={label} disabled={disabled || off} onClick={run}>
+    <button type="button" className={KEY} aria-label={label} data-tip={label} disabled={disabled || off} onClick={run}>
       {sign}
     </button>
   )

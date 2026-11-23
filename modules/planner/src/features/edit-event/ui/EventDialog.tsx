@@ -241,7 +241,7 @@ export function EventDialog({
               type="button"
               className="-mt-1 -mr-1.5 grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-ink"
               aria-label={m.close()}
-              title={m.close()}
+              data-tip={m.close()}
               onClick={close}
             >
               <X size={18} aria-hidden />
@@ -325,7 +325,7 @@ export function EventDialog({
                   className="grid place-items-center px-2.5 text-today-ink"
                   disabled={busy}
                   aria-label={event.rrule ? m.delete_series() : m.delete_event()}
-                  title={`${event.rrule ? m.delete_series() : m.delete_event()}. ${m.delete_event_hint()}`}
+                  data-tip={`${event.rrule ? m.delete_series() : m.delete_event()}. ${m.delete_event_hint()}`}
                   onClick={() => void run({ type: 'event.remove', uid: event.uid }, 'close')}
                 >
                   <Trash2 size={16} aria-hidden />
@@ -346,7 +346,7 @@ export function EventDialog({
                   className="grid place-items-center px-2.5"
                   disabled={busy}
                   aria-label={m.duplicate()}
-                  title={m.duplicate()}
+                  data-tip={m.duplicate()}
                   onClick={() =>
                     void run(
                       {
@@ -372,7 +372,7 @@ export function EventDialog({
                   className="grid place-items-center px-2.5"
                   disabled={busy}
                   aria-label={m.split_in_two()}
-                  title={`${m.split_in_two()}. ${m.split_hint()}`}
+                  data-tip={`${m.split_in_two()}. ${m.split_hint()}`}
                   onClick={() => void run(halves, 'close')}
                 >
                   <Scissors size={16} aria-hidden />
@@ -383,7 +383,7 @@ export function EventDialog({
                   className="grid place-items-center px-2.5"
                   disabled={busy}
                   aria-label={m.free_slot_find()}
-                  title={`${m.free_slot_find()}. ${m.free_slot_hint()}`}
+                  data-tip={`${m.free_slot_find()}. ${m.free_slot_hint()}`}
                   onClick={() => {
                     const s = parseLocal(event.start)
                     const e = parseLocal(event.end)
@@ -405,7 +405,7 @@ export function EventDialog({
               <Button
                 className={`grid place-items-center px-2.5 ${linked ? 'text-done-ink' : ''}`}
                 aria-label={m.copy_link()}
-                title={linked ? m.copied() : m.copy_link()}
+                data-tip={linked ? m.copied() : m.copy_link()}
                 onClick={() => void copyLink(event.uid)}
               >
                 {linked ? <Check size={16} aria-hidden /> : <Link2 size={16} aria-hidden />}
@@ -417,7 +417,7 @@ export function EventDialog({
                   target="_blank"
                   rel="noreferrer"
                   aria-label={m.add_to_google()}
-                  title={m.add_to_google()}
+                  data-tip={m.add_to_google()}
                 >
                   <CalendarPlus size={16} aria-hidden />
                 </a>

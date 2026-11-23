@@ -93,7 +93,7 @@ export function YearGrid({ plan, year, items, now, onPickDay, onPickMonth }: Pro
                       data-day={ymd(d)}
                       className={`relative grid h-7 place-items-center rounded-md hover:ring-2 hover:ring-line ${shadeOf(studied)} ${d === today ? 'font-bold text-today-ink ring-2 ring-today' : off ? 'text-muted' : ''}`}
                       aria-label={studied ? `${fmtDay(d)}: ${fmtHours(studied)}` : fmtDay(d)}
-                      title={studied ? `${fmtDay(d)}: ${fmtHours(studied)}` : fmtDay(d)}
+                      data-tip={studied ? `${fmtDay(d)}: ${fmtHours(studied)}` : fmtDay(d)}
                       onClick={() => onPickDay(d)}
                     >
                       {new Date(d).getUTCDate()}

@@ -171,7 +171,7 @@ export function ReaderLibrary({ library, shown, origin, onView, onOpen }: Props)
                 className="grid place-items-center px-2.5"
                 disabled={busy}
                 aria-label={m.lib_rename({ name: file.name })}
-                title={m.lib_rename({ name: file.name })}
+                data-tip={m.lib_rename({ name: file.name })}
                 onClick={() => setRenaming({ id: file.id, name: file.name })}
               >
                 <Pencil size={15} aria-hidden />
@@ -191,7 +191,7 @@ export function ReaderLibrary({ library, shown, origin, onView, onOpen }: Props)
                 className={`grid place-items-center px-2.5 ${doomed === file.id ? 'border-today' : ''} text-today-ink`}
                 disabled={busy}
                 aria-label={m.lib_delete_file({ name: file.name })}
-                title={m.lib_delete_file({ name: file.name })}
+                data-tip={m.lib_delete_file({ name: file.name })}
                 onClick={() => remove(file.id, file.id)}
               >
                 {doomed === file.id ? m.lib_delete_sure() : <Trash2 size={15} aria-hidden />}

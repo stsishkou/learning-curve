@@ -268,7 +268,7 @@ export function FocusPage(props: Props) {
                   <Button
                     className="grid place-items-center px-2.5"
                     aria-label={m.focus_reset()}
-                    title={m.focus_reset()}
+                    data-tip={m.focus_reset()}
                     disabled={!elapsed}
                     onClick={watch.reset}
                   >

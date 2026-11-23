@@ -95,11 +95,11 @@ export function LaneRow(props: Props) {
       >
         <div className="flex min-w-0 items-center gap-2 text-[13px]">
           <Dot className="size-2.5" />
-          <span className="truncate font-medium" title={calendar.name}>
+          <span className="truncate font-medium" data-tip={calendar.name}>
             {calendar.name}
           </span>
           {change && (
-            <span className="size-1.5 flex-none rounded-full bg-focus" title={m.timeline_changed()}>
+            <span className="size-1.5 flex-none rounded-full bg-focus" data-tip={m.timeline_changed()}>
               <span className="sr-only">{m.timeline_changed()}</span>
             </span>
           )}
@@ -216,7 +216,7 @@ export function LaneRow(props: Props) {
                 data-deadline
                 role="img"
                 aria-label={m.deadline_on({ date: fmtDay(deadline) })}
-                title={m.deadline_on({ date: fmtDay(deadline) })}
+                data-tip={m.deadline_on({ date: fmtDay(deadline) })}
                 className={`${DIAMOND} bg-ink ring-2 ring-surface`}
                 style={{ left: `${scale.at(deadline)}%` }}
               />

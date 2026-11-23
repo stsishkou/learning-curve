@@ -104,7 +104,7 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
           {fmtDay(d)}
           {d === today ? ` — ${m.today()}` : ''}
           {hoursOf.has(d) && (
-            <small className="ml-auto text-[12px] font-medium text-muted tabular-nums" title={m.study_that_day()}>
+            <small className="ml-auto text-[12px] font-medium text-muted tabular-nums" data-tip={m.study_that_day()}>
               {fmtHours(hoursOf.get(d) ?? 0)}
             </small>
           )}
@@ -189,7 +189,7 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
             <Button
               className={BULK}
               aria-label={m.bulk_clear()}
-              title={m.bulk_clear()}
+              data-tip={m.bulk_clear()}
               onClick={() => setPicked(new Set())}
             >
               <X size={14} aria-hidden />

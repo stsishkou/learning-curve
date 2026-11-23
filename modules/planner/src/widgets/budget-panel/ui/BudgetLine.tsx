@@ -28,7 +28,7 @@ export function BudgetLine({ plan, weekItems }: Props) {
   const words = m.week_summary({ done: fmtHours(done), total: fmtHours(total), budget: fmtHours(budget) })
   // The pinned bar has little room: the numbers show, the sentence is the tooltip and what a screen reader says.
   return (
-    <p className="flex items-center gap-2 text-[13px] whitespace-nowrap text-muted tabular-nums" title={words}>
+    <p className="flex items-center gap-2 text-[13px] whitespace-nowrap text-muted tabular-nums" data-tip={words}>
       <span className="relative h-1.5 w-16 flex-none overflow-hidden rounded bg-line-soft" aria-hidden>
         <i className="absolute inset-y-0 left-0 bg-muted/40" style={{ width: share(total, scale) }} />
         <i className="absolute inset-y-0 left-0 bg-done" style={{ width: share(done, scale) }} />

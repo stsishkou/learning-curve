@@ -158,14 +158,14 @@ function CalendarRow({ calendar, events, onSave, onClear, onRemove }: RowProps) 
         </Button>
       )}
       {onClear && !dirty && (
-        <Button title={m.clear_calendar_hint()} onClick={() => void onClear()}>
+        <Button data-tip={m.clear_calendar_hint()} onClick={() => void onClear()}>
           {m.clear_calendar()}
         </Button>
       )}
       {onRemove && !dirty && (
         <Button
           aria-label={m.delete_calendar({ name: calendar.name })}
-          title={m.delete_calendar({ name: calendar.name })}
+          data-tip={m.delete_calendar({ name: calendar.name })}
           onClick={() => void onRemove()}
         >
           <Trash2 size={15} aria-hidden />

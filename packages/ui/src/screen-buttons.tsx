@@ -34,7 +34,7 @@ export function ScreenButtons({ expanded, onToggleExpanded, fullscreen, labels, 
         <Button
           className={`flex items-center gap-1.5 ${PRESSED} ${className}`}
           aria-pressed={expanded}
-          title={labels.expandHint}
+          data-tip={labels.expandHint}
           onClick={onToggleExpanded}
         >
           {expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
@@ -45,7 +45,7 @@ export function ScreenButtons({ expanded, onToggleExpanded, fullscreen, labels, 
         <Button
           className={`flex items-center gap-1.5 ${PRESSED} ${className}`}
           aria-pressed={fullscreen.on}
-          title={labels.fullscreenHint}
+          data-tip={labels.fullscreenHint}
           onClick={fullscreen.toggle}
         >
           {fullscreen.on ? <Minimize size={15} aria-hidden /> : <Maximize size={15} aria-hidden />}

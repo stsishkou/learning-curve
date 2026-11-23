@@ -25,7 +25,11 @@ type Story = StoryObj<typeof meta>
 /** A chip opens its session on a click, and hands it to the grid when it is picked up and let go. */
 export const Default: Story = {
   play: async ({ canvasElement, args }) => {
-    const chip = within(canvasElement).getByTitle(first.title)
+    // The chip shows the topic; its tooltip carries the whole title.
+    const chip = [...canvasElement.querySelectorAll('[data-tip]')].find(
+      (el) => el.getAttribute('data-tip') === first.title,
+    )
+    if (!chip) throw new Error('No chip for the first session')
     await userEvent.click(chip)
     await expect(args.onSelect).toHaveBeenCalledWith(first)
     await fireEvent.dragStart(chip, { dataTransfer: new DataTransfer() })

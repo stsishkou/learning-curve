@@ -112,7 +112,7 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
                   {new Date(d).getUTCDate()}
                 </button>
                 {study > 0 && (
-                  <small className="pr-0.5 text-[11px] text-muted tabular-nums" title={m.study_that_day()}>
+                  <small className="pr-0.5 text-[11px] text-muted tabular-nums" data-tip={m.study_that_day()}>
                     {fmtHours(study)}
                   </small>
                 )}

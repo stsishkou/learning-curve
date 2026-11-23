@@ -20,14 +20,14 @@ export function SpentTime({ event, disabled, onLog }: Props) {
   const planned = Math.round((parseLocal(event.end) - parseLocal(event.start)) / MINUTE)
   const spent = event.actual ?? planned
   return (
-    <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px]" title={m.spent_hint()}>
+    <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px]" data-tip={m.spent_hint()}>
       <span className="text-muted">{m.spent_label()}</span>
       <span className="flex items-center gap-1.5">
         <button
           type="button"
           className={KEY}
           aria-label={m.spent_less()}
-          title={m.spent_less()}
+          data-tip={m.spent_less()}
           disabled={disabled || spent <= STEP}
           onClick={() => onLog(spent - STEP)}
         >
@@ -40,7 +40,7 @@ export function SpentTime({ event, disabled, onLog }: Props) {
           type="button"
           className={KEY}
           aria-label={m.spent_more()}
-          title={m.spent_more()}
+          data-tip={m.spent_more()}
           disabled={disabled || spent >= 12 * 60}
           onClick={() => onLog(spent + STEP)}
         >

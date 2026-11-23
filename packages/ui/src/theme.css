@@ -261,3 +261,23 @@
       flip-block flip-inline;
   }
 }
+
+/* The one tooltip of the page (tooltip.ts), placed by script under or over its element. A popover, so the rules
+   that the browser gives one, a frame in the middle of the window, are taken back here. */
+.lc-tip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgb(10 16 30 / 0.25);
+}
