@@ -122,8 +122,7 @@ export function ReaderSource({ text }: { text: string }) {
         {!ready && (
           <pre
             className="h-full overflow-auto px-3.5 py-2.5 font-mono text-[12.5px]/[20px]"
-            // A scrolling region without controls inside must be reachable to scroll it from the keyboard.
-            // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrolling region without controls must be reachable from the keyboard
             tabIndex={0}
           >
             {text}

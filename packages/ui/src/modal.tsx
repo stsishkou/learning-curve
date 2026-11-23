@@ -102,8 +102,7 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, anch
   }
 
   return (
-    // The keyboard path is the native Esc handling; the click handler only covers the backdrop.
-    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- the keyboard path is the native Esc; the click covers only the backdrop
     <dialog
       ref={ref}
       // React's types do not know the attribute yet

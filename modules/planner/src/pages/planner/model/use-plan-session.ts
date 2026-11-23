@@ -114,6 +114,7 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onChan
       } else if (onChangeAll) {
         await onChangeAll(list)
       } else {
+        // oxlint-disable-next-line no-await-in-loop -- each change is stored on top of the one before
         for (const next of list) await onChange(next)
       }
       setJustChanged(true)

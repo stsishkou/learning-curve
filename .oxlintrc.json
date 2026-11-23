@@ -13,6 +13,8 @@
   "ignorePatterns": ["**/src/paraglide/**", "**/routeTree.gen.ts", ".nx/**"],
   "rules": {
     "react/react-in-jsx-scope": "off",
+    // Its fix is mutation; plans are values here and a copy is what keeps the caller's plan intact.
+    "oxc/no-map-spread": "off",
     // useNow and useHiddenCalendars set state after mount on purpose, so server and client markup match.
     "react/set-state-in-effect": "off",
     // Duplicates react/exhaustive-deps and rejects dependencies used only to re-run an effect.

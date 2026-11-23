@@ -514,8 +514,7 @@ export function WeekGrid({
             const dayItems = timed.filter((o) => startOfDay(o.s) === d)
             const lanes = layoutLanes(dayItems)
             return (
-              // The keyboard path to a new event is the toolbar button and the N key.
-              // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
+              // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- the keyboard path to a new event is the toolbar button and the N key
               <div
                 key={d}
                 data-day={ymd(d)}

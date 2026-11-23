@@ -62,10 +62,9 @@ export function ReaderLibrary({ library, shown, origin, onView, onOpen }: Props)
     }
   }
 
-  // Once, when the tab opens.
   useEffect(() => {
     void run()
-    // oxlint-disable-next-line react/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps -- once, when the tab opens
   }, [])
 
   const save = (id?: string, fileName = name) =>
@@ -151,8 +150,7 @@ export function ReaderLibrary({ library, shown, origin, onView, onOpen }: Props)
                     aria-label={m.lib_name()}
                     value={renaming.name}
                     maxLength={FILE_NAME_MAX}
-                    // The field replaces the name that was just clicked.
-                    // oxlint-disable-next-line jsx-a11y/no-autofocus
+                    // oxlint-disable-next-line jsx-a11y/no-autofocus -- the field replaces the name that was just clicked
                     autoFocus
                     onChange={(e) => setRenaming({ id: file.id, name: e.target.value })}
                     onKeyDown={(e) => e.key === 'Escape' && setRenaming(null)}
