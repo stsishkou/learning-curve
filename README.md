@@ -79,6 +79,8 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs
   the time it really took, in quarter-hour steps; the stopwatch survives a reload. Breaks of 25 + 5 or
   50 + 10 minutes are optional: a chime says one is due, and taking it pauses the stopwatch and counts the rest down.
+  `Expand` (`E`) gives the stopwatch the whole window and `Full screen` (`Shift F`) the whole screen, with the
+  queue still beside it.
 - **The plan's name**: click the title to rename the plan (Enter saves, Escape cancels). It is one history step,
   and the plan's own download (`<Title>.json`) and the combined `.ics` are named after it.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;

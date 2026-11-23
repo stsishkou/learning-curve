@@ -512,6 +512,7 @@
   "reminders_blocked": "The browser does not allow notifications for this site. Allow them in the site settings and switch the reminders on again.",
   "focus": "Focus",
   "focus_hint": "One session and a stopwatch: the time it really takes is logged in the plan.",
+  "focus_expand_hint": "The stopwatch across the whole window: no header or navigation",
   "focus_planned": "planned {time}",
   "focus_elapsed": "Time elapsed",
   "focus_left": "{time} left",

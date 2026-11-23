@@ -15,10 +15,13 @@ import {
   Play,
   RotateCcw,
   Segmented,
+  useFullscreen,
+  useShortcuts,
 } from '@lc/ui'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 
-import { useNow } from '../../../shared/lib'
+import { useFillHeight, useNow } from '../../../shared/lib'
+import { ScreenButtons } from '../../../shared/ui'
 import { useBreaks, type BreakRhythm } from '../model/use-breaks'
 import { useStopwatch } from '../model/use-stopwatch'
 
@@ -36,6 +39,10 @@ interface Props {
   headerAside?: ReactNode
   /** Minsk wall-clock ms to take as the present, for a fixed picture in a story; the real clock otherwise */
   now?: number
+  /** The stopwatch takes the whole window: no page header */
+  expanded?: boolean | undefined
+  /** Present when the host keeps `expanded`: the page then offers Expand */
+  onExpandedChange?: ((expanded: boolean) => void) | undefined
 }
 
 const MINUTE = 60_000
@@ -59,7 +66,9 @@ const loggedMinutes = (ms: number) => Math.max(QUARTER, Math.round(ms / QUARTER)
  * really took, which is what the pace forecast is worked out from. The session is the one in progress, or the next
  * one that is not done; any other from the queue can be picked.
  */
-export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, headerAside, now: fixed }: Props) {
+export function FocusPage(props: Props) {
+  const { plan, canEdit, session: wanted, onPick, onChange, headerAside, now: fixed } = props
+  const { expanded = false, onExpandedChange } = props
   const clock = useNow()
   const now = fixed ?? clock
   const watch = useStopwatch()
@@ -104,6 +113,17 @@ export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, he
     { value: 'long', label: m.focus_breaks_long() },
   ]
   const color = plan.calendars.find((c) => c.id === session?.calendar)?.color
+  const fullscreen = useFullscreen()
+  // The whole screen is for the stopwatch: it is laid out as Expand lays it out.
+  const wide = expanded || fullscreen.on
+  const toggleExpanded = onExpandedChange && (() => onExpandedChange(!expanded))
+  const columns = useRef<HTMLDivElement>(null)
+  const fill = useFillHeight(columns, wide, { minWidth: 701, bottomGap: 16 })
+
+  useShortcuts({
+    ...(toggleExpanded && { e: toggleExpanded }),
+    ...(fullscreen.supported && { 'shift+f': fullscreen.toggle }),
+  })
   const courseUrl = session?.description.match(URL_PATTERN)?.[0]
 
   async function finish(event: PlanEvent) {
@@ -128,148 +148,173 @@ export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, he
   }
 
   return (
-    <div className="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
-        <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
-          {m.focus()}
-          <Hint title={m.help_focus_title()} text={m.help_focus()} />
-        </h1>
-        <p className="mt-1 text-[14px] text-muted">{m.focus_hint()}</p>
-      </PageHeader>
+    <div
+      className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1240px] pt-3.5 pb-10 md:pt-5 md:pb-12'}`}
+    >
+      {!wide && (
+        <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
+          <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
+            {m.focus()}
+            <Hint title={m.help_focus_title()} text={m.help_focus()} />
+          </h1>
+          <p className="mt-1 text-[14px] text-muted">{m.focus_hint()}</p>
+        </PageHeader>
+      )}
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_340px]">
+      <div ref={columns} className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_340px]">
         <section
-          className="grid min-w-0 justify-items-center gap-5 rounded-2xl border border-line bg-surface px-5 py-10 text-center md:py-14"
-          style={calendarColor(color)}
+          className={`flex min-w-0 flex-col gap-4 rounded-2xl border border-line bg-surface px-5 pb-10 md:pb-14 ${toggleExpanded ? 'pt-3' : 'pt-10 md:pt-14'}`}
+          style={{ ...calendarColor(color), minHeight: fill }}
         >
-          {session ? (
-            <>
-              <div className="min-w-0">
-                <h2 className="flex items-baseline justify-center gap-2.5 text-[19px]/[1.35] font-semibold">
-                  <Dot className="size-2.5 flex-none -translate-y-px" />
-                  <span className="min-w-0">{session.title}</span>
-                </h2>
-                <p className="mt-1.5 text-[13.5px] text-muted tabular-nums">
-                  {when(session)} · {m.focus_planned({ time: fmtDuration(planned) })}
-                </p>
-              </div>
+          {toggleExpanded && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <ScreenButtons
+                expanded={expanded}
+                expandHint={m.focus_expand_hint()}
+                onToggleExpanded={toggleExpanded}
+                fullscreen={fullscreen.supported ? fullscreen : undefined}
+                className="py-1! text-[13px]"
+              />
+            </div>
+          )}
+          <div className="grid flex-1 content-center justify-items-center gap-5 text-center">
+            {session ? (
+              <>
+                <div className="min-w-0">
+                  <h2 className="flex items-baseline justify-center gap-2.5 text-[19px]/[1.35] font-semibold">
+                    <Dot className="size-2.5 flex-none -translate-y-px" />
+                    <span className="min-w-0">{session.title}</span>
+                  </h2>
+                  <p className="mt-1.5 text-[13.5px] text-muted tabular-nums">
+                    {when(session)} · {m.focus_planned({ time: fmtDuration(planned) })}
+                  </p>
+                </div>
 
-              <div>
-                <p
-                  role="timer"
-                  aria-label={m.focus_elapsed()}
-                  className="font-display text-[72px]/[1] font-semibold tracking-[-0.02em] tabular-nums md:text-[104px]/[1]"
-                >
-                  {stopwatchText(elapsed)}
-                </p>
-                <div className="mx-auto mt-5 h-1.5 w-[min(420px,70vw)] overflow-hidden rounded bg-line-soft">
-                  <i
-                    className={`block h-full rounded ${elapsed > planned ? 'bg-today' : 'bg-cal'}`}
-                    style={{ width: `${Math.min(100, (elapsed / planned) * 100)}%` }}
+                <div>
+                  <p
+                    role="timer"
+                    aria-label={m.focus_elapsed()}
+                    className="font-display text-[72px]/[1] font-semibold tracking-[-0.02em] tabular-nums md:text-[104px]/[1]"
+                  >
+                    {stopwatchText(elapsed)}
+                  </p>
+                  <div className="mx-auto mt-5 h-1.5 w-[min(420px,70vw)] overflow-hidden rounded bg-line-soft">
+                    <i
+                      className={`block h-full rounded ${elapsed > planned ? 'bg-today' : 'bg-cal'}`}
+                      style={{ width: `${Math.min(100, (elapsed / planned) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-2.5 text-[13px] text-muted tabular-nums">
+                    {elapsed > planned
+                      ? m.focus_over({ time: fmtDuration(elapsed - planned) })
+                      : m.focus_left({ time: fmtDuration(planned - elapsed) })}
+                  </p>
+                  <p className="mt-1 text-[14px] font-medium" role="status">
+                    {breaks.due && m.focus_break_due({ time: fmtDuration(breaks.rest) })}
+                    {breaks.rested && m.focus_break_over()}
+                  </p>
+                </div>
+
+                {(breaks.due || breaks.resting !== null) && (
+                  <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl bg-surface-2 p-2">
+                    {breaks.resting === null ? (
+                      <>
+                        <Button
+                          primary
+                          className="flex items-center gap-1.5"
+                          onClick={() => {
+                            watch.pause()
+                            breaks.take()
+                          }}
+                        >
+                          <Coffee size={16} aria-hidden /> {m.focus_break_take()}
+                        </Button>
+                        <Button onClick={breaks.skip}>{m.focus_break_skip()}</Button>
+                      </>
+                    ) : (
+                      <>
+                        <span
+                          role="timer"
+                          className="flex items-center gap-1.5 px-2 text-[14px] font-medium tabular-nums"
+                        >
+                          <Coffee size={16} aria-hidden /> {m.focus_break_left({ time: stopwatchText(breaks.resting) })}
+                        </span>
+                        <Button onClick={() => watch.start(session.uid)}>{m.focus_break_end()}</Button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap justify-center gap-2">
+                  {running ? (
+                    <Button className="flex items-center gap-1.5" onClick={watch.pause}>
+                      <Pause size={16} aria-hidden /> {m.focus_pause()}
+                    </Button>
+                  ) : (
+                    <Button primary className="flex items-center gap-1.5" onClick={() => watch.start(session.uid)}>
+                      <Play size={16} aria-hidden /> {elapsed ? m.focus_resume() : m.focus_start()}
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <Button
+                      className="flex items-center gap-1.5 border-done text-done-ink"
+                      disabled={busy || !elapsed}
+                      onClick={() => void finish(session)}
+                    >
+                      <Check size={16} aria-hidden />
+                      {m.focus_finish({ time: fmtDuration(loggedMinutes(elapsed) * MINUTE) })}
+                    </Button>
+                  )}
+                  <Button
+                    className="grid place-items-center px-2.5"
+                    aria-label={m.focus_reset()}
+                    title={m.focus_reset()}
+                    disabled={!elapsed}
+                    onClick={watch.reset}
+                  >
+                    <RotateCcw size={16} aria-hidden />
+                  </Button>
+                </div>
+                {courseUrl && (
+                  <a
+                    className="flex items-center gap-1.5 text-[13.5px] text-focus hover:underline"
+                    href={courseUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {m.open_course()} <ExternalLink size={14} aria-hidden />
+                  </a>
+                )}
+                <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 text-[13px]">
+                  <span className="text-muted" aria-hidden>
+                    {m.focus_breaks()}
+                  </span>
+                  <Segmented
+                    label={m.focus_breaks()}
+                    value={breaks.rhythm}
+                    options={rhythms}
+                    onChange={breaks.choose}
                   />
                 </div>
-                <p className="mt-2.5 text-[13px] text-muted tabular-nums">
-                  {elapsed > planned
-                    ? m.focus_over({ time: fmtDuration(elapsed - planned) })
-                    : m.focus_left({ time: fmtDuration(planned - elapsed) })}
-                </p>
-                <p className="mt-1 text-[14px] font-medium" role="status">
-                  {breaks.due && m.focus_break_due({ time: fmtDuration(breaks.rest) })}
-                  {breaks.rested && m.focus_break_over()}
-                </p>
-              </div>
-
-              {(breaks.due || breaks.resting !== null) && (
-                <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl bg-surface-2 p-2">
-                  {breaks.resting === null ? (
-                    <>
-                      <Button
-                        primary
-                        className="flex items-center gap-1.5"
-                        onClick={() => {
-                          watch.pause()
-                          breaks.take()
-                        }}
-                      >
-                        <Coffee size={16} aria-hidden /> {m.focus_break_take()}
-                      </Button>
-                      <Button onClick={breaks.skip}>{m.focus_break_skip()}</Button>
-                    </>
-                  ) : (
-                    <>
-                      <span
-                        role="timer"
-                        className="flex items-center gap-1.5 px-2 text-[14px] font-medium tabular-nums"
-                      >
-                        <Coffee size={16} aria-hidden /> {m.focus_break_left({ time: stopwatchText(breaks.resting) })}
-                      </span>
-                      <Button onClick={() => watch.start(session.uid)}>{m.focus_break_end()}</Button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <div className="flex flex-wrap justify-center gap-2">
-                {running ? (
-                  <Button className="flex items-center gap-1.5" onClick={watch.pause}>
-                    <Pause size={16} aria-hidden /> {m.focus_pause()}
-                  </Button>
-                ) : (
-                  <Button primary className="flex items-center gap-1.5" onClick={() => watch.start(session.uid)}>
-                    <Play size={16} aria-hidden /> {elapsed ? m.focus_resume() : m.focus_start()}
-                  </Button>
-                )}
-                {canEdit && (
-                  <Button
-                    className="flex items-center gap-1.5 border-done text-done-ink"
-                    disabled={busy || !elapsed}
-                    onClick={() => void finish(session)}
-                  >
-                    <Check size={16} aria-hidden />
-                    {m.focus_finish({ time: fmtDuration(loggedMinutes(elapsed) * MINUTE) })}
-                  </Button>
-                )}
-                <Button
-                  className="grid place-items-center px-2.5"
-                  aria-label={m.focus_reset()}
-                  title={m.focus_reset()}
-                  disabled={!elapsed}
-                  onClick={watch.reset}
-                >
-                  <RotateCcw size={16} aria-hidden />
-                </Button>
-              </div>
-              {courseUrl && (
-                <a
-                  className="flex items-center gap-1.5 text-[13.5px] text-focus hover:underline"
-                  href={courseUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {m.open_course()} <ExternalLink size={14} aria-hidden />
-                </a>
-              )}
-              <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 text-[13px]">
-                <span className="text-muted" aria-hidden>
-                  {m.focus_breaks()}
-                </span>
-                <Segmented label={m.focus_breaks()} value={breaks.rhythm} options={rhythms} onChange={breaks.choose} />
-              </div>
-            </>
-          ) : (
-            <p className="text-[15px] text-muted">{m.focus_empty()}</p>
-          )}
-          {error && (
-            <p className="text-[13px] text-today-ink" role="alert">
-              {error}
+              </>
+            ) : (
+              <p className="text-[15px] text-muted">{m.focus_empty()}</p>
+            )}
+            {error && (
+              <p className="text-[13px] text-today-ink" role="alert">
+                {error}
+              </p>
+            )}
+            <p className="min-h-5 text-[13px] text-done-ink" role="status">
+              {logged && m.focus_logged({ title: logged.title, time: fmtDuration(logged.minutes * MINUTE) })}
             </p>
-          )}
-          <p className="min-h-5 text-[13px] text-done-ink" role="status">
-            {logged && m.focus_logged({ title: logged.title, time: fmtDuration(logged.minutes * MINUTE) })}
-          </p>
+          </div>
         </section>
 
-        <aside className="min-w-0 rounded-2xl border border-line bg-surface p-4">
+        <aside
+          className="min-w-0 overflow-y-auto rounded-2xl border border-line bg-surface p-4"
+          style={fill === undefined ? undefined : { maxHeight: fill }}
+        >
           <h2 className="text-[12px] font-semibold tracking-wide text-muted uppercase">{m.focus_queue()}</h2>
           <ul className="mt-2 grid gap-1">
             {listed.map((e) => (

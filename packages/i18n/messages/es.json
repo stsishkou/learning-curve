@@ -512,6 +512,7 @@
   "reminders_blocked": "El navegador no permite notificaciones para este sitio. Permítelas en los ajustes del sitio y activa los avisos de nuevo.",
   "focus": "Enfoque",
   "focus_hint": "Una sesión y un cronómetro: el tiempo que lleva de verdad se anota en el plan.",
+  "focus_expand_hint": "El cronómetro en toda la ventana: sin encabezado ni navegación",
   "focus_planned": "previsto {time}",
   "focus_elapsed": "Tiempo transcurrido",
   "focus_left": "Quedan {time}",
