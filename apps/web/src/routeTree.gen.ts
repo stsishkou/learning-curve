@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as FocusRouteImport } from './routes/focus'
+import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as ApiIcsZipRouteImport } from './routes/api/ics-zip'
 import { Route as ApiPlanRouteImport } from './routes/api/plan'
 import { Route as ApiPlanGuideRouteImport } from './routes/api/plan-guide'
@@ -34,6 +35,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const FocusRoute = FocusRouteImport.update({
   id: '/focus',
   path: '/focus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TimelineRoute = TimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIcsZipRoute = ApiIcsZipRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/focus': typeof FocusRoute
+  '/timeline': typeof TimelineRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
   '/api/plan-guide': typeof ApiPlanGuideRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/focus': typeof FocusRoute
+  '/timeline': typeof TimelineRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
   '/api/plan-guide': typeof ApiPlanGuideRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/focus': typeof FocusRoute
+  '/timeline': typeof TimelineRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
   '/api/plan-guide': typeof ApiPlanGuideRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/focus'
+    | '/timeline'
     | '/api/ics-zip'
     | '/api/plan'
     | '/api/plan-guide'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/focus'
+    | '/timeline'
     | '/api/ics-zip'
     | '/api/plan'
     | '/api/plan-guide'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/focus'
+    | '/timeline'
     | '/api/ics-zip'
     | '/api/plan'
     | '/api/plan-guide'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   FocusRoute: typeof FocusRoute
+  TimelineRoute: typeof TimelineRoute
   ApiIcsZipRoute: typeof ApiIcsZipRoute
   ApiPlanRoute: typeof ApiPlanRoute
   ApiPlanGuideRoute: typeof ApiPlanGuideRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/focus'
       fullPath: '/focus'
       preLoaderRoute: typeof FocusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/timeline': {
+      id: '/timeline'
+      path: '/timeline'
+      fullPath: '/timeline'
+      preLoaderRoute: typeof TimelineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ics-zip': {
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   FocusRoute: FocusRoute,
+  TimelineRoute: TimelineRoute,
   ApiIcsZipRoute: ApiIcsZipRoute,
   ApiPlanRoute: ApiPlanRoute,
   ApiPlanGuideRoute: ApiPlanGuideRoute,

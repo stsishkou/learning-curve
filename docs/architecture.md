@@ -8,7 +8,7 @@ is a package in `packages/`.
 apps/
   web/                 TanStack Start shell: routes, server functions, HTML document. Composes the modules.
 modules/               microfrontends, composed at build time
-  planner/             the planner page: week grid, agenda, budget, runway, timeline, event editing
+  planner/             the planner page (week grid, agenda, budget, runway, event editing), the timeline and focus pages
   calendar-export/     the export dialog (.ics, zip, combined calendar)
   dashboard/           the progress page at /dashboard: stat tiles and charts, read-only
 packages/

@@ -16,9 +16,16 @@ export const STAND_URL: string | undefined =
 export function ShellAside() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 md:justify-end">
-      <nav className="flex gap-1.5" aria-label={m.nav()}>
+      {/* Scrolls sideways on a phone rather than push the page wider than the screen. */}
+      <nav
+        className="-my-1 flex max-w-full min-w-0 [scrollbar-width:none] gap-1.5 overflow-x-auto py-1"
+        aria-label={m.nav()}
+      >
         <Link to="/" className={TAB} activeOptions={{ exact: true, includeSearch: false }}>
           {m.nav_plan()}
+        </Link>
+        <Link to="/timeline" className={TAB}>
+          {m.timeline()}
         </Link>
         <Link to="/focus" className={TAB}>
           {m.focus()}

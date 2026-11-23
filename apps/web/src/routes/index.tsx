@@ -31,7 +31,8 @@ export const Route = createFileRoute('/')({
 })
 
 /** What the shell owns and offers in the planner's command palette: the theme and the language. */
-const shellCommands = (open: (to: '/dashboard' | '/focus') => void): PlannerCommand[] => [
+const shellCommands = (open: (to: '/dashboard' | '/focus' | '/timeline') => void): PlannerCommand[] => [
+  { id: 'timeline', group: m.nav(), label: m.timeline(), run: () => open('/timeline') },
   { id: 'focus', group: m.nav(), label: m.focus(), run: () => open('/focus') },
   { id: 'dashboard', group: m.nav(), label: m.dashboard(), run: () => open('/dashboard') },
   ...(STAND_URL

@@ -163,13 +163,17 @@ a Husky `commit-msg` hook checks them with commitlint.
   history step. Each calendar can have its own deadline, set, moved or cleared in the same dialog and kept as the
   calendar's milestone. The runway, the goals, the forecast and Catch up use the nearest one. How the re-balance
   chooses, with a worked example: [docs/rebalancing.md](docs/rebalancing.md).
-- **Timeline**: a lane per calendar under the header, in its colour: its sessions from the first to the last
-  (done, open, missed), the spare days before its deadline (◆) or the late ones after it, and today. Drag a lane to
-  move its open sessions by whole weeks: stored at once with Undo, or shown in Reschedule first when the move breaks
-  a rule. Drag its end to re-balance the course to finish by that day, shown before it is stored; drag ◆ to move the
-  deadline, and the Undo bar offers to re-balance to it. A click opens Reschedule for the calendar; the end and ◆
-  also move with the arrow keys and Enter. The lanes follow the calendar filter; the strip's `⋮` puts it above or
-  below the header or hides it (remembered per browser), and `⋮` → `Timeline` brings it back.
+- **Timeline**: `/timeline` (the `Timeline` tab) is a lane per course, in its colour: its sessions from the first
+  to the last (done, open, missed), the spare days before its deadline (◆) or the late ones after it, and today.
+  The whole plan fits the width; `Month` and `Week` zoom in and scroll, `Today` jumps back. Drag a lane to move its
+  open sessions by whole weeks, its end to re-balance the course to finish by that day, ◆ to move the deadline; the
+  end and ◆ also move with the arrow keys and Enter. Or pick a course and change it on the panel beside the chart,
+  which shows its dates, deadline and spare days now and in the draft; `More options…` opens Reschedule for it.
+  Nothing is stored on a drop: changes gather in a draft drawn over the plan as it is (a dashed line where the
+  course was, moved sessions ringed, the days it moves by), and the bar at the bottom counts the courses and
+  sessions it changes and the rules it breaks. `Review` lists every session old → new, `Discard` drops the draft and
+  `Apply` stores it in one go, each change a history step, with Undo for all of them. A re-balance is worked out on
+  the server while the course says so; Apply waits for it.
 - **Controls**: the toolbar keeps the view switch, the week navigation (the title opens a date picker), search,
   undo/redo and `＋ Event`; History, Trash, Reschedule, Calendars and Shortcuts live in the `⋮` menu, which
   on a phone also holds search, undo/redo and the view toggles.
@@ -365,10 +369,10 @@ checks that the schemas, the examples of the guide and the parser agree.
 
 ```
 apps/web/                    TanStack Start shell
-  src/routes/                index.tsx (planner; ?week=YYYY-MM-DD&view=day|week|month|year|list), focus.tsx,
-                             dashboard.tsx, api/ (plan, ics, ics-zip)
+  src/routes/                index.tsx (planner; ?week=YYYY-MM-DD&view=day|week|month|year|list), timeline.tsx,
+                             focus.tsx, dashboard.tsx, api/ (plan, ics, ics-zip)
   src/server/                server functions: read the plan, save an event edit, re-balance a calendar
-modules/planner/             planner and focus pages, Feature-Sliced layers inside
+modules/planner/             planner, timeline and focus pages, Feature-Sliced layers inside
 modules/calendar-export/     export dialog
 packages/plan-domain/src/
   content.ts                 courses, sessions, calendars

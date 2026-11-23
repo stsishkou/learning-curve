@@ -100,3 +100,6 @@ Sizes and colours within the design system, the copy in ru/en/es, store keys, th
 - One entry per course, move and finish-by exclusive: they are the two modes of the Reschedule dialog.
 - The draft lives only on the page; a reload or leaving drops it (the browser asks first).
 - The timeline page edits the project plan; a plan file opened in the planner stays in the planner.
+- `More options…` on the panel opens Reschedule for the course, which stores at once and takes the course out of the
+  draft: it is the way to the pace and hours modes the draft does not have.
+- On a phone the sections of the app scroll sideways in one row rather than wrap into a taller sticky bar.
