@@ -1,1 +1,1 @@
-export { ExportCalendars } from './features/export-calendars'
+export { ExportDialog } from './features/export-calendars'

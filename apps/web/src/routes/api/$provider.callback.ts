@@ -29,7 +29,7 @@ export const Route = createFileRoute('/api/$provider/callback')({
             ended = outcome(err)
           }
         }
-        return Response.redirect(new URL(`/?${provider}=${ended}`, request.url).href, 302)
+        return Response.redirect(new URL(`/?link=${provider}&signin=${ended}`, request.url).href, 302)
       },
     },
   },

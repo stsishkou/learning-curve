@@ -1,9 +1,10 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { hm, startOfDay, toMinsk, type HistoryView, type PlanChange } from '@lc/plan-domain'
+import { hm, startOfDay, toMinsk, type CalendarProvider, type HistoryView, type PlanChange } from '@lc/plan-domain'
 import { Button, CalendarSync, FOOT, Kbd, META, Modal, Redo2, TITLE, Undo2 } from '@lc/ui'
 import { useState } from 'react'
 
+import { appTitle } from '../../../shared/lib'
 import { describeStep } from '../model/describe-step'
 
 interface Props {
@@ -44,7 +45,7 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
     }
   }
 
-  const point = (to: number, sign: string, label: string, time: string, google = false) => {
+  const point = (to: number, sign: string, label: string, time: string, source?: CalendarProvider) => {
     const current = to === cursor
     const undone = to > cursor
     return (
@@ -64,10 +65,10 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
           </span>
           <span className="flex min-w-0 items-center gap-1.5">
             <span className={`min-w-0 truncate ${undone ? 'line-through decoration-line' : ''}`}>{label}</span>
-            {google && (
-              <span className="flex flex-none text-muted" title={m.google_calendar()}>
+            {source && (
+              <span className="flex flex-none text-muted" title={appTitle(source)}>
                 <CalendarSync size={13} aria-hidden />
-                <span className="sr-only">{m.google_calendar()}</span>
+                <span className="sr-only">{appTitle(source)}</span>
               </span>
             )}
           </span>
@@ -93,7 +94,7 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
               const at = toMinsk(Date.parse(step.at))
               const today = now !== null && startOfDay(at) === startOfDay(now)
               const time = today ? hm(at) : fmtDay(at)
-              return point(i + 1, SIGN[step.change.type] ?? '✎', describeStep(step), time, step.source === 'google')
+              return point(i + 1, SIGN[step.change.type] ?? '✎', describeStep(step), time, step.source)
             })
             .toReversed()}
           {point(0, '○', m.history_start(), '')}

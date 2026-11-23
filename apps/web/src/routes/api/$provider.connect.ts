@@ -18,7 +18,7 @@ export const Route = createFileRoute('/api/$provider/connect')({
         try {
           return Response.redirect(connectAddress(provider, callback), 302)
         } catch {
-          return Response.redirect(new URL(`/?${provider}=failed`, request.url).href, 302)
+          return Response.redirect(new URL(`/?link=${provider}&signin=failed`, request.url).href, 302)
         }
       },
     },

@@ -15,29 +15,33 @@ import {
   toLocalString,
   ymd,
   zoneShift,
+  type CalendarProvider,
+  type HistoryStep,
   type Occurrence,
   type Plan,
   type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
-import { HelpToggle, Hint, useHelpMode } from '@lc/ui'
+import { Button, CalendarSync, HelpToggle, Hint, useHelpMode } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 
 import { Backlog } from '../../../features/backlog'
 import { BusyFeedDialog, useBusy, type BusySource } from '../../../features/busy-overlay'
+import {
+  attentionOf,
+  CalendarReviewBar,
+  CalendarReviewDialog,
+  CalendarSyncDialog,
+  IntegrationsDialog,
+  takenFromApps,
+  useCalendarSync,
+  useSeenFromApps,
+  type CalendarSyncSource,
+} from '../../../features/calendar-sync'
 import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
-import {
-  GoogleReviewBar,
-  GoogleReviewDialog,
-  GoogleSyncDialog,
-  takenFromGoogle,
-  useGoogleSync,
-  useSeenFromGoogle,
-  type GoogleSyncSource,
-} from '../../../features/google-sync'
 import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
@@ -48,7 +52,7 @@ import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
 import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
-import { eventKey, useModKey, useNow } from '../../../shared/lib'
+import { appName, eventKey, useModKey, useNow } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
 import { BudgetLine } from '../../../widgets/budget-panel'
 import { MonthGrid } from '../../../widgets/month-grid'
@@ -93,13 +97,30 @@ interface Props {
   onFocus?: (uid: string) => void
   /** Present when the host can read the person's own calendar: its busy time is drawn behind the plan */
   busy?: BusySource
-  /** Present when the host can keep the plan in Google Calendar and read edits made there back */
-  google?: GoogleSyncSource | undefined
+  /** The calendar apps the host can keep the plan in and read edits made there back from; absent where it cannot */
+  sync?: CalendarSyncSource[] | undefined
+  /** The export dialog, from the module that writes the files: the calendar integrations offer it when present */
+  renderExport?:
+    | ((dialog: { plan: Plan; hidden: ReadonlySet<string>; open: boolean; onClose: () => void }) => ReactNode)
+    | undefined
   /** Host actions listed in the command palette, such as the theme */
   commands?: Command[]
 }
 
 const NO_CALENDARS: ReadonlySet<string> = new Set()
+const NO_APPS: readonly CalendarSyncSource[] = []
+
+/** What the notice says about the latest edits taken from calendar apps, oldest first. */
+function takenLabel(steps: HistoryStep[]): string {
+  const [first] = steps
+  const apps = new Set(steps.map((step) => step.source))
+  const [source] = apps
+  if (!first || apps.size > 1 || !source) return m.sync_took_apps({ count: steps.length })
+  const app = appName(source)
+  return steps.length > 1
+    ? m.sync_took_many({ app, count: steps.length })
+    : m.sync_took_one({ app, what: describeStep(first) })
+}
 
 /**
  * The whole planner: the toolbar, the calendar in one of its views, the side panel and every dialog. It loads and
@@ -118,7 +139,8 @@ export function PlannerPage({
   renderActions,
   onFocus,
   busy,
-  google,
+  sync,
+  renderExport,
   commands,
 }: Props) {
   const now = useNow()
@@ -129,14 +151,16 @@ export function PlannerPage({
   const nav = usePlannerView(plan, search, onSearchChange)
   const { view, expanded, weekStart } = nav
   const quiet = useQuietChange(session)
-  // A sign-in to Google comes back to the page with its outcome: the dialog shows how it went.
-  const dialogs = useDialogFlags<DialogName>(search.google ? ['google'] : [])
-  const googleSync = useGoogleSync(google)
-  const googleStatus = googleSync.status
-  // Edits from Google come in by themselves; the latest ones get the same bar as a change made here.
-  const fromGoogle = takenFromGoogle(session.history)
-  const seenGoogle = useSeenFromGoogle(fromGoogle)
-  const [onlyFromGoogle, ...moreFromGoogle] = fromGoogle
+  // A sign-in to a calendar app comes back to the page with its outcome: that app's dialog shows how it went.
+  const dialogs = useDialogFlags<DialogName>(search.link ? ['sync'] : [])
+  const [shownApp, setShownApp] = useState<CalendarProvider | null>(search.link ?? null)
+  const apps = useCalendarSync(sync ?? NO_APPS)
+  const shownSource = sync?.find((source) => source.status.provider === shownApp)
+  const shownStatus = apps.statuses.find((status) => status.provider === shownApp)
+  const attention = apps.statuses.some((status) => attentionOf(status) !== null)
+  // Edits from the apps come in by themselves; the latest ones get the same bar as a change made here.
+  const fromApps = takenFromApps(session.history)
+  const seenApps = useSeenFromApps(fromApps)
   const drafting = useEventDraft({ plan, hidden, now, first: nav.grid.start, days: nav.grid.days, canEdit })
 
   const [zone, setZone] = useSecondZone()
@@ -250,8 +274,7 @@ export function PlannerPage({
     hiddenCount: hidden.size,
     history: { cursor, total: steps.length, ...quiet },
     secondZone: secondZone?.label,
-    busy: busyAction,
-    google: googleStatus ? { waiting: googleStatus.inbox.length } : undefined,
+    integrations: { waiting: apps.held.length },
     reminders: reminders.supported ? reminders : undefined,
     help: { on: helpOn, toggle: toggleHelp },
     trashCount,
@@ -317,6 +340,18 @@ export function PlannerPage({
               onApply={canEdit ? session.changeAll : undefined}
             />
             {renderActions?.({ plan, hidden })}
+            <Button
+              className="relative flex items-center justify-center gap-1.5"
+              onClick={() => dialogs.show('integrations')}
+            >
+              <CalendarSync size={16} aria-hidden /> {m.integrations()}
+              {attention && (
+                <span
+                  aria-hidden
+                  className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-bg bg-today"
+                />
+              )}
+            </Button>
           </PlannerHeader>
 
           <Runway plan={plan} now={now} onSelect={select} />
@@ -357,8 +392,8 @@ export function PlannerPage({
         <Backlog plan={plan} events={overdue} onSelect={select} onCarry={setCarried} />
       )}
 
-      {canEdit && googleStatus && googleStatus.inbox.length > 0 && (
-        <GoogleReviewBar count={googleStatus.inbox.length} onReview={() => dialogs.show('googleReview')} />
+      {canEdit && apps.held.length > 0 && (
+        <CalendarReviewBar count={apps.held.length} onReview={() => dialogs.show('syncReview')} />
       )}
 
       {offer && (
@@ -385,16 +420,12 @@ export function PlannerPage({
           {quiet.saveError}
         </p>
       )}
-      {canEdit && onlyFromGoogle && seenGoogle.unseen ? (
+      {canEdit && fromApps.length > 0 && seenApps.unseen ? (
         <UndoBar
-          label={
-            moreFromGoogle.length
-              ? m.google_took_many({ count: fromGoogle.length })
-              : m.google_took_one({ what: describeStep(onlyFromGoogle) })
-          }
-          onUndo={() => quiet.back(fromGoogle.length)}
+          label={takenLabel(fromApps)}
+          onUndo={() => quiet.back(fromApps.length)}
           onHistory={() => dialogs.show('history')}
-          onDismiss={seenGoogle.dismiss}
+          onDismiss={seenApps.dismiss}
         />
       ) : (
         quiet.lastStep && (
@@ -566,36 +597,51 @@ export function PlannerPage({
         onSave={busy?.save}
         onClose={() => dialogs.hide('busy')}
       />
-      {google && googleStatus && (
-        <>
-          <GoogleSyncDialog
-            open={dialogs.isOpen('google')}
-            status={googleStatus}
-            connectUrl={google.connectUrl}
-            callbackPath={google.callbackPath}
-            ended={search.google ?? null}
-            working={googleSync.working}
-            error={googleSync.error}
-            onSaveClient={google.saveClient}
-            onSync={googleSync.sync}
-            onDisconnect={google.disconnect}
-            onClose={() => {
-              dialogs.hide('google')
-              if (search.google) onSearchChange({ google: undefined })
-            }}
-          />
-          <GoogleReviewDialog
-            open={dialogs.isOpen('googleReview') && googleStatus.inbox.length > 0}
-            plan={plan}
-            items={googleStatus.inbox}
-            working={googleSync.working}
-            error={googleSync.error}
-            onAccept={googleSync.accept}
-            onKeep={googleSync.reject}
-            onClose={() => dialogs.hide('googleReview')}
-          />
-        </>
+      <IntegrationsDialog
+        open={dialogs.isOpen('integrations')}
+        apps={apps.statuses}
+        working={apps.working}
+        busy={busyAction}
+        onExport={renderExport && (() => dialogs.show('export'))}
+        onApp={(provider) => {
+          setShownApp(provider)
+          dialogs.show('sync')
+        }}
+        onReview={() => dialogs.show('syncReview')}
+        onBusy={() => dialogs.show('busy')}
+        onClose={() => dialogs.hide('integrations')}
+      />
+      {renderExport?.({ plan, hidden, open: dialogs.isOpen('export'), onClose: () => dialogs.hide('export') })}
+      {shownSource && shownStatus && (
+        <CalendarSyncDialog
+          // Each app's form starts empty.
+          key={shownStatus.provider}
+          open={dialogs.isOpen('sync')}
+          status={shownStatus}
+          connectUrl={shownSource.connectUrl}
+          callbackPath={shownSource.callbackPath}
+          ended={search.link === shownStatus.provider ? (search.signin ?? null) : null}
+          working={apps.working(shownStatus.provider)}
+          error={apps.error(shownStatus.provider)}
+          onSaveClient={shownSource.saveClient}
+          onSync={() => apps.sync(shownStatus.provider)}
+          onDisconnect={shownSource.disconnect}
+          onClose={() => {
+            dialogs.hide('sync')
+            if (search.link) onSearchChange({ link: undefined, signin: undefined })
+          }}
+        />
       )}
+      <CalendarReviewDialog
+        open={dialogs.isOpen('syncReview') && apps.held.length > 0}
+        plan={plan}
+        items={apps.held}
+        working={apps.working()}
+        error={apps.error()}
+        onAccept={apps.accept}
+        onKeep={apps.reject}
+        onClose={() => dialogs.hide('syncReview')}
+      />
       <CommandPalette
         open={dialogs.isOpen('palette')}
         plan={plan}

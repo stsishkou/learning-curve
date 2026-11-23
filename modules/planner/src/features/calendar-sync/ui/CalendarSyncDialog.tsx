@@ -1,18 +1,21 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { hm, toMinsk } from '@lc/plan-domain'
+import { hm, toMinsk, type CalendarProvider } from '@lc/plan-domain'
 import { Button, FOOT, META, Modal, TITLE } from '@lc/ui'
-import { useState, useSyncExternalStore, type ReactNode, type SubmitEvent } from 'react'
+import { useState, useSyncExternalStore, type ComponentType, type ReactNode, type SubmitEvent } from 'react'
 
-import type { GoogleSyncStatus, SignInEnd } from '../model/source'
-import { CONSOLE_PAGES, ConsoleLink, GoogleSetup, NOTE } from './GoogleSetup'
+import { appName, appTitle } from '../../../shared/lib'
+import type { CalendarSyncStatus, SignInEnd } from '../model/source'
+import { CONSOLE_PAGES, GoogleSetup } from './GoogleSetup'
+import { OutlookSetup } from './OutlookSetup'
+import { NOTE, PageLink, type SetupProps } from './setup-parts'
 
 interface Props {
   open: boolean
-  status: GoogleSyncStatus
-  /** Where the browser goes to sign in to Google */
+  status: CalendarSyncStatus
+  /** Where the browser goes to sign in to the app */
   connectUrl: string
-  /** Where Google's sign-in comes back, on the address the planner is open at */
+  /** Where the app's sign-in comes back, on the address the planner is open at */
   callbackPath: string
   /** How the sign-in that just came back ended; null when none did */
   ended: SignInEnd | null
@@ -28,7 +31,12 @@ interface Props {
   onClose: () => void
 }
 
-const moment = (utc: number) => `${fmtDay(toMinsk(utc))} ${hm(toMinsk(utc))}`
+const SETUP: Record<CalendarProvider, { Steps: ComponentType<SetupProps>; hint: () => string }> = {
+  google: { Steps: GoogleSetup, hint: m.google_setup_hint },
+  outlook: { Steps: OutlookSetup, hint: m.outlook_setup_hint },
+}
+
+export const moment = (utc: number) => `${fmtDay(toMinsk(utc))} ${hm(toMinsk(utc))}`
 const CONNECT =
   'rounded-[10px] border border-ink bg-ink px-3.5 py-2 font-medium whitespace-nowrap text-bg shadow-card hover:opacity-90'
 // The page's own address is known only in the browser, and does not change while the page is open.
@@ -45,23 +53,30 @@ const useOrigin = () =>
   )
 
 /** What went wrong, in words that say what to do about it. */
-function problemNote(code: string, connectUrl: string): { text: ReactNode; quiet?: boolean } {
+function problemNote(
+  code: string,
+  provider: CalendarProvider,
+  connectUrl: string,
+): { text: ReactNode; quiet?: boolean } {
+  const app = appName(provider)
   switch (code) {
     case 'reconnect':
-      return { text: m.google_reconnect() }
+      return { text: m.sync_reconnect({ app }) }
     case 'client':
-      return { text: m.google_problem_client() }
+      return { text: m.sync_problem_client({ app }) }
     case 'denied':
-      return { text: m.google_denied() }
+      return { text: m.sync_denied({ app }) }
     case 'failed':
-      return { text: m.google_connect_failed() }
+      return { text: m.sync_connect_failed({ app }) }
     case 'offline':
-      return { text: m.google_problem_offline(), quiet: true }
+      return { text: m.sync_problem_offline({ app }), quiet: true }
+    case 'mailbox':
+      return { text: m.outlook_problem_mailbox() }
     case 'api-off':
       return {
         text: (
           <>
-            {m.google_problem_api()} <ConsoleLink href={CONSOLE_PAGES.api}>{m.google_turn_on()}</ConsoleLink>
+            {m.google_problem_api()} <PageLink href={CONSOLE_PAGES.api}>{m.google_turn_on()}</PageLink>
           </>
         ),
       }
@@ -69,26 +84,29 @@ function problemNote(code: string, connectUrl: string): { text: ReactNode; quiet
       return {
         text: (
           <>
-            {m.google_problem_scope()}{' '}
+            {m.sync_problem_scope({ app })}{' '}
             <a className="font-medium text-focus hover:underline" href={connectUrl}>
-              {m.google_connect()}
+              {m.sync_connect({ app })}
             </a>
           </>
         ),
       }
     default:
-      return { text: m.google_failed({ reason: code }) }
+      return { text: m.sync_failed({ reason: code }) }
   }
 }
 
 /**
- * Connects Google Calendar with the person's own OAuth client and shows how the sync stands. Without a client it walks
- * through making one, each step with its page of Google's console and the value to paste there; saving the client goes
- * straight on to Google's sign-in.
+ * Connects one calendar app with the person's own OAuth client and shows how its sync stands. Without a client it
+ * walks through making one, each step with its page of the app's console and the value to paste there; saving the
+ * client goes straight on to the app's sign-in.
  */
-export function GoogleSyncDialog(props: Props) {
+export function CalendarSyncDialog(props: Props) {
   const { open, status, connectUrl, callbackPath, ended, working, error, onSaveClient, onSync, onDisconnect, onClose } =
     props
+  const { provider } = status
+  const app = appName(provider)
+  const { Steps, hint } = SETUP[provider]
   const origin = useOrigin()
   const [id, setId] = useState('')
   const [secret, setSecret] = useState('')
@@ -126,16 +144,18 @@ export function GoogleSyncDialog(props: Props) {
   const round = status.error === 'reconnect' && connected ? null : status.error
   const code = failure || error ? 'call' : (signIn ?? round)
   const note =
-    code === 'call' ? { text: m.google_failed({ reason: failure || error }) } : code && problemNote(code, connectUrl)
+    code === 'call'
+      ? { text: m.sync_failed({ reason: failure || error }) }
+      : code && problemNote(code, provider, connectUrl)
 
   return (
     <Modal open={open} onClose={onClose} size={asking ? 'wide' : 'normal'}>
       <form onSubmit={submit}>
-        <h2 className={TITLE}>{m.google_calendar()}</h2>
-        <p className={META}>{asking ? m.google_setup_hint() : m.google_hint()}</p>
-        {!status.writable && <p className="mt-3 text-[13px] text-muted">{m.google_read_only()}</p>}
+        <h2 className={TITLE}>{appTitle(provider)}</h2>
+        <p className={META}>{asking ? hint() : m.sync_hint({ app })}</p>
+        {!status.writable && <p className="mt-3 text-[13px] text-muted">{m.sync_read_only({ app })}</p>}
         {asking && (
-          <GoogleSetup
+          <Steps
             callback={origin && `${origin}${callbackPath}`}
             id={id}
             secret={secret}
@@ -147,16 +167,16 @@ export function GoogleSyncDialog(props: Props) {
         )}
         {connected && (
           <div className="mt-3.5 grid gap-0.5 rounded-[10px] bg-surface-2 px-3.5 py-2.5 text-[14px]">
-            <p>{m.google_connected({ date: fmtDay(toMinsk(status.connectedAt ?? 0)) })}</p>
+            <p>{m.sync_connected({ date: fmtDay(toMinsk(status.connectedAt ?? 0)) })}</p>
             <p className="text-[13px] text-muted">
-              {m.google_counts({ calendars: status.calendars, events: status.events })}
+              {m.sync_counts({ calendars: status.calendars, events: status.events })}
             </p>
             <p className="text-[13px] text-muted">
               {working
-                ? m.google_syncing()
+                ? m.sync_syncing()
                 : status.lastRound
-                  ? m.google_last_sync({ when: moment(status.lastRound) })
-                  : m.google_not_synced()}
+                  ? m.sync_last_sync({ when: moment(status.lastRound) })
+                  : m.sync_not_synced()}
             </p>
           </div>
         )}
@@ -168,28 +188,28 @@ export function GoogleSyncDialog(props: Props) {
         <div className={FOOT}>
           {connected && (
             <Button className="mr-auto text-today-ink" disabled={busy} onClick={() => void attempt(onDisconnect)}>
-              {m.google_disconnect()}
+              {m.sync_disconnect()}
             </Button>
           )}
           {ready && (
             <Button className="mr-auto" onClick={() => setChanging(true)}>
-              {m.google_other_client()}
+              {m.sync_other_client()}
             </Button>
           )}
           <Button onClick={onClose}>{m.close()}</Button>
           {connected && (
             <Button primary disabled={working} onClick={onSync}>
-              {working ? m.google_syncing() : m.google_sync_now()}
+              {working ? m.sync_syncing() : m.sync_sync_now()}
             </Button>
           )}
           {asking && (
             <Button primary type="submit" disabled={busy || !id.trim() || !secret.trim()}>
-              {m.google_save_connect()}
+              {m.sync_save_connect()}
             </Button>
           )}
           {ready && (
             <a className={CONNECT} href={connectUrl}>
-              {m.google_connect()}
+              {m.sync_connect({ app })}
             </a>
           )}
         </div>

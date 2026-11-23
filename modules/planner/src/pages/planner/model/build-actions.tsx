@@ -7,7 +7,6 @@ import {
   Briefcase,
   Calendar,
   CalendarClock,
-  CalendarDays,
   CalendarSync,
   Clock,
   Globe,
@@ -35,8 +34,10 @@ export type DialogName =
   | 'shortcuts'
   | 'zone'
   | 'busy'
-  | 'google'
-  | 'googleReview'
+  | 'integrations'
+  | 'sync'
+  | 'syncReview'
+  | 'export'
 
 interface Context {
   nav: PlannerViewState
@@ -47,10 +48,8 @@ interface Context {
   history: { cursor: number; total: number; canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
   /** Name of the second time zone of the hour column, when one is chosen */
   secondZone?: string | undefined
-  /** Present when the host can read the person's own calendar: `host` is where the connected one lives */
-  busy?: { host: string | null } | undefined
-  /** Present when the host can keep the plan in Google Calendar: `waiting` edits made there wait for the person */
-  google?: { waiting: number } | undefined
+  /** The calendar integrations: `waiting` edits made in calendar apps wait for the person */
+  integrations: { waiting: number }
   /** Present where the browser can show notifications */
   reminders?: { on: boolean; toggle: () => void } | undefined
   /** The help marks next to the main features */
@@ -223,32 +222,15 @@ export function buildActions(ctx: Context): PlannerAction[] {
       menu: 'always',
       run: () => ctx.open('zone'),
     },
-    ...(ctx.busy
-      ? [
-          {
-            id: 'busy',
-            group: plan,
-            label: m.busy_calendar(),
-            icon: <CalendarDays {...ICON} />,
-            badge: ctx.busy.host ?? undefined,
-            menu: 'always' as const,
-            run: () => ctx.open('busy'),
-          },
-        ]
-      : []),
-    ...(ctx.google
-      ? [
-          {
-            id: 'google',
-            group: plan,
-            label: m.google_calendar(),
-            icon: <CalendarSync {...ICON} />,
-            badge: ctx.google.waiting ? String(ctx.google.waiting) : undefined,
-            menu: 'always' as const,
-            run: () => ctx.open('google'),
-          },
-        ]
-      : []),
+    {
+      id: 'integrations',
+      group: plan,
+      label: m.integrations_title(),
+      icon: <CalendarSync {...ICON} />,
+      badge: ctx.integrations.waiting ? String(ctx.integrations.waiting) : undefined,
+      menu: 'always',
+      run: () => ctx.open('integrations'),
+    },
     ...(ctx.reminders
       ? [
           {

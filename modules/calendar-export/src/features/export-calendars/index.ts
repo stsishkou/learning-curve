@@ -1,1 +1,1 @@
-export { ExportCalendars } from './ui/ExportCalendars'
+export { ExportDialog } from './ui/ExportDialog'

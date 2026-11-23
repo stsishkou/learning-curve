@@ -25,6 +25,7 @@ const HOWTO: Record<Provider, () => string> = {
   other: m.howto_other,
 }
 
+/** Downloads the plan's calendars as files to import once, with the steps for the app picked. */
 export function ExportDialog({
   plan,
   hidden,

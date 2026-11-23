@@ -1,15 +1,17 @@
 import { m } from '@lc/i18n/messages'
-import { previewUpdate, type InboxItem, type Plan, type PlanChange } from '@lc/plan-domain'
+import { previewUpdate, type Plan, type PlanChange } from '@lc/plan-domain'
 import { Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
 import { useMemo } from 'react'
 
+import { appName } from '../../../shared/lib'
 import { RuleWarningList } from '../../../shared/ui'
 import { describeProposal } from '../model/describe'
+import type { HeldEdit } from '../model/source'
 
 interface Props {
   open: boolean
   plan: Plan
-  items: InboxItem[]
+  items: HeldEdit[]
   /** A decision is being stored */
   working: boolean
   /** Why the last decision failed; empty when it did not */
@@ -20,11 +22,11 @@ interface Props {
 }
 
 /**
- * The edits made in Google Calendar that were not taken in by themselves, one row each: the planner changed the same
+ * The edits made in calendar apps that were not taken in by themselves, one row each: the planner changed the same
  * thing, or the plan cannot take them. Each shows what using it would change and the rules it would break; neither
  * choice is the default, since only the person knows which version stands.
  */
-export function GoogleReviewDialog({ open, plan, items, working, error, onAccept, onKeep, onClose }: Props) {
+export function CalendarReviewDialog({ open, plan, items, working, error, onAccept, onKeep, onClose }: Props) {
   const rows = useMemo(() => items.map((item) => describeProposal(plan, item)), [plan, items])
   const warnings = useMemo(() => {
     const changes = items.flatMap((item): PlanChange[] => (item.change ? [item.change] : []))
@@ -34,8 +36,8 @@ export function GoogleReviewDialog({ open, plan, items, working, error, onAccept
 
   return (
     <Modal open={open} onClose={onClose} size="wide">
-      <h2 className={TITLE}>{m.google_review_title()}</h2>
-      <p className={META}>{m.google_review_hint()}</p>
+      <h2 className={TITLE}>{m.sync_review_title()}</h2>
+      <p className={META}>{m.sync_review_hint()}</p>
       <ul className="mt-4 grid grid-cols-1 gap-2">
         {rows.map(({ item, event, detail, problem }) => (
           <li
@@ -46,21 +48,21 @@ export function GoogleReviewDialog({ open, plan, items, working, error, onAccept
             <span className="flex min-w-0 flex-1 basis-60 items-baseline gap-2">
               <Dot className="size-2 flex-none -translate-y-px" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{event?.title ?? m.google_unknown()}</span>
+                <span className="block truncate font-medium">{event?.title ?? m.sync_unknown()}</span>
                 <span className={`block text-[12.5px] ${problem ? 'text-today-ink' : 'text-muted'}`}>
                   {problem || detail}
                 </span>
                 {item.hold === 'both' && !problem && (
-                  <span className="block text-[12.5px] text-today-ink">{m.google_both()}</span>
+                  <span className="block text-[12.5px] text-today-ink">{m.sync_both()}</span>
                 )}
               </span>
             </span>
             <span className="flex flex-none gap-2">
               <Button disabled={working} onClick={() => onKeep([item.id])}>
-                {m.google_keep()}
+                {m.sync_keep()}
               </Button>
               <Button disabled={working || Boolean(problem)} onClick={() => onAccept([item.id])}>
-                {m.google_accept()}
+                {m.sync_accept({ app: appName(item.provider) })}
               </Button>
             </span>
           </li>
@@ -71,7 +73,7 @@ export function GoogleReviewDialog({ open, plan, items, working, error, onAccept
       </div>
       {error && (
         <p className="mt-2 text-[13px] text-today-ink" role="alert">
-          {m.google_failed({ reason: error })}
+          {m.sync_failed({ reason: error })}
         </p>
       )}
       <div className={FOOT}>
@@ -79,10 +81,10 @@ export function GoogleReviewDialog({ open, plan, items, working, error, onAccept
           {m.close()}
         </Button>
         <Button disabled={working || !items.length} onClick={() => onKeep(items.map((item) => item.id))}>
-          {m.google_keep_all()}
+          {m.sync_keep_all()}
         </Button>
         <Button disabled={working || !fitting.length} onClick={() => onAccept(fitting)}>
-          {m.google_accept_all()}
+          {m.sync_accept_all()}
         </Button>
       </div>
     </Modal>

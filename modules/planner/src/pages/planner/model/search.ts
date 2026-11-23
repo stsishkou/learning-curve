@@ -1,4 +1,6 @@
-import { SIGN_IN_ENDS, type SignInEnd } from '../../../features/google-sync'
+import { isCalendarProvider, type CalendarProvider } from '@lc/plan-domain'
+
+import { SIGN_IN_ENDS, type SignInEnd } from '../../../features/calendar-sync'
 
 export type PlannerView = 'day' | 'week' | 'month' | 'year' | 'list'
 export type PlannerZoom = 'compact' | 'large'
@@ -22,8 +24,10 @@ export interface PlannerSearch {
   hideDone?: true | undefined
   /** uid of the event whose dialog is open */
   event?: string | undefined
-  /** How a sign-in to Google that just came back went; the Google dialog opens to say so */
-  google?: SignInEnd | undefined
+  /** The calendar app a sign-in just came back from; its dialog opens to say how it went */
+  link?: CalendarProvider | undefined
+  /** How that sign-in went */
+  signin?: SignInEnd | undefined
 }
 
 const VIEWS: readonly unknown[] = ['day', 'week', 'month', 'year', 'list'] satisfies PlannerView[]
@@ -42,5 +46,6 @@ export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSear
   expanded: search.expanded === true ? true : undefined,
   hideDone: search.hideDone === true ? true : undefined,
   event: typeof search.event === 'string' && search.event ? search.event : undefined,
-  google: isSignInEnd(search.google) ? search.google : undefined,
+  link: isCalendarProvider(search.link) ? search.link : undefined,
+  signin: isSignInEnd(search.signin) ? search.signin : undefined,
 })

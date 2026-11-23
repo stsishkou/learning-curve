@@ -1,4 +1,4 @@
-import { ExportCalendars } from '@lc/calendar-export'
+import { ExportDialog } from '@lc/calendar-export'
 import { m } from '@lc/i18n/messages'
 import { locales, setLocale } from '@lc/i18n/runtime'
 import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planner'
@@ -23,9 +23,7 @@ export const Route = createFileRoute('/')({
   validateSearch: parsePlannerSearch,
   loader: async () => {
     const [state, feed, calendars] = await Promise.all([getPlanState(), getBusyFeed(), getCalendarStatuses()])
-    const google = calendars.find((status) => status.provider === 'google')
-    if (!google) throw new Error('No Google Calendar status')
-    return { state, feed, google }
+    return { state, feed, calendars }
   },
   component: PlannerRoute,
 })
@@ -51,10 +49,11 @@ const shellCommands = (open: (to: '/dashboard' | '/focus') => void): PlannerComm
 function PlannerRoute() {
   const navigate = Route.useNavigate()
   const router = useRouter()
-  const { state, feed, google } = Route.useLoaderData()
-  // A round that took edits made in Google into the plan changed it: the page reads it again.
-  const readAgain = async <T extends { takenAt: number | null }>(next: T) => {
-    if (next.takenAt !== google.takenAt) await router.invalidate()
+  const { state, feed, calendars } = Route.useLoaderData()
+  // A round that took edits made in the app into the plan changed it: the page reads it again.
+  const readAgain = async <T extends { provider: string; takenAt: number | null }>(next: T) => {
+    const before = calendars.find((status) => status.provider === next.provider)
+    if (next.takenAt !== before?.takenAt) await router.invalidate()
     return next
   }
   return (
@@ -94,7 +93,7 @@ function PlannerRoute() {
           : undefined
       }
       headerAside={<ShellAside />}
-      renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}
+      renderExport={(dialog) => <ExportDialog {...dialog} />}
       busy={{
         host: feed.host,
         load: (from, to) => getBusy({ data: { from, to } }),
@@ -105,26 +104,27 @@ function PlannerRoute() {
             }
           : undefined,
       }}
-      google={
-        google.writable
-          ? {
-              status: google,
-              connectUrl: '/api/google/connect',
-              callbackPath: '/api/google/callback',
-              // The dialog goes on to Google's sign-in right after, which reloads the page.
-              saveClient: async (id, secret) => {
-                await saveCalendarClientFn({ data: { provider: 'google', id, secret } })
-              },
-              sync: async () => readAgain(await syncCalendarNow({ data: 'google' })),
-              accept: async (ids) => readAgain(await acceptCalendarProposals({ data: { provider: 'google', ids } })),
-              reject: async (ids) => readAgain(await rejectCalendarProposals({ data: { provider: 'google', ids } })),
-              disconnect: async () => {
-                await disconnectCalendarFn({ data: 'google' })
-                await router.invalidate()
-              },
-            }
-          : undefined
-      }
+      sync={calendars
+        .filter((status) => status.writable)
+        .map((status) => {
+          const { provider } = status
+          return {
+            status,
+            connectUrl: `/api/${provider}/connect`,
+            callbackPath: `/api/${provider}/callback`,
+            // The dialog goes on to the app's sign-in right after, which reloads the page.
+            saveClient: async (id, secret) => {
+              await saveCalendarClientFn({ data: { provider, id, secret } })
+            },
+            sync: async () => readAgain(await syncCalendarNow({ data: provider })),
+            accept: async (ids) => readAgain(await acceptCalendarProposals({ data: { provider, ids } })),
+            reject: async (ids) => readAgain(await rejectCalendarProposals({ data: { provider, ids } })),
+            disconnect: async () => {
+              await disconnectCalendarFn({ data: provider })
+              await router.invalidate()
+            },
+          }
+        })}
       onFocus={(session) => void router.navigate({ to: '/focus', search: { session } })}
       commands={shellCommands((to) => void router.navigate({ to }))}
     />
