@@ -120,6 +120,12 @@ describe('roomOf', () => {
     expect(dayOf(r, '2026-12-08')?.slots.at(-1)).toBe(parseLocal('2026-12-08T13:30'))
   })
 
+  test('a slot outside the study hours that has passed is no room for its session', () => {
+    const early = event('c', '2026-12-07T08:00', '2026-12-07T09:00')
+    const r = room(plan([early, ...course]), {}, [], parseLocal('2026-12-07T10:00'))
+    expect(r.own.get(early.uid)?.outside).toBe(false)
+  })
+
   test('slots that have passed today are not room', () => {
     const r = room(busyTuesday, {}, [], parseLocal('2026-12-07T12:10'))
     expect(dayOf(r, '2026-12-07')?.slots).toEqual(at('2026-12-07T12:30', '2026-12-07T13:00', '2026-12-07T13:30'))

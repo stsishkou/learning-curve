@@ -34,7 +34,10 @@ export interface Room {
   deadline: string | null
   /** Study days taken whole by an all-day block of the busy calendar */
   daysOff: string[]
-  /** Each moving session's current slot; `outside` when it lies outside the study hours */
+  /**
+   * Each moving session's current slot. `outside`: it lies outside the study hours and is still ahead, so it is room
+   * for that session alone.
+   */
   own: Map<string, { day: string; start: number; end: number; outside: boolean }>
 }
 
@@ -130,7 +133,8 @@ export function roomOf(
       const start = parseLocal(e.start)
       const stop = parseLocal(e.end)
       const day = startOfDay(start)
-      return [e.uid, { day: ymd(start), start, end: stop, outside: start < day + open || stop > day + close }] as const
+      const outside = start >= now && (start < day + open || stop > day + close)
+      return [e.uid, { day: ymd(start), start, end: stop, outside }] as const
     }),
   )
   return { days, weeks, deadline, daysOff, own }
