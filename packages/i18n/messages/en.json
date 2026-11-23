@@ -577,7 +577,7 @@
   "help_weekly_title": "Load by week",
   "help_weekly": "A bar is the hours of one week and its colors are the courses. The line is the weekly budget: anything above it is overload. Hover a bar for the numbers; the same data is in the table under the chart.",
   "help_focus_title": "How focus works",
-  "help_focus": "One session and a stopwatch. Start runs the time and pause holds it; the stopwatch survives a reload. Finish marks the session done and logs the time spent in quarter-hour steps, which feeds your pace on the Progress page.",
+  "help_focus": "One session and a stopwatch. Start runs the time and pause holds it; the stopwatch survives a reload. Finish marks the session done and logs the time spent in quarter-hour steps, which feeds your pace on the Progress page. Breaks, once turned on, chime after 25 or 50 minutes of study and count the rest down.",
   "ai_templates": "Ready requests",
   "ai_tpl_course": "A new course",
   "ai_tpl_course_text": "Add the course <name and link>. Modules: <list with hours>. Sessions on Tuesdays and Thursdays at 19:00, starting on <date>, inside the weekly budget.",
@@ -652,5 +652,15 @@
   "grid_took": "took {time}",
   "history_split": "Split {name} into {count} parts",
   "split_in_two": "Split in two",
-  "split_hint": "The second part starts right after the first: drag it to another time"
+  "split_hint": "The second part starts right after the first: drag it to another time",
+  "focus_breaks": "Breaks",
+  "focus_breaks_off": "None",
+  "focus_breaks_short": "25 + 5 min",
+  "focus_breaks_long": "50 + 10 min",
+  "focus_break_due": "Time for a {time} break",
+  "focus_break_take": "Take a break",
+  "focus_break_skip": "Later",
+  "focus_break_left": "Break: {time} left",
+  "focus_break_end": "Back to work",
+  "focus_break_over": "The break is over: resume when you are ready."
 }

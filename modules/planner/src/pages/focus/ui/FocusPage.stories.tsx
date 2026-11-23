@@ -1,4 +1,5 @@
-import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
+import { isSession } from '@lc/plan-domain'
+import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
 
@@ -16,6 +17,10 @@ const meta = {
 const START = /Start|Resume|Начать|Продолжить/
 const PAUSE = /Pause|Пауза/
 const FINISH = /Finish|Готово/
+const TAKE_BREAK = /Take a break|Сделать перерыв/
+const BACK_TO_WORK = /Back to work|Вернуться к работе/
+
+const open = itemAt(fixturePlan.events.filter((e) => isSession(e) && !e.done))
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -41,3 +46,30 @@ export const Default: Story = {
 
 /** On a read-only host the time can be measured but not logged: there is no `Finish`. */
 export const ReadOnly: Story = { args: { canEdit: false } }
+
+/**
+ * With breaks of 25 + 5 minutes, 26 minutes in: the break is due. Taking it pauses the stopwatch and counts the rest
+ * down; going back to work before it ends runs the stopwatch again.
+ */
+export const Breaks: Story = {
+  args: { session: open.uid },
+  beforeEach: () => {
+    localStorage.setItem(
+      'learning-curve:focus',
+      JSON.stringify({ uid: open.uid, banked: 26 * 60_000, startedAt: null }),
+    )
+    localStorage.setItem('learning-curve:focus-breaks', 'short')
+    return () => {
+      localStorage.removeItem('learning-curve:focus')
+      localStorage.removeItem('learning-curve:focus-breaks')
+    }
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: TAKE_BREAK }))
+    await expect(canvas.getByText(/Break: 0?5:00|Перерыв: осталось 0?5:00|0?4:5\d/)).toBeVisible()
+    await userEvent.click(canvas.getByRole('button', { name: BACK_TO_WORK }))
+    await expect(canvas.getByRole('button', { name: PAUSE })).toBeVisible()
+    await expect(canvas.queryByRole('button', { name: TAKE_BREAK })).toBeNull()
+  },
+}

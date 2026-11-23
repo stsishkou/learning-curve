@@ -577,7 +577,7 @@
   "help_weekly_title": "Carga por semana",
   "help_weekly": "Una barra son las horas de una semana y sus colores, los cursos. La línea es el presupuesto semanal: lo que queda por encima es sobrecarga. Pasa el cursor por una barra para ver las cifras; los mismos datos están en la tabla bajo el gráfico.",
   "help_focus_title": "Cómo funciona el enfoque",
-  "help_focus": "Una sesión y un cronómetro. Iniciar pone el tiempo en marcha y la pausa lo detiene; el cronómetro sobrevive a una recarga. Terminar marca la sesión como hecha y anota el tiempo empleado en pasos de 15 minutos, que alimenta tu ritmo en la página Progreso.",
+  "help_focus": "Una sesión y un cronómetro. Iniciar pone el tiempo en marcha y la pausa lo detiene; el cronómetro sobrevive a una recarga. Terminar marca la sesión como hecha y anota el tiempo empleado en pasos de 15 minutos, que alimenta tu ritmo en la página Progreso. Los descansos, si los activas, suenan tras 25 o 50 minutos de estudio y cuentan el tiempo de descanso.",
   "ai_templates": "Peticiones listas",
   "ai_tpl_course": "Un curso nuevo",
   "ai_tpl_course_text": "Añade el curso <nombre y enlace>. Módulos: <lista con horas>. Sesiones los martes y jueves a las 19:00, desde <fecha>, dentro del presupuesto semanal.",
@@ -652,5 +652,15 @@
   "grid_took": "llevó {time}",
   "history_split": "{name} dividida en {count} partes",
   "split_in_two": "Dividir en dos",
-  "split_hint": "La segunda parte empieza justo después de la primera: arrástrala a otra hora"
+  "split_hint": "La segunda parte empieza justo después de la primera: arrástrala a otra hora",
+  "focus_breaks": "Descansos",
+  "focus_breaks_off": "Ninguno",
+  "focus_breaks_short": "25 + 5 min",
+  "focus_breaks_long": "50 + 10 min",
+  "focus_break_due": "Toca un descanso de {time}",
+  "focus_break_take": "Descansar",
+  "focus_break_skip": "Más tarde",
+  "focus_break_left": "Descanso: quedan {time}",
+  "focus_break_end": "Volver al trabajo",
+  "focus_break_over": "El descanso ha terminado: continúa cuando quieras."
 }

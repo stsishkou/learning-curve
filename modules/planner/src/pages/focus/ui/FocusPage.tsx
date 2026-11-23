@@ -5,6 +5,7 @@ import {
   Button,
   calendarColor,
   Check,
+  Coffee,
   Dot,
   ExternalLink,
   HelpToggle,
@@ -13,10 +14,12 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Segmented,
 } from '@lc/ui'
 import { useState, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
+import { useBreaks, type BreakRhythm } from '../model/use-breaks'
 import { useStopwatch } from '../model/use-stopwatch'
 
 interface Props {
@@ -94,6 +97,12 @@ export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, he
   const planned = session ? parseLocal(session.end) - parseLocal(session.start) : 0
   const elapsed = session && watch.timed === session.uid ? watch.elapsed : 0
   const running = watch.running && watch.timed === session?.uid
+  const breaks = useBreaks(elapsed, running)
+  const rhythms: { value: BreakRhythm; label: string }[] = [
+    { value: 'off', label: m.focus_breaks_off() },
+    { value: 'short', label: m.focus_breaks_short() },
+    { value: 'long', label: m.focus_breaks_long() },
+  ]
   const color = plan.calendars.find((c) => c.id === session?.calendar)?.color
   const courseUrl = session?.description.match(URL_PATTERN)?.[0]
 
@@ -164,7 +173,41 @@ export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, he
                     ? m.focus_over({ time: fmtDuration(elapsed - planned) })
                     : m.focus_left({ time: fmtDuration(planned - elapsed) })}
                 </p>
+                <p className="mt-1 text-[14px] font-medium" role="status">
+                  {breaks.due && m.focus_break_due({ time: fmtDuration(breaks.rest) })}
+                  {breaks.rested && m.focus_break_over()}
+                </p>
               </div>
+
+              {(breaks.due || breaks.resting !== null) && (
+                <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl bg-surface-2 p-2">
+                  {breaks.resting === null ? (
+                    <>
+                      <Button
+                        primary
+                        className="flex items-center gap-1.5"
+                        onClick={() => {
+                          watch.pause()
+                          breaks.take()
+                        }}
+                      >
+                        <Coffee size={16} aria-hidden /> {m.focus_break_take()}
+                      </Button>
+                      <Button onClick={breaks.skip}>{m.focus_break_skip()}</Button>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        role="timer"
+                        className="flex items-center gap-1.5 px-2 text-[14px] font-medium tabular-nums"
+                      >
+                        <Coffee size={16} aria-hidden /> {m.focus_break_left({ time: stopwatchText(breaks.resting) })}
+                      </span>
+                      <Button onClick={() => watch.start(session.uid)}>{m.focus_break_end()}</Button>
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className="flex flex-wrap justify-center gap-2">
                 {running ? (
@@ -206,6 +249,12 @@ export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, he
                   {m.open_course()} <ExternalLink size={14} aria-hidden />
                 </a>
               )}
+              <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 text-[13px]">
+                <span className="text-muted" aria-hidden>
+                  {m.focus_breaks()}
+                </span>
+                <Segmented label={m.focus_breaks()} value={breaks.rhythm} options={rhythms} onChange={breaks.choose} />
+              </div>
             </>
           ) : (
             <p className="text-[15px] text-muted">{m.focus_empty()}</p>

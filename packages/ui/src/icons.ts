@@ -17,6 +17,7 @@ export {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Coffee,
   CircleHelp,
   Clock,
   Copy,

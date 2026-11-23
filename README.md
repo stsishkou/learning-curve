@@ -67,7 +67,8 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Reminders**: `⋮` → `Reminders` shows a system notification ten minutes before each start, while the planner
   is open in a tab.
 - **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs
-  the time it really took, in quarter-hour steps; the stopwatch survives a reload.
+  the time it really took, in quarter-hour steps; the stopwatch survives a reload. Breaks of 25 + 5 or
+  50 + 10 minutes are optional: a chime says one is due, and taking it pauses the stopwatch and counts the rest down.
 - **The plan's name**: click the title to rename the plan (Enter saves, Escape cancels). It is one history step,
   and the plan's own download (`<Title>.json`) and the combined `.ics` are named after it.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
