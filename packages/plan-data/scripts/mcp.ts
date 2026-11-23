@@ -67,7 +67,7 @@ const TOOLS = [
     name: 'preview_update',
     title: 'Check an update without storing it',
     description:
-      'Works out what an update would do: events added, removed and changed, calendars created, weeks filled past the weekly budget, and the first change that does not fit the plan. Nothing is stored. Call it before apply_update and show the person the result.',
+      'Works out what an update would do: events added, removed and changed, calendars created, weeks filled past the weekly budget, the first change that does not fit the plan, and warnings for the rules of the plan it breaks (holidays, weekends, overlapping events, course deadlines, finished sessions). Nothing is stored. Call it before apply_update and show the person the result.',
     inputSchema: UPDATE_SCHEMA,
     annotations: { readOnlyHint: true, openWorldHint: false },
   },

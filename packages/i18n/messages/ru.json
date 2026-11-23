@@ -653,5 +653,12 @@
   "hide_done": "Скрыть сделанное",
   "hide_done_hint": "Скрыть сделанные занятия в календаре",
   "print_view": "Печать или PDF",
-  "print_view_hint": "Напечатать календарь на экране или сохранить его в PDF"
+  "print_view_hint": "Напечатать календарь на экране или сохранить его в PDF",
+  "ai_warnings": "Проверьте перед применением",
+  "ai_warn_holiday": "{title}: {day} — праздник",
+  "ai_warn_weekend": "{title}: выходной день, {day}",
+  "ai_warn_overlap": "{title}: в одно время с «{other}»",
+  "ai_warn_deadline": "{title}: после дедлайна курса, {day}",
+  "ai_warn_done": "{title}: уже пройдено, а обновление его меняет",
+  "ai_warn_done_removed": "{title}: уже пройдено, а обновление его удаляет"
 }

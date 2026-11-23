@@ -69,7 +69,8 @@ export const Library: Story = {
 
 /**
  * The last tab works with any AI chat: it gives a brief to copy and takes the answer back. A pasted update is
- * checked against the plan and shown as what it adds, removes and changes before `onApply` gets its changes.
+ * checked against the plan and shown as what it adds, removes and changes before `onApply` gets its changes. The
+ * rules it breaks are listed to check: here a session on a Saturday.
  */
 export const AiChat: Story = {
   args: { now: fixtureNow, onApply: fn(async () => {}) },
@@ -96,5 +97,7 @@ export const AiChat: Story = {
     await userEvent.paste(JSON.stringify(update))
     await expect(await dialog.findByText('One more session on Saturday.')).toBeInTheDocument()
     await expect(dialog.getByText('GE Agent Dev — Extra')).toBeInTheDocument()
+    const warnings = dialog.getAllByRole('status').find((status) => status.querySelector('li'))
+    await expect(warnings).toHaveTextContent(/GE Agent Dev — Extra/)
   },
 }

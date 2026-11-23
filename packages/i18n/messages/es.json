@@ -641,5 +641,12 @@
   "hide_done": "Ocultar lo hecho",
   "hide_done_hint": "Ocultar las sesiones terminadas en el calendario",
   "print_view": "Imprimir o PDF",
-  "print_view_hint": "Imprimir el calendario en pantalla o guardarlo como PDF"
+  "print_view_hint": "Imprimir el calendario en pantalla o guardarlo como PDF",
+  "ai_warnings": "Revisa antes de aplicar",
+  "ai_warn_holiday": "{title}: el {day} es festivo",
+  "ai_warn_weekend": "{title}: cae en fin de semana, {day}",
+  "ai_warn_overlap": "{title}: a la misma hora que «{other}»",
+  "ai_warn_deadline": "{title}: después de la fecha límite de su curso, {day}",
+  "ai_warn_done": "{title}: ya está hecha y la actualización la cambia",
+  "ai_warn_done_removed": "{title}: ya está hecha y la actualización la elimina"
 }

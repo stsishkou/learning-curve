@@ -95,7 +95,8 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Working with an AI chat**: the `AI chat` tab gives a brief to copy into any chat (the rules of the plan, how
   to add a course, how to name events and make them repeat, how to answer, and the plan itself) and takes the
   answer back. The chat answers with an *update*, a short JSON list of changes; the tab shows what it would add,
-  remove and change, warns about weeks filled past the budget, and applies it as steps of the history that Undo
+  remove and change, warns about weeks filled past the budget and about the rules it breaks (a session on a
+  holiday or a weekend, at the same time as another, after its course's deadline, a finished one moved), and applies it as steps of the history that Undo
   takes back. An update is all or nothing: when one change does not fit, the tab says which, in words to send
   back to the chat. Ready requests fill the text for the common cases (a new course, days off, catching up, a
   lighter week, marking what is done, a weekly habit); `Copy and open` puts the brief on the clipboard and opens a
@@ -229,7 +230,7 @@ The plan is described so that a model can change it without guessing. Three docu
 - **The update** (`parseUpdate`, `previewUpdate`): `{ "summary": "…", "changes": [ … ] }`. The changes are the same
   `PlanChange` values the viewer stores, among them `course.add` (a calendar with all its sessions) and
   `events.add`; a new event may carry `"rrule": "FREQ=WEEKLY;BYDAY=TU,TH"`. The whole update is checked before any
-  change is stored.
+  change is stored. Its preview lists the rules of the plan it breaks (`ruleWarnings`): they warn, the person decides.
 
 | Way in | What it gives |
 | --- | --- |

@@ -172,6 +172,9 @@ ${code(example)}
 - \`summary\`: one or two sentences for the person, in their language: what changes and what to check.
 - \`changes\`: applied in order. Each one is a step the person can undo.
 - The update is all or nothing: if one change does not fit the plan, none is applied and you get the reason back.
+- Its preview also lists **warnings**: a session on a holiday or a weekend, at the same time as another busy
+  event, or after the deadline of its course, and a finished session changed or removed. Fix them, or keep one
+  only when the person asked for it, and say so in \`summary\`.
 - Point at events by the \`uid\` you read in the plan. Never make a uid up. A new event gets its uid when the
   update is applied, so one update cannot add an event and then change it.
 - Send only what changes. An update that restates the whole plan is wrong.

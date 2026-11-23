@@ -1,6 +1,7 @@
 import { PlanChangeError, applyChange, parseChange, type PlanChange } from './changes'
 import { diffPlans, type PlanDiff } from './diff'
 import { applyEdits, emptyEdits, isRecord } from './edits'
+import { ruleWarnings, warningText, type RuleWarning } from './rules'
 import { weeklyHours } from './schedule'
 import { UPDATE_CHANGE_TYPES, UPDATE_FORMAT } from './schema'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
@@ -83,6 +84,8 @@ export interface UpdatePreview {
   problem: { index: number; message: string } | null
   /** Mondays (`YYYY-MM-DD`) of the weeks the update fills past the weekly budget, with their hours */
   overBudget: { week: string; hours: number }[]
+  /** Rules of the plan the changes break. They do not stop the update: the person decides */
+  warnings: RuleWarning[]
 }
 
 const brief = ({ uid, calendar, title, start, end }: PlanEvent) => ({ uid, calendar, title, start, end })
@@ -100,6 +103,11 @@ export function reportPreview(preview: UpdatePreview) {
     removed: preview.diff.removed.map(brief),
     changed: preview.diff.changed.map(({ before, after }) => ({ before: brief(before), after: brief(after) })),
     weeksOverBudget: preview.overBudget,
+    warnings: preview.warnings.map((warning) => ({
+      rule: warning.rule,
+      uid: warning.event.uid,
+      message: warningText(warning),
+    })),
   }
 }
 
@@ -126,14 +134,16 @@ export function updateOutcome(plan: Plan, after: Plan, problem: UpdatePreview['p
   const known = new Set(plan.calendars.map((c) => c.id))
   const before = weeklyHours(plan)
   const budget = plan.meta.weeklyBudgetHours
+  const diff = diffPlans(plan, after)
   return {
     after,
-    diff: diffPlans(plan, after),
+    diff,
     calendars: after.calendars.filter((c) => !known.has(c.id)),
     problem,
     overBudget: Object.entries(weeklyHours(after))
       .filter(([week, hours]) => hours > budget && hours > (before[week] ?? 0))
       .map(([week, hours]) => ({ week, hours }))
       .toSorted((a, b) => a.week.localeCompare(b.week)),
+    warnings: ruleWarnings(after, diff),
   }
 }

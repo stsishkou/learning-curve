@@ -641,5 +641,12 @@
   "hide_done": "Hide what is done",
   "hide_done_hint": "Hide the finished sessions in the calendar",
   "print_view": "Print or PDF",
-  "print_view_hint": "Print the calendar on screen or save it as a PDF"
+  "print_view_hint": "Print the calendar on screen or save it as a PDF",
+  "ai_warnings": "Check before applying",
+  "ai_warn_holiday": "{title}: {day} is a holiday",
+  "ai_warn_weekend": "{title}: on a weekend, {day}",
+  "ai_warn_overlap": "{title}: at the same time as “{other}”",
+  "ai_warn_deadline": "{title}: after the deadline of its course, {day}",
+  "ai_warn_done": "{title}: already done, and the update changes it",
+  "ai_warn_done_removed": "{title}: already done, and the update removes it"
 }
