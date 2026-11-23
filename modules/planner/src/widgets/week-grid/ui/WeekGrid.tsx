@@ -15,7 +15,7 @@ import {
   toLocalString,
   ymd,
 } from '@lc/plan-domain'
-import { calendarColor, Repeat } from '@lc/ui'
+import { calendarColor, GraduationCap, Repeat } from '@lc/ui'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 
 import { eventKey, useFillHeight } from '../../../shared/lib'
@@ -425,12 +425,19 @@ export function WeekGrid({
                 key={d}
                 className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''} ${d === days.at(-1) ? 'rounded-tr-2xl' : ''}`}
               >
-                {dowShort(d)}
-                {studyHours(d) > 0 && (
-                  <small className="float-right text-[11.5px] tabular-nums" title={m.study_that_day()}>
-                    {fmtHours(studyHours(d))}
-                  </small>
-                )}
+                <span className="flex items-center justify-between gap-1">
+                  {dowShort(d)}
+                  {studyHours(d) > 0 && (
+                    <small
+                      className="flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-px text-[11px] font-medium whitespace-nowrap tabular-nums"
+                      title={m.study_that_day()}
+                    >
+                      <GraduationCap size={11} aria-hidden />
+                      <span className="sr-only">{m.study_that_day()}: </span>
+                      {fmtHours(studyHours(d))}
+                    </small>
+                  )}
+                </span>
                 <b
                   className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today-ink' : 'text-ink'}`}
                 >

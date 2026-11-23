@@ -23,6 +23,7 @@ export {
   Eye,
   FileText,
   Globe,
+  GraduationCap,
   History,
   Keyboard,
   Maximize2,

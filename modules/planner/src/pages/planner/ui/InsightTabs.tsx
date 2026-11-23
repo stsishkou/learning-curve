@@ -51,6 +51,7 @@ export function InsightTabs({
       <div className="mb-3.5 text-[13px]">
         <Segmented
           label={m.insights()}
+          fill
           value={tab}
           options={[
             { value: 'week', label: m.tab_week() },

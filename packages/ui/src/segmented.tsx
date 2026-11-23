@@ -7,6 +7,8 @@ interface SegmentedProps<T extends string> {
   options: ReadonlyArray<{ value: T; label: string; lang?: string }>
   /** Called with the option that was clicked, the pressed one included */
   onChange: (value: T) => void
+  /** Takes the whole width of its container and shares it between the options, for a narrow card */
+  fill?: boolean
 }
 
 /**
@@ -15,10 +17,10 @@ interface SegmentedProps<T extends string> {
  * `onChange`.
  */
 
-export function Segmented<T extends string>({ label, value, options, onChange }: SegmentedProps<T>) {
+export function Segmented<T extends string>({ label, value, options, onChange, fill = false }: SegmentedProps<T>) {
   return (
     <div
-      className="inline-flex gap-0.5 rounded-[10px] border border-line bg-surface-2 p-[3px]"
+      className={`gap-0.5 rounded-[10px] border border-line bg-surface-2 p-[3px] ${fill ? 'flex' : 'inline-flex'}`}
       role="group"
       aria-label={label}
     >
@@ -27,7 +29,7 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
           key={o.value}
           type="button"
           lang={o.lang}
-          className="rounded-[7px] px-3 py-1 font-medium text-muted transition-colors duration-150 hover:text-ink aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-[0_0_0_1px_var(--line),0_1px_2px_rgb(10_16_30/0.12)]"
+          className={`${fill ? 'min-w-0 flex-auto truncate px-1.5' : 'px-3'} rounded-[7px] py-1 font-medium text-muted transition-colors duration-150 hover:text-ink aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-[0_0_0_1px_var(--line),0_1px_2px_rgb(10_16_30/0.12)]`}
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
         >

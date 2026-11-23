@@ -23,7 +23,7 @@ export function CourseProgress({ plan, onSelect }: Props) {
           {m.progress_of({ done: fmtHours(doneHours), total: fmtHours(hours) })}
         </small>
       </div>
-      <ul className="mt-3.5 grid gap-3">
+      <ul className="mt-3.5 grid grid-cols-[minmax(0,1fr)] gap-3">
         {courses.map((c) => (
           <li key={c.calendar.id} className="flex items-center gap-3" style={calendarColor(c.calendar.color)}>
             <ProgressRing
