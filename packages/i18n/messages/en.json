@@ -337,8 +337,6 @@
   "more_actions": "More actions",
   "jump_to_date": "Go to a date",
   "duplicate": "Duplicate",
-  "shift_plan": "Shift the plan",
-  "shift_hint": "Moves every session that is not done, starting from the chosen date. Done sessions stay where they are; the shift can be undone from the history.",
   "shift_all": "All calendars",
   "shift_from": "Starting from",
   "shift_days": "By how many days",
@@ -346,7 +344,73 @@
   "shift_day_later": "+1 day",
   "shift_week_earlier": "−1 week",
   "shift_count": "Sessions that will move: {count}",
-  "shift_apply": "Shift",
+  "reschedule": "Reschedule",
+  "reschedule_hint": "Move the open sessions by days or hours, or re-balance one calendar: more sessions a day to finish sooner, fewer to ease the weeks, or evenly up to its deadline. Done sessions stay; every change can be undone from the history.",
+  "reschedule_mode": "What to do",
+  "reschedule_move": "Move",
+  "reschedule_rebalance": "Re-balance",
+  "reschedule_hours": "By how many hours",
+  "reschedule_hour_later": "+1 h",
+  "reschedule_hour_earlier": "−1 h",
+  "reschedule_deadline": "Deadline",
+  "reschedule_deadline_hint": "Finish before this day; kept as the calendar's deadline",
+  "reschedule_pace": "Pace",
+  "reschedule_pace_1_3": "1 every 3 days",
+  "reschedule_pace_1_2": "1 every 2 days",
+  "reschedule_pace_1": "1 a day",
+  "reschedule_pace_3_2": "3 in 2 days",
+  "reschedule_pace_2": "2 a day",
+  "reschedule_pace_3": "3 a day",
+  "reschedule_fit_deadline": "Fit the deadline instead",
+  "reschedule_study_hours": "Study hours",
+  "reschedule_study_from": "Study hours start",
+  "reschedule_study_to": "Study hours end",
+  "reschedule_over_budget": "May go over {hours} h a week",
+  "reschedule_ends": "Ends {day} (was {before})",
+  "reschedule_peak": "heaviest week {hours}",
+  "reschedule_moves": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} session moves",
+        "countPlural=*": "{count} sessions move"
+      }
+    }
+  ],
+  "reschedule_unplaced": "{count} without room",
+  "reschedule_late": "{count} after the deadline",
+  "reschedule_over_weeks": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} week over the budget",
+        "countPlural=*": "{count} weeks over the budget"
+      }
+    }
+  ],
+  "reschedule_reason_nothing_to_move": "The calendar has no open sessions from this day on.",
+  "reschedule_reason_full_weeks": "The weeks of {from} – {to} are full: widen the study hours or allow going over the budget to finish sooner.",
+  "reschedule_reason_days_off": "No free study hours on {days}.",
+  "reschedule_reason_late": "Fits {placed} of {total} sessions before {deadline}: a later deadline, wider study hours or going over the budget would help.",
+  "reschedule_reason_no_lab_block": "“{title}” needs two free hours in a row, and the study hours have none.",
+  "reschedule_reason_limit": "Some sessions find no room within a year: widen the study hours or allow going over the budget.",
+  "reschedule_reason_not_proven": "The search stopped at its time limit, so a better placement may exist.",
+  "reschedule_working": "Working out the best placement…",
+  "reschedule_need_calendar": "Re-balancing needs one calendar",
+  "reschedule_failed": "Could not work it out: {reason}",
+  "reschedule_apply": "Apply",
   "overdue": "Past sessions not marked done: {count}",
   "overdue_mark": "Mark them done",
   "history_shifted": "Shifted by {amount}: {name}",

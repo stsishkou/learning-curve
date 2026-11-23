@@ -7,6 +7,8 @@ import { defineConfig } from 'vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  // HiGHS stays a package on disk, in the server build too: its loader finds highs.wasm next to itself.
+  ssr: { external: ['highs'] },
   plugins: [
     // Recompiles the messages when a translation changes, so dev picks it up without a restart.
     paraglideVitePlugin({
@@ -17,8 +19,8 @@ const config = defineConfig({
       outputStructure: 'message-modules',
     }),
     tailwindcss(),
-    // HiGHS stays a package on disk: its loader finds highs.wasm next to itself.
-    nitro({ rollupConfig: { external: [/^@sentry\//, /^highs/] } }),
+    // The whole package is copied: the tracer cannot see highs.wasm behind its loader's `new URL`.
+    nitro({ rollupConfig: { external: [/^@sentry\//, /^highs/] }, traceDeps: ['highs*'] }),
 
     tanstackStart(),
     viteReact(),

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import { parseLocal } from './dates'
-import { deadlineOf, nextDeadline } from './deadlines'
+import { deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
 import { fixturePlan, itemAt } from './fixtures'
 import { planOutlook } from './replan'
 import type { Plan, PlanEvent } from './types'
@@ -24,6 +24,14 @@ const certsDay = itemAt(fixturePlan.events.filter((e) => e.kind === 'milestone' 
 )
 const withEvents = (events: PlanEvent[]): Plan => ({ ...fixturePlan, events: [...fixturePlan.events, ...events] })
 const withoutMilestones: Plan = { ...fixturePlan, events: fixturePlan.events.filter((e) => e.kind !== 'milestone') }
+
+describe('deadlineEvent', () => {
+  test('is the earliest milestone of the calendar, the one its deadline is read from', () => {
+    const plan = withEvents([milestone('hfllm', '2027-03-01'), milestone('hfllm', '2027-02-15')])
+    expect(deadlineEvent(plan, 'hfllm')?.uid).toBe('m-hfllm-2027-02-15')
+    expect(deadlineEvent(fixturePlan, 'hfllm')).toBeNull()
+  })
+})
 
 describe('deadlineOf', () => {
   test('is the day of the calendar milestone', () => {

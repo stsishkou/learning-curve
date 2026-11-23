@@ -21,6 +21,8 @@ import {
   type Plan,
   type PlanChange,
   type PlanEvent,
+  type RebalanceRequest,
+  type RebalanceResult,
 } from '@lc/plan-domain'
 import { Button, CalendarSync, HelpToggle, Hint, useHelpMode } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
@@ -48,8 +50,8 @@ import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
 import { useReminders } from '../../../features/reminders'
+import { RescheduleDialog } from '../../../features/reschedule'
 import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
-import { ShiftDialog } from '../../../features/shift-plan'
 import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
 import { appName, eventKey, useModKey, useNow } from '../../../shared/lib'
@@ -105,6 +107,8 @@ interface Props {
     | undefined
   /** Host actions listed in the command palette, such as the theme */
   commands?: Command[]
+  /** Present when the host can work out a re-balance of a calendar: the Reschedule dialog then offers it */
+  rebalance?: ((plan: Plan, request: RebalanceRequest) => Promise<RebalanceResult>) | undefined
 }
 
 const NO_CALENDARS: ReadonlySet<string> = new Set()
@@ -142,6 +146,7 @@ export function PlannerPage({
   sync,
   renderExport,
   commands,
+  rebalance,
 }: Props) {
   const now = useNow()
   const mod = useModKey()
@@ -552,7 +557,13 @@ export function PlannerPage({
         }}
         onClose={() => dialogs.hide('calendars')}
       />
-      <ShiftDialog plan={plan} from={shiftFrom} onChange={session.change} onClose={() => setShiftFrom(null)} />
+      <RescheduleDialog
+        plan={plan}
+        from={shiftFrom}
+        onApply={session.changeAll}
+        rebalance={rebalance}
+        onClose={() => setShiftFrom(null)}
+      />
       <WeekReviewDialog
         plan={plan}
         monday={dialogs.isOpen('review') ? weekStart : null}

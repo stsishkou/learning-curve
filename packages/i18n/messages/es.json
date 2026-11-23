@@ -337,8 +337,6 @@
   "more_actions": "Más acciones",
   "jump_to_date": "Ir a una fecha",
   "duplicate": "Duplicar",
-  "shift_plan": "Desplazar el plan",
-  "shift_hint": "Mueve todas las sesiones no hechas desde la fecha elegida. Las hechas se quedan; el desplazamiento se puede deshacer en el historial.",
   "shift_all": "Todos los calendarios",
   "shift_from": "Desde",
   "shift_days": "Cuántos días",
@@ -346,7 +344,73 @@
   "shift_day_later": "+1 día",
   "shift_week_earlier": "−1 semana",
   "shift_count": "Sesiones que se moverán: {count}",
-  "shift_apply": "Desplazar",
+  "reschedule": "Reprogramar",
+  "reschedule_hint": "Desplaza las sesiones pendientes por días u horas, o reequilibra un calendario: más sesiones al día para terminar antes, menos para aliviar las semanas, o de forma pareja hasta su fecha límite. Las sesiones hechas no se mueven; cualquier cambio se puede deshacer desde el historial.",
+  "reschedule_mode": "Qué hacer",
+  "reschedule_move": "Mover",
+  "reschedule_rebalance": "Reequilibrar",
+  "reschedule_hours": "Cuántas horas",
+  "reschedule_hour_later": "+1 h",
+  "reschedule_hour_earlier": "−1 h",
+  "reschedule_deadline": "Fecha límite",
+  "reschedule_deadline_hint": "Terminar antes de este día; queda como fecha límite del calendario",
+  "reschedule_pace": "Ritmo",
+  "reschedule_pace_1_3": "1 cada 3 días",
+  "reschedule_pace_1_2": "1 cada 2 días",
+  "reschedule_pace_1": "1 al día",
+  "reschedule_pace_3_2": "3 en 2 días",
+  "reschedule_pace_2": "2 al día",
+  "reschedule_pace_3": "3 al día",
+  "reschedule_fit_deadline": "En su lugar, ajustarse a la fecha límite",
+  "reschedule_study_hours": "Horas de estudio",
+  "reschedule_study_from": "Inicio de las horas de estudio",
+  "reschedule_study_to": "Fin de las horas de estudio",
+  "reschedule_over_budget": "Puede pasar de {hours} h a la semana",
+  "reschedule_ends": "Termina: {day} (antes {before})",
+  "reschedule_peak": "semana más cargada: {hours}",
+  "reschedule_moves": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sesión se mueve",
+        "countPlural=*": "{count} sesiones se mueven"
+      }
+    }
+  ],
+  "reschedule_unplaced": "{count} sin sitio",
+  "reschedule_late": "{count} después de la fecha límite",
+  "reschedule_over_weeks": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} semana por encima del presupuesto",
+        "countPlural=*": "{count} semanas por encima del presupuesto"
+      }
+    }
+  ],
+  "reschedule_reason_nothing_to_move": "El calendario no tiene sesiones pendientes desde este día.",
+  "reschedule_reason_full_weeks": "Las semanas del {from} al {to} están llenas: amplía las horas de estudio o permite pasar del presupuesto para terminar antes.",
+  "reschedule_reason_days_off": "Sin horas de estudio libres: {days}.",
+  "reschedule_reason_late": "Caben {placed} de {total} sesiones antes del {deadline}: ayudaría una fecha límite posterior, más horas de estudio o pasar del presupuesto.",
+  "reschedule_reason_no_lab_block": "«{title}» necesita dos horas libres seguidas y las horas de estudio no las tienen.",
+  "reschedule_reason_limit": "Algunas sesiones no encuentran sitio en un año: amplía las horas de estudio o permite pasar del presupuesto.",
+  "reschedule_reason_not_proven": "La búsqueda se detuvo por tiempo, así que puede existir una distribución mejor.",
+  "reschedule_working": "Buscando la mejor distribución…",
+  "reschedule_need_calendar": "Para reequilibrar, elige un calendario",
+  "reschedule_failed": "No se pudo calcular: {reason}",
+  "reschedule_apply": "Aplicar",
   "overdue": "Sesiones pasadas sin marcar: {count}",
   "overdue_mark": "Marcarlas como hechas",
   "history_shifted": "Desplazado {amount}: {name}",

@@ -124,7 +124,7 @@ export function buildActions(ctx: Context): PlannerAction[] {
     {
       id: 'shift',
       group: plan,
-      label: m.shift_plan(),
+      label: m.reschedule(),
       icon: <MoveHorizontal {...ICON} />,
       menu: 'always',
       run: ctx.shift,

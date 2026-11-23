@@ -8,13 +8,14 @@ import type { Plan, PlanEvent } from './types'
 const milestones = (plan: Plan): PlanEvent[] =>
   plan.events.filter((e) => e.kind === 'milestone').toSorted((a, b) => a.start.localeCompare(b.start))
 
-/** The day of the calendar's deadline, `YYYY-MM-DD`: its earliest milestone; null when it has none. */
+/** The milestone that is the calendar's deadline: its earliest one; null when it has none. */
+export function deadlineEvent(plan: Plan, calendar: string): PlanEvent | null {
+  return milestones(plan).find((e) => e.calendar === calendar) ?? null
+}
+
+/** The day of the calendar's deadline, `YYYY-MM-DD`; null when it has none. */
 export function deadlineOf(plan: Plan, calendar: string): string | null {
-  return (
-    milestones(plan)
-      .find((e) => e.calendar === calendar)
-      ?.start.slice(0, 10) ?? null
-  )
+  return deadlineEvent(plan, calendar)?.start.slice(0, 10) ?? null
 }
 
 /** The nearest deadline from today on, across calendars; on a tie, the calendar listed first. */

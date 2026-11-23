@@ -416,6 +416,9 @@ importers:
       '@tanstack/react-start':
         specifier: 1.169.7
         version: 1.169.7(esbuild@0.28.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.19)(supports-color@7.2.0)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      highs:
+        specifier: 'catalog:'
+        version: 1.15.4
       jszip:
         specifier: 3.10.2
         version: 3.10.2

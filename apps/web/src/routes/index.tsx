@@ -1,6 +1,7 @@
 import { ExportDialog } from '@lc/calendar-export'
 import { m } from '@lc/i18n/messages'
 import { locales, setLocale } from '@lc/i18n/runtime'
+import type { Plan, RebalanceRequest } from '@lc/plan-domain'
 import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planner'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
@@ -15,6 +16,7 @@ import {
 } from '#/server/calendars'
 import { getPlanFile, getPlanFiles, removeSavedPlan, renameSavedPlan, savePlanFile } from '#/server/library'
 import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory } from '#/server/plan'
+import { rebalancePlan } from '#/server/reschedule'
 import { ShellAside, STAND_URL } from '#/shell/ShellAside'
 import { setTheme } from '#/shell/theme'
 
@@ -45,6 +47,9 @@ const shellCommands = (open: (to: '/dashboard' | '/focus') => void): PlannerComm
     run: () => void setLocale(locale),
   })),
 ]
+
+// Outside the component, so the dialog does not ask again each time the route renders.
+const rebalance = async (plan: Plan, request: RebalanceRequest) => rebalancePlan({ data: { plan, request } })
 
 function PlannerRoute() {
   const navigate = Route.useNavigate()
@@ -94,6 +99,7 @@ function PlannerRoute() {
       }
       headerAside={<ShellAside />}
       renderExport={(dialog) => <ExportDialog {...dialog} />}
+      rebalance={rebalance}
       busy={{
         host: feed.host,
         load: (from, to) => getBusy({ data: { from, to } }),

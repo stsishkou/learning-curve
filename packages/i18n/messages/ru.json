@@ -347,8 +347,6 @@
   "more_actions": "Ещё",
   "jump_to_date": "Перейти к дате",
   "duplicate": "Дублировать",
-  "shift_plan": "Сдвинуть план",
-  "shift_hint": "Переносит все невыполненные занятия с выбранной даты. Выполненные остаются на месте; сдвиг можно отменить в истории.",
   "shift_all": "Все календари",
   "shift_from": "Начиная с",
   "shift_days": "На сколько дней",
@@ -356,7 +354,77 @@
   "shift_day_later": "+1 день",
   "shift_week_earlier": "−1 неделя",
   "shift_count": "Занятий будет перенесено: {count}",
-  "shift_apply": "Сдвинуть",
+  "reschedule": "Перепланировать",
+  "reschedule_hint": "Сдвиньте незавершённые занятия на дни или часы или перераспределите один календарь: больше занятий в день, чтобы закончить раньше, меньше, чтобы разгрузить недели, или равномерно до дедлайна. Завершённые занятия остаются на месте; любое изменение можно отменить в истории.",
+  "reschedule_mode": "Что сделать",
+  "reschedule_move": "Сдвинуть",
+  "reschedule_rebalance": "Перераспределить",
+  "reschedule_hours": "На сколько часов",
+  "reschedule_hour_later": "+1 ч",
+  "reschedule_hour_earlier": "−1 ч",
+  "reschedule_deadline": "Дедлайн",
+  "reschedule_deadline_hint": "Закончить до этого дня; сохранится как дедлайн календаря",
+  "reschedule_pace": "Темп",
+  "reschedule_pace_1_3": "1 раз в 3 дня",
+  "reschedule_pace_1_2": "1 раз в 2 дня",
+  "reschedule_pace_1": "1 в день",
+  "reschedule_pace_3_2": "3 за 2 дня",
+  "reschedule_pace_2": "2 в день",
+  "reschedule_pace_3": "3 в день",
+  "reschedule_fit_deadline": "Вместо этого уложиться в дедлайн",
+  "reschedule_study_hours": "Часы учёбы",
+  "reschedule_study_from": "Начало часов учёбы",
+  "reschedule_study_to": "Конец часов учёбы",
+  "reschedule_over_budget": "Можно больше {hours} ч в неделю",
+  "reschedule_ends": "Окончание: {day} (было {before})",
+  "reschedule_peak": "самая загруженная неделя — {hours}",
+  "reschedule_moves": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} занятие переносится",
+        "countPlural=few": "{count} занятия переносятся",
+        "countPlural=many": "{count} занятий переносятся",
+        "countPlural=*": "{count} занятия переносятся"
+      }
+    }
+  ],
+  "reschedule_unplaced": "{count} без места",
+  "reschedule_late": "{count} после дедлайна",
+  "reschedule_over_weeks": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} неделя сверх бюджета",
+        "countPlural=few": "{count} недели сверх бюджета",
+        "countPlural=many": "{count} недель сверх бюджета",
+        "countPlural=*": "{count} недели сверх бюджета"
+      }
+    }
+  ],
+  "reschedule_reason_nothing_to_move": "У календаря нет незавершённых занятий с этого дня.",
+  "reschedule_reason_full_weeks": "Недели {from} – {to} заполнены: расширьте часы учёбы или разрешите превысить бюджет, чтобы закончить раньше.",
+  "reschedule_reason_days_off": "Нет свободных часов учёбы: {days}.",
+  "reschedule_reason_late": "До {deadline} помещается {placed} из {total} занятий: помогут более поздний дедлайн, более широкие часы учёбы или превышение бюджета.",
+  "reschedule_reason_no_lab_block": "Для «{title}» нужны два свободных часа подряд, а в часах учёбы их нет.",
+  "reschedule_reason_limit": "Некоторым занятиям нет места в пределах года: расширьте часы учёбы или разрешите превысить бюджет.",
+  "reschedule_reason_not_proven": "Поиск остановлен по времени, поэтому может найтись расписание лучше.",
+  "reschedule_working": "Подбираю лучшее расписание…",
+  "reschedule_need_calendar": "Для перераспределения выберите один календарь",
+  "reschedule_failed": "Не удалось рассчитать: {reason}",
+  "reschedule_apply": "Применить",
   "overdue": "Прошедших занятий без отметки: {count}",
   "overdue_mark": "Отметить выполненными",
   "history_shifted": "Сдвинуто на {amount}: {name}",

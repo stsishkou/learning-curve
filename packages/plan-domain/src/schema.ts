@@ -176,10 +176,10 @@ const NEW_SESSION_PROPERTIES: Schema = {
   description: DESCRIPTION,
   availability: { ...AVAILABILITY, default: 'busy' },
   kind: {
-    enum: ['study', 'lab'],
+    enum: ['study', 'lab', 'milestone'],
     default: 'study',
     description:
-      '"lab" for a hands-on session that cannot be paused: give it one whole block. Leave out for an ordinary session.',
+      '"lab" for a hands-on session that cannot be paused: give it one whole block. "milestone" for the deadline of its calendar: all day, with `start` and `end` both at 00:00 of the day, and never a repeat. Leave out for an ordinary session.',
   },
   rrule: {
     ...RRULE,

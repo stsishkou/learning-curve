@@ -26,8 +26,11 @@ export interface NewEvent {
   description: string
   /** `free` events do not count toward the weekly budget */
   availability: 'busy' | 'free'
-  /** `lab` for a hands-on session that cannot be paused; a session is `study` when this is left out */
-  kind?: 'study' | 'lab'
+  /**
+   * `lab` for a hands-on session that cannot be paused; a session is `study` when this is left out. `milestone` is
+   * the calendar's deadline: all day and free, with `start` and `end` both at 00:00 of its day
+   */
+  kind?: 'study' | 'lab' | 'milestone'
   /**
    * Makes the event repeat every week on the named days, e.g. `FREQ=WEEKLY;BYDAY=TU,TH`. `start` is the first
    * repeat and must fall on one of those days. A repeat is a habit, never a course session: it cannot be marked done
@@ -124,6 +127,13 @@ function parseNewSession(raw: unknown): NewSession {
     availability: raw.availability === 'free' ? 'free' : 'busy',
   }
   if (raw.kind === 'lab') event.kind = 'lab'
+  if (raw.kind === 'milestone') {
+    if (patch.start !== patch.end || !patch.start.endsWith('T00:00')) {
+      return fail(`"${patch.title}": a milestone starts and ends at 00:00 of its day`)
+    }
+    if (raw.rrule !== undefined) return fail(`"${patch.title}": a milestone never repeats`)
+    return { ...event, kind: 'milestone', availability: 'free' }
+  }
   if (raw.rrule !== undefined) {
     const { rrule } = raw
     if (typeof rrule !== 'string' || !PLAIN_WEEKLY_RULE.test(rrule)) {
@@ -318,7 +328,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
   ) => {
     if (!calendarExists(event.calendar)) fail(`Unknown calendar "${event.calendar}"`)
     if (!LOCAL_TIME.test(event.start) || !LOCAL_TIME.test(event.end)) fail('Times must look like 2026-11-23T12:00')
-    const created: PlanEvent = { ...event, uid: `${newId('custom')}@learning-curve`, kind }
+    const created: PlanEvent = {
+      ...event,
+      uid: `${newId('custom')}@learning-curve`,
+      kind,
+      ...(kind === 'milestone' ? { allDay: true } : {}),
+    }
     if (patchProblem(created, {})) fail('The event must end after it starts')
     next.added.push(created)
   }

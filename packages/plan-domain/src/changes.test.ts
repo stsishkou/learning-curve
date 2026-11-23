@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 
 import { applyChange, parseChange, splitInHalves, type NewEvent, type PlanChange } from './changes'
 import { parseLocal } from './dates'
+import { deadlineOf } from './deadlines'
 import { applyEdits, emptyEdits, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
 import { emptyHistory, recordChange } from './history'
@@ -35,6 +36,13 @@ const session = (overrides: Partial<NewEvent> = {}): NewEvent => ({
 })
 /** A session of a new course: its calendar is the course */
 const { calendar: _calendar, ...courseSession } = session()
+
+/** Reads an `event.add` of a milestone on 16 February with the fields given replaced */
+const milestone = (overrides: Record<string, unknown>) => () =>
+  parseChange({
+    type: 'event.add',
+    event: { ...session({ start: '2027-02-16T00:00', end: '2027-02-16T00:00' }), kind: 'milestone', ...overrides },
+  })
 
 const length = (event: PlanEvent | undefined) => (event ? parseLocal(event.end) - parseLocal(event.start) : 0)
 const shift = (by: { days?: number; hours?: number }): PlanChange => ({
@@ -146,6 +154,27 @@ describe('adding events', () => {
     expect(busy).toMatchObject({ title: 'Extra', kind: 'study' })
     expect(busy.uid).toMatch(/^custom-.+@learning-curve$/)
     expect(added(apply([{ type: 'event.add', event: session({ availability: 'free' }) }])).kind).toBe('personal')
+  })
+
+  test("event.add of a milestone sets the calendar's deadline: all day and free", () => {
+    const deadline = parseChange({
+      type: 'event.add',
+      event: session({
+        title: 'Дедлайн: Journey',
+        start: '2027-02-16T00:00',
+        end: '2027-02-16T00:00',
+        kind: 'milestone',
+      }),
+    })
+    const edits = apply([deadline])
+    expect(added(edits)).toMatchObject({ kind: 'milestone', allDay: true, availability: 'free' })
+    expect(deadlineOf(planOf(edits), 'journey')).toBe('2027-02-16')
+  })
+
+  test('a milestone is one day at midnight and never repeats', () => {
+    expect(milestone({ end: '2027-02-17T00:00' })).toThrow(/a milestone starts and ends at 00:00 of its day/)
+    expect(milestone({ start: '2027-02-16T10:00', end: '2027-02-16T10:00' })).toThrow(/00:00/)
+    expect(milestone({ rrule: 'FREQ=WEEKLY;BYDAY=TU' })).toThrow(/a milestone never repeats/)
   })
 
   test('event.add refuses a calendar that does not exist', () => {

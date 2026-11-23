@@ -149,7 +149,9 @@ ${weekLines(plan, now).join('\n')}
    new course, ask which days and hours suit when the person did not say.
 5. **What is done stays.** Do not move, rename or remove a session with \`"done": true\`. Mark a session done only
    when the person says they finished it.
-6. **Deadlines.** A \`milestone\` event is a deadline: sessions of its course must end before it.
+6. **Deadlines.** A \`milestone\` event is a deadline: sessions of its course must end before it. A calendar has one:
+   set it with \`event.add\` (\`"kind": "milestone"\`, \`start\` and \`end\` both \`<day>T00:00\`, titled
+   \`Дедлайн: <calendar name>\`), move it by patching its \`start\` and \`end\`, clear it with \`event.remove\`.
 
 ## How to name things
 
