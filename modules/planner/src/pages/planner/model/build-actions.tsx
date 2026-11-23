@@ -8,7 +8,6 @@ import {
   Calendar,
   CalendarClock,
   CalendarSync,
-  ChartGantt,
   Clock,
   Globe,
   History,
@@ -62,8 +61,6 @@ interface Context {
   shift: () => void
   only: (calendarId: string) => void
   showAll: () => void
-  /** The timeline of courses over the planner, shown or not */
-  timeline: { on: boolean; toggle: () => void }
 }
 
 const ICON = { size: 16, 'aria-hidden': true } as const
@@ -193,16 +190,6 @@ export function buildActions(ctx: Context): PlannerAction[] {
       checked: nav.hideDone,
       menu: nav.view === 'list' || nav.view === 'year' ? undefined : 'always',
       run: nav.toggleHideDone,
-    },
-    {
-      id: 'timeline',
-      group: view,
-      label: m.timeline_show(),
-      menuLabel: m.timeline(),
-      icon: <ChartGantt {...ICON} />,
-      checked: ctx.timeline.on,
-      menu: 'always',
-      run: ctx.timeline.toggle,
     },
     {
       id: 'print',

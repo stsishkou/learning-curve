@@ -60,7 +60,6 @@ import { BudgetLine } from '../../../widgets/budget-panel'
 import { MonthGrid } from '../../../widgets/month-grid'
 import { NowNext } from '../../../widgets/now-next'
 import { Runway } from '../../../widgets/runway'
-import { TimelineLanes, useTimelinePosition } from '../../../widgets/timeline-lanes'
 import { WeekGrid } from '../../../widgets/week-grid'
 import { YearGrid } from '../../../widgets/year-grid'
 import { buildActions, type DialogName } from '../model/build-actions'
@@ -71,7 +70,6 @@ import { useEventDraft } from '../model/use-event-draft'
 import { usePlanSession, type PlannerState } from '../model/use-plan-session'
 import { usePlannerView } from '../model/use-planner-view'
 import { useQuietChange } from '../model/use-quiet-change'
-import { useTimelineEdit, type RescheduleRequest } from '../model/use-timeline-edit'
 import { InsightTabs } from './InsightTabs'
 import { OverdueBar } from './OverdueBar'
 import { PlannerHeader } from './PlannerHeader'
@@ -184,8 +182,8 @@ export function PlannerPage({
   // A calendar that is connected but cannot be changed here has nothing to open.
   const busyAction = busy && (busy.save || busy.host) ? { host: busy.host } : undefined
 
-  const [reschedule, setReschedule] = useState<RescheduleRequest | null>(null)
-  const [timelineAt, setTimelineAt] = useTimelinePosition()
+  // The day Reschedule opens from; null while it is closed.
+  const [reschedule, setReschedule] = useState<string | null>(null)
   const [overdueHidden, setOverdueHidden] = useState(false)
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
   const [pickedDay, setPickedDay] = useState<string | null>(null)
@@ -272,28 +270,9 @@ export function PlannerPage({
       id,
       plan.calendars.map((c) => c.id),
     )
-  const shift = () => setReschedule({ from: ymd(today ?? weekStart) })
+  const shift = () => setReschedule(ymd(today ?? weekStart))
 
   const { cursor, steps } = session.history
-  const timelineEdit = useTimelineEdit({
-    plan,
-    today,
-    canEdit,
-    canRebalance: rebalance !== undefined,
-    lastChange: session.lastStep?.change ?? null,
-    change: quiet.change,
-    open: setReschedule,
-  })
-  const timeline = timelineAt !== 'hidden' && (
-    <TimelineLanes
-      plan={plan}
-      hidden={hidden}
-      now={now}
-      position={timelineAt}
-      onPosition={setTimelineAt}
-      edit={timelineEdit.edit}
-    />
-  )
   const actions = buildActions({
     nav,
     canEdit,
@@ -311,10 +290,6 @@ export function PlannerPage({
     shift,
     only,
     showAll,
-    timeline: {
-      on: timelineAt !== 'hidden',
-      toggle: () => setTimelineAt(timelineAt === 'hidden' ? 'below' : 'hidden'),
-    },
   })
   const palette: Command[] = [...toCommands(actions), ...(commands ?? [])]
 
@@ -350,7 +325,6 @@ export function PlannerPage({
 
       {!expanded && (
         <>
-          {timelineAt === 'above' && timeline}
           <PlannerHeader
             plan={plan}
             onRename={canEdit ? (title) => quiet.change({ type: 'plan.rename', title }) : undefined}
@@ -385,7 +359,6 @@ export function PlannerPage({
               )}
             </Button>
           </PlannerHeader>
-          {timelineAt === 'below' && timeline}
 
           <Runway plan={plan} now={now} onSelect={select} />
         </>
@@ -464,7 +437,6 @@ export function PlannerPage({
         quiet.lastStep && (
           <UndoBar
             label={quiet.lastStep.label}
-            action={timelineEdit.offer}
             onUndo={quiet.undo}
             onHistory={() => dialogs.show('history')}
             onDismiss={session.dismissLastStep}
@@ -588,8 +560,7 @@ export function PlannerPage({
       />
       <RescheduleDialog
         plan={plan}
-        from={reschedule?.from ?? null}
-        preset={reschedule?.preset}
+        from={reschedule}
         onApply={session.changeAll}
         rebalance={rebalance}
         onClose={() => setReschedule(null)}
@@ -607,7 +578,7 @@ export function PlannerPage({
         open={dialogs.isOpen('catchUp')}
         now={now}
         onChange={session.change}
-        onShift={() => setReschedule({ from: (overdue[0]?.start ?? ymd(today ?? weekStart)).slice(0, 10) })}
+        onShift={() => setReschedule((overdue[0]?.start ?? ymd(today ?? weekStart)).slice(0, 10))}
         onClose={() => dialogs.hide('catchUp')}
       />
       <TrashDialog

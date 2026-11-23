@@ -1,50 +1,66 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { calendarLanes, DAY, isSession, lanesRange, parseLocal, type Plan } from '@lc/plan-domain'
+import {
+  calendarLanes,
+  compareLanes,
+  DAY,
+  isSession,
+  lanesRange,
+  movedSessions,
+  parseLocal,
+  previewUpdate,
+  type Plan,
+  type PlanChange,
+} from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
 
-import { TimelineLanes } from './TimelineLanes'
+import { TimelineChart } from './TimelineChart'
 
 const NONE: ReadonlySet<string> = new Set()
 const COURSES = ['Gemini Certs', 'Hugging Face: LLM Course', 'Hugging Face: AI Agents Course', 'Practical Python']
 
+/** The chart's props for a plan as it is, or as a list of changes would leave it. */
+function chartOf(plan: Plan, now: number | null = fixtureNow, changes: PlanChange[] = []) {
+  const before = calendarLanes(plan, now, NONE)
+  const { after, diff } = previewUpdate(plan, changes, now ?? fixtureNow)
+  const lanes = calendarLanes(after, now, NONE)
+  const range = lanesRange([...before, ...lanes], now) ?? { start: 0, end: DAY }
+  const moved = movedSessions(diff)
+  return { lanes, range, now, changes: compareLanes(before, lanes, moved), moved }
+}
+
 const meta = {
-  title: 'Planner/Widgets/TimelineLanes',
-  component: TimelineLanes,
-  args: { plan: fixturePlan, hidden: NONE, now: fixtureNow, position: 'below', onPosition: fn() },
-  argTypes: { plan: { control: false }, hidden: { control: false } },
-} satisfies Meta<typeof TimelineLanes>
+  title: 'Planner/Widgets/TimelineChart',
+  component: TimelineChart,
+  args: chartOf(fixturePlan),
+  argTypes: { lanes: { control: false }, changes: { control: false }, range: { control: false } },
+  // The zoom is remembered per browser: every story starts from the whole plan.
+  beforeEach: () => localStorage.removeItem('learning-curve:timeline-zoom'),
+} satisfies Meta<typeof TimelineChart>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-const strip = (canvasElement: HTMLElement) => within(canvasElement).getByRole('region', { name: m.timeline() })
+const chart = (canvasElement: HTMLElement) => within(canvasElement).getByRole('region', { name: m.timeline() })
 
-/** Every course with something ahead, in its colour, with how much of it is done, its deadline and today. */
+/** Every course with something ahead, in its colour, with how much of it is done, its deadline, today and the months. */
 export const Default: Story = {
-  play: async ({ args, canvasElement }) => {
-    const region = within(strip(canvasElement))
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
     await expect(COURSES.filter((name) => region.queryByText(name) === null)).toEqual([])
     await expect(region.getByText('14/40')).toBeVisible()
     await expect(canvasElement.querySelectorAll('[data-today]').length).toBe(COURSES.length)
     await expect(canvasElement.querySelectorAll('[data-deadline]').length).toBe(1)
-
-    const page = within(canvasElement.ownerDocument.body)
-    await userEvent.click(region.getByRole('button', { name: m.timeline_position() }))
-    await userEvent.click(await page.findByRole('menuitemcheckbox', { name: m.timeline_above() }))
-    await expect(args.onPosition).toHaveBeenCalledWith('above')
-    await userEvent.click(page.getByRole('menuitem', { name: m.timeline_hide() }))
-    await expect(args.onPosition).toHaveBeenLastCalledWith('hidden')
-  },
-}
-
-/** A calendar switched off in the filter has no lane either. */
-export const HiddenCalendar: Story = {
-  args: { hidden: new Set(['pypy']) },
-  play: async ({ canvasElement }) => {
-    await expect(within(strip(canvasElement)).queryByText('Practical Python')).toBeNull()
+    // January is named with its year, whichever length the month names get at this width.
+    await expect(region.getByText('2027')).toBeVisible()
+    const legend = within(region.getByRole('list', { name: m.timeline_legend() }))
+    for (const label of [m.timeline_legend_done(), m.timeline_legend_ahead(), m.timeline_legend_deadline()]) {
+      // oxlint-disable-next-line no-await-in-loop -- one assertion per legend entry
+      await expect(legend.getByText(label)).toBeVisible()
+    }
+    await expect(region.getByText(m.timeline_spare({ days: 6 }))).toBeVisible()
   },
 }
 
@@ -59,7 +75,7 @@ const withMissed: Plan = {
 
 /** A past session that was never marked done stands out on its lane. */
 export const MissedSession: Story = {
-  args: { plan: withMissed },
+  args: chartOf(withMissed),
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll('[data-state="missed"]').length).toBe(1)
   },
@@ -67,16 +83,16 @@ export const MissedSession: Story = {
 
 /** Before the clock is known, as on the server, the lanes are drawn without a today line. */
 export const BeforeTheClock: Story = {
-  args: { now: null },
+  args: chartOf(fixturePlan, null),
   play: async ({ canvasElement }) => {
-    await expect(within(strip(canvasElement)).getByText('Gemini Certs')).toBeVisible()
+    await expect(within(chart(canvasElement)).getByText('Gemini Certs')).toBeVisible()
     await expect(canvasElement.querySelector('[data-today]')).toBeNull()
   },
 }
 
 /** Three weeks on, the certificates began before the drawn days: their bar is cut at the start and fades there. */
 export const CutAtTheStart: Story = {
-  args: { now: parseLocal('2026-12-21T10:00') },
+  args: chartOf(fixturePlan, parseLocal('2026-12-21T10:00')),
   play: async ({ canvasElement }) => {
     const cut = canvasElement.querySelector<HTMLElement>('[data-cut="start"]')
     await expect(cut).not.toBeNull()
@@ -84,27 +100,71 @@ export const CutAtTheStart: Story = {
   },
 }
 
-/** A narrow screen: the names stand above their lanes and nothing scrolls sideways. */
+/** A narrow screen: only the chart's own scroller moves sideways, never the page. */
 export const Narrow: Story = {
   decorators: [(Story) => <div className="w-[320px]">{Story()}</div>],
   play: async ({ canvasElement }) => {
-    const region = strip(canvasElement)
+    const region = chart(canvasElement)
+    await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth)
+    await userEvent.click(within(region).getByRole('button', { name: m.timeline_zoom_week() }))
     await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth)
   },
 }
 
-/** With every calendar switched off there is nothing to draw: the strip steps aside. */
+/** With nothing ahead in any course there is nothing to draw. */
 export const NoLanes: Story = {
-  args: { hidden: new Set(fixturePlan.calendars.map((c) => c.id)) },
+  args: { lanes: [] },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('section')).toBeNull()
   },
 }
 
-const editing = () => ({ onOpen: fn(), onMove: fn(), onFinish: fn(), onDeadline: fn() })
+const scroller = (canvasElement: HTMLElement) => {
+  const box = canvasElement.querySelector<HTMLElement>('[data-scroller]')
+  if (!box) throw new Error('no scroller')
+  return box
+}
+
+/** A closer zoom makes the days wider than the screen: the chart scrolls, and Today brings today back into view. */
+export const Zoomed: Story = {
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const box = scroller(canvasElement)
+    await expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth)
+    await userEvent.click(region.getByRole('button', { name: m.timeline_zoom_week() }))
+    await expect(box.scrollWidth).toBeGreaterThan(box.clientWidth * 2)
+    box.scrollLeft = box.scrollWidth
+    await userEvent.click(region.getByRole('button', { name: m.go_today() }))
+    const inView = () => {
+      const line = canvasElement.querySelector('[data-today]')?.getBoundingClientRect()
+      const view = box.getBoundingClientRect()
+      return line !== undefined && line.left > view.left && line.left < view.right
+    }
+    await waitFor(() => expect(inView()).toBe(true))
+  },
+}
+
+const moveCerts: PlanChange[] = [{ type: 'events.shift', calendar: 'certs', from: '2026-12-02', days: 14 }]
+
+/** A course the draft moves: its old bar stays under the new one, moved sessions are marked, the shift is named. */
+export const ChangedLane: Story = {
+  args: chartOf(fixturePlan, fixtureNow, moveCerts),
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    await expect(canvasElement.querySelectorAll('[data-before]').length).toBe(1)
+    await expect(canvasElement.querySelectorAll('[data-moved]').length).toBe(26)
+    await expect(region.getByText(m.timeline_delta_days({ days: '+14' }))).toBeVisible()
+    await expect(region.getByText(m.timeline_late({ days: 8 }))).toBeVisible()
+    await userEvent.click(region.getByRole('checkbox', { name: m.timeline_show_before() }))
+    await expect(canvasElement.querySelector('[data-before]')).toBeNull()
+  },
+}
+
+const editing = () => ({ onSelect: fn(), onMove: fn(), onFinish: fn(), onDeadline: fn() })
 const drawn = lanesRange(calendarLanes(fixturePlan, fixtureNow, NONE), fixtureNow)
 const RANGE_DAYS = drawn ? (drawn.end - drawn.start) / DAY : 1
 const LLM = /Hugging Face: LLM Course/
+const CERTS = /Gemini Certs/
 const MOUSE = { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true }
 const pause = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -120,26 +180,91 @@ async function pressAndMove(lane: HTMLElement, weeks: number) {
   return { ...MOUSE, ...at, clientX: at.clientX + week * weeks }
 }
 
-/** A click on a lane opens Reschedule for that calendar; nothing moves. */
-export const OpenFromALane: Story = {
+/**
+ * While a course is dragged it fades where it is, and the tip names the shift, the sessions it takes along, the new
+ * dates and that it would end after its deadline.
+ */
+export const MoveTipSaysTheResult: Story = {
+  args: { edit: editing() },
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const lane = region.getByRole('button', { name: CERTS })
+    const end = await pressAndMove(lane, 1.2)
+    const tip = region.getByText(m.timeline_shift_weeks({ weeks: '+1' }), { exact: false })
+    await expect(tip).toBeVisible()
+    await expect(tip).toHaveTextContent(m.timeline_sessions({ count: 26 }))
+    await expect(tip).toHaveTextContent(m.timeline_late({ days: 1 }))
+    const course = lane.parentElement?.querySelector('[data-course]')
+    await expect(course && getComputedStyle(course).opacity).toBe('0.4')
+    await fireEvent.keyDown(lane, { key: 'Escape' })
+    await fireEvent.pointerUp(lane, end)
+  },
+}
+
+/** While the end of a course is dragged, the tip says how many sessions would be placed again. */
+export const FinishTipCountsSessions: Story = {
+  args: { edit: editing() },
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const finish = region.getByRole('slider', { name: m.timeline_finish({ name: 'Hugging Face: LLM Course' }) })
+    finish.focus()
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}')
+    const open = calendarLanes(fixturePlan, fixtureNow, NONE).find((lane) => lane.calendar.id === 'hfllm')
+    const count = open?.sessions.filter((s) => s.state !== 'done').length ?? 0
+    await expect(region.getByText(m.timeline_sessions({ count }), { exact: false })).toBeVisible()
+  },
+}
+
+/** While the deadline is moved, the tip says how many days the course would have to spare. */
+export const DeadlineTipSaysSpare: Story = {
+  args: { edit: editing() },
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    const deadline = region.getByRole('slider', { name: m.timeline_deadline({ name: 'Gemini Certs' }) })
+    deadline.focus()
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}')
+    await expect(region.getByText(m.timeline_spare({ days: 9 }), { exact: false })).toBeVisible()
+  },
+}
+
+/** A click on a lane selects that course; nothing moves. */
+export const SelectALane: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
-    await userEvent.click(within(strip(canvasElement)).getByRole('button', { name: LLM }))
-    await expect(args.edit?.onOpen).toHaveBeenCalledWith('hfllm')
+    await userEvent.click(within(chart(canvasElement)).getByRole('button', { name: LLM }))
+    await expect(args.edit?.onSelect).toHaveBeenCalledWith('hfllm')
     await expect(args.edit?.onMove).not.toHaveBeenCalled()
   },
 }
 
-/** A lane dragged a week and a bit moves its open sessions by one week; the click after the drop opens nothing. */
+/** The selected course is pressed. */
+export const Selected: Story = {
+  args: { edit: editing(), selected: 'hfllm' },
+  play: async ({ canvasElement }) => {
+    const region = within(chart(canvasElement))
+    await expect(region.getByRole('button', { name: LLM })).toHaveAttribute('aria-pressed', 'true')
+    await expect(region.getByRole('button', { name: CERTS })).toHaveAttribute('aria-pressed', 'false')
+  },
+}
+
+/** A course whose re-balance is being worked out says so. */
+export const WorkingLane: Story = {
+  args: { edit: editing(), working: new Set(['hfllm']) },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('[aria-busy="true"]').length).toBe(1)
+  },
+}
+
+/** A lane dragged a week and a bit moves its open sessions by one week; the click after the drop selects nothing. */
 export const DragALaneByAWeek: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
-    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const lane = within(chart(canvasElement)).getByRole('button', { name: LLM })
     const end = await pressAndMove(lane, 1.2)
     await fireEvent.pointerUp(lane, end)
     await fireEvent.click(lane)
     await waitFor(() => expect(args.edit?.onMove).toHaveBeenCalledWith('hfllm', 7))
-    await expect(args.edit?.onOpen).not.toHaveBeenCalled()
+    await expect(args.edit?.onSelect).not.toHaveBeenCalled()
   },
 }
 
@@ -153,7 +278,7 @@ export const ADropActsAfterItsClick: Story = {
   args: { edit: { ...editing(), onMove: (_calendar: string, days: number) => void order.push(`move ${days}`) } },
   play: async ({ canvasElement }) => {
     order.length = 0
-    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const lane = within(chart(canvasElement)).getByRole('button', { name: LLM })
     const end = await pressAndMove(lane, 1.2)
     lane.addEventListener('click', () => order.push('click'), { once: true })
     // Both in one go, as a browser sends them: nothing awaited in between.
@@ -163,26 +288,27 @@ export const ADropActsAfterItsClick: Story = {
   },
 }
 
-/** Escape during a drag puts the lane back: letting go a moment later moves nothing and opens nothing. */
+/** Escape during a drag puts the lane back: letting go a moment later moves nothing and selects nothing. */
 export const EscapeCancelsADrag: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
-    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const lane = within(chart(canvasElement)).getByRole('button', { name: LLM })
     const end = await pressAndMove(lane, 1.2)
     await fireEvent.keyDown(lane, { key: 'Escape' })
     await pause(150)
     await fireEvent.pointerUp(lane, end)
     await fireEvent.click(lane)
+    await pause(50)
     await expect(args.edit?.onMove).not.toHaveBeenCalled()
-    await expect(args.edit?.onOpen).not.toHaveBeenCalled()
+    await expect(args.edit?.onSelect).not.toHaveBeenCalled()
   },
 }
 
-/** The deadline moves by keys: two days later and Enter stores it; Escape puts back a day that was not stored. */
+/** The deadline moves by keys: two days later and Enter asks for it; Escape puts back a day not asked for. */
 export const DeadlineByKeys: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
-    const deadline = within(strip(canvasElement)).getByRole('slider', {
+    const deadline = within(chart(canvasElement)).getByRole('slider', {
       name: m.timeline_deadline({ name: 'Gemini Certs' }),
     })
     await expect(deadline).toHaveAccessibleDescription(m.timeline_keys())
@@ -201,7 +327,7 @@ export const DeadlineByKeys: Story = {
 export const FinishByKeys: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
-    const finish = within(strip(canvasElement)).getByRole('slider', {
+    const finish = within(chart(canvasElement)).getByRole('slider', {
       name: m.timeline_finish({ name: 'Hugging Face: LLM Course' }),
     })
     finish.focus()
@@ -213,17 +339,17 @@ export const FinishByKeys: Story = {
 /** Without editing the lanes are a picture: nothing to press or drag. */
 export const ReadOnly: Story = {
   play: async ({ canvasElement }) => {
-    const region = within(strip(canvasElement))
+    const region = within(chart(canvasElement))
     await expect(region.queryAllByRole('slider')).toEqual([])
     await expect(region.queryByRole('button', { name: LLM })).toBeNull()
   },
 }
 
-/** Keys pressed while the deadline is dragged: Escape cancels the drag, Enter leaves the drop to store it once. */
+/** Keys pressed while the deadline is dragged: Escape cancels the drag, Enter leaves the drop to ask once. */
 export const KeysDuringAHandleDrag: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
-    const deadline = within(strip(canvasElement)).getByRole('slider', {
+    const deadline = within(chart(canvasElement)).getByRole('slider', {
       name: m.timeline_deadline({ name: 'Gemini Certs' }),
     })
     const cancelled = await pressAndMove(deadline, 3 / 7)
@@ -244,7 +370,7 @@ export const KeysDuringAHandleDrag: Story = {
 export const SecondFinger: Story = {
   args: { edit: editing() },
   play: async ({ canvasElement }) => {
-    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const lane = within(chart(canvasElement)).getByRole('button', { name: LLM })
     const box = lane.getBoundingClientRect()
     const at = { pointerType: 'touch', button: 0, clientX: box.left + box.width / 2, clientY: box.top + 10 }
     await fireEvent.pointerDown(lane, { ...at, pointerId: 2, isPrimary: true })
@@ -262,7 +388,7 @@ export const SecondFinger: Story = {
 export const LastCourseEndsLater: Story = {
   args: { edit: editing() },
   play: async ({ args, canvasElement }) => {
-    const finish = within(strip(canvasElement)).getByRole('slider', {
+    const finish = within(chart(canvasElement)).getByRole('slider', {
       name: m.timeline_finish({ name: 'Practical Python' }),
     })
     finish.focus()

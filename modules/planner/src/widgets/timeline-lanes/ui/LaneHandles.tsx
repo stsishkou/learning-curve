@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 
 import { clampPct, dayMs, type Scale } from '../lib/scale'
 import { useNudge } from '../model/use-nudge'
-import { BAND, span } from './lane-parts'
+import { BAND, signed, spareDays, spareText, span } from './lane-parts'
 
 interface Common {
   lane: CalendarLane
@@ -40,17 +40,23 @@ function Tip({ at, children }: { at: number; children: ReactNode }) {
 const valueOf = (scale: Scale, t: number) => Math.round((t - scale.start) / DAY)
 
 /**
- * The bar of a course: a click opens Reschedule for it; a drag moves its sessions from today on by whole weeks, so
- * each keeps its weekday.
+ * The bar of a course: a click selects it; a drag moves its sessions from today on by whole weeks, so each keeps its
+ * weekday.
  */
 export function LaneBody({
   lane,
   scale,
   today,
   moving,
-  onOpen,
+  selected,
+  onSelect,
   onMove,
-}: Common & { moving: LaneSession[]; onOpen: () => void; onMove?: ((days: number) => void) | undefined }) {
+}: Common & {
+  moving: LaneSession[]
+  selected: boolean
+  onSelect: () => void
+  onMove?: ((days: number) => void) | undefined
+}) {
   const [head] = moving
   const firstMoved = head ? dayMs(head.day) : null
   const canMove = onMove !== undefined && firstMoved !== null
@@ -66,6 +72,7 @@ export function LaneBody({
   const end = dayMs(lane.last) + DAY
   const shift = nudge.offset * DAY
   const left = clampPct(scale.at(start))
+  const late = lane.deadline === null ? 0 : spareDays(end - DAY + shift, dayMs(lane.deadline))
   return (
     <>
       <button
@@ -77,10 +84,11 @@ export function LaneBody({
           done: lane.done,
           total: lane.total,
         })}
-        className={`absolute inset-y-0 rounded-md ${FOCUS} ${canMove ? 'cursor-grab active:cursor-grabbing' : ''}`}
+        aria-pressed={selected}
+        className={`absolute inset-y-1 rounded-md ${FOCUS} ${canMove ? 'cursor-grab active:cursor-grabbing' : ''}`}
         style={{ left: `${left}%`, width: `${clampPct(scale.at(end)) - left}%` }}
         onClick={() => {
-          if (!nudge.afterDrop()) onOpen()
+          if (!nudge.afterDrop()) onSelect()
         }}
         onPointerDown={canMove ? nudge.onPointerDown : undefined}
         onPointerMove={nudge.onPointerMove}
@@ -89,7 +97,7 @@ export function LaneBody({
       />
       {shift !== 0 && firstMoved !== null && (
         <>
-          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div data-ghost aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
             <div
               className={`${BAND} rounded-full border border-dashed border-cal bg-[color-mix(in_srgb,var(--c)_30%,transparent)]`}
               style={span(scale, firstMoved + shift, end + shift)}
@@ -103,7 +111,10 @@ export function LaneBody({
             ))}
           </div>
           <Tip at={scale.at(firstMoved + shift)}>
-            {m.timeline_move_to({ from: fmtShort(firstMoved + shift), to: fmtShort(end - DAY + shift) })}
+            {m.timeline_shift_weeks({ weeks: signed(nudge.offset / 7) })} ·{' '}
+            {m.timeline_sessions({ count: moving.length })} ·{' '}
+            {m.timeline_dates({ from: fmtShort(firstMoved + shift), to: fmtShort(end - DAY + shift) })}
+            {late < 0 && ` · ${spareText(late)}`}
           </Tip>
         </>
       )}
@@ -117,8 +128,9 @@ export function FinishHandle({
   scale,
   today,
   describedBy,
+  moving,
   onFinish,
-}: SliderProps & { onFinish: (day: string) => void }) {
+}: SliderProps & { moving: number; onFinish: (day: string) => void }) {
   const last = dayMs(lane.last)
   const earliest = Math.max(today, lane.openFrom === null ? today : dayMs(lane.openFrom))
   const nudge = useNudge({
@@ -159,7 +171,9 @@ export function FinishHandle({
             className="pointer-events-none absolute inset-y-0 -ml-px w-0.5 bg-cal"
             style={{ left: `${clampPct(at)}%` }}
           />
-          <Tip at={at}>{m.timeline_finish_by({ day: fmtShort(day) })}</Tip>
+          <Tip at={at}>
+            {m.timeline_finish_by({ day: fmtShort(day) })} · {m.timeline_sessions({ count: moving })}
+          </Tip>
         </>
       )}
     </>
@@ -214,7 +228,11 @@ export function DeadlineHandle({
       >
         <i data-deadline className="size-2.5 rotate-45 rounded-[2px] bg-ink ring-2 ring-surface" />
       </span>
-      {nudge.offset !== 0 && <Tip at={scale.at(day)}>{m.deadline_on({ date: fmtShort(day) })}</Tip>}
+      {nudge.offset !== 0 && (
+        <Tip at={scale.at(day)}>
+          {m.deadline_on({ date: fmtShort(day) })} · {spareText(spareDays(dayMs(lane.last), day))}
+        </Tip>
+      )}
     </>
   )
 }
