@@ -113,6 +113,8 @@ src/
 - **A module**: copy the shape of `modules/calendar-export` (`package.json` with the `type:module` tag,
   `tsconfig.json`, `src/index.ts`), add it to `apps/web/package.json` and compose it in a route. The lint rule for
   `modules/**` already refuses every `@lc/*` package except the shared ones, so nothing is added there.
+- **A page**: its header is `PageHeader` from `@lc/ui`, first in the page container. Every page whose header holds
+  actions or navigation keeps it on screen while the page scrolls; do not write a page header by hand.
 - **A route**: a file in `apps/web/src/routes` that renders a module's page. Keep logic out of route files.
 - **A server function**: `apps/web/src/server/`, using `@lc/plan-data`; pass the result into the module as props.
 - **Something read from outside the plan** (the person's own calendar): fetched and parsed in `plan-data`

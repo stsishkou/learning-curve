@@ -1,7 +1,7 @@
 import { fmtDay, fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { hm, isSession, parseLocal, startOfDay, type Plan, type PlanChange, type PlanEvent } from '@lc/plan-domain'
-import { Button, calendarColor, Check, Dot, ExternalLink, Pause, Play, RotateCcw } from '@lc/ui'
+import { Button, calendarColor, Check, Dot, ExternalLink, PageHeader, Pause, Play, RotateCcw } from '@lc/ui'
 import { useState, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
@@ -108,13 +108,10 @@ export function FocusPage({ plan, canEdit, session: wanted, onPick, onChange, he
 
   return (
     <div className="mx-auto grid max-w-[1240px] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
-      <header className="flex flex-col gap-3 md:flex-row md:items-end">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.focus()}</h1>
-          <p className="mt-1 text-[14px] text-muted">{m.focus_hint()}</p>
-        </div>
-        <div className="order-first md:order-none">{headerAside}</div>
-      </header>
+      <PageHeader aside={headerAside}>
+        <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.focus()}</h1>
+        <p className="mt-1 text-[14px] text-muted">{m.focus_hint()}</p>
+      </PageHeader>
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_340px]">
         <section
