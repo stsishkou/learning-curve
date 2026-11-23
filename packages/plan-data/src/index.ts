@@ -1,4 +1,5 @@
 export { feedAddress, loadBusy, parseBusy } from './busy'
+export { listPlanFiles, readPlanVersion, removePlanFile, renamePlanFile, savePlanVersion } from './library'
 export {
   canWrite,
   currentHistory,

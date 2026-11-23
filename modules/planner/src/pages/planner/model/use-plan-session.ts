@@ -36,6 +36,8 @@ export interface PlannerState {
 
 interface OpenFile {
   name: string
+  /** id of the library file it is a version of, when it came from there or was saved there */
+  origin?: string
   /** The file as it was read */
   base: Plan
   /** What was changed since, kept in the browser only */
@@ -49,13 +51,15 @@ interface Host {
   onChange: (change: PlanChange) => Promise<void>
   /** Moves the plan to a point of its history. Resolves once `state` is fresh. */
   onTravel: (cursor: number) => Promise<void>
+  /** Stores several changes in order, all or none. Without it they are sent one by one */
+  onChangeAll?: (changes: PlanChange[]) => Promise<void>
 }
 
 /**
  * The plan on screen and the one way to change it. Normally that is the project plan and changes go to the host;
  * while a file is open, the file is shown and changes stay in the browser until it is downloaded.
  */
-export function usePlanSession(state: PlannerState, { onChange, onTravel }: Host) {
+export function usePlanSession(state: PlannerState, { onChange, onTravel, onChangeAll }: Host) {
   const [file, setFile] = useState<OpenFile | null>(null)
   // Changes on their way to the host, shown at once so a dragged event does not jump back while saving.
   const [pending, setPending] = useState<PlanChange[]>([])
@@ -96,6 +100,27 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel }: Host
     [file, onChange],
   )
 
+  /** Applies the changes of an update in order, each as a step of the history. */
+  const changeAll = useCallback(
+    async (list: PlanChange[]) => {
+      if (file) {
+        let { edits, history: steps } = file
+        for (const next of list) {
+          const before = applyEdits(file.base, edits).plan
+          edits = applyChange(file.base, edits, next)
+          steps = recordChange(steps, before, next, edits)
+        }
+        setFile({ ...file, edits, trash: trashOf(file.base, edits), history: steps })
+      } else if (onChangeAll) {
+        await onChangeAll(list)
+      } else {
+        for (const next of list) await onChange(next)
+      }
+      setJustChanged(true)
+    },
+    [file, onChange, onChangeAll],
+  )
+
   const history = useMemo(() => (file ? historyView(file.history) : state.history), [file, state.history])
 
   /** Moves the plan back or forward to a point of the history. */
@@ -119,16 +144,25 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel }: Host
     edited,
     trash: file ? file.trash : state.trash,
     change,
+    changeAll,
     history,
     travel: go,
     /** The step a bar offers to take back right after it was made */
     lastStep: justChanged && history.cursor > 0 ? history.steps[history.cursor - 1] : null,
     dismissLastStep: () => setJustChanged(false),
-    file: file ? { name: file.name, changes: edited.size + Object.keys(file.edits.calendars).length } : null,
-    openFile: (name: string, base: Plan) => (
-      setFile({ name, base, edits: emptyEdits(), trash: emptyTrash(), history: emptyHistory() }),
+    file: file
+      ? { name: file.name, origin: file.origin, changes: edited.size + Object.keys(file.edits.calendars).length }
+      : null,
+    openFile: (name: string, base: Plan, origin?: string) => (
+      setFile({ name, origin, base, edits: emptyEdits(), trash: emptyTrash(), history: emptyHistory() }),
       setJustChanged(false)
     ),
+    /** The file as it is now was saved to the library as `origin`: what follows is counted from here. */
+    fileSaved: (origin: string) => {
+      if (file)
+        setFile({ ...file, origin, base: plan, edits: emptyEdits(), trash: emptyTrash(), history: emptyHistory() })
+      setJustChanged(false)
+    },
     closeFile: () => (setFile(null), setJustChanged(false)),
     downloadFile: () =>
       downloadText(file?.name ?? planFileName(plan), JSON.stringify(plan, null, 2), 'application/json'),

@@ -87,6 +87,17 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Plan files**: `Plan file` opens a reader on the plan: an overview, every event with search, and the file
   itself as colored JSON with line numbers, sections that fold (`Collapse sections` leaves the outline) and find. Choose or drop another `plan.json` to read it, see how it differs
   from the project plan, and open it for editing. Those changes stay in the browser until you download the file.
+- **A library of plan files**: the `Library` tab of the reader keeps plan files with their versions on this
+  computer (`packages/plan-data/data/library/`, not committed). `Save as a new file` stores the plan on screen;
+  `Save a version here` adds a version to a file (up to 30 are kept, and saving an unchanged plan adds nothing).
+  Each version can be viewed, compared with the one before it (`What changed`) or deleted; a file can be renamed,
+  deleted, or opened with `Edit`, after which the bar on top saves your changes back as a new version.
+- **Working with an AI chat**: the `AI chat` tab gives a brief to copy into any chat (the rules of the plan, how
+  to add a course, how to name events and make them repeat, how to answer, and the plan itself) and takes the
+  answer back. The chat answers with an *update*, a short JSON list of changes; the tab shows what it would add,
+  remove and change, warns about weeks filled past the budget, and applies it as steps of the history that Undo
+  takes back. An update is all or nothing: when one change does not fit, the tab says which, in words to send
+  back to the chat. See [For language models and tools](#for-language-models-and-tools).
 - **Progress dashboard**: `/dashboard` (the `Progress` tab) shows how much is done, whether that is ahead of or
   behind the plan, hours added up against the plan, the load of every week by calendar against the budget, and
   a bar per course. Every chart has a hover readout and the same numbers as a table.
@@ -181,6 +192,34 @@ sessions` puts a ✓ before the title of every done session and stops it blockin
 Once deployed on a public URL, `/api/ics/:calendarId` can be added in Google Calendar or Outlook as a
 subscription ("From URL"). The calendar then updates itself after each deploy, with no re-import and no duplicates.
 Subscribed calendars are read-only and Google refreshes them every few hours.
+
+
+## For language models and tools
+
+The plan is described so that a model can change it without guessing. Three documents come from
+`packages/plan-domain` and are the same wherever they are served:
+
+- **The guide** (`planGuide`): Markdown generated from the plan itself, with its calendars, the hours planned per
+  week, the rules (budget, holidays, what is done stays), how to name things, how to add a course, how to mark a
+  repeat and how to answer.
+- **The schemas** (`PLAN_SCHEMA`, `UPDATE_SCHEMA`): JSON Schema of the plan file and of an update, with a
+  description on every field.
+- **The update** (`parseUpdate`, `previewUpdate`): `{ "summary": "…", "changes": [ … ] }`. The changes are the same
+  `PlanChange` values the viewer stores, among them `course.add` (a calendar with all its sessions) and
+  `events.add`; a new event may carry `"rrule": "FREQ=WEEKLY;BYDAY=TU,TH"`. The whole update is checked before any
+  change is stored.
+
+| Way in | What it gives |
+| --- | --- |
+| `Plan file` → `AI chat` | Copy the brief, paste the answer, preview, apply. No network: the clipboard only |
+| `GET /api/plan-guide` | The guide; `?brief=1` adds the plan, `&descriptions=1` keeps event notes |
+| `GET /api/plan-schema` | `{ plan, update }`: both JSON Schemas |
+| `POST /api/plan-update` | Takes an update as JSON or as the text of a chat answer; `?dry=1` only reports what it would do. 422 names the change at fault, 403 on a read-only host |
+| `pnpm run mcp` | An MCP server over stdio: tools `get_guide`, `get_plan`, `preview_update`, `apply_update`; resources `plan://guide`, `plan://plan`, `plan://schema/plan`, `plan://schema/update`; prompt `change_plan` |
+
+`.mcp.json` registers the MCP server for Claude Code in this repository. For another client, run
+`pnpm --silent run mcp` from the repository root (`--silent` keeps stdout for the protocol). `pnpm run test`
+checks that the schemas, the examples of the guide and the parser agree.
 
 ## Structure
 

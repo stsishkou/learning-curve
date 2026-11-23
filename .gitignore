@@ -16,4 +16,5 @@ exports
 .nx/workspace-data
 packages/plan-data/data/history.json
 packages/plan-data/data/local.json
+packages/plan-data/data/library/
 .claude/worktrees

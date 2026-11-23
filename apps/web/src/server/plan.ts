@@ -50,6 +50,17 @@ export const savePlanChange = createServerFn({ method: 'POST' })
     return state(saveChanges([data]).plan)
   })
 
+/** Stores the changes of an update in order, each a step of the history; none when one does not fit. */
+export const savePlanChanges = createServerFn({ method: 'POST' })
+  .validator((changes: unknown) => {
+    if (!Array.isArray(changes) || !changes.length) throw new Error('Changes are required')
+    return changes.map(parseChange)
+  })
+  .handler(({ data }): PlanState => {
+    mustWrite()
+    return state(saveChanges(data).plan)
+  })
+
 /** Moves the plan to a point of the history: 0 is before the first change, the number of steps the latest. */
 export const travelPlanHistory = createServerFn({ method: 'POST' })
   .validator((cursor: unknown) => {

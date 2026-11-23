@@ -1,4 +1,5 @@
 export type { BusySource as PlannerBusySource } from './features/busy-overlay'
+export type { PlanLibrary as PlannerLibrary } from './features/open-plan-file'
 export type { Command as PlannerCommand } from './features/command-palette'
 export { FocusPage } from './pages/focus'
 export {

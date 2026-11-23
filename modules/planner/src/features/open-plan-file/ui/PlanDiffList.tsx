@@ -1,0 +1,79 @@
+import { fmtDay } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import { hm, parseLocal, type Plan, type PlanDiff, type PlanEvent } from '@lc/plan-domain'
+import { calendarColor, Dot } from '@lc/ui'
+import type { ReactNode } from 'react'
+
+const SHOWN = 8
+
+interface Props {
+  diff: PlanDiff
+  /** The plan the added and changed events are in, and the one the removed events were in: for their colors */
+  after: Plan
+  before: Plan
+  /** Headings of the three groups, each given the number of events in it */
+  labels: { added: (count: number) => string; removed: (count: number) => string; changed: (count: number) => string }
+}
+
+const colorOf = (p: Plan, id: string) => p.calendars.find((c) => c.id === id)?.color
+const when = (e: PlanEvent) => `${fmtDay(parseLocal(e.start))} ${hm(parseLocal(e.start))}–${hm(parseLocal(e.end))}`
+
+/** The events one plan adds, removes and changes compared with another, as three folding groups. */
+export function PlanDiffList({ diff, after, before, labels }: Props) {
+  return (
+    <div className="grid gap-2">
+      <Group tone="text-done-ink" sign="+" label={labels.added(diff.added.length)} count={diff.added.length}>
+        {diff.added.slice(0, SHOWN).map((e) => (
+          <Row key={e.uid} color={colorOf(after, e.calendar)} title={e.title} detail={when(e)} />
+        ))}
+      </Group>
+      <Group tone="text-today-ink" sign="−" label={labels.removed(diff.removed.length)} count={diff.removed.length}>
+        {diff.removed.slice(0, SHOWN).map((e) => (
+          <Row key={e.uid} color={colorOf(before, e.calendar)} title={e.title} detail={when(e)} />
+        ))}
+      </Group>
+      <Group tone="text-focus" sign="~" label={labels.changed(diff.changed.length)} count={diff.changed.length}>
+        {diff.changed.slice(0, SHOWN).map(({ before: was, after: now }) => (
+          <Row
+            key={now.uid}
+            color={colorOf(after, now.calendar)}
+            title={now.title}
+            detail={was.start === now.start && was.end === now.end ? was.title : `${when(was)} → ${when(now)}`}
+          />
+        ))}
+      </Group>
+    </div>
+  )
+}
+
+interface GroupProps {
+  tone: string
+  sign: string
+  label: string
+  count: number
+  children: ReactNode
+}
+
+function Group({ tone, sign, label, count, children }: GroupProps) {
+  if (!count) return null
+  return (
+    <details className="rounded-xl border border-line-soft px-3 py-2" open={count <= SHOWN}>
+      <summary className="cursor-pointer text-[13.5px] font-medium">
+        <b className={`mr-1.5 inline-block w-3 text-center ${tone}`}>{sign}</b>
+        {label}
+      </summary>
+      <ul className="mt-2 grid gap-1 text-[13px]">{children}</ul>
+      {count > SHOWN && <p className="mt-1.5 text-[12.5px] text-muted">{m.and_more({ count: count - SHOWN })}</p>}
+    </details>
+  )
+}
+
+function Row({ color, title, detail }: { color: string | undefined; title: string; detail: string }) {
+  return (
+    <li className="flex items-baseline gap-2" style={calendarColor(color)}>
+      <Dot className="size-2 -translate-y-px" />
+      <span className="min-w-0 flex-1 truncate">{title}</span>
+      <em className="flex-none text-[12.5px] text-muted not-italic tabular-nums">{detail}</em>
+    </li>
+  )
+}

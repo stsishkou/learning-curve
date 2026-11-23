@@ -29,7 +29,7 @@ import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-cal
 import { HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog, useShortcuts } from '../../../features/keyboard-shortcuts'
 import { CalendarsDialog } from '../../../features/manage-calendars'
-import { FileBanner, OpenPlanFile } from '../../../features/open-plan-file'
+import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
 import { useReminders } from '../../../features/reminders'
 import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
@@ -68,6 +68,10 @@ interface Props {
   onChange: (change: PlanChange) => Promise<void>
   /** Moves the plan to a point of its history: 0 is before the first change. Resolves once `state` is fresh. */
   onTravel: (cursor: number) => Promise<void>
+  /** Stores the changes of an update in order, all or none. Without it they are sent to `onChange` one by one */
+  onChangeAll?: (changes: PlanChange[]) => Promise<void>
+  /** Present when the host keeps plan files with versions: the plan file reader lists them */
+  library?: PlanLibrary
   /** Shown next to the title: controls the host owns, such as the language switcher */
   headerAside?: ReactNode
   /** More header actions that work on the plan as it is shown now, such as export */
@@ -93,6 +97,8 @@ export function PlannerPage({
   onSearchChange,
   onChange,
   onTravel,
+  onChangeAll,
+  library,
   headerAside,
   renderActions,
   onFocus,
@@ -102,7 +108,7 @@ export function PlannerPage({
   const now = useNow()
   const mod = useModKey()
   const { hidden, toggle, solo, showAll, reset } = useHiddenCalendars()
-  const session = usePlanSession(state, { onChange, onTravel })
+  const session = usePlanSession(state, { onChange, onTravel, onChangeAll })
   const { plan, canEdit } = session
   const nav = usePlannerView(plan, search, onSearchChange)
   const { view, expanded, weekStart } = nav
@@ -225,6 +231,13 @@ export function PlannerPage({
           name={session.file.name}
           changes={session.file.changes}
           onDownload={session.downloadFile}
+          onSave={
+            library &&
+            (async () => {
+              const saved = await library.save({ id: session.file?.origin, name: session.file?.name ?? '', plan })
+              session.fileSaved(saved.id)
+            })
+          }
           onClose={session.closeFile}
         />
       )}
@@ -237,13 +250,16 @@ export function PlannerPage({
             aside={headerAside}
           >
             <OpenPlanFile
-              shown={{ name: session.file?.name ?? planFileName(plan), plan }}
+              shown={{ name: session.file?.name ?? planFileName(plan), plan, origin: session.file?.origin }}
               project={state.plan}
               onOpen={(file) => {
-                session.openFile(file.name, file.plan)
+                session.openFile(file.name, file.plan, file.origin)
                 reset()
                 onSearchChange({ week: undefined, event: undefined })
               }}
+              library={library}
+              now={now}
+              onApply={canEdit ? session.changeAll : undefined}
             />
             {renderActions?.({ plan, hidden })}
           </PlannerHeader>

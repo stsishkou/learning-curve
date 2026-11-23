@@ -1,11 +1,14 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { isPlan, parseLocal, type Plan } from '@lc/plan-domain'
+import { isPlan, parseLocal, type Plan, type PlanChange } from '@lc/plan-domain'
 import { Button, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useRef, useState, type DragEvent } from 'react'
 
 import { downloadText } from '../../../shared/lib'
+import type { PlanLibrary } from '../model/library'
+import { ReaderAssistant } from './ReaderAssistant'
 import { ReaderEvents } from './ReaderEvents'
+import { ReaderLibrary, type LibraryDoc } from './ReaderLibrary'
 import { ReaderOverview } from './ReaderOverview'
 import { ReaderSource } from './ReaderSource'
 
@@ -16,10 +19,15 @@ interface PlanDoc {
   /** null when the text is not a plan; the source can still be read */
   plan: Plan | null
   problem: string
+  /** false for the plan on screen; true for a file from disk or a version from the library */
   fromDisk: boolean
+  /** id of the library file it is a version of */
+  origin?: string
+  /** The plan its differences are shown from, when that is not the project plan */
+  compare?: { name: string; plan: Plan }
 }
 
-type Tab = 'overview' | 'events' | 'source'
+type Tab = 'overview' | 'events' | 'source' | 'files' | 'assistant'
 
 interface Props {
   /** The parent owns it and sets it to false in `onClose` */
@@ -28,10 +36,28 @@ interface Props {
   shown: { name: string; plan: Plan }
   /** The project plan, to compare a file with */
   project: Plan
-  /** Opens a file from disk in the planner, for viewing in the calendar and editing */
-  onOpen: (file: { name: string; plan: Plan }) => void
+  /** Opens a file from disk or from the library in the planner, for viewing in the calendar and editing */
+  onOpen: (file: { name: string; plan: Plan; origin?: string }) => void
+  /** Present when the host keeps plan files: adds the tab that lists them with their versions */
+  library?: PlanLibrary
+  /** id of the library file the plan on screen was opened from */
+  origin?: string
+  /** Minsk wall-clock ms, for the brief of the AI chat tab; null before the clock is known */
+  now?: number | null
+  /** Stores the changes of an update a chat returned, in order. Absent when the plan cannot be edited */
+  onApply?: (changes: PlanChange[]) => Promise<void>
   onClose: () => void
 }
+
+const fromLibrary = (file: LibraryDoc): PlanDoc => ({
+  name: file.name,
+  text: JSON.stringify(file.plan, null, 2),
+  plan: file.plan,
+  problem: '',
+  fromDisk: true,
+  origin: file.origin,
+  compare: file.compare,
+})
 
 async function readDoc(file: File): Promise<PlanDoc> {
   const text = await file.text()
@@ -46,7 +72,7 @@ async function readDoc(file: File): Promise<PlanDoc> {
 }
 
 /** Reads a plan file in the browser: what it holds, every event, and the file itself as text. */
-export function PlanFileReader({ open, shown, project, onOpen, onClose }: Props) {
+export function PlanFileReader({ open, shown, project, onOpen, library, origin, now = null, onApply, onClose }: Props) {
   const input = useRef<HTMLInputElement>(null)
   const [picked, setPicked] = useState<PlanDoc | null>(null)
   const [tab, setTab] = useState<Tab>('overview')
@@ -68,8 +94,7 @@ export function PlanFileReader({ open, shown, project, onOpen, onClose }: Props)
     fromDisk: false,
   }
   // A file that is not a plan has nothing to list: only its text can be read.
-  const active: Tab = doc.plan ? tab : 'source'
-
+  const active: Tab = tab === 'files' || tab === 'assistant' || doc.plan ? tab : 'source'
   async function load(file: File | undefined) {
     if (!file) return
     setPicked(await readDoc(file))
@@ -127,27 +152,45 @@ export function PlanFileReader({ open, shown, project, onOpen, onClose }: Props)
         )}
 
         <div className="mt-3.5 flex flex-wrap items-center gap-3">
-          {doc.plan && (
-            <Segmented
-              label={m.view()}
-              value={active}
-              options={[
-                { value: 'overview', label: m.reader_tab_overview() },
-                { value: 'events', label: m.reader_tab_events() },
-                { value: 'source', label: m.reader_tab_source() },
-              ]}
-              onChange={setTab}
-            />
-          )}
+          <Segmented
+            label={m.view()}
+            value={active}
+            options={[
+              ...(doc.plan
+                ? [
+                    { value: 'overview' as const, label: m.reader_tab_overview() },
+                    { value: 'events' as const, label: m.reader_tab_events() },
+                  ]
+                : []),
+              { value: 'source' as const, label: m.reader_tab_source() },
+              ...(library ? [{ value: 'files' as const, label: m.reader_tab_files() }] : []),
+              { value: 'assistant' as const, label: m.reader_tab_assistant() },
+            ]}
+            onChange={setTab}
+          />
           <span className="hidden text-[12.5px] text-muted md:inline">{m.reader_drop_hint()}</span>
         </div>
 
         <div className="mt-3.5 min-h-0 flex-1 overflow-y-auto">
           {active === 'overview' && doc.plan && (
-            <ReaderOverview plan={doc.plan} compareWith={doc.fromDisk ? project : null} />
+            <ReaderOverview
+              plan={doc.plan}
+              compareWith={doc.compare?.plan ?? (doc.fromDisk ? project : null)}
+              compareName={doc.compare?.name}
+            />
           )}
           {active === 'events' && doc.plan && <ReaderEvents plan={doc.plan} />}
           {active === 'source' && <ReaderSource key={doc.name} text={doc.text} />}
+          {active === 'files' && library && (
+            <ReaderLibrary
+              library={library}
+              shown={shown}
+              origin={origin}
+              onView={(file) => (setPicked(fromLibrary(file)), setTab('overview'))}
+              onOpen={(file) => (onOpen(file), close())}
+            />
+          )}
+          {active === 'assistant' && <ReaderAssistant plan={shown.plan} now={now} onApply={onApply} />}
         </div>
 
         <div className="mt-3.5 flex flex-wrap justify-end gap-2">
@@ -160,7 +203,7 @@ export function PlanFileReader({ open, shown, project, onOpen, onClose }: Props)
               primary
               onClick={() => {
                 const { name, plan } = doc
-                if (plan) onOpen({ name, plan })
+                if (plan) onOpen({ name, plan, origin: doc.origin })
                 close()
               }}
             >

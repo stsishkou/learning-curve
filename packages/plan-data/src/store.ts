@@ -25,7 +25,7 @@ import { bundledPlan } from './bundled'
 const DATA_DIR = 'packages/plan-data/data'
 
 /** Looks for the data directory upwards from the working directory, so every package and the built server find it. */
-function dataDir(): string {
+export function dataDir(): string {
   if (process.env.PLAN_DATA_DIR) return process.env.PLAN_DATA_DIR
   for (let dir = process.cwd(); ; dir = dirname(dir)) {
     const candidate = join(dir, DATA_DIR)

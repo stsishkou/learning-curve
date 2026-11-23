@@ -527,21 +527,21 @@ export function WeekGrid({
                 {busyTimed
                   .filter((b) => b.s < d + maxH * HOUR && b.e > d + minH * HOUR)
                   .map((b) => {
-                    const top = ((Math.max(b.s, d + minH * HOUR) - d) / HOUR - minH) * hourHeight
-                    const bottom = ((Math.min(b.e, d + maxH * HOUR) - d) / HOUR - minH) * hourHeight
+                    const upper = ((Math.max(b.s, d + minH * HOUR) - d) / HOUR - minH) * hourHeight
+                    const lower = ((Math.min(b.e, d + maxH * HOUR) - d) / HOUR - minH) * hourHeight
                     const label = m.busy_from_calendar({ title: busyLabel(b), time: `${hm(b.s)}–${hm(b.e)}` })
                     return (
                       <div key={`${b.s}-${b.e}-${b.title}`} data-busy title={label}>
                         <div
                           className={`${BUSY_FILL} absolute inset-x-0.5 overflow-hidden rounded-md px-1.5 py-0.5 text-[11px]/[1.3] text-muted`}
-                          style={{ top: top + 1, height: Math.max(8, bottom - top - 2) }}
+                          style={{ top: upper + 1, height: Math.max(8, lower - upper - 2) }}
                         >
                           <span className="rounded-sm bg-surface px-1">{busyLabel(b)}</span>
                         </div>
                         {/* Over the events: a block they cover is still seen at the edge of the day. */}
                         <i
                           className="pointer-events-none absolute right-0 z-1 w-1 rounded-l-sm bg-muted"
-                          style={{ top: top + 1, height: Math.max(8, bottom - top - 2) }}
+                          style={{ top: upper + 1, height: Math.max(8, lower - upper - 2) }}
                         />
                       </div>
                     )

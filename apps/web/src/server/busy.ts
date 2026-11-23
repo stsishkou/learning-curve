@@ -38,11 +38,11 @@ export const saveBusyFeed = createServerFn({ method: 'POST' })
 
 /** The busy time of the person's own calendar between two Minsk wall-clock moments; empty when none is set. */
 export const getBusy = createServerFn({ method: 'GET' })
-  .validator((window: unknown) => {
-    if (typeof window !== 'object' || window === null || !('from' in window) || !('to' in window)) {
+  .validator((range: unknown) => {
+    if (typeof range !== 'object' || range === null || !('from' in range) || !('to' in range)) {
       throw new Error('A window is required')
     }
-    const { from, to } = window
+    const { from, to } = range
     if (typeof from !== 'number' || typeof to !== 'number' || !(to > from) || to - from > MAX_WINDOW) {
       throw new Error('A window of at most two months is required')
     }

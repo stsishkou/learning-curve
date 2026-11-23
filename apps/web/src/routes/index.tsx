@@ -5,7 +5,8 @@ import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planne
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { getBusy, getBusyFeed, saveBusyFeed } from '#/server/busy'
-import { getPlanState, savePlanChange, travelPlanHistory } from '#/server/plan'
+import { getPlanFile, getPlanFiles, removeSavedPlan, renameSavedPlan, savePlanFile } from '#/server/library'
+import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory } from '#/server/plan'
 import { ShellAside, STAND_URL } from '#/shell/ShellAside'
 import { setTheme } from '#/shell/theme'
 
@@ -55,6 +56,21 @@ function PlannerRoute() {
         await travelPlanHistory({ data: cursor })
         await router.invalidate()
       }}
+      onChangeAll={async (changes) => {
+        await savePlanChanges({ data: changes })
+        await router.invalidate()
+      }}
+      library={
+        state.canEdit
+          ? {
+              list: () => getPlanFiles(),
+              read: (id, version) => getPlanFile({ data: { id, version } }),
+              save: (file) => savePlanFile({ data: file }),
+              rename: async (id, name) => void (await renameSavedPlan({ data: { id, name } })),
+              remove: async (id, version) => void (await removeSavedPlan({ data: { id, version } })),
+            }
+          : undefined
+      }
       headerAside={<ShellAside />}
       renderActions={({ plan, hidden }) => <ExportCalendars plan={plan} hidden={hidden} />}
       busy={{
