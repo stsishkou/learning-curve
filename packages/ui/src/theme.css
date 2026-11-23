@@ -1,61 +1,34 @@
-/* Color tokens live on :root so the dark values below swap them without a `dark:` variant on every class.
-   The scheme follows the system unless <meta name="color-scheme"> pins it to light or dark (see the app's theme switch). */
+/* Color tokens live on :root so the scheme swaps them without a `dark:` variant on every class: each holds a light
+   and a dark value. The page follows the system unless <meta name="color-scheme"> pins it to light or dark (see the
+   app's theme switch). */
 :root {
-  color-scheme: light;
-  --bg: #edf1f6;
-  --surface: #ffffff;
-  --surface-2: #f5f7fa;
-  --ink: #172033;
-  --muted: #5a6578;
-  --line: #d4dbe5;
-  --line-soft: #e6ebf1;
-  --today: #d8473b;
-  /* Text in the accent colours: the fills are too light to read as text on a light surface. */
-  --today-ink: #b93026;
-  --focus: #2f5bea;
-  --done: #1f9d6b;
-  --done-ink: #14704b;
-  --shadow: 0 1px 0 rgb(23 32 51 / 0.06);
+  color-scheme: light dark;
+  &:has(> head > meta[name='color-scheme'][content='light']) {
+    color-scheme: light;
+  }
+  &:has(> head > meta[name='color-scheme'][content='dark']) {
+    color-scheme: dark;
+  }
+  --bg: light-dark(#edf1f6, #121722);
+  --surface: light-dark(#ffffff, #1a2130);
+  --surface-2: light-dark(#f5f7fa, #202838);
+  --ink: light-dark(#172033, #e5eaf1);
+  --muted: light-dark(#5a6578, #9aa5b6);
+  --line: light-dark(#d4dbe5, #2c3547);
+  --line-soft: light-dark(#e6ebf1, #242d3d);
+  --today: light-dark(#d8473b, #ff6b5e);
+  /* Text in the accent colours: the light fills are too light to read as text on a light surface. */
+  --today-ink: light-dark(#b93026, #ff6b5e);
+  --focus: light-dark(#2f5bea, #7c9bff);
+  --done: light-dark(#1f9d6b, #46c692);
+  --done-ink: light-dark(#14704b, #46c692);
+  --shadow: 0 1px 0 light-dark(rgb(23 32 51 / 0.06), transparent);
   /* At least 3:1 against every surface it is drawn on: the track is transparent. */
-  --scroll-thumb: #7d899b;
+  --scroll-thumb: light-dark(#7d899b, #7f8a9c);
+  /* Checkboxes and other native controls take the colour of focus, not the system's. */
+  accent-color: var(--focus);
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not(:has(> head > meta[name='color-scheme'][content='light'])) {
-    color-scheme: dark;
-    --bg: #121722;
-    --surface: #1a2130;
-    --surface-2: #202838;
-    --ink: #e5eaf1;
-    --muted: #9aa5b6;
-    --line: #2c3547;
-    --line-soft: #242d3d;
-    --today: #ff6b5e;
-    --today-ink: #ff6b5e;
-    --focus: #7c9bff;
-    --done: #46c692;
-    --done-ink: #46c692;
-    --shadow: 0 0 #0000;
-    --scroll-thumb: #7f8a9c;
-  }
-}
-:root:has(> head > meta[name='color-scheme'][content='dark']) {
-  color-scheme: dark;
-  --bg: #121722;
-  --surface: #1a2130;
-  --surface-2: #202838;
-  --ink: #e5eaf1;
-  --muted: #9aa5b6;
-  --line: #2c3547;
-  --line-soft: #242d3d;
-  --today: #ff6b5e;
-  --today-ink: #ff6b5e;
-  --focus: #7c9bff;
-  --done: #46c692;
-  --done-ink: #46c692;
-  --shadow: 0 0 #0000;
-  --scroll-thumb: #7f8a9c;
 }
 
 @theme {
