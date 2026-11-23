@@ -387,16 +387,41 @@ export const NoCourses: Story = {
 }
 
 /**
- * On a phone the page never scrolls sideways: only the chart's own days do, and the panel follows it. The stand's
- * tests run in a window as wide as a phone.
+ * On a phone the page never scrolls sideways: only the chart's own days do, and the panel follows it. Scrolled, the
+ * chart passes under the header that stays at the top.
  */
 export const Phone: Story = {
-  decorators: [(Story) => <div className="max-w-[390px]">{Story()}</div>],
+  args: {
+    // Like the app's sections: a row that scrolls sideways and is wider than a phone.
+    headerAside: (
+      <div className="flex min-w-0 gap-1.5 overflow-x-auto">
+        {['Plan', 'Timeline', 'Focus', 'Progress', 'Components', 'Settings', 'Library', 'Help'].map((name) => (
+          <button key={name} type="button" className="px-3 py-2 whitespace-nowrap">
+            {name} section
+          </button>
+        ))}
+      </div>
+    ),
+  },
+  globals: { viewport: { value: 'mobile2', isRotated: false } },
   play: async ({ canvasElement }) => {
+    const root = canvasElement.ownerDocument.documentElement
+    await expect(window.innerWidth).toBeLessThan(500)
+    await expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth)
     await select(canvasElement, LLM)
     await laterWeek(canvasElement)
     await findDraftBar(canvasElement)
-    const root = canvasElement.ownerDocument.documentElement
     await expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth)
+    // Scrolled under the header that stays at the top, the chart's own sticky column stays under it too.
+    const region = await chart(canvasElement)
+    window.scrollTo(0, region.getBoundingClientRect().top + window.scrollY + 120)
+    const top = [...canvasElement.querySelectorAll<HTMLElement>('.sticky')].find(
+      (el) => !region.contains(el) && el.getBoundingClientRect().height > 0,
+    )
+    if (!top) throw new Error('no sticky header')
+    const bar = top.getBoundingClientRect()
+    const hit = canvasElement.ownerDocument.elementFromPoint(bar.left + 40, bar.top + bar.height / 2)
+    await expect(top.contains(hit)).toBe(true)
+    window.scrollTo(0, 0)
   },
 }

@@ -111,6 +111,33 @@ export const Narrow: Story = {
   },
 }
 
+/**
+ * Month names, Monday numbers and today stay inside the axis, and a month that starts a short way in does not run
+ * into the name of the one before it, however narrow the chart.
+ */
+export const AxisLabelsFit: Story = {
+  args: chartOf(fixturePlan, parseLocal('2026-11-25T12:00')),
+  decorators: [(Story) => <div className="w-[320px]">{Story()}</div>],
+  play: async ({ canvasElement }) => {
+    const axis = canvasElement.querySelector<HTMLElement>('[data-axis]')
+    if (!axis) throw new Error('no axis')
+    await waitFor(() => expect(axis.querySelectorAll('[data-month]').length).toBeGreaterThan(1))
+    const box = axis.getBoundingClientRect()
+    const outside = [...axis.querySelectorAll('span')]
+      .filter((label) => {
+        const at = label.getBoundingClientRect()
+        return at.bottom > box.bottom + 0.5 || at.top < box.top - 0.5
+      })
+      .map((label) => label.textContent)
+    await expect(outside).toEqual([])
+    const months = [...axis.querySelectorAll('[data-month]')]
+      .map((label) => label.getBoundingClientRect())
+      .toSorted((a, b) => a.left - b.left)
+    const crowded = months.filter((at, i) => i > 0 && at.left < (months[i - 1]?.right ?? 0))
+    await expect(crowded).toEqual([])
+  },
+}
+
 /** With nothing ahead in any course there is nothing to draw. */
 export const NoLanes: Story = {
   args: { lanes: [] },

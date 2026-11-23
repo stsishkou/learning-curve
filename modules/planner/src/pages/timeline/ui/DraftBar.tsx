@@ -3,7 +3,9 @@ import { Button, X } from '@lc/ui'
 
 // Floats over the page, so it stays at hand wherever the chart is scrolled to.
 const BAR =
-  'fixed inset-x-3 bottom-4 z-20 mx-auto flex max-w-[760px] flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13.5px] shadow-[0_12px_32px_rgb(10_16_30/0.28)]'
+  'fixed inset-x-3 bottom-3 z-20 mx-auto flex max-w-[760px] flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] shadow-[0_12px_32px_rgb(10_16_30/0.28)] md:bottom-4 md:px-3.5 md:py-2.5 md:text-[13.5px]'
+// On a phone the three buttons share one row.
+const ACTION = 'py-1.5! max-md:px-2!'
 
 interface Props {
   /** Courses in the draft */
@@ -29,7 +31,7 @@ export function DraftBar(props: Props) {
   const { courses, sessions, warnings, problem, working, ready, saving, onReview, onDiscard, onApply } = props
   return (
     <section aria-label={m.timeline_draft()} className={BAR}>
-      <p className="min-w-0 flex-1 basis-[220px]">
+      <p className="min-w-0 flex-1 basis-[220px] leading-[1.4]">
         <span className="font-semibold">{m.timeline_draft()}</span>
         <span className="text-muted tabular-nums"> · {m.timeline_draft_summary({ courses, sessions })}</span>
         {warnings > 0 && <span className="text-today-ink"> · {m.timeline_warnings({ count: warnings })}</span>}
@@ -44,14 +46,14 @@ export function DraftBar(props: Props) {
           </span>
         )}
       </p>
-      <div className="flex flex-wrap gap-2">
-        <Button className="py-1.5!" onClick={onReview}>
+      <div className="flex w-full gap-2 *:flex-1 md:w-auto md:*:flex-none">
+        <Button className={ACTION} onClick={onReview}>
           {m.timeline_review()}
         </Button>
-        <Button className="py-1.5!" onClick={onDiscard}>
+        <Button className={ACTION} onClick={onDiscard}>
           {m.timeline_discard()}
         </Button>
-        <Button primary className="py-1.5!" disabled={!ready || saving} onClick={onApply}>
+        <Button primary className={ACTION} disabled={!ready || saving} onClick={onApply}>
           {m.reschedule_apply()}
         </Button>
       </div>

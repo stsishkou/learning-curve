@@ -92,7 +92,11 @@ export function TimelineChart({
   }
 
   return (
-    <section aria-label={m.timeline()} className="min-w-0 rounded-2xl border border-line bg-surface print:hidden">
+    // Its own stack: the sticky names stay over the days, never over a page header that stays at the top.
+    <section
+      aria-label={m.timeline()}
+      className="isolate min-w-0 rounded-2xl border border-line bg-surface print:hidden"
+    >
       <div className="flex flex-wrap items-center gap-2 px-3.5 pt-3 pb-2.5 text-[13px] md:px-5">
         <Segmented label={m.timeline_zoom()} value={zoom} options={zooms} onChange={setZoom} />
         {zoom !== 'fit' && now !== null && (

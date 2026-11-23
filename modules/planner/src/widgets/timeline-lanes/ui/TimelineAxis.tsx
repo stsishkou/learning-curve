@@ -17,30 +17,38 @@ interface Props {
 // A month whose name would not fit is named short; Monday numbers closer than this are thinned out.
 const LONG_MONTH_PX = 80
 const MONDAY_PX = 26
-// The first month is named at the left edge unless the next one starts this close to it.
-const EDGE_DAYS = 10
+// The first month is named at the left edge only when this much of it shows: less would leave a stub of its name.
+const EDGE_PX = 64
 
 /** Months and Mondays over the lanes, and where today is. */
 export function TimelineAxis({ scale, ticks, now, pxPerDay, ref }: Props) {
   const monthName = pxPerDay * 30 >= LONG_MONTH_PX ? fmtMonthName : fmtMonthShort
   const step = [1, 2, 4].find((k) => pxPerDay * 7 * k >= MONDAY_PX)
   const [next] = ticks.months
-  const months =
-    next !== undefined && next - scale.start < EDGE_DAYS * DAY ? ticks.months : [scale.start, ...ticks.months]
+  const edge = next === undefined ? Infinity : ((next - scale.start) / DAY) * pxPerDay
+  const months = edge < EDGE_PX ? ticks.months : [scale.start, ...ticks.months]
   const todayAt = now === null ? null : scale.at(now)
   return (
-    <div ref={ref} aria-hidden className="relative h-12 overflow-hidden border-b border-line text-[11.5px] text-muted">
+    <div
+      ref={ref}
+      data-axis
+      aria-hidden
+      className="relative h-12 overflow-hidden border-b border-line text-[11.5px] text-muted"
+    >
       {ticks.months.map((t) => (
         <i key={t} className="absolute inset-y-0 w-px bg-line" style={{ left: `${scale.at(t)}%` }} />
       ))}
       <div className="absolute inset-x-0 top-1.5">
         {months.map((t, i) => {
           const [year, month] = ymd(t).split('-')
+          const to = months[i + 1]
           return (
+            // Kept to its own month: on a narrow chart the year is cut short rather than run into the next name.
             <span
               key={t}
-              className="absolute pl-1.5 font-medium whitespace-nowrap text-ink"
-              style={{ left: `${scale.at(t)}%` }}
+              data-month
+              className="absolute overflow-hidden pl-1.5 font-medium whitespace-nowrap text-ink"
+              style={{ left: `${scale.at(t)}%`, maxWidth: `${(to === undefined ? 100 : scale.at(to)) - scale.at(t)}%` }}
             >
               {monthName(t)}
               {(i === 0 || month === '01') && <span className="ml-1 font-normal text-muted">{year}</span>}
@@ -48,7 +56,7 @@ export function TimelineAxis({ scale, ticks, now, pxPerDay, ref }: Props) {
           )
         })}
       </div>
-      <div className="absolute inset-x-0 bottom-1.5 tabular-nums">
+      <div className="absolute inset-x-0 bottom-1.5 h-4 tabular-nums">
         {step !== undefined &&
           ticks.mondays
             .filter((_, i) => i % step === 0)

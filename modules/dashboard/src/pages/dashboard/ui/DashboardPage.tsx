@@ -38,7 +38,7 @@ export function DashboardPage({ plan, headerAside, now: fixed }: Props) {
   const stats = useMemo(() => planStats(plan, now ?? 0), [plan, now])
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   return (
-    <div className="mx-auto grid max-w-[1240px] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
+    <div className="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-4 px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
       <PageHeader aside={headerAside} actions={<HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />}>
         <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
         <p className="mt-1 text-[14px] text-muted">

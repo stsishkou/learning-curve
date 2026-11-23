@@ -59,9 +59,11 @@ function Fact({ label, now, draft }: FactProps) {
       <th scope="row" className="py-1.5 pr-2 text-left font-normal text-muted">
         {label}
       </th>
-      <td className="py-1.5 pr-2">{now}</td>
+      <td className="py-1.5 pr-2 whitespace-nowrap">{now}</td>
       {draft !== undefined && (
-        <td className={`py-1.5 ${draft === now ? 'text-muted' : 'font-semibold text-focus'}`}>{draft}</td>
+        <td className={`py-1.5 whitespace-nowrap ${draft === now ? 'text-muted' : 'font-semibold text-focus'}`}>
+          {draft}
+        </td>
       )}
     </tr>
   )
@@ -82,7 +84,7 @@ export function CoursePanel(props: Props) {
   return (
     <section
       aria-label={m.timeline_course()}
-      className="grid gap-3 rounded-2xl border border-line bg-surface p-4 md:p-5"
+      className="grid grid-cols-[minmax(0,1fr)] gap-3 rounded-2xl border border-line bg-surface p-4 md:p-5"
       style={calendarColor(lane.calendar.color)}
     >
       <h2 className="flex min-w-0 items-center gap-2 text-[16px]/[1.3] font-semibold">
@@ -120,15 +122,14 @@ export function CoursePanel(props: Props) {
           {m.reschedule_failed({ reason: failed })}
         </p>
       )}
-      <RuleWarningList warnings={warnings} />
       {onEdit && (
-        <div className="grid gap-3 border-t border-line-soft pt-3">
+        <div className="grid gap-3 border-t border-line-soft pt-3 text-[13.5px]">
           <div className="grid gap-1.5">
             <span className="text-[13px] text-muted">
               {m.timeline_move_by()}
               {edit?.move ? ` · ${weeksText(edit.move)}` : ''}
             </span>
-            <div className="flex gap-2 *:flex-1">
+            <div className="flex flex-wrap gap-2 *:flex-1">
               <Button onClick={() => onEdit({ move: (edit?.move ?? 0) - 7 })}>{m.timeline_earlier_week()}</Button>
               <Button onClick={() => onEdit({ move: (edit?.move ?? 0) + 7 })}>{m.timeline_later_week()}</Button>
             </div>
@@ -164,12 +165,14 @@ export function CoursePanel(props: Props) {
               }}
             />
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 *:flex-1">
             {edit && <Button onClick={() => onEdit(null)}>{m.timeline_reset_course()}</Button>}
             {onMore && <Button onClick={onMore}>{m.timeline_more()}</Button>}
           </div>
         </div>
       )}
+      {/* After the controls: a long list of clashes would push them out of sight. */}
+      <RuleWarningList warnings={warnings} />
     </section>
   )
 }
