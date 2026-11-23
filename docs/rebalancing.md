@@ -26,13 +26,14 @@ This document is for a reader who wants to trust the result or change how it is 
 |---|---|---|
 | What moves, the request | `packages/plan-domain/src/rebalance/request.ts` | `request.test.ts` |
 | 1. Room | `packages/plan-domain/src/rebalance/room.ts` (`roomOf`) | `room.test.ts` |
-| 2. Which day: the program | `packages/plan-domain/src/rebalance/model.ts` (`buildModel`, `earliestDays`) | `model.test.ts` |
+| 2. Which day: the targets and the program | `packages/plan-domain/src/rebalance/model.ts` (`rhythmDays`, `targetDays`, `reachOf`, `buildModel`) | `model.test.ts` |
 | 2. Which day: the order of aims | `packages/plan-domain/src/rebalance/lp.ts` (`solveInOrder`) | `lp.test.ts` |
 | 2. Which day: the solver | `packages/plan-data/src/solver.ts` (`solveLp`, HiGHS) | `solver.test.ts` |
 | 3. What time | `packages/plan-domain/src/rebalance/placement.ts` (`placeDay`) | `placement.test.ts` |
 | Report | `packages/plan-domain/src/rebalance/report.ts` (`reportOf`) | through `planRebalance` |
 | All together | `packages/plan-domain/src/rebalance/index.ts` (`planRebalance`) | `packages/plan-data/src/rebalance.test.ts`, `rebalance.example.test.ts` |
-| Server, MCP | `packages/plan-data/src/rebalance.ts`, `apps/web/src/server/reschedule.ts`, `packages/plan-data/scripts/mcp.ts` | `rebalance.test.ts` |
+| The change it stores | `packages/plan-domain/src/rebalance/change.ts` (`rebalanceChange`) | `change.test.ts` |
+| Server, MCP | `packages/plan-data/src/rebalance.ts`, `queue.ts`, `apps/web/src/server/reschedule.ts`, `packages/plan-data/scripts/mcp.ts` | `rebalance.test.ts`, `queue.test.ts` |
 
 `plan-domain` builds the program in a neutral form (`LpModel`: variables, rows, an objective) and never imports
 a solver. `planRebalance` takes a `solve` function. `plan-data` passes `solveLp`, which runs
@@ -43,7 +44,8 @@ a solver. `planRebalance` takes a `solve` function. `plan-data` passes `solveLp`
 
 ```
 request ─▶ 1. room          what the plan allows: study days, free half hours, room per day and per week
-        ─▶ 2. which day     an integer program over (session, day), solved one aim at a time
+        ─▶ 2. which day     a target day for each session from the rhythm, then an integer program over
+                            (session, day) that meets every rule and aim, solved one aim at a time
         ─▶ 3. what time     the start of each session on its day, by plain preferences
         ─▶ report           the finish, the heaviest week, what moved, and why it cannot be better
 
@@ -55,8 +57,9 @@ request ─▶ 1. room          what the plan allows: study days, free half hour
 - **Choosing the days is the hard part.** Several aims pull against each other here: order, room, budget,
   deadline, evenness, and leaving good sessions alone. A greedy pass that puts each session in the first free
   place piles sessions up at the start, or leaves a gap and then a crunch. That is exactly the result this
-  feature must not give. An integer program states every aim and finds the best placement, and the solver can
-  prove that it is the best.
+  feature must not give. So each session first gets a **target day** from the rhythm asked for. An integer
+  program then states every aim, the rhythm among them, and finds the best placement, and the solver can prove
+  that it is the best.
 - **The time of day is a local choice.** Once a session's day is known, a person would keep its current slot or
   use the course's usual hour. Keeping times out of the program keeps it small: one variable per session and day,
   rather than one per session and half hour, which would be six to sixteen times as many.
@@ -91,18 +94,18 @@ do not stretch it. A plan with no open weekday sessions falls back to 10:00–18
 
 ## Step 1: room
 
-`roomOf` gives the study days up to the horizon, the room on each day and in each week, and the current slot of
-each moving session.
+`roomOf` gives the study days of the year from the first day, the room on each day and in each week, and the
+current slot of each moving session.
 
 **Study days** are the weekdays. Saturday or Sunday counts only if the moving sessions already use that day. A
 course studied only at weekends keeps to the weekend days it uses and never spills into weekdays. Holidays are
 not study days. A day that the person's own calendar takes whole (an all-day busy block) is a day off: it is not a
 study day, and the report names it.
 
-**Horizon.** At a pace, the course needs `⌈n / perDay⌉` study days. The horizon is 1.5 times that, plus 14 days,
-counted from the first day. Towards a deadline, the same count with `perDay = 1` runs from the deadline. Then a
-course that does not fit before the deadline shows as late sessions on real days, not as sessions without room.
-The horizon never ends more than 366 days after the first day.
+**A year.** The room covers the 366 days from the first day, at any pace and towards any deadline. A course kept
+to a few weekend days, or squeezed by full weeks, needs far more calendar days than it has sessions, and a
+deadline months ahead must be reachable. The program does not use all of it: step 2 keeps only
+[the days it needs](#the-days-the-program-needs).
 
 **Free slots.** These are the 30-minute starts inside the study hours where nothing busy is. The following block a
 slot:
@@ -127,34 +130,72 @@ the week is `left_w = max(0, budget − fixed_w)`.
 
 ## Step 2: which session on which day
 
+### The rhythm
+
+`rhythmDays` runs one pass over the sessions, in order. It is given a **gap**, in study days, and a first day.
+The first session aims at the first day and each next one `gap` study days after the one before it, rounded down
+to a day. A fraction carries over, so a gap of 2/3 gives two sessions, one, two, one. Each session lands on the
+first day from its aim on where it fits, never before the previous session's day. "Fits" uses the program's own
+rules: the day's room (or its own day, for a session outside the study hours), one lab a day, and the week's room
+unless going over is allowed.
+
+When a session has to wait for room, the rhythm **starts again from the day it lands on**: the next session aims
+`gap` days after that day, not after the aim it missed. A stretch without room, such as a week whose budget is
+spent or days that have passed, is never made up for with a crunch after it. A session that finds no day at all
+leaves the rest of the course without one too, since only the end of a course can be left out.
+
 ### The earliest day of each session
 
-Before building anything, `earliestDays` runs one greedy pass. It puts each session, in order, on the first day
-from the previous session's day on where it fits. "Fits" uses the program's own rules: the day's room (or its own
-day, for a session outside the study hours), one lab a day, and the week's room unless going over is allowed.
+`earliestDays` is the rhythm without a gap: each session on the first day from the previous session's day where it
+fits.
 
 No valid placement puts any session earlier than this day. The proof is by induction. The sessions before session
-`i` are each no earlier than their greedy day, and they keep their order. So on every day the greedy pass skipped
-for `i`, they would leave `i` no more room than the greedy pass did. The day's own room and lab block do not
-depend on the placement at all.
+`i` are each no earlier than their earliest day, and they keep their order. So on every day the pass skipped for
+`i`, they would leave `i` no more room than the pass did. The day's own room and lab block do not depend on the
+placement at all.
 
 The program uses this bound in three ways:
 
 - **No variable before it.** The program has no `y` for a session before its earliest day. A session with no
   earliest day at all gets no `y`, so it is left out.
-- **A first solution.** The greedy placement is a feasible solution, and the solver starts its first level from it.
-- **The deadline cut.** Towards a deadline, the greedy places the most sessions that can possibly finish in time.
-  If it places all of them before the deadline, `beforeDeadline` builds the program only on the days before the
-  deadline: being late ranks right after being left out, so no best answer uses a later day.
+- **The most that can be in time.** Towards a deadline, it places the most sessions that can possibly finish
+  before it.
+- **A start** for the solver when the targets leave out a session that it can place.
 
-The greedy pass and the program must use the same rules. If they disagree, the bound is wrong and the program
-refuses placements that are valid.
+The rhythm and the program must use the same rules. If they disagree, the bound is wrong and the program refuses
+placements that are valid.
+
+### The target of each session
+
+`targetDays` gives each session the day it aims at, `τ_i`:
+
+- **At a pace**, the rhythm with a gap of `1 / perDay` study days, starting at the course's first session. A
+  re-balance changes the rhythm, not where the course starts. A first session that has already passed starts
+  again today, by the restart rule.
+- **Towards a deadline**, the **slowest** rhythm that still has every session before the deadline: the gentlest
+  even rhythm that finishes in time. It is found by halving the gap 40 times between 0 and the number of study days
+  before the deadline, far finer than a day. The rhythm starts at the course's first session, or at the first day
+  when that lets it run slower. It keeps to the budget whenever that still finishes in time, even when going over
+  is allowed, since going over serves only to be in time. When even the earliest placement cannot finish in time,
+  the targets are that placement, as nothing finishes sooner.
+
+A session the rhythm cannot place has no target, and the rhythm costs nothing for it.
+
+### The days the program needs
+
+`reachOf` cuts the year to what the program can use:
+
+- **Towards a deadline every session can meet**, the study days before the deadline. Being late ranks right after
+  being left out, so no best answer uses a later day.
+- **Otherwise**, the study days up to 10 after the furthest day a session aims at or can first reach. The levels
+  after the rhythm then have room to move, and a course that does not fit before its deadline shows as late
+  sessions on real days, not as sessions without room.
 
 ### Notation
 
-Sessions are `i = 0 … n−1`, in order. Session `i` lasts `len_i` hours and takes `room_i` of a day's room (its
-length rounded up to the half hour). The study days up to the horizon are `d = 1 … D`, and weeks are `w`. `H` is
-the total length of the sessions. `own_i` is the day session `i` is on now.
+Sessions are `i = 0 … n−1`, in order. Session `i` lasts `len_i` hours, takes `room_i` of a day's room (its length
+rounded up to the half hour) and aims at day `τ_i`. The study days the program keeps are `d = 1 … D`, and weeks
+are `w`. `own_i` is the day session `i` is on now.
 
 ### Variables
 
@@ -164,13 +205,11 @@ never uids.
 | Variable | Kind | Meaning |
 |---|---|---|
 | `y_i_d` | binary | session `i` is on day `d`. Only exists where it could be: from its earliest day on, on its own outside day, or where `cap_d ≥ room_i` and, for a lab, `lab_d` |
-| `u_i` | binary | session `i` is left out (no room before the horizon) |
+| `u_i` | binary | session `i` is left out (no room within the days the program keeps) |
 | `late_i` | binary | towards a deadline only: session `i` is on or after the deadline |
 | `Y_i_d` | 0…1 | session `i` is on day `d` or before: a running sum of its `y` |
 | `t_i` | 0…D | the index of session `i`'s day, for the last tie-break |
 | `L_d` | ≥ 0 | hours of the calendar on day `d` |
-| `C_d` | ≥ 0 | hours placed by the end of day `d` |
-| `e_d` | ≥ 0 | distance of `C_d` from the ideal line |
 | `over_w` | ≥ 0 | hours over the week's room. Only exists when going over is allowed; otherwise the budget is hard |
 | `Pw` | ≥ 0 | the heaviest week: everything that counts, this calendar included |
 | `Pd` | ≥ 0 | the calendar's heaviest day |
@@ -189,26 +228,23 @@ never uids.
 | `room_d` | `Σ_i room_i · y_i_d ≤ cap_d` | the day's room. A session on its own outside slot does not take it |
 | `labs_d` | `Σ_(i lab) y_i_d ≤ 1` | at most one lab a day |
 | `peakd_d` | `L_d ≤ Pd` | the heaviest day |
-| `sum_d` | `C_d = C_(d−1) + L_d` | hours placed so far |
-| `above_d`, `below_d` | `C_d − e_d ≤ I_d`, `−C_d − e_d ≤ −I_d` | together, `e_d ≥ ∣C_d − I_d∣` |
 | `week_w` | `Σ_(d ∈ w) L_d ≤ left_w (+ over_w)` | the week's room |
 | `peakw_w` | `fixed_w + Σ_(d ∈ w) L_d ≤ Pw` | the heaviest week |
 
-**The ideal line** `I_d` gives the hours that would be placed by study day `d` if the course went exactly as
-asked:
+**The rhythm** needs no row. It is a cost on each `y`: `Σ_i Σ_d len_i · |d − τ_i| · y_i_d`, the session's hours
+for every study day between the day it lands on and its target.
 
-- **at a pace**, `I_d = min(H, perDay · (H / n) · d)`: `perDay` sessions of average length a study day, until the
-  course is done.
-- **towards a deadline**, `I_d = H · min(d, K) / K`, where `K` is the number of study days before the deadline:
-  a straight line to the last study day before it.
+**Why a cost per session.** A line for the course as a whole, hours placed so far against hours that should be
+placed by each day, looks simpler. But a course that loses days to a full week is then behind the line, and the
+closest it can get is to catch up: three sessions on the day after. A cost per session and day measures each
+session against its own target, and the target already starts again after the lost days. There is nothing to
+catch up with, and no running total to carry.
 
-**Why running sums.** The order could be written on day indices, `t_(i+1) ≥ t_i`, which is a smaller model. But
-the LP relaxation of that form (the program with the 0/1 variables allowed to take any value between) is so weak
-that HiGHS could not place this repository's HF LLM course (about 35 sessions) in its time limit: most of them
-were still left out when level 1 stopped. `Y_(i+1)_d ≤ Y_i_d` has three nonzeros a row, and its relaxation is tight.
-
-For the same reason, `C_d` is written as a running sum. A sum over every `y` up to day `d` would cost about a
-million nonzeros on a long horizon.
+**Why running sums for the order.** The order could be written on day indices, `t_(i+1) ≥ t_i`, which is a smaller
+model. But the LP relaxation of that form (the program with the 0/1 variables allowed to take any value between)
+is so weak that HiGHS could not place this repository's HF LLM course (about 35 sessions) in its time limit: most
+of them were still left out when level 1 stopped. `Y_(i+1)_d ≤ Y_i_d` has three nonzeros a row, and its relaxation
+is tight.
 
 ### The order of aims
 
@@ -220,19 +256,18 @@ never buys anything at the cost of a higher one, and there are no weights to tun
 | Level | Towards a deadline | At a pace |
 |---|---|---|
 | 1 | fewest left out, `Σ u_i` | fewest left out, `Σ u_i` |
-| 2 | fewest late, `Σ late_i` | closest to the rhythm, `Σ e_d` |
+| 2 | fewest late, `Σ late_i` | closest to the rhythm, `Σ len_i · ∣d − τ_i∣ · y_i_d` |
 | 3 | least over the budget, `Σ over_w` (only when allowed) | least over the budget, `Σ over_w` (only when allowed) |
-| 4 | lightest heaviest week, `Pw` | lightest heaviest week, `Pw` |
-| 5 | lightest heaviest day, `Pd` | lightest heaviest day, `Pd` |
-| 6 | closest to the even line, `Σ e_d` | most sessions on their own day, `−Σ_i y_i_(own_i)` |
+| 4 | closest to the rhythm, `Σ len_i · ∣d − τ_i∣ · y_i_d` | lightest heaviest week, `Pw` |
+| 5 | lightest heaviest week, `Pw` | lightest heaviest day, `Pd` |
+| 6 | lightest heaviest day, `Pd` | most sessions on their own day, `−Σ_i y_i_(own_i)` |
 | 7 | most sessions on their own day, `−Σ_i y_i_(own_i)` | earliest days, `Σ t_i` |
 | 8 | earliest days, `Σ t_i` | — |
 
 What the order means:
 
-- **Towards a deadline**, the course first finishes in time as far as the room allows. Then it takes the gentlest
-  load that still does that: the heaviest week first, then the heaviest day. Within that load, it keeps as close
-  to an even line to the deadline as it can.
+- **Towards a deadline**, the course first finishes in time as far as the room allows. Then it follows the
+  slowest even rhythm that does so. The heaviest week and day only settle what the rhythm leaves open.
 - **At a pace**, the rhythm asked for comes first. The load is then as light as that rhythm allows.
 - **Going over the budget**, when allowed, serves only what was asked. Towards a deadline, it is used only as far
   as it saves sessions from being late. At a pace, it is used only as far as it keeps the rhythm. It ranks right
@@ -241,16 +276,32 @@ What the order means:
   and step 3 then keeps its time.
 - **The earliest days** settle what is still tied.
 
+**Why the week does not come first.** A lighter heaviest week sounds like the gentlest result. But the week counts
+every calendar, and other courses are rarely spread evenly. On this repository's plan, the other courses fill
+January. With the heaviest week ranked above the rhythm, a re-balance of HF LLM towards 31 March or 31 May gave one
+session in January, nothing for a month, then three on some days. With the rhythm first, the course runs evenly
+from 4 January to the deadline, never more than one session a day: about one every two study days towards 31
+March, one every three towards 31 May. Its heaviest week towards 31 March is 10 h instead of 8 h, still inside
+the 12 h budget.
+
+**When the program decides.** The targets follow the program's own rules. So when they place every session, and
+no level above the rhythm asks for something else, they are the best placement: the rhythm costs nothing there and
+more anywhere else, and the solver proves this at once. The program decides the rest:
+
+- a session the rhythm cannot place within the year, which an earlier day can still take;
+- going over the budget towards a deadline, when it is allowed and needed;
+- every tie the rhythm leaves open.
+
 A level with no terms (going over, when it is not allowed) is skipped.
 
 Each level's bound is its best value plus `10⁻⁶ · max(1, |value|)`. Without that slack, a value that the solver
 met within its own tolerance would make the next level infeasible.
 
-**Time.** Each level has **2 seconds**. It starts from the solution of the level before it, and level 1 starts
-from the greedy placement. That start meets every bound so far, so a level stopped by its time limit always keeps
-a solution at least as good as the start. The result is then marked as not proven best, with the largest gap the
-solver reported. If a later level fails outright, the result of the levels before it stands, also marked as not
-proven.
+**Time.** Each level has **2 seconds**. It starts from the solution of the level before it. Level 1 starts from
+the targets, or from the earliest placement when the targets leave out a session it can place. That start meets
+every bound so far, so a level stopped by its time limit always keeps a solution at least as good as the start.
+The result is then marked as not proven best, with the largest gap the solver reported. If a later level fails
+outright, the result of the levels before it stands, also marked as not proven.
 
 ## Step 3: what time
 
@@ -294,10 +345,12 @@ The reasons, and when each one appears:
 | `days-off` | days taken whole by the person's calendar, up to the finish | "No free study hours on …" |
 | `late` | sessions land on or after the deadline | "Fits … of … sessions before …: a later deadline, wider study hours or going over the budget would help." |
 | `no-lab-block` | a lab is left out and no study day has two free hours in a row | "“…” needs two free hours in a row, and the study hours have none." |
-| `limit` | other sessions find no room before the horizon | "Some sessions find no room within a year: widen the study hours or allow going over the budget." |
+| `limit` | other sessions find no room within the year | "Some sessions find no room within a year: widen the study hours or allow going over the budget." |
 | `not-proven` | a level stopped at its time limit | "The search stopped at its time limit, so a better placement may exist." |
 
-While any session is without room, the dialog's Apply stays off. The dialog also lists the rule warnings that
+While any session is without room, nothing is offered to store: `rebalanceChange` gives no change, so the
+dialog's Apply stays off and the MCP tool's `update` is null. Storing the rest would move them around that session
+and leave it where it was, on top of whatever took its place. The dialog also lists the rule warnings that
 `previewUpdate` gives for the resulting `events.move`.
 
 ## What "balanced" guarantees
@@ -308,11 +361,12 @@ Every guarantee below holds whenever the result is proven best. The last column 
 |---|---|---|
 | **Order**: the sessions keep their order, and only the end of the course can be left out | `order`, `tail`, and step 3 placing a day's sessions in order | generated plans, `model.test.ts` |
 | **Room**: no session on another busy event, a holiday, a day off, a weekend the course does not use, busy time of the connected calendar, a slot that has passed, or outside the study hours (except its own slot there) | step 1, and step 3 placing only on free slots | `room.test.ts`, "never on another busy event, …" |
-| **Budget**: no week over the budget unless allowed. When allowed, going over is used only as far as it serves the aim | `week_w`, and level 3 after the aim | generated plans, `model.test.ts` |
+| **Budget**: no week over the budget unless allowed. When allowed, going over is used only as far as it serves the aim | `week_w`, and level 3 right after the aim it serves | generated plans, `model.test.ts` |
 | **Deadline**: every session before it whenever the room allows | level 2 towards a deadline, right after the left-out count | "towards a deadline, against every possible placement" |
-| **Gentlest load**: towards a deadline, no valid placement that finishes as well has a lighter heaviest week | level 4 | the brute force over every placement on small cases |
-| **Rhythm**: at a pace, the sessions follow the line asked for as closely as the room allows | level 2 at a pace | "at half a session a day the sessions are two study days apart" |
-| **Stability**: asking the same again moves nothing; sessions already in a good place keep their day and time | the own-day level, and step 3 keeping a slot whose day stays | "asking again moves nothing", the worked example |
+| **Gentlest rhythm**: towards a deadline, the slowest even rhythm that finishes in time, so no day holds more sessions than every placement that finishes in time needs | the targets, and level 4 | the brute force over every placement on small cases, "HF LLM towards a far deadline …" |
+| **Rhythm**: at a pace, each session on the day the rhythm gives it whenever the room allows, at most `⌈perDay⌉` sessions on a day | the targets, and level 2 | "at half a session a day the sessions are two study days apart", "HF LLM at … a day …" |
+| **No crunch to catch up**: after a stretch without room (a full week, days that have passed), the course goes on at its rhythm instead of making up for the days | the rhythm starting again where a session lands | "a re-balance never makes up for lost days with a crunch" |
+| **Stability**: asking the same again moves nothing; sessions already in a good place keep their day and time | the rhythm starting where the course does, so the same question gives the same targets; and step 3 keeping a slot whose day stays | "asking again moves nothing", the worked example |
 | **Determinism**: the same question gives the same answer | the earliest-days level, and HiGHS being deterministic on the same model | "the same answer comes twice" |
 
 ## What it does not do
@@ -321,17 +375,21 @@ Every guarantee below holds whenever the result is proven best. The last column 
   another course, re-balance that course too.
 - **Lengths never change.** Sessions are not split or merged. Catch up's options work with lengths.
 - **Reviews and finished sessions stay**, and so do sessions before the first day.
-- **2 seconds a level.** A large course at a slow pace can stop a level at its limit. On this repository's plan,
-  HF LLM (about 35 sessions) at one every two study days does: the result is valid and the dialog says it may not be
-  the best. Towards 16 February, the same course is proven best in about 1.5 s.
+- **2 seconds a level.** On this repository's plan, HF LLM (35 sessions) is proven best at every pace and towards
+  every deadline tried, from 16 February to 31 May, each in 1.5 s or less in all. A larger or more crowded course
+  can still stop a level at its limit: the result is valid and the dialog says it may not be the best.
+- **The heaviest week is not the first aim.** Towards a deadline the rhythm ranks above it, so a week can be
+  heavier than the lightest possible. It stays inside the budget unless going over is allowed.
 - **Determinism ends at the time limit.** A level stopped by the clock depends on how far the solver got, so two
   asks can then differ. The `not-proven` reason says when this applies.
 - **Step 2 counts hours, not shapes.** Free time in pieces can refuse a session that the day's hours would hold.
   Three rounds usually settle this. What still does not fit is reported, never forced in.
 - **The person's calendar is read when asked.** If it does not answer, its busy time is unknown and treated as
   free. The person's own calendar is never written to.
-- **Limits.** At most 300 sessions and 366 days. A larger request is refused with a message. The server solves one
-  request at a time, because a solve blocks its thread.
+- **Limits.** At most 300 sessions: a larger request is refused with a message. The room is the year from the first
+  day, and a session that finds none within it is reported without room. The server solves one request at a time,
+  because a solve blocks its thread. A request still waiting when a newer one comes is dropped: the dialog asks
+  again on every change and keeps only the newest answer.
 
 ## Worked example
 
@@ -377,98 +435,89 @@ have `fixed_w = 1` and `left_w = 5`; the week of 18 January has 6.
 
 ### Towards a deadline of Friday 15 January
 
-**Earliest days.** The greedy pass puts:
+**Earliest days.** The pass without a gap puts:
 
 - s1, s2 and s3 on Mon 4, which then holds its 3 h;
 - s4 on Wed 6. Tuesday has no two-hour block, and the week now holds 5 h of its 5;
 - s5 and s6 on Mon 11.
 
-Every session is before the deadline, so the program is built only on the 8 study days before 15 January.
+Every session can be before the deadline, so the program is built only on the 8 study days before 15 January.
 
-**Levels 1–2.** Nothing is left out and nothing is late. Going over is not allowed, so level 3 is skipped.
+**Targets.** The course starts on Mon 4, `d = 1`, and from there the rhythm can run slowest, so it starts there. With
+a gap `g`, the sessions aim at `d = 1, 1 + g, …, 1 + 5g`, each rounded down. s6 must land by `d = 8`, Thu 14, so
+`5g` must stay under 8: `g` must stay under 1.6. Halving finds the gap just below it:
 
-**Level 4, the heaviest week.** The course is 7 h and its sessions keep their order. So the week of 4 January
-holds the first few sessions and the week of 11 January holds the rest. The first week can hold 0, 1, 2, 3, 5, 6
-or 7 h of the course. Only 3 h keeps both weeks within 5 h, counting the hour of talks in each. So `Pw = 5`: s1–s3 go
-in the first week, s4–s6 in the second.
-
-**Level 5, the heaviest day.** The lab alone is 2 h, so `Pd = 2`. From here on, no day holds more than two hours.
-
-**Level 6, the even line.** The line is `I_d = 7d/8`:
-
-| `d` | Day | `I_d` | `C_d` | `e_d` |
+| Session | Aim `1 + k · g` | Rounded down | Day | Fits |
 |---|---|---|---|---|
-| 1 | Mon 4 | 0.875 | 1 | 0.125 |
-| 2 | Tue 5 | 1.75 | 2 | 0.25 |
-| 3 | Wed 6 | 2.625 | 3 | 0.375 |
-| 4 | Fri 8 | 3.5 | 3 | 0.5 |
-| 5 | Mon 11 | 4.375 | 5 | 0.625 |
-| 6 | Tue 12 | 5.25 | 5 | 0.25 |
-| 7 | Wed 13 | 6.125 | 6 | 0.125 |
-| 8 | Thu 14 | 7 | 7 | 0 |
+| s1 | 1 | 1 | Mon 4 | its own slot |
+| s2 | ≈ 2.6 | 2 | Tue 5 | its own slot |
+| s3 | ≈ 4.2 | 4 | Fri 8 | the week holds 3 h of its 5 |
+| s4 | ≈ 5.8 | 5 | Mon 11 | a lab block |
+| s5 | ≈ 7.4 | 7 | Wed 13 | |
+| s6 | just under 9 | 8 | Thu 14 | the week holds 4 h of its 5 |
 
-The total is 2.25, and no other placement that meets levels 1–5 comes this close. For example, the lab on
-Wed 13 would leave `C_5 = C_6 = 3`, more than a full hour under the line on both days. The best placement is
-unique, so levels 7 and 8 change nothing. s1–s3 are already where the line wants them.
+Every session fits on its aim, so the rhythm never has to start again.
+
+**Levels.** Nothing is left out and nothing is late. Going over is not allowed, so level 3 is skipped. The targets
+meet every row, so the rhythm costs 0 there and more anywhere else. The heaviest week (5 h: the week of 11
+January, 4 h of the course and the talk), the heaviest day (2 h, the lab) and the levels after them change nothing.
 
 **Step 3.**
 
-- s1–s3 keep their slots.
+- s1 and s2 keep their slots, since their days stay.
+- s3 lands on a Friday, where the course has no usual start, so it takes the free slot nearest the start of the
+  study hours: 11:00.
 - s4 takes the calendar's usual Monday start, 11:00.
 - s5 takes the usual Wednesday start, 11:00.
-- s6 lands on a Thursday, where the course has no usual start, so it takes the free slot nearest the start of the
-  study hours: 11:00.
+- s6 lands on a Thursday, where the course has no usual start either: 11:00.
 
 | Session | Before | After |
 |---|---|---|
+| s3 | Wed 6 Jan 11:00 | **Fri 8 Jan 11:00** |
 | s4 | Mon 18 Jan 11:00–13:00 | **Mon 11 Jan 11:00–13:00** |
 | s5 | Tue 19 Jan 11:00 | **Wed 13 Jan 11:00** |
 | s6 | Wed 20 Jan 11:00 | **Thu 14 Jan 11:00** |
 
-**Report.** 3 sessions move, and the course ends on 14 January instead of 20 January. The heaviest week is 5 h,
-the heaviest day 2 h, and nothing is late. The result is proven best, with no reasons. The crunch has moved
-forward and is spread out. The first three sessions did not move, because they were already in place.
+**Report.** 4 sessions move, and the course ends on 14 January instead of 20 January. The heaviest week is 5 h,
+the heaviest day 2 h, and nothing is late. The result is proven best, with no reasons. The gap and the crunch are
+gone: a session every one or two study days, from the first day to the last one before the deadline.
 
 ### At one session every two study days
 
-**Horizon.** Six sessions at one every two study days need 12 study days. The horizon is ⌈1.5 × 12⌉ + 14 = 32
-days, which is up to Thursday 4 February, or 23 study days.
+**Targets.** The rhythm starts where the course does, Mon 4, and each session aims two study days after the one
+before it: `d = 1, 3, 5, 7, 9, 11`. Day 10 is Mon 18 and day 11 Tue 19.
 
-**Level 1.** Nothing is left out.
+| Session | Aim | Day | Fits |
+|---|---|---|---|
+| s1 | 1 | Mon 4 | its own slot |
+| s2 | 3 | Wed 6 | |
+| s3 | 5 | Mon 11 | |
+| s4 | 7 | Wed 13 | a lab block |
+| s5 | 9 | Fri 15 | the week holds 4 h of its 5 |
+| s6 | 11 | Tue 19 | s5 is there now, and moves too |
 
-**Level 2, the rhythm.** The line is `I_d = min(7, ½ · 7/6 · d) = min(7, 7d/12)`. Over a rising line, the
-distance is least when the count of placed hours steps up on the first day the line passes the middle of the
-step:
+The weeks hold 2, 4 and 1 h of the course, all within their room, so every session fits on its aim. The program
+keeps the study days up to ten after day 11, 21 in all.
 
-| Session | Hours placed before → after | Middle | First `d` with `I_d` past it | Day |
-|---|---|---|---|---|
-| s1 | 0 → 1 | 0.5 | 1 (0.58) | Mon 4 |
-| s2 | 1 → 2 | 1.5 | 3 (1.75) | Wed 6 |
-| s3 | 2 → 3 | 2.5 | 5 (2.92) | Mon 11 |
-| s4 | 3 → 5 | 4 | 7 (4.08) | Wed 13 |
-| s5 | 5 → 6 | 5.5 | 10 (5.83) | Mon 18 |
-| s6 | 6 → 7 | 6.5 | 12 (7) | Wed 20 |
+**Levels.** Nothing is left out. The targets meet every row, so the rhythm costs 0 there and more anywhere else.
+The heaviest week is 5 h (the week of 11 January, with its talk) and the heaviest day 2 h. s1 is already on its
+day.
 
-Every one of these days has room, and the weeks hold 2, 3 and 2 h of the course, all within their room. So
-this is the best placement for the rhythm, with a total distance of `46/12 ≈ 3.83`. No line value falls exactly on
-a middle, so the best placement is unique.
-
-**Levels 4–7** follow from it: the heaviest week is 4 h (the week of 11 January, with its talk) and the heaviest
-day 2 h. s1 and s6 are already on their days.
-
-**Step 3.** Every session takes the usual start of its weekday, 11:00. s2 can take Wed 6 at 11:00 because s3, the
-session in that slot now, is moving too.
+**Step 3.** Each session takes the usual start of its weekday, 11:00. s2 can take Wed 6 at 11:00 because s3, the
+session in that slot now, is moving too. s5 lands on a Friday, where the course has no usual start, and takes the
+free slot nearest the start of the study hours: 11:00.
 
 | Session | Before | After |
 |---|---|---|
 | s2 | Tue 5 Jan 11:00 | **Wed 6 Jan 11:00** |
 | s3 | Wed 6 Jan 11:00 | **Mon 11 Jan 11:00** |
 | s4 | Mon 18 Jan 11:00–13:00 | **Wed 13 Jan 11:00–13:00** |
-| s5 | Tue 19 Jan 11:00 | **Mon 18 Jan 11:00** |
+| s5 | Tue 19 Jan 11:00 | **Fri 15 Jan 11:00** |
+| s6 | Wed 20 Jan 11:00 | **Tue 19 Jan 11:00** |
 
-**Report.** 4 sessions move, and the course still ends on 20 January: at this pace, the twelfth study day is
-where it ended anyway. The heaviest week is 4 h and the heaviest day 2 h. The result is proven best, with no
-reasons. Same finish, no crunch, and a session every other study day.
+**Report.** 5 sessions move, and the course ends on 19 January instead of 20. The heaviest week is 5 h and the
+heaviest day 2 h. The result is proven best, with no reasons. No gap, no crunch, and a session every other study
+day from the course's first day.
 
 ### Asking again
 
@@ -478,17 +527,22 @@ Re-balancing either result with the same request moves nothing.
 
 - **A priority.** The levels are the two arrays at the end of `buildModel` (`model.ts`). Move a level, and
   update the table in [The order of aims](#the-order-of-aims). `model.test.ts` pins the first levels of each mode
-  ("towards a deadline: nothing unplaced, then nothing late, then the least over the budget", "at a pace:
+  ("towards a deadline: nothing unplaced, nothing late, the least over the budget, then the rhythm", "at a pace:
   nothing unplaced, then the rhythm, …"). The worked example pins the rest: putting the heaviest week ahead of the
-  rhythm in pace mode fails it. The brute-force test pins the gentlest week towards a deadline.
+  rhythm in pace mode fails it. Towards a deadline, the brute-force test and "HF LLM towards a far deadline …"
+  fail when the week goes ahead of the rhythm.
+- **The rhythm.** `rhythmDays` and `targetDays` decide what each session aims at; their tests in `model.test.ts`
+  give the rules by example. The tests under "a re-balance never makes up for lost days with a crunch" fail when a
+  change brings the catch-up back.
 - **A new aim.** Add its variables and rows in `buildModel`. Name them by index, so they stay valid in an LP
   file. Give them their values in `startOf`, because the first level starts from that solution and it must meet
-  every row ("starts from the earliest placement, which meets every row" checks it). Then add the level where it
-  ranks.
+  every row ("starts from the days the sessions aim at, or the earliest when those leave one out, meeting every
+  row" checks it). Then add the level where it ranks.
 - **A room rule.** Change `roomOf` and `room.test.ts`. If the rule decides where a session fits, change
-  `earliestDays` in the same way, or the bound will refuse placements the program would allow.
+  `rhythmDays` in the same way. Otherwise the earliest-day bound refuses placements the program would allow, and
+  the targets aim at days the program refuses.
 - **A placement preference.** Change the candidate order in `placeDay` and `placement.test.ts`. Keep the check
   that the rest of the day still fits, or a re-balance stops being stable ("asking again moves nothing").
-- **Always** run `pnpm run test`. The real-plan test ("HF LLM from 4 January finishes before 16 February within
-  the weekly budget") shows whether a change still solves within its time. If the worked example's numbers
+- **Always** run `pnpm run test`. The real-plan tests ("on the generated schedule of this repository": every
+  pace, far deadlines, and 16 February) show whether a change still solves within its time. If the worked example's numbers
   change, change this document in the same commit and say why in the message.
