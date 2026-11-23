@@ -1,5 +1,6 @@
 import { DAY, mondayOf, parseLocal, startOfDay, ymd } from './dates'
 import { deadlineOf } from './deadlines'
+import type { PlanDiff } from './diff'
 import { isSession } from './progress'
 import type { Plan, PlanCalendar } from './types'
 
@@ -85,4 +86,57 @@ export function lanesRange(lanes: CalendarLane[], now: number | null): { start: 
   const start = Math.min(mondayOf(startOfDay(anchor)) - 7 * DAY, ...deadlines.map(mondayOf))
   const latest = Math.max(...lanes.map((lane) => dayOf(lane.last)), ...deadlines) + DAY
   return { start, end: Math.max(latest + ROOM_DAYS * DAY, start + MIN_DAYS * DAY) }
+}
+
+const daysBetween = (a: string, b: string) => Math.round((dayOf(b) - dayOf(a)) / DAY)
+
+/** Days from the day after the last session to the deadline: negative when the course ends after it; null without one. */
+export function laneSpare(lane: CalendarLane): number | null {
+  return lane.deadline === null ? null : daysBetween(lane.last, lane.deadline) - 1
+}
+
+/** The sessions an update gives another time. */
+export function movedSessions(diff: PlanDiff): Set<string> {
+  return new Set(
+    diff.changed
+      .filter(({ before, after }) => isSession(after) && (before.start !== after.start || before.end !== after.end))
+      .map(({ after }) => after.uid),
+  )
+}
+
+/** A lane an update changes: as it was and as it would be. Day counts are positive when later. */
+export interface LaneChange {
+  calendar: string
+  before: CalendarLane
+  after: CalendarLane
+  /** Sessions of the lane that get another time */
+  moved: number
+  startDays: number
+  endDays: number
+}
+
+/** The lanes on both sides whose sessions, span or deadline differ, in the order of `after`. */
+export function compareLanes(
+  before: CalendarLane[],
+  after: CalendarLane[],
+  moved: ReadonlySet<string>,
+): Map<string, LaneChange> {
+  const was = new Map(before.map((lane) => [lane.calendar.id, lane]))
+  const changed = new Map<string, LaneChange>()
+  for (const lane of after) {
+    const old = was.get(lane.calendar.id)
+    if (!old) continue
+    const change: LaneChange = {
+      calendar: lane.calendar.id,
+      before: old,
+      after: lane,
+      moved: lane.sessions.filter((session) => moved.has(session.uid)).length,
+      startDays: daysBetween(old.first, lane.first),
+      endDays: daysBetween(old.last, lane.last),
+    }
+    if (change.moved || change.startDays || change.endDays || old.deadline !== lane.deadline) {
+      changed.set(lane.calendar.id, change)
+    }
+  }
+  return changed
 }

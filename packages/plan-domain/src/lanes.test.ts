@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'vitest'
 
+import type { PlanChange } from './changes'
 import { DAY, parseLocal } from './dates'
+import { deadlineEvent } from './deadlines'
 import { fixtureNow, fixturePlan, itemAt } from './fixtures'
-import { calendarLanes, lanesRange } from './lanes'
+import { calendarLanes, compareLanes, laneSpare, lanesRange, movedSessions } from './lanes'
 import { isSession } from './progress'
 import type { Plan, PlanEvent } from './types'
+import { previewUpdate } from './update'
 
 const NONE: ReadonlySet<string> = new Set()
 const certs = fixturePlan.events
@@ -95,5 +98,48 @@ describe('lanesRange', () => {
 
   test('no lanes, no range', () => {
     expect(lanesRange([], fixtureNow)).toBeNull()
+  })
+})
+
+const lanesAt = (plan: Plan) => calendarLanes(plan, fixtureNow, NONE)
+const compare = (changes: PlanChange[]) => {
+  const { after, diff } = previewUpdate(fixturePlan, changes, fixtureNow)
+  return compareLanes(lanesAt(fixturePlan), lanesAt(after), movedSessions(diff))
+}
+
+describe('compareLanes', () => {
+  test('a course moved two weeks: its open sessions move and its end moves 14 days', () => {
+    const changed = compare([{ type: 'events.shift', calendar: 'certs', from: '2026-12-02', days: 14 }])
+    expect([...changed.keys()]).toEqual(['certs'])
+    expect(changed.get('certs')).toMatchObject({ moved: 26, startDays: 0, endDays: 14 })
+    expect(changed.get('certs')?.after.last).toBe('2027-01-06')
+  })
+
+  test('a moved deadline changes only the deadline and the spare days', () => {
+    const before = laneOf(fixturePlan, fixtureNow, 'certs')
+    const deadline = deadlineEvent(fixturePlan, 'certs')
+    const changed = compare([
+      { type: 'event.patch', uid: deadline?.uid ?? '', patch: { start: '2027-01-06T00:00', end: '2027-01-06T00:00' } },
+    ])
+    expect(changed.get('certs')).toMatchObject({ moved: 0, startDays: 0, endDays: 0 })
+    expect(before && laneSpare(before)).toBe(6)
+    const after = changed.get('certs')?.after
+    expect(after && laneSpare(after)).toBe(13)
+  })
+
+  test('lanes that do not change are left out', () => {
+    expect(compare([]).size).toBe(0)
+  })
+
+  test('marking a session done moves nothing', () => {
+    const open = certs.find((e) => !e.done)
+    const changed = compare([{ type: 'events.done', uids: [open?.uid ?? ''], done: true }])
+    expect(changed.size).toBe(0)
+  })
+
+  test('a course without a deadline has no spare days', () => {
+    const lane = laneOf(fixturePlan, fixtureNow, 'pypy')
+    expect(lane?.deadline).toBeNull()
+    expect(lane && laneSpare(lane)).toBeNull()
   })
 })
