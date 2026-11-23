@@ -145,7 +145,8 @@ export function useNudge({ days, step, min, max, onCommit }: NudgeOptions) {
     if (!p) return
     const by = p.moved && !p.cancelled ? offsetAt(p, e.clientX) : 0
     release(p.moved)
-    if (by !== 0) onCommit(by)
+    // After the click the browser sends in the same go: a dialog the drop opens would take it as one outside it.
+    if (by !== 0) window.setTimeout(() => onCommit(by))
   }
 
   function onPointerCancel(e: PointerEvent<HTMLElement>) {

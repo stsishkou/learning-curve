@@ -3,7 +3,7 @@ import { m } from '@lc/i18n/messages'
 import { calendarLanes, DAY, isSession, lanesRange, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
+import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { TimelineLanes } from './TimelineLanes'
 
@@ -138,8 +138,28 @@ export const DragALaneByAWeek: Story = {
     const end = await pressAndMove(lane, 1.2)
     await fireEvent.pointerUp(lane, end)
     await fireEvent.click(lane)
-    await expect(args.edit?.onMove).toHaveBeenCalledWith('hfllm', 7)
+    await waitFor(() => expect(args.edit?.onMove).toHaveBeenCalledWith('hfllm', 7))
     await expect(args.edit?.onOpen).not.toHaveBeenCalled()
+  },
+}
+
+const order: string[] = []
+
+/**
+ * A drop is acted on only after the click it leaves behind: a dialog the drop opens would otherwise take that click
+ * as one outside it and close at once.
+ */
+export const ADropActsAfterItsClick: Story = {
+  args: { edit: { ...editing(), onMove: (_calendar: string, days: number) => void order.push(`move ${days}`) } },
+  play: async ({ canvasElement }) => {
+    order.length = 0
+    const lane = within(strip(canvasElement)).getByRole('button', { name: LLM })
+    const end = await pressAndMove(lane, 1.2)
+    lane.addEventListener('click', () => order.push('click'), { once: true })
+    // Both in one go, as a browser sends them: nothing awaited in between.
+    lane.dispatchEvent(new PointerEvent('pointerup', { ...end, bubbles: true }))
+    lane.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await waitFor(() => expect(order).toEqual(['click', 'move 7']))
   },
 }
 
@@ -214,8 +234,9 @@ export const KeysDuringAHandleDrag: Story = {
     const dropped = await pressAndMove(deadline, 2 / 7)
     await fireEvent.keyDown(deadline, { key: 'Enter' })
     await fireEvent.pointerUp(deadline, dropped)
+    await waitFor(() => expect(args.edit?.onDeadline).toHaveBeenCalledWith('certs', '2027-01-01'))
+    await pause(50)
     await expect(args.edit?.onDeadline).toHaveBeenCalledTimes(1)
-    await expect(args.edit?.onDeadline).toHaveBeenCalledWith('certs', '2027-01-01')
   },
 }
 
