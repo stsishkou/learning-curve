@@ -1,0 +1,24 @@
+{
+  "name": "@lc/docs-contract",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The public contract of the docs app: the API its federated features expose, their events, and the catalog of chapters every consumer links to",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:shared",
+      "scope:docs"
+    ]
+  }
+}
