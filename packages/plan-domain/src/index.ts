@@ -201,3 +201,12 @@ export {
   type OrderedSolution,
   type Solve,
 } from './rebalance/lp'
+export { defaultStudyHours, parseRebalanceRequest } from './rebalance/request'
+export {
+  PACES,
+  type RebalanceReason,
+  type RebalanceReport,
+  type RebalanceRequest,
+  type RebalanceResult,
+  type RebalanceTarget,
+} from './rebalance/types'
