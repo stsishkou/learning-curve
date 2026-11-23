@@ -6,6 +6,7 @@ import { type ReactNode, Suspense } from 'react'
 import { useDocsEnv } from '../app/env'
 import { partColor } from '../app/part-color'
 import type { Syllabus } from '../content/syllabus/types'
+import { chapterTitle, partTitle } from '../content/titles'
 import { m } from '../paraglide/messages'
 import { Checkpoint } from './Checkpoint'
 import { DecisionCard } from './DecisionCard'
@@ -93,11 +94,13 @@ export function ChapterView({ chapterId, syllabus, prose, notice }: Props) {
         <article className="flex min-w-0 flex-col gap-10" data-pagefind-body>
           <header className="flex flex-col gap-3 border-l-4 border-(--part) pl-4">
             <p className="text-sm font-semibold text-(--part)" data-pagefind-ignore>
-              {part && `${m.part_label({ number: part.number }, { locale })} · ${part.title} · `}
+              {part && `${m.part_label({ number: part.number }, { locale })} · ${partTitle(part.id, locale)} · `}
               {m.chapter_label({ number: chapter.number }, { locale })} ·{' '}
               {m.minutes({ count: chapter.minutes }, { locale })}
             </p>
-            <h1 className="font-display text-3xl leading-tight text-balance md:text-4xl">{chapter.title}</h1>
+            <h1 className="font-display text-3xl leading-tight text-balance md:text-4xl">
+              {chapterTitle(chapter.id, locale)}
+            </h1>
             {syllabus && (
               <p className="text-lg text-muted">
                 <InlineText text={syllabus.summary} />
@@ -254,7 +257,7 @@ export function ChapterView({ chapterId, syllabus, prose, notice }: Props) {
                 <ChevronLeft aria-hidden size={18} className="shrink-0 text-muted" />
                 <span className="flex flex-col">
                   <span className="text-xs text-muted">{m.prev({}, { locale })}</span>
-                  <span className="font-semibold">{previous.title}</span>
+                  <span className="font-semibold">{chapterTitle(previous.id, locale)}</span>
                 </span>
               </Link>
             ) : (
@@ -268,7 +271,7 @@ export function ChapterView({ chapterId, syllabus, prose, notice }: Props) {
               >
                 <span className="flex flex-col">
                   <span className="text-xs text-muted">{m.next({}, { locale })}</span>
-                  <span className="font-semibold">{next.title}</span>
+                  <span className="font-semibold">{chapterTitle(next.id, locale)}</span>
                 </span>
                 <ChevronRight aria-hidden size={18} className="shrink-0 text-muted" />
               </Link>

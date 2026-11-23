@@ -1,4 +1,4 @@
-import { DOCS_SOURCE_LOCALE, chapterById, isChapterId } from '@lc/docs-contract'
+import { DOCS_SOURCE_LOCALE, isChapterId } from '@lc/docs-contract'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { localizedLinks } from '../../../app/head'
@@ -7,6 +7,7 @@ import { ChapterView } from '../../../components/ChapterView'
 import { FallbackNotice } from '../../../components/FallbackNotice'
 import { Prose } from '../../../components/Prose'
 import { loadSyllabus, preloadProse, proseLocale } from '../../../content/load'
+import { chapterTitle } from '../../../content/titles'
 import { chapterSection } from '../../../site-paths'
 
 export const Route = createFileRoute('/$locale/chapters/$chapterId')({
@@ -25,7 +26,7 @@ export const Route = createFileRoute('/$locale/chapters/$chapterId')({
   },
   head: ({ params, loaderData }) => {
     const locale = asLocale(params.locale)
-    const title = isChapterId(params.chapterId) ? chapterById(params.chapterId).title : ''
+    const title = isChapterId(params.chapterId) ? chapterTitle(params.chapterId, locale) : ''
     return {
       meta: [
         { title: `${title} — Learning Curve` },

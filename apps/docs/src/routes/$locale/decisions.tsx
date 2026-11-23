@@ -9,12 +9,12 @@ import { DecisionCard } from '../../components/DecisionCard'
 import { FallbackNotice } from '../../components/FallbackNotice'
 import { loadSyllabi } from '../../content/load'
 import type { Decision, Evidence } from '../../content/syllabus/types'
+import { chapterTitle } from '../../content/titles'
 import { m } from '../../paraglide/messages'
 
 interface LoggedDecision {
   chapterId: ChapterId
   number: number
-  title: string
   decision: Decision
 }
 
@@ -25,7 +25,6 @@ export const Route = createFileRoute('/$locale/decisions')({
       (syllabi.find((syllabus) => syllabus.id === chapter.id)?.decisions ?? []).map((decision) => ({
         chapterId: chapter.id,
         number: chapter.number,
-        title: chapter.title,
         decision,
       })),
     )
@@ -79,7 +78,10 @@ function DecisionLog() {
                   params={{ locale, chapterId: entry.chapterId }}
                   className="lc-link"
                 >
-                  {m.decision_in_chapter({ number: entry.number, title: entry.title }, { locale })}
+                  {m.decision_in_chapter(
+                    { number: entry.number, title: chapterTitle(entry.chapterId, locale) },
+                    { locale },
+                  )}
                 </Link>
               }
             />

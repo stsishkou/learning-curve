@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 
 import { useLocale } from '../app/env'
 import { partColor } from '../app/part-color'
+import { chapterTitle, partTitle } from '../content/titles'
 import { m } from '../paraglide/messages'
 
 /**
@@ -21,7 +22,7 @@ export function PartLanes() {
               <span className="text-xs font-semibold tracking-wide text-muted uppercase">
                 {m.part_label({ number: part.number }, { locale })}
               </span>
-              <h3 className="font-display text-lg leading-tight">{part.title}</h3>
+              <h3 className="font-display text-lg leading-tight">{partTitle(part.id, locale)}</h3>
               <span className="text-sm text-muted">{m.chapters_count({ count: chapters.length }, { locale })}</span>
             </div>
             <ol className="sm:grid-cols-2 xl:grid-cols-3 grid gap-2">
@@ -38,7 +39,7 @@ export function PartLanes() {
                       </span>
                       <span>{m.minutes({ count: chapter.minutes }, { locale })}</span>
                     </span>
-                    <span className="font-semibold group-hover:underline">{chapter.title}</span>
+                    <span className="font-semibold group-hover:underline">{chapterTitle(chapter.id, locale)}</span>
                     {chapter.commits.length > 0 && (
                       <span className="mt-auto flex flex-wrap gap-1 pt-1" translate="no">
                         {chapter.commits.slice(0, 4).map((sha) => (

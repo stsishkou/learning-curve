@@ -3,6 +3,7 @@ import { useId, useState } from 'react'
 
 import { useLocale } from '../app/env'
 import { EDGES, type MapNode, NODES, type Row, visibleAt } from '../content/architecture'
+import { chapterTitle } from '../content/titles'
 import { m } from '../paraglide/messages'
 
 const WIDTH = 960
@@ -33,7 +34,8 @@ export function ArchitectureMap({ initialChapter = CHAPTERS.length }: { initialC
     const to = byId.get(edge.to)
     return from && to ? [{ ...edge, from, to }] : []
   })
-  const title = CHAPTERS.find((entry) => entry.number === chapter)?.title ?? ''
+  const shown = CHAPTERS.find((entry) => entry.number === chapter)
+  const title = shown ? chapterTitle(shown.id, locale) : ''
   return (
     <figure className="lc-card flex flex-col gap-3 p-4">
       <figcaption className="flex flex-wrap items-baseline justify-between gap-2">

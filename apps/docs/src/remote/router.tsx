@@ -10,6 +10,7 @@ import { ChapterView } from '../components/ChapterView'
 import { FallbackNotice } from '../components/FallbackNotice'
 import { Prose } from '../components/Prose'
 import { loadSyllabus, preloadProse, proseLocale } from '../content/load'
+import { chapterTitle, partTitle } from '../content/titles'
 import { m } from '../paraglide/messages'
 
 /** The screen the host says the person is on. */
@@ -63,7 +64,7 @@ function ChapterLinks({ ids }: { ids: readonly string[] }) {
             <span className="w-6 shrink-0 text-right text-sm font-semibold text-muted tabular-nums">
               {chapter.number}
             </span>
-            <span className="font-semibold">{chapter.title}</span>
+            <span className="font-semibold">{chapterTitle(chapter.id, locale)}</span>
           </Link>
         </li>
       ))}
@@ -95,7 +96,7 @@ function Topics() {
         {PARTS.map((part) => (
           <div key={part.id} className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold text-muted">
-              {m.part_label({ number: part.number }, { locale })} · {part.title}
+              {m.part_label({ number: part.number }, { locale })} · {partTitle(part.id, locale)}
             </h3>
             <ChapterLinks ids={CHAPTERS.filter((chapter) => chapter.part === part.id).map((chapter) => chapter.id)} />
           </div>
