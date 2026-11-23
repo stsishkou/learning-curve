@@ -15,6 +15,11 @@ pnpm run dev          # http://localhost:3000
 
 Requires Node 26+ and pnpm 12.
 
+Re-balancing a calendar solves an integer program on the server with [HiGHS](https://highs.dev). It comes
+through the `highs` package, which is WebAssembly, so there is nothing else to install, and the browser never
+loads it. The production build copies the package beside the server
+(`apps/web/.output/server/node_modules/highs`), so ship that folder with the rest of `.output`.
+
 `pnpm run dev` updates live: a change in any module or package hot-reloads in the browser, and editing
 `packages/i18n/messages/*.json` recompiles the translations without a restart. Events edited in the viewer are
 written to `packages/plan-data/data/edits.json` at once.
@@ -122,7 +127,7 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Real pace**: a session marked done shows `Time spent` in its card, in quarter-hour steps; without it the
   session counts as planned. From that the planner works out a pace per course (real hours per planned hour) and
   the dashboard's `Forecast at your pace` shows when the rest of each course will really be finished and how
-  that sits against the certificate deadline. In the calendar such a session keeps its planned slot and shows
+  that sits against the nearest deadline. In the calendar such a session keeps its planned slot and shows
   what happened in it: the part it did not need is dashed, a session that ran over gets a hatched tail, and a
   timer next to its times (and `took …` in the list) gives the real length. The slot is not shortened, because
   the pace is the difference between the two.
@@ -141,14 +146,24 @@ a Husky `commit-msg` hook checks them with commitlint.
   to catch up. `Catch up` (also in the `⋮` menu) compares whole scenarios side by side: leave the plan, push
   every open session to the next study days (same weekly load, later end), or make the missed sessions up in the
   Saturday buffers and an extra hour a day (same end, heavier weeks). Each shows the day the plan ends, the room
-  before the certificate deadline and the heaviest week, and is applied as one history step. In the week and day
+  before the nearest deadline and the heaviest week, and is applied as one history step. In the week and day
   views the missed sessions are also listed under the bar as chips: drag one onto a slot of the grid to give it
-  that time (its length stays), or click it to pick a time in its dialog. `Shift the plan`
-  moves every session that is not done, from a chosen
-  day and optionally in one calendar, by a number of days; it is one history step. An event can be duplicated
-  to the next day from its dialog.
+  that time (its length stays), or click it to pick a time in its dialog. An event can be duplicated to the next
+  day from its dialog.
+- **Reschedule**: `⋮` → `Reschedule` has two modes.
+  - `Move` shifts every session that is not done, from a chosen day, in every calendar or in one. It shifts by
+    days and by hours; `+1 h`, `−1 h`, `+1 day`, `+1 week` and `−1 week` fill both in.
+  - `Re-balance` spreads one calendar's open sessions over the study days ahead instead. It keeps a pace, from one
+    session every three study days to three a day, or finishes before the calendar's deadline as evenly as it can.
+    The study hours, and whether a week may go over the budget, are part of the request.
+
+  While the inputs change, the dialog shows when the course ends, its heaviest week and how many sessions move.
+  When it cannot do better, it says why ("the weeks of 11 Jan – 7 Feb are full"). Apply stores the result as one
+  history step. Each calendar can have its own deadline, set, moved or cleared in the same dialog and kept as the
+  calendar's milestone. The runway, the goals, the forecast and Catch up use the nearest one. How the re-balance
+  chooses, with a worked example: [docs/rebalancing.md](docs/rebalancing.md).
 - **Controls**: the toolbar keeps the view switch, the week navigation (the title opens a date picker), search,
-  undo/redo and `＋ Event`; History, Trash, Shift the plan, Calendars and Shortcuts live in the `⋮` menu, which
+  undo/redo and `＋ Event`; History, Trash, Reschedule, Calendars and Shortcuts live in the `⋮` menu, which
   on a phone also holds search, undo/redo and the view toggles.
 - **The list**: a filter leaves what is open, done or overdue, and each day shows its hours of study. On an
   editable plan the rows have checkboxes: the ticked events can be marked done or not done, moved a day back, a
@@ -331,6 +346,9 @@ The plan is described so that a model can change it without guessing. Three docu
 | `POST /api/plan-update` | Takes an update as JSON or as the text of a chat answer; `?dry=1` only reports what it would do. 422 names the change at fault, 403 on a read-only host |
 | `pnpm run mcp` | An MCP server over stdio: tools `get_guide`, `get_plan`, `preview_update`, `apply_update`, `rebalance_calendar`; resources `plan://guide`, `plan://plan`, `plan://schema/plan`, `plan://schema/update`; prompt `change_plan` |
 
+`rebalance_calendar` works out a re-balance of one calendar and changes nothing itself. It returns the moves as
+an update to pass to `preview_update` and `apply_update`, with the same report the dialog shows.
+
 `.mcp.json` registers the MCP server for Claude Code in this repository. For another client, run
 `pnpm --silent run mcp` from the repository root (`--silent` keeps stdout for the protocol). `pnpm run test`
 checks that the schemas, the examples of the guide and the parser agree.
@@ -341,7 +359,7 @@ checks that the schemas, the examples of the guide and the parser agree.
 apps/web/                    TanStack Start shell
   src/routes/                index.tsx (planner; ?week=YYYY-MM-DD&view=day|week|month|year|list), focus.tsx,
                              dashboard.tsx, api/ (plan, ics, ics-zip)
-  src/server/                server functions: read the plan, save an event edit
+  src/server/                server functions: read the plan, save an event edit, re-balance a calendar
 modules/planner/             planner and focus pages, Feature-Sliced layers inside
 modules/calendar-export/     export dialog
 packages/plan-domain/src/
@@ -351,7 +369,9 @@ packages/plan-domain/src/
   ics.ts                     RFC 5545 export
   occurrences.ts             expands events (RRULE, all-day) for a date range
   dates.ts                   Minsk wall-clock date helpers
-packages/plan-data/          data/plan.json (generated, committed), data/edits.json, scripts/build-plan.ts
+  rebalance/                 re-balancing a calendar: room, integer program, placement, report
+packages/plan-data/          data/plan.json (generated, committed), data/edits.json, scripts/build-plan.ts,
+                             src/solver.ts (HiGHS)
 packages/i18n/               messages, Paraglide output, format.ts
 packages/ui/                 buttons, segmented control, modal, theme.css
 ```

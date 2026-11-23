@@ -12,8 +12,8 @@ modules/               microfrontends, composed at build time
   calendar-export/     the export dialog (.ics, zip, combined calendar)
   dashboard/           the progress page at /dashboard: stat tiles and charts, read-only
 packages/
-  plan-domain/         the domain: types, Minsk dates, schedule rules, edits, .ics. Pure TypeScript
-  plan-data/           the database on disk (data/plan.json, data/edits.json) and `pnpm run plan`. Node only
+  plan-domain/         the domain: types, Minsk dates, schedule rules, edits, .ics, the re-balance model. Pure TypeScript
+  plan-data/           the database on disk (data/plan.json, data/edits.json), `pnpm run plan`, the HiGHS solver. Node only
   i18n/                messages (ru, en, es), the compiled Paraglide output, locale-aware formatting
   ui/                  UI kit and the Tailwind theme tokens
 ```
@@ -63,6 +63,7 @@ Modules do not know about each other, about the router, or about where data come
   search={Route.useSearch()}                    // URL state: the app owns the router
   onSearchChange={…}
   onChange={…}                                  // persistence: one server function for every PlanChange
+  rebalance={rebalance}                         // heavy work the server does: re-balancing a calendar
   headerAside={<LanguageSwitcher />}            // slot
   renderExport={(dialog) => <ExportDialog {...dialog} />}   // another module, opened from the planner's integrations
   commands={shellCommands()}                    // palette entries the app owns: theme, language
@@ -104,8 +105,8 @@ src/
   edited, when the app adds an action.
 - **Liskov / interface segregation**: components take the narrow data they use (`plan`, `hidden`), not a store or
   a router.
-- **Dependency inversion**: modules declare callbacks (`onChange`, `onSearchChange`); the app supplies the
-  implementation. The domain depends on nothing.
+- **Dependency inversion**: modules declare callbacks (`onChange`, `onSearchChange`, `rebalance`); the app supplies
+  the implementation. The domain depends on nothing: even the solver is passed in.
 
 ## Adding things
 
@@ -135,6 +136,21 @@ src/
   `routes/api/$provider.connect.ts` and `$provider.callback.ts`, and the planner feature `calendar-sync` holds the
   integrations dialog, each app's dialog and the shared review. A new app is a kit, an entry in
   `CALENDAR_PROVIDERS`, a setup component and its messages; the engine, the routes and the review stay as they are.
+- **Work that needs a heavy library** (re-balancing a calendar with the HiGHS solver):
+  - **Rules and model**: pure, in `plan-domain` (`src/rebalance/`). That holds the room, an integer program in a
+    neutral `LpModel` form, the placement and the report.
+  - **The library**: taken as an injected function. `planRebalance` asks for a `solve`, so the domain imports no
+    solver, and its tests pass a fake one.
+  - **Supplying it**: `plan-data` passes the real one. `solver.ts` runs HiGHS, and `rebalance.ts` adds the busy
+    calendar and runs one request at a time.
+  - **Adapters**: the server function `rebalancePlan` (`apps/web/src/server/reschedule.ts`) and the MCP tool
+    `rebalance_calendar` hold no rules.
+  - **The module**: takes the work as an optional prop (`rebalance` on `PlannerPage`), and leaves the Re-balance
+    mode out where the host passes none.
+  - **Keeping it off the browser**: the web build leaves `highs` out of the bundle (`ssr.external` in
+    `vite.config.ts`) and copies the package beside the server, so its loader finds `highs.wasm`.
+
+  How the re-balance works: [rebalancing.md](rebalancing.md).
 - **A shared dependency version**: the `catalog` in `pnpm-workspace.yaml`, referenced as `catalog:`.
 
 ## Trunk-based flow
