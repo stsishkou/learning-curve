@@ -89,6 +89,36 @@ export const MoveByAnHour: Story = {
   },
 }
 
+const firstOpen = fixturePlan.events
+  .filter((e) => e.calendar === 'hfllm' && isSession(e) && !e.done && e.start >= FROM)
+  .toSorted((a, b) => a.start.localeCompare(b.start))
+  .at(0)
+const talk = firstOpen && {
+  ...firstOpen,
+  uid: 'talk',
+  calendar: 'personal',
+  title: 'Talk',
+  kind: 'personal' as const,
+  start: firstOpen.end,
+  end: toLocalString(parseLocal(firstOpen.end) + 60 * 60 * 1000),
+}
+
+/** A move warns before it is stored: an hour later, the first session would sit on a talk. */
+export const MoveOntoAnotherEvent: Story = {
+  args: { plan: talk ? { ...fixturePlan, events: [...fixturePlan.events, talk] } : fixturePlan },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.selectOptions(
+      await body.findByRole('combobox', { name: new RegExp(`^${m.field_calendar()}`) }),
+      'hfllm',
+    )
+    await userEvent.click(body.getByRole('button', { name: m.reschedule_hour_later() }))
+    const overlap = m.ai_warn_overlap({ title: firstOpen?.title ?? '', other: 'Talk' })
+    await waitFor(() => expect(body.getByText(overlap)).toBeVisible())
+    await expect(args.onApply).not.toHaveBeenCalled()
+  },
+}
+
 /** One every two days: the dialog asks for that pace and shows when the course ends then. */
 export const RebalanceByPace: Story = {
   play: async ({ args, canvasElement }) => {

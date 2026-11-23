@@ -5,6 +5,7 @@ import {
   defaultStudyHours,
   parseLocal,
   previewUpdate,
+  rebalanceChange,
   shiftTargets,
   type Plan,
   type PlanChange,
@@ -96,23 +97,28 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Pr
   const outcome = useRebalance(rebalance, plan, request)
   const { result } = outcome
   const moves = useMemo<PlanChange | null>(
-    () => (result?.moves.length ? { type: 'events.move', moves: result.moves, reason: 'rebalance', calendar } : null),
+    () => (result ? rebalanceChange(result, calendar) : null),
     [result, calendar],
   )
-  const warnings = useMemo(() => (moves ? previewUpdate(plan, [moves]).warnings : []), [plan, moves])
 
   const count = shiftTargets(plan, { calendar: calendar || undefined, from }).length
   const deadlineStep = calendar ? deadlineChange(plan, calendar, deadline || null) : null
-  const shift: PlanChange = {
-    type: 'events.shift',
-    calendar: calendar || undefined,
-    from,
-    ...(days ? { days } : {}),
-    ...(hours ? { hours } : {}),
-  }
+  const shift = useMemo<PlanChange>(
+    () => ({
+      type: 'events.shift',
+      calendar: calendar || undefined,
+      from,
+      ...(days ? { days } : {}),
+      ...(hours ? { hours } : {}),
+    }),
+    [calendar, from, days, hours],
+  )
+  const shifting = count > 0 && (days !== 0 || hours !== 0)
+  const step = rebalancing ? moves : shifting ? shift : null
+  const warnings = useMemo(() => (step ? previewUpdate(plan, [step]).warnings : []), [plan, step])
   const ready = rebalancing
     ? request !== null && !outcome.working && result?.report.unplaced === 0 && (moves !== null || deadlineStep !== null)
-    : count > 0 && (days !== 0 || hours !== 0)
+    : shifting
 
   function chooseCalendar(id: string) {
     setCalendar(id)
@@ -288,6 +294,7 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, onClose }: Pr
           <p className="text-[13.5px] text-muted" role="status">
             {m.shift_count({ count })}
           </p>
+          <RuleWarningList warnings={warnings} />
         </>
       )}
       {error && (
