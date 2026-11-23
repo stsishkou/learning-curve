@@ -1,0 +1,402 @@
+import { m } from '@lc/i18n/messages'
+import {
+  addDays,
+  applyChange,
+  applyEdits,
+  calendarLanes,
+  DAY,
+  deadlineOf,
+  emptyHistory,
+  historyEdits,
+  historyView,
+  isSession,
+  lanesRange,
+  mondayOf,
+  nowMinsk,
+  parseLocal,
+  previewUpdate,
+  rebalanceChange,
+  recordChange,
+  toLocalString,
+  travel,
+  ymd,
+  type Plan,
+  type PlanChange,
+  type RebalanceRequest,
+  type RebalanceResult,
+} from '@lc/plan-domain'
+import { fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
+import type { Meta, StoryObj } from '@storybook/react-vite'
+import { useMemo, useState, type ComponentProps } from 'react'
+import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
+
+import { deadlineChange } from '../../../features/reschedule'
+import { TimelinePage } from './TimelinePage'
+
+// The page follows the real clock: the fixture is moved by whole weeks to the week the stand is opened in.
+const now = nowMinsk()
+const today = ymd(now)
+const weeks = Math.round((mondayOf(now) - fixtureWeek) / (7 * DAY))
+const later = (local: string) => toLocalString(parseLocal(local) + weeks * 7 * DAY)
+const plan: Plan = {
+  ...fixturePlan,
+  meta: { ...fixturePlan.meta, planEnd: addDays(fixturePlan.meta.planEnd, weeks * 7) },
+  events: fixturePlan.events.map((e) => ({
+    ...e,
+    start: later(e.start),
+    end: later(e.end),
+    ...(e.skip ? { skip: e.skip.map((day) => addDays(day, weeks * 7)) } : {}),
+  })),
+}
+
+const NONE: ReadonlySet<string> = new Set()
+const LLM = /Hugging Face: LLM Course/
+const CERTS = /Gemini Certs/
+const MOUSE = { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true }
+const pause = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** Sessions of a course a move or a re-balance from today takes along. */
+const ahead = (calendar: string) =>
+  plan.events.filter((e) => e.calendar === calendar && isSession(e) && !e.done && e.start.slice(0, 10) >= today)
+
+/** What the solver might answer: the last session ahead a few days earlier. */
+function resultFor(calendar: string, days: number): RebalanceResult {
+  const moves = ahead(calendar)
+    .slice(-1)
+    .map((e) => ({
+      uid: e.uid,
+      start: toLocalString(parseLocal(e.start) - days * DAY),
+      end: toLocalString(parseLocal(e.end) - days * DAY),
+    }))
+  return {
+    moves,
+    report: {
+      finish: moves.at(-1)?.start.slice(0, 10) ?? today,
+      finishBefore: ahead(calendar).at(-1)?.start.slice(0, 10) ?? today,
+      deadline: deadlineOf(plan, calendar),
+      peakWeek: 6,
+      peakDay: 2,
+      overWeeks: [],
+      moved: moves.length,
+      late: 0,
+      unplaced: 0,
+      provenBest: true,
+      reasons: [],
+    },
+  }
+}
+
+/** A solver that answers only when the story says so, in any order. */
+function heldSolver() {
+  const pending: ((result: RebalanceResult) => void)[] = []
+  const rebalance = fn(
+    async (_plan: Plan, _request: RebalanceRequest) =>
+      new Promise<RebalanceResult>((resolve) => {
+        pending.push(resolve)
+      }),
+  )
+  return {
+    rebalance,
+    answer: (call: number, result: RebalanceResult) => pending[call]?.(result),
+    reset: () => {
+      pending.length = 0
+    },
+  }
+}
+
+/**
+ * Stands in for the app: stores changes with the same reducer the server uses, each as its own step of the
+ * history, so Apply and Undo work and nothing is saved.
+ */
+function Host(props: ComponentProps<typeof TimelinePage>) {
+  const base = props.state.plan
+  const [history, setHistory] = useState(emptyHistory)
+  const state = useMemo(
+    () => ({ ...props.state, plan: applyEdits(base, historyEdits(history)).plan, history: historyView(history) }),
+    [props.state, base, history],
+  )
+  return (
+    <TimelinePage
+      {...props}
+      state={state}
+      onChangeAll={async (changes) => {
+        await props.onChangeAll(changes)
+        setHistory((prev) =>
+          changes.reduce((steps, change) => {
+            const before = historyEdits(steps)
+            return recordChange(steps, applyEdits(base, before).plan, change, applyChange(base, before, change))
+          }, prev),
+        )
+      }}
+      onTravel={async (cursor) => {
+        await props.onTravel(cursor)
+        setHistory((prev) => travel(prev, cursor))
+      }}
+    />
+  )
+}
+
+const meta = {
+  title: 'Planner/Page/TimelinePage',
+  component: TimelinePage,
+  parameters: { layout: 'fullscreen' },
+  args: {
+    state: { plan, canEdit: true, history: historyView(emptyHistory()) },
+    onChangeAll: fn(async () => {}),
+    onTravel: fn(async () => {}),
+    rebalance: fn(async (_plan: Plan, request: RebalanceRequest) => resultFor(request.calendar, 1)),
+  },
+  argTypes: { state: { control: false } },
+  // The zoom is remembered per browser: every story starts from the whole plan.
+  beforeEach: () => localStorage.removeItem('learning-curve:timeline-zoom'),
+  render: (args) => <Host {...args} />,
+} satisfies Meta<typeof TimelinePage>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+const chart = async (canvas: HTMLElement) => within(canvas).findByRole('region', { name: m.timeline() })
+const panel = (canvas: HTMLElement) => within(within(canvas).getByRole('region', { name: m.timeline_course() }))
+const draftBar = (canvas: HTMLElement) => within(canvas).queryByRole('region', { name: m.timeline_draft() })
+const findDraftBar = async (canvas: HTMLElement) => within(canvas).findByRole('region', { name: m.timeline_draft() })
+const applyButton = async (canvas: HTMLElement) =>
+  within(await findDraftBar(canvas)).getByRole('button', { name: m.reschedule_apply() })
+
+async function select(canvas: HTMLElement, course: RegExp) {
+  await userEvent.click(within(await chart(canvas)).getByRole('button', { name: course }))
+}
+
+async function laterWeek(canvas: HTMLElement) {
+  await userEvent.click(panel(canvas).getByRole('button', { name: m.timeline_later_week() }))
+}
+
+/** Presses a lane in its middle and drags it sideways by `by` weeks of the track as drawn now. */
+async function dragLane(lane: HTMLElement, by: number) {
+  const shown = lanesRange(calendarLanes(plan, now, NONE), now)
+  const days = shown ? (shown.end - shown.start) / DAY : 1
+  const box = lane.getBoundingClientRect()
+  const week = ((lane.parentElement ?? lane).getBoundingClientRect().width / days) * 7
+  const at = { ...MOUSE, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 }
+  await fireEvent.pointerDown(lane, at)
+  await fireEvent.pointerMove(lane, { ...at, clientX: at.clientX + (week * by) / 2 })
+  await fireEvent.pointerMove(lane, { ...at, clientX: at.clientX + week * by })
+  await fireEvent.pointerUp(lane, { ...at, clientX: at.clientX + week * by })
+  await fireEvent.click(lane)
+}
+
+/**
+ * The page as the app renders it at `/timeline`. Every course is a lane; a course picked on its lane shows its
+ * dates, deadline and spare days on the panel, with the ways to change them. A small in-memory host stands in for
+ * the app, so Apply and Undo work and nothing is saved.
+ */
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const region = within(await chart(canvasElement))
+    await expect(region.getByText('Gemini Certs')).toBeVisible()
+    await expect(region.getByText('Practical Python')).toBeVisible()
+    await expect(panel(canvasElement).getByText(m.timeline_pick())).toBeVisible()
+    await expect(draftBar(canvasElement)).toBeNull()
+  },
+}
+
+/** A drop is a draft: the lane is drawn over the course as it was, the bar counts what would change, nothing is stored. */
+export const DragMakesADraft: Story = {
+  play: async ({ args, canvasElement }) => {
+    await dragLane(within(await chart(canvasElement)).getByRole('button', { name: LLM }), 1.2)
+    const bar = await findDraftBar(canvasElement)
+    await waitFor(() =>
+      expect(bar).toHaveTextContent(m.timeline_draft_summary({ courses: 1, sessions: ahead('hfllm').length })),
+    )
+    await expect(canvasElement.querySelector('[data-before]')).not.toBeNull()
+    await expect(panel(canvasElement).getByRole('heading', { name: 'Hugging Face: LLM Course' })).toBeVisible()
+    await pause(50)
+    await expect(args.onChangeAll).not.toHaveBeenCalled()
+  },
+}
+
+/** Apply stores the draft in one go; Undo then steps back over every change it made. */
+export const ApplyStoresTheDraft: Story = {
+  play: async ({ args, canvasElement }) => {
+    await select(canvasElement, LLM)
+    await laterWeek(canvasElement)
+    const apply = await applyButton(canvasElement)
+    await waitFor(() => expect(apply).toBeEnabled())
+    await userEvent.click(apply)
+    await waitFor(() => expect(args.onChangeAll).toHaveBeenCalledTimes(1))
+    await expect(args.onChangeAll).toHaveBeenCalledWith([
+      { type: 'events.shift', calendar: 'hfllm', from: today, days: 7 },
+    ])
+    await expect(await within(canvasElement).findByText(m.timeline_applied({ count: 1 }))).toBeVisible()
+    await expect(draftBar(canvasElement)).toBeNull()
+    await userEvent.click(within(canvasElement).getByRole('button', { name: m.undo() }))
+    await waitFor(() => expect(args.onTravel).toHaveBeenCalledWith(0))
+  },
+}
+
+/** Discard drops the draft: the plan is drawn as it is and nothing was stored. */
+export const DiscardDropsTheDraft: Story = {
+  play: async ({ args, canvasElement }) => {
+    await select(canvasElement, LLM)
+    await laterWeek(canvasElement)
+    await userEvent.click(within(await findDraftBar(canvasElement)).getByRole('button', { name: m.timeline_discard() }))
+    await waitFor(() => expect(draftBar(canvasElement)).toBeNull())
+    await expect(canvasElement.querySelector('[data-before]')).toBeNull()
+    await expect(args.onChangeAll).not.toHaveBeenCalled()
+  },
+}
+
+const solver = heldSolver()
+
+/** A new finish is worked out by the solver; until it answers the course says so and the draft cannot be applied. */
+export const FinishByAsksTheSolver: Story = {
+  args: { rebalance: solver.rebalance },
+  play: async ({ args, canvasElement }) => {
+    solver.reset()
+    await select(canvasElement, CERTS)
+    await userEvent.click(panel(canvasElement).getByRole('button', { name: m.timeline_finish_by_deadline() }))
+    await waitFor(() => expect(solver.rebalance).toHaveBeenCalledTimes(1))
+    await expect(solver.rebalance).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        calendar: 'certs',
+        from: today,
+        deadline: deadlineOf(plan, 'certs'),
+        target: { mode: 'deadline' },
+      }),
+    )
+    const apply = await applyButton(canvasElement)
+    await expect(apply).toBeDisabled()
+    await expect(panel(canvasElement).getByText(m.reschedule_working())).toBeVisible()
+    const result = resultFor('certs', 1)
+    solver.answer(0, result)
+    await waitFor(() => expect(apply).toBeEnabled())
+    await userEvent.click(apply)
+    await waitFor(() => expect(args.onChangeAll).toHaveBeenCalledWith([rebalanceChange(result, 'certs')]))
+  },
+}
+
+/** A re-balance that fails says why on the course and blocks Apply; resetting the course clears it. */
+export const AFailedRebalanceBlocksApply: Story = {
+  args: { rebalance: fn(async (_plan: Plan, _request: RebalanceRequest) => Promise.reject(new Error('No room'))) },
+  play: async ({ canvasElement }) => {
+    await select(canvasElement, CERTS)
+    await userEvent.click(panel(canvasElement).getByRole('button', { name: m.timeline_finish_by_deadline() }))
+    await expect(await panel(canvasElement).findByText(m.reschedule_failed({ reason: 'No room' }))).toBeVisible()
+    await expect(await applyButton(canvasElement)).toBeDisabled()
+    await userEvent.click(panel(canvasElement).getByRole('button', { name: m.timeline_reset_course() }))
+    await waitFor(() => expect(draftBar(canvasElement)).toBeNull())
+    await expect(panel(canvasElement).queryByText(m.reschedule_failed({ reason: 'No room' }))).toBeNull()
+  },
+}
+
+const slow = heldSolver()
+
+/** An answer to a finish day that was changed since is dropped: the draft keeps the newer answer. */
+export const StaleAnswerIsDropped: Story = {
+  args: { rebalance: slow.rebalance },
+  play: async ({ args, canvasElement }) => {
+    slow.reset()
+    await select(canvasElement, LLM)
+    const finish = panel(canvasElement).getByLabelText(m.reschedule_finish_by())
+    await fireEvent.change(finish, { target: { value: addDays(today, 40) } })
+    await waitFor(() => expect(slow.rebalance).toHaveBeenCalledTimes(1))
+    await fireEvent.change(finish, { target: { value: addDays(today, 50) } })
+    await waitFor(() => expect(slow.rebalance).toHaveBeenCalledTimes(2))
+    const newer = resultFor('hfllm', 2)
+    slow.answer(1, newer)
+    slow.answer(0, resultFor('hfllm', 1))
+    await pause(50)
+    const apply = await applyButton(canvasElement)
+    await waitFor(() => expect(apply).toBeEnabled())
+    await userEvent.click(apply)
+    await waitFor(() => expect(args.onChangeAll).toHaveBeenCalledTimes(1))
+    await expect(args.onChangeAll).toHaveBeenCalledWith([rebalanceChange(newer, 'hfllm')])
+  },
+}
+
+/**
+ * Two courses in one draft are worked out in the order they were changed, each on the plan the one before leaves;
+ * the review lists what the whole draft changes.
+ */
+export const TwoCoursesInOrder: Story = {
+  play: async ({ args, canvasElement }) => {
+    const deadline = addDays(deadlineOf(plan, 'certs') ?? today, 7)
+    await select(canvasElement, CERTS)
+    await fireEvent.change(panel(canvasElement).getByLabelText(m.reschedule_deadline()), {
+      target: { value: deadline },
+    })
+    await select(canvasElement, LLM)
+    await laterWeek(canvasElement)
+    const moved = deadlineChange(plan, 'certs', deadline)
+    const expected: PlanChange[] = [
+      ...(moved ? [moved] : []),
+      { type: 'events.shift', calendar: 'hfllm', from: today, days: 7 },
+    ]
+    const bar = await findDraftBar(canvasElement)
+    await waitFor(() =>
+      expect(bar).toHaveTextContent(m.timeline_draft_summary({ courses: 2, sessions: ahead('hfllm').length })),
+    )
+    await userEvent.click(within(bar).getByRole('button', { name: m.timeline_review() }))
+    const review = await within(canvasElement.ownerDocument.body).findByRole('dialog')
+    const { diff } = previewUpdate(plan, expected)
+    // The dialog grows in: its content is visible once that is over.
+    await waitFor(() => expect(within(review).getByText(m.file_changed({ count: diff.changed.length }))).toBeVisible())
+    await userEvent.click(within(review).getByRole('button', { name: m.reschedule_apply() }))
+    await waitFor(() => expect(args.onChangeAll).toHaveBeenCalledTimes(1))
+    await expect(args.onChangeAll).toHaveBeenCalledWith(expected)
+  },
+}
+
+/** Whether the browser would ask before leaving the page. */
+function leaveAsks() {
+  const event = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(event)
+  return event.defaultPrevented
+}
+
+/** Leaving the page with a draft asks first; without one it does not. */
+export const LeavingWithADraftAsks: Story = {
+  play: async ({ canvasElement }) => {
+    await expect(leaveAsks()).toBe(false)
+    await select(canvasElement, LLM)
+    await laterWeek(canvasElement)
+    await findDraftBar(canvasElement)
+    await expect(leaveAsks()).toBe(true)
+  },
+}
+
+/** `canEdit: false`: courses can be picked and read, not changed. */
+export const ReadOnly: Story = {
+  args: { state: { plan, canEdit: false, history: historyView(emptyHistory()) } },
+  play: async ({ canvasElement }) => {
+    const region = within(await chart(canvasElement))
+    await expect(region.queryAllByRole('slider')).toEqual([])
+    await select(canvasElement, LLM)
+    await expect(panel(canvasElement).getByRole('heading', { name: 'Hugging Face: LLM Course' })).toBeVisible()
+    await expect(panel(canvasElement).queryByRole('button', { name: m.timeline_later_week() })).toBeNull()
+  },
+}
+
+/** With nothing ahead in any course the page says so instead of an empty chart. */
+export const NoCourses: Story = {
+  args: { state: { plan: { ...plan, events: [] }, canEdit: true, history: historyView(emptyHistory()) } },
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText(m.timeline_empty())).toBeVisible()
+    await expect(within(canvasElement).queryByRole('region', { name: m.timeline() })).toBeNull()
+  },
+}
+
+/**
+ * On a phone the page never scrolls sideways: only the chart's own days do, and the panel follows it. The stand's
+ * tests run in a window as wide as a phone.
+ */
+export const Phone: Story = {
+  decorators: [(Story) => <div className="max-w-[390px]">{Story()}</div>],
+  play: async ({ canvasElement }) => {
+    await select(canvasElement, LLM)
+    await laterWeek(canvasElement)
+    await findDraftBar(canvasElement)
+    const root = canvasElement.ownerDocument.documentElement
+    await expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth)
+  },
+}

@@ -19,6 +19,7 @@ import { useId, useMemo, useState, type SubmitEvent } from 'react'
 
 import { RuleWarningList } from '../../../shared/ui'
 import { deadlineChange } from '../model/deadline-change'
+import { finishByRequest } from '../model/finish-by-request'
 import { useRebalance, type Rebalance } from '../model/use-rebalance'
 
 interface Props {
@@ -103,17 +104,11 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
   const request = useMemo<RebalanceRequest | null>(
     () =>
       rebalancing && calendar && from && study.from < study.to
-        ? {
-            calendar,
-            from,
-            // Finishing by a day aims at the next one, so the stored deadline changes only with its own field.
-            deadline: fitting ? addDays(finish, 1) : aim || undefined,
-            target: fitting ? { mode: 'deadline' } : { mode: 'pace', perDay },
-            overBudget,
-            hours: study,
-          }
+        ? fitting
+          ? finishByRequest(plan, { calendar, from, finishBy: finish, overBudget, hours: study })
+          : { calendar, from, deadline: aim || undefined, target: { mode: 'pace', perDay }, overBudget, hours: study }
         : null,
-    [rebalancing, calendar, from, aim, finish, fitting, perDay, overBudget, study],
+    [plan, rebalancing, calendar, from, aim, finish, fitting, perDay, overBudget, study],
   )
   const outcome = useRebalance(rebalance, plan, request)
   const { result } = outcome
