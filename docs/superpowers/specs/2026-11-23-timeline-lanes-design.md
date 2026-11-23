@@ -38,9 +38,9 @@ phone screen for good (it can be hidden); a second way of storing changes beside
 **What a lane shows** (`calendarLanes` in `plan-domain`, pure): every calendar the planner's filter shows that has
 sessions, and an open one or a deadline from today on. Per lane: the calendar, its first and last session day, each session's day
 and state (done, open, missed: past and not done), done and total counts, its deadline (`deadlineOf`), and its first
-open session day. `lanesRange` gives the days drawn: from the Monday of the week before today to the latest last
-session or deadline, at least four weeks. Before the clock is known (server render) today is the first open
-session's day and there is no today line.
+open session day. `lanesRange` gives the days drawn: from the Monday of the week before today (or of an earlier
+deadline) to two weeks past the latest last session or deadline, so that it too can be dragged later; at least four
+weeks. Before the clock is known (server render) today is the first open session's day and there is no today line.
 
 **Drawing** (widget `timeline-lanes`): a name column (colour dot, name, done/total) at 200 px from `md`, the name above the bar on
 a phone; a 24 px row (36 px on a phone) with a thin bar from the first to the last session in a light tint of the

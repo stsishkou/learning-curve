@@ -69,11 +69,16 @@ describe('calendarLanes', () => {
 })
 
 describe('lanesRange', () => {
-  test('the range starts the Monday a week before today and ends after the last session or deadline', () => {
+  test('the range starts the Monday a week before today and ends two weeks after the last session or deadline', () => {
     expect(lanesRange(calendarLanes(fixturePlan, fixtureNow, NONE), fixtureNow)).toEqual({
       start: parseLocal('2026-11-23'),
-      end: parseLocal('2027-03-10'),
+      end: parseLocal('2027-03-24'),
     })
+  })
+
+  test('a deadline already past reaches back into the range', () => {
+    const now = parseLocal('2027-01-20T09:00')
+    expect(lanesRange(calendarLanes(fixturePlan, now, NONE), now)?.start).toBe(parseLocal('2026-12-28'))
   })
 
   test('the range is at least four weeks', () => {

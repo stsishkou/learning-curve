@@ -27,6 +27,8 @@ export interface CalendarLane {
 }
 
 const MIN_DAYS = 28
+// Room after the latest end or deadline, so that it too can be dragged later.
+const ROOM_DAYS = 14
 
 /**
  * A lane for every shown calendar that has sessions and still has something ahead: a session not done, or a deadline
@@ -68,19 +70,19 @@ export function calendarLanes(plan: Plan, now: number | null, hidden: ReadonlySe
 const dayOf = (day: string) => parseLocal(day)
 
 /**
- * The days the timeline draws, as day ms with `end` excluded: from the Monday of the week before today to the day
- * after the last session or deadline, at least four weeks. Before the clock is known, the first open session stands in
- * for today. null when there are no lanes.
+ * The days the timeline draws, as day ms with `end` excluded: from the Monday of the week before today, or of an
+ * earlier deadline still on a lane, to two weeks after the last session or deadline, at least four weeks. Before the
+ * clock is known, the first open session stands in for today. null when there are no lanes.
  */
 export function lanesRange(lanes: CalendarLane[], now: number | null): { start: number; end: number } | null {
   if (!lanes.length) return null
   const anchors = lanes.map((lane) => lane.openFrom).filter((day) => day !== null)
   const anchor = now ?? Math.min(...(anchors.length ? anchors : lanes.map((lane) => lane.first)).map(dayOf))
-  const start = mondayOf(startOfDay(anchor)) - 7 * DAY
-  const end = Math.max(
-    ...lanes
-      .flatMap((lane) => [dayOf(lane.last), ...(lane.deadline ? [dayOf(lane.deadline)] : [])])
-      .map((t) => t + DAY),
-  )
-  return { start, end: Math.max(end, start + MIN_DAYS * DAY) }
+  const deadlines = lanes
+    .map((lane) => lane.deadline)
+    .filter((day) => day !== null)
+    .map(dayOf)
+  const start = Math.min(mondayOf(startOfDay(anchor)) - 7 * DAY, ...deadlines.map(mondayOf))
+  const latest = Math.max(...lanes.map((lane) => dayOf(lane.last)), ...deadlines) + DAY
+  return { start, end: Math.max(latest + ROOM_DAYS * DAY, start + MIN_DAYS * DAY) }
 }
