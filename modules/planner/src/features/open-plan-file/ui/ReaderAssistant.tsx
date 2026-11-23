@@ -209,7 +209,7 @@ export function ReaderAssistant({ plan, now, onApply }: Props) {
         <label className={FIELD}>
           {m.ai_request()}
           <textarea
-            className={`${INPUT} min-h-[72px] resize-y`}
+            className={`${INPUT} field-sizing-content max-h-[14lh] min-h-[72px] resize-y`}
             value={request}
             placeholder={m.ai_request_placeholder()}
             onChange={(e) => {
@@ -309,7 +309,7 @@ export function ReaderAssistant({ plan, now, onApply }: Props) {
       <section className="grid content-start gap-3">
         <h4 className={STEP}>{m.ai_step_answer()}</h4>
         <textarea
-          className={`${INPUT} min-h-[120px] resize-y font-mono text-[12.5px]`}
+          className={`${INPUT} field-sizing-content max-h-[24lh] min-h-[120px] resize-y font-mono text-[12.5px]`}
           aria-label={m.ai_step_answer()}
           value={answer}
           spellCheck={false}

@@ -152,7 +152,7 @@ export function EventForm({
       <label className={FIELD}>
         {m.field_description()}
         <textarea
-          className={`${INPUT} min-h-[120px] resize-y text-[14px]/[1.5]`}
+          className={`${INPUT} field-sizing-content max-h-[18lh] min-h-[120px] resize-y text-[14px]/[1.5]`}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
