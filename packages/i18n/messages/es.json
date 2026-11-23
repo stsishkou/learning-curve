@@ -338,6 +338,8 @@
   "nav": "Secciones",
   "nav_plan": "Plan",
   "nav_components": "Componentes",
+  "nav_docs": "Cómo está hecho",
+  "docs_unavailable": "La guía no se pudo cargar aquí: ábrela en su sitio",
   "more_actions": "Más acciones",
   "jump_to_date": "Ir a una fecha",
   "duplicate": "Duplicar",

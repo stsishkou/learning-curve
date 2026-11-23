@@ -529,6 +529,12 @@ importers:
       '@lc/dashboard':
         specifier: workspace:*
         version: link:../../modules/dashboard
+      '@lc/docs-contract':
+        specifier: workspace:*
+        version: link:../../packages/docs-contract
+      '@lc/docs-host':
+        specifier: workspace:*
+        version: link:../../packages/docs-host
       '@lc/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

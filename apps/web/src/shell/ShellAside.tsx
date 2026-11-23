@@ -1,7 +1,10 @@
 import { m } from '@lc/i18n/messages'
-import { Link } from '@tanstack/react-router'
+import { getRouteApi, Link } from '@tanstack/react-router'
 
+import { DocsButton } from './DocsButton'
 import { LanguageSwitcher } from './LanguageSwitcher'
+
+const root = getRouteApi('__root__')
 
 // The router marks the link of the page on screen with aria-current.
 const TAB =
@@ -14,6 +17,7 @@ export const STAND_URL: string | undefined =
 
 /** What the shell puts in every page header: the sections of the app and the language. */
 export function ShellAside() {
+  const docs = root.useLoaderData({ select: (data) => data.docs })
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 md:justify-end">
       {/* Scrolls sideways on a phone rather than push the page wider than the screen. */}
@@ -38,6 +42,7 @@ export function ShellAside() {
             {m.nav_components()} ↗
           </a>
         )}
+        {docs.remote && <DocsButton config={{ ...docs, remote: docs.remote }} className={TAB} />}
       </nav>
       <LanguageSwitcher />
     </div>

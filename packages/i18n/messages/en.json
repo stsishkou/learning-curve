@@ -338,6 +338,8 @@
   "nav": "Sections",
   "nav_plan": "Plan",
   "nav_components": "Components",
+  "nav_docs": "How it's built",
+  "docs_unavailable": "The guide could not be loaded here: open it on its site",
   "more_actions": "More actions",
   "jump_to_date": "Go to a date",
   "duplicate": "Duplicate",
