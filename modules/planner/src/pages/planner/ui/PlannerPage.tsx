@@ -24,7 +24,7 @@ import {
   type RebalanceRequest,
   type RebalanceResult,
 } from '@lc/plan-domain'
-import { Button, CalendarSync, HelpToggle, Hint, useHelpMode } from '@lc/ui'
+import { Button, CalendarSync, HelpToggle, Hint, useFullscreen, useHelpMode } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 
 import { Backlog } from '../../../features/backlog'
@@ -154,7 +154,10 @@ export function PlannerPage({
   const session = usePlanSession(state, { onChange, onTravel, onChangeAll })
   const { plan, canEdit } = session
   const nav = usePlannerView(plan, search, onSearchChange)
-  const { view, expanded, weekStart } = nav
+  const { view, weekStart } = nav
+  const fullscreen = useFullscreen()
+  // The whole screen is for the calendar: it is laid out as Expand lays it out.
+  const expanded = nav.expanded || fullscreen.on
   const quiet = useQuietChange(session)
   // A sign-in to a calendar app comes back to the page with its outcome: that app's dialog shows how it went.
   const dialogs = useDialogFlags<DialogName>(search.link ? ['sync'] : [])
@@ -282,6 +285,7 @@ export function PlannerPage({
     secondZone: secondZone?.label,
     integrations: { waiting: apps.held.length },
     reminders: reminders.supported ? reminders : undefined,
+    fullscreen: fullscreen.supported ? fullscreen : undefined,
     help: { on: helpOn, toggle: toggleHelp },
     trashCount,
     overdueCount: overdue.length,
@@ -372,6 +376,7 @@ export function PlannerPage({
         onNewEvent={canEdit ? () => drafting.begin() : undefined}
         history={canEdit ? quiet : undefined}
         pinned={expanded}
+        fullscreen={fullscreen.supported ? fullscreen : undefined}
         summary={expanded && view === 'week' && <BudgetLine plan={plan} weekItems={weekItems} />}
       >
         <Hint title={m.help_calendars_title()} text={m.help_calendars()} />

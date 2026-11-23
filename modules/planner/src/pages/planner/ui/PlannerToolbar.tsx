@@ -8,8 +8,10 @@ import {
   Clock,
   Hint,
   Kbd,
+  Maximize,
   Maximize2,
   Menu,
+  Minimize,
   Minimize2,
   Plus,
   Redo2,
@@ -45,6 +47,8 @@ interface Props {
    * gone and the toolbar is the only way to another view or period.
    */
   pinned?: boolean
+  /** Present where the browser can fill the whole screen */
+  fullscreen?: { on: boolean; toggle: () => void } | undefined
 }
 
 // The negative margins take the bar to the edges of the page padding, as the page header does.
@@ -65,6 +69,7 @@ export function PlannerToolbar({
   children,
   summary,
   pinned = false,
+  fullscreen,
 }: Props) {
   const datePicker = useRef<HTMLInputElement>(null)
   const timeGrid = nav.view === 'week' || nav.view === 'day'
@@ -211,15 +216,29 @@ export function PlannerToolbar({
                 <Clock size={15} aria-hidden /> {m.full_day()}
               </Button>
             )}
-            <Button
-              className={`flex items-center gap-1.5 ${PRESSED}`}
-              aria-pressed={nav.expanded}
-              title={m.expand_hint()}
-              onClick={nav.toggleExpanded}
-            >
-              {nav.expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
-              {nav.expanded ? m.collapse() : m.expand()}
-            </Button>
+            {/* In full screen the calendar is always laid out across it: there is nothing to expand. */}
+            {!fullscreen?.on && (
+              <Button
+                className={`flex items-center gap-1.5 ${PRESSED}`}
+                aria-pressed={nav.expanded}
+                title={m.expand_hint()}
+                onClick={nav.toggleExpanded}
+              >
+                {nav.expanded ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
+                {nav.expanded ? m.collapse() : m.expand()}
+              </Button>
+            )}
+            {fullscreen && (
+              <Button
+                className={`flex items-center gap-1.5 ${PRESSED}`}
+                aria-pressed={fullscreen.on}
+                title={m.fullscreen_hint()}
+                onClick={fullscreen.toggle}
+              >
+                {fullscreen.on ? <Minimize size={15} aria-hidden /> : <Maximize size={15} aria-hidden />}
+                {fullscreen.on ? m.fullscreen_exit() : m.fullscreen()}
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-/** Keys are `event.key` in lower case; `mod+k` means Ctrl+K or ⌘K, `mod+shift+z` adds Shift. */
+/** Keys are `event.key` in lower case; `mod+k` means Ctrl+K or ⌘K, `mod+shift+z` adds Shift, `shift+f` is a letter with Shift. */
 export type Shortcuts = Record<string, () => void>
 
 const typing = (target: EventTarget | null) =>
@@ -19,7 +19,9 @@ export function useShortcuts(shortcuts: Shortcuts) {
     function keyDown(e: KeyboardEvent) {
       if (e.isComposing || e.altKey) return
       const mod = e.ctrlKey || e.metaKey
-      const key = `${mod ? 'mod+' : ''}${mod && e.shiftKey ? 'shift+' : ''}${e.key.toLowerCase()}`
+      // Shift is part of a letter's key, not of `?` or `+`, which need it on most layouts.
+      const shift = e.shiftKey && (mod || /^[a-z]$/i.test(e.key))
+      const key = `${mod ? 'mod+' : ''}${shift ? 'shift+' : ''}${e.key.toLowerCase()}`
       const action = latest.current[key]
       if (!action) return
       if (!mod && (typing(e.target) || document.querySelector('dialog[open]'))) return

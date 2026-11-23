@@ -12,6 +12,7 @@ import {
   Globe,
   History,
   Keyboard,
+  Maximize,
   Maximize2,
   Printer,
   MoveHorizontal,
@@ -52,6 +53,8 @@ interface Context {
   integrations: { waiting: number }
   /** Present where the browser can show notifications */
   reminders?: { on: boolean; toggle: () => void } | undefined
+  /** Present where the browser can fill the whole screen */
+  fullscreen?: { on: boolean; toggle: () => void } | undefined
   /** The help marks next to the main features */
   help: { on: boolean; toggle: () => void }
   trashCount: number
@@ -213,6 +216,21 @@ export function buildActions(ctx: Context): PlannerAction[] {
       menu: 'narrow',
       run: nav.toggleExpanded,
     },
+    ...(ctx.fullscreen
+      ? [
+          {
+            id: 'fullscreen',
+            group: view,
+            label: ctx.fullscreen.on ? m.fullscreen_exit() : m.fullscreen_hint(),
+            menuLabel: m.fullscreen(),
+            keys: 'Shift+F',
+            icon: <Maximize {...ICON} />,
+            checked: ctx.fullscreen.on,
+            menu: 'narrow' as const,
+            run: ctx.fullscreen.toggle,
+          },
+        ]
+      : []),
     {
       id: 'second-zone',
       group: view,

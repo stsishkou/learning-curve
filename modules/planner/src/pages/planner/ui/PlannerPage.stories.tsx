@@ -1,3 +1,4 @@
+import { m } from '@lc/i18n/messages'
 import {
   applyChange,
   applyEdits,
@@ -12,9 +13,10 @@ import {
   ymd,
 } from '@lc/plan-domain'
 import { fixtureEdited, fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
+import { fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
-import { fn } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { PlannerPage } from './PlannerPage'
 
@@ -116,5 +118,57 @@ export const ReadOnly: Story = {
       trash: emptyTrash(),
       history: historyView(emptyHistory()),
     },
+  },
+}
+
+// The browser's full screen as the story sees it; set up anew before each story that uses it.
+let screen: ReturnType<typeof fakeFullscreen> | null = null
+const withScreen =
+  (options: { enabled?: boolean } = {}) =>
+  () => {
+    screen = fakeFullscreen(options)
+    return screen.restore
+  }
+
+/**
+ * Full screen hides the browser's bars and lays the calendar across all of it, as Expand does; leaving it brings the
+ * header back.
+ */
+export const FullScreen: Story = {
+  beforeEach: withScreen(),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    const enter = await page.findByRole('button', { name: m.fullscreen() })
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await userEvent.click(enter)
+    await expect(screen?.calls.requests).toBe(1)
+    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
+    await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
+    const leave = page.getByRole('button', { name: m.fullscreen_exit() })
+    await expect(leave).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(leave)
+    await expect(screen?.calls.exits).toBe(1)
+    await waitFor(() => expect(page.getByRole('heading', { level: 1 })).toBeVisible())
+  },
+}
+
+/** Shift + F switches full screen; F alone still shows the whole day. */
+export const FullScreenByKeys: Story = {
+  beforeEach: withScreen(),
+  play: async ({ args, canvasElement }) => {
+    await within(canvasElement).findByRole('button', { name: m.fullscreen() })
+    await userEvent.keyboard('{Shift>}F{/Shift}')
+    await expect(screen?.calls.requests).toBe(1)
+    await expect(args.onSearchChange).not.toHaveBeenCalledWith(expect.objectContaining({ fullDay: true }))
+  },
+}
+
+/** Where the browser cannot fill the screen (an iPhone, a frame without leave) there is no full-screen switch. */
+export const NoFullScreenWhereTheBrowserCannot: Story = {
+  beforeEach: withScreen({ enabled: false }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await expect(await page.findByRole('button', { name: m.expand() })).toBeVisible()
+    await expect(page.queryByRole('button', { name: m.fullscreen() })).toBeNull()
   },
 }

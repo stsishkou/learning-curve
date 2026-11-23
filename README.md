@@ -55,7 +55,8 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Views**: week grid (drag to move, drag the bottom edge to resize; drag across an empty part of a day to draw a
   new event, or double-click a slot: the form opens beside it and the dashed block follows what you type), month,
   one day, the whole year, and the whole plan as a list. `24 hours` shows the full day, `Expand` gives the
-  calendar the whole window, `Work week` leaves Monday to Friday, and the two magnifiers change the time scale.
+  calendar the whole window and `Full screen` the whole screen (where the browser allows it), `Work week` leaves
+  Monday to Friday, and the two magnifiers change the time scale.
   The year view shades each day by its study hours. An event's dialog opens beside the event.
 - **Quick event**: type a line with a time into the command search, such as `Разбор завтра 14:00 1ч` or
   `Review friday 18:30 30 min`, and it is offered as a new event. A day (today, tomorrow, a weekday, `23.11`) and
@@ -194,7 +195,8 @@ a Husky `commit-msg` hook checks them with commitlint.
   calendar) shows a question mark next to the main features; a click on a mark opens a short note about the thing
   beside it. The choice is kept in the browser.
 - **Keyboard**: `Ctrl/⌘ K` or `/` searches events and commands (including the theme and the language), `?` lists
-  the shortcuts: `D` `W` `M` `Y` `L` for the views, `5` for the work week, `+` `-` for the time scale.
+  the shortcuts: `D` `W` `M` `Y` `L` for the views, `5` for the work week, `+` `-` for the time scale, `E` to
+  expand and `Shift F` for full screen.
 
 Everything changed in the viewer is stored in `packages/plan-data/data/edits.json` (event patches, calendars,
 added events, the trash) and applied on top of the generated schedule, so `pnpm run plan` never loses it.
