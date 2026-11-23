@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { addDays, emptyEdits, googleEventId, isSession, type PlanEvent } from '@lc/plan-domain'
+import { addDays, emptyEdits, googleEventId, historyEdits, isSession, travel, type PlanEvent } from '@lc/plan-domain'
 import { itemAt } from '@lc/plan-domain/fixtures'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 
@@ -76,62 +76,86 @@ test('the first round makes a calendar for each plan calendar and writes every e
   expect(google.writes).toBe(writes)
 })
 
-test('a ✓ typed in Google waits for the person, and once accepted is written back as the plan has it', async () => {
+/** Undo as the planner does it: the plan goes back `steps` steps, and the next round writes it to Google. */
+function undo(steps: number) {
+  const history = travel(lib.currentHistory(), lib.currentHistory().cursor - steps)
+  lib.writePlan(historyEdits(history))
+  lib.writeHistory(history)
+}
+
+const slot = (event: PlanEvent, from: string, to: string) => ({
+  start: { dateTime: `${day(event)}T${from}:00+03:00` },
+  end: { dateTime: `${day(event)}T${to}:00+03:00` },
+})
+
+test('a ✓ typed in Google marks the session done by itself, as a step of the history', async () => {
   const session = itemAt(sessions())
   google.edit(idOf(session), { summary: `✓ ${session.title}` })
   const status = await lib.syncGoogle()
-  expect(status.inbox).toMatchObject([{ uid: session.uid, change: { type: 'events.done', done: true } }])
-
-  const accepted = await lib.acceptGoogle(status.inbox.map((item) => item.id))
-  expect(accepted.inbox).toEqual([])
+  expect(status).toMatchObject({ inbox: [], error: null })
+  expect(status.takenAt).toBeTypeOf('number')
   expect(planEvent(session.uid)?.done).toBe(true)
+  expect(lib.currentHistory().steps.at(-1)).toMatchObject({ source: 'google', subject: session.title })
   expect(google.event(idOf(session))).toMatchObject({ summary: `✓ ${session.title}`, transparency: 'transparent' })
   const writes = google.writes
   await lib.syncGoogle()
   expect(google.writes).toBe(writes)
 })
 
-test('a move kept out is put back; a title typed over is written back without asking', async () => {
+test('a move and a new title made in Google go into the plan, and Undo writes the plan back', async () => {
   const [moved, renamed] = [itemAt(sessions(), 1), itemAt(sessions(), 2)]
-  google.edit(idOf(moved), {
-    start: { dateTime: `${day(moved)}T06:00:00+03:00` },
-    end: { dateTime: `${day(moved)}T07:00:00+03:00` },
-  })
+  google.edit(idOf(moved), slot(moved, '06:00', '07:00'))
   google.edit(idOf(renamed), { summary: 'Lunch' })
-  const status = await lib.syncGoogle()
-  expect(status.inbox).toMatchObject([
-    { uid: moved.uid, change: { type: 'event.patch', patch: { start: `${day(moved)}T06:00` } } },
-  ])
-  expect(google.event(idOf(renamed))?.summary).toBe(renamed.title)
+  expect(await lib.syncGoogle()).toMatchObject({ inbox: [] })
+  expect(planEvent(moved.uid)).toMatchObject({ start: `${day(moved)}T06:00`, end: `${day(moved)}T07:00` })
+  expect(planEvent(renamed.uid)?.title).toBe('Lunch')
 
-  await lib.rejectGoogle(status.inbox.map((item) => item.id))
-  expect(planEvent(moved.uid)?.start).toBe(moved.start)
+  undo(2)
+  await lib.syncGoogle()
   expect(google.event(idOf(moved))?.start).toEqual({ dateTime: `${moved.start}:00`, timeZone: 'Europe/Minsk' })
+  expect(google.event(idOf(renamed))?.summary).toBe(renamed.title)
 })
 
-test('a session deleted in Google is put back, or goes to the trash when the person agrees', async () => {
-  const [kept, trashed] = [itemAt(sessions(), 3), itemAt(sessions(), 4)]
-  google.edit(idOf(kept), { status: 'cancelled' })
-  google.edit(idOf(trashed), { status: 'cancelled' })
+test('an edit to what the planner changed too waits, and is left alone in Google until decided', async () => {
+  const [kept, taken] = [itemAt(sessions(), 3), itemAt(sessions(), 4)]
+  // Changed in the planner, and in Google before the planner's change was sent.
+  lib.saveChanges(
+    [kept, taken].map((e) => ({
+      type: 'event.patch',
+      uid: e.uid,
+      patch: { start: `${day(e)}T20:00`, end: `${day(e)}T21:00` },
+    })),
+  )
+  google.edit(idOf(kept), slot(kept, '06:00', '07:00'))
+  google.edit(idOf(taken), slot(taken, '06:00', '07:00'))
   const status = await lib.syncGoogle()
-  const item = (uid: string) => status.inbox.filter((i) => i.uid === uid).map((i) => i.id)
-  expect(status.inbox).toMatchObject([{ change: null }, { change: null }])
+  expect(status.inbox).toMatchObject([{ hold: 'both' }, { hold: 'both' }])
+  expect(google.event(idOf(kept))?.start).toEqual(slot(kept, '06:00', '07:00').start)
 
-  await lib.rejectGoogle(item(kept.uid))
-  expect(google.event(idOf(kept))?.status).toBe('confirmed')
-  await lib.acceptGoogle(item(trashed.uid))
+  const of = (event: PlanEvent) => status.inbox.filter((item) => item.uid === event.uid).map((item) => item.id)
+  await lib.rejectGoogle(of(kept))
+  expect(google.event(idOf(kept))?.start).toEqual({ dateTime: `${day(kept)}T20:00:00`, timeZone: 'Europe/Minsk' })
+  expect(await lib.acceptGoogle(of(taken))).toMatchObject({ inbox: [] })
+  expect(planEvent(taken.uid)?.start).toBe(`${day(taken)}T06:00`)
+})
+
+test('a session deleted in Google goes to the trash, and Undo brings it back there too', async () => {
+  const trashed = itemAt(sessions(), 5)
+  google.edit(idOf(trashed), { status: 'cancelled' })
+  expect(await lib.syncGoogle()).toMatchObject({ inbox: [] })
   expect(planEvent(trashed.uid)).toBeUndefined()
   expect(lib.readEdits().removed.events[trashed.uid]).toBeTypeOf('string')
-  expect(google.event(idOf(trashed))?.status).toBe('cancelled')
+
+  undo(1)
+  await lib.syncGoogle()
+  expect(google.event(idOf(trashed))?.status).toBe('confirmed')
 })
 
 test('a repeat deleted in Google skips that day; one moved there becomes an event of its own', async () => {
   const repeat = itemAt(lib.readPlan().events.filter((e) => e.rrule))
   const series = idOf(repeat)
   google.repeat(series, repeat.start, { status: 'cancelled' })
-  const status = await lib.syncGoogle()
-  expect(status.inbox).toMatchObject([{ day: day(repeat), change: { patch: { skip: [day(repeat)] } } }])
-  await lib.acceptGoogle(status.inbox.map((item) => item.id))
+  expect(await lib.syncGoogle()).toMatchObject({ inbox: [] })
   expect(planEvent(repeat.uid)?.skip).toEqual([day(repeat)])
   const exdate = `EXDATE;TZID=Europe/Minsk:${day(repeat).replaceAll('-', '')}T${repeat.start.slice(11).replace(':', '')}00`
   expect(google.event(series)?.recurrence).toEqual([`RRULE:${repeat.rrule}`, exdate])
@@ -141,9 +165,7 @@ test('a repeat deleted in Google skips that day; one moved there becomes an even
     start: { dateTime: `${next}T19:00:00+03:00` },
     end: { dateTime: `${next}T20:00:00+03:00` },
   })
-  const moved = await lib.syncGoogle()
-  expect(moved.inbox).toMatchObject([{ change: { type: 'event.detach', day: next, start: `${next}T19:00` } }])
-  await lib.acceptGoogle(moved.inbox.map((item) => item.id))
+  expect(await lib.syncGoogle()).toMatchObject({ inbox: [] })
   expect(google.event(instance)?.status).toBe('cancelled')
   const single = lib.readPlan().events.find((e) => e.start === `${next}T19:00`)
   expect(single && google.event(idOf(single))).toMatchObject({ summary: repeat.title, status: 'confirmed' })
@@ -164,9 +186,25 @@ test('a change made in the app reaches Google, even after Google expired the syn
   expect([...google.calendars.values()]).toContain('Переименован')
 })
 
+test('a Calendar API turned off in the Cloud project is named as such', async () => {
+  google.apiOff = true
+  lib.saveChanges([{ type: 'event.patch', uid: itemAt(sessions(), 6).uid, patch: { title: 'Без API' } }])
+  expect(await lib.syncGoogle()).toMatchObject({ error: 'api-off' })
+  google.apiOff = false
+  expect(await lib.syncGoogle()).toMatchObject({ error: null })
+})
+
 test('a sign-in Google no longer takes asks to connect again', async () => {
   google.revoked = true
   lib.saveChanges([{ type: 'event.patch', uid: itemAt(sessions(), 6).uid, patch: { title: 'Ещё одно' } }])
   expect(await lib.syncGoogle()).toMatchObject({ error: 'reconnect', connectedAt: null })
   google.revoked = false
+})
+
+test('a sign-in without access to the calendars does not count as connected', async () => {
+  google.granted = 'openid'
+  const state = new URL(lib.connectAddress('http://localhost:3000/api/google/callback')).searchParams.get('state')
+  await expect(lib.finishConnect('code', state ?? '')).rejects.toMatchObject({ reason: 'scope' })
+  expect(lib.googleStatus().connectedAt).toBeNull()
+  google.granted = lib.GOOGLE_SCOPE
 })

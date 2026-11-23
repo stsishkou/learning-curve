@@ -10,6 +10,9 @@ import { hashText } from './revisions'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 import { previewUpdate } from './update'
 
+/** What the app asks Google for: the calendars it makes and their events, nothing else in the account */
+export const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created'
+
 const BASE32HEX = '0123456789abcdefghijklmnopqrstuv'
 const DONE = '✓ '
 

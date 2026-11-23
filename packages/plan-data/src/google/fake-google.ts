@@ -26,6 +26,10 @@ export class FakeGoogle {
   revoked = false
   /** Set to make every sync token given so far too old */
   expired = false
+  /** What the person allowed on Google's page */
+  granted = 'https://www.googleapis.com/auth/calendar.app.created'
+  /** Set to answer every Calendar call as when the API is off in the Cloud project */
+  apiOff = false
   exchanged: Record<string, string> = {}
   readonly calendars = new Map<string, string>()
   readonly stored = new Map<string, Stored>()
@@ -80,6 +84,7 @@ export class FakeGoogle {
     if (url.href === 'https://oauth2.googleapis.com/revoke') return json(200)
     if (!url.href.startsWith(API)) return json(404)
     if (this.revoked) return failure(401, 'authError')
+    if (this.apiOff) return failure(403, 'accessNotConfigured')
     const headers = new Headers(init.headers)
     if (headers.get('authorization') !== 'Bearer access') return failure(401, 'authError')
     const parsed: unknown = body ? JSON.parse(body) : {}
@@ -110,7 +115,7 @@ export class FakeGoogle {
   private token(form: URLSearchParams) {
     if (form.get('grant_type') === 'authorization_code') {
       this.exchanged = Object.fromEntries(form)
-      return json(200, { access_token: 'access', refresh_token: 'refresh', expires_in: 3599 })
+      return json(200, { access_token: 'access', refresh_token: 'refresh', expires_in: 3599, scope: this.granted })
     }
     if (this.revoked || form.get('refresh_token') !== 'refresh') return json(400, { error: 'invalid_grant' })
     return json(200, { access_token: 'access', expires_in: 3599 })

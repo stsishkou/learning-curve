@@ -107,6 +107,7 @@ export {
   bodyHash,
   changeOf,
   fileProposals,
+  GOOGLE_SCOPE,
   googleBody,
   googleEventId,
   parseGoogleSync,

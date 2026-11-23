@@ -1,8 +1,9 @@
-// Node-only: keeps the plan in Google Calendar. A round reads what changed in the app's calendars there, files what a
-// person's edit proposes, then writes what the plan has and Google does not. Nothing read from Google changes the
-// plan until the person accepts it. Rounds and decisions run one at a time.
+// Node-only: keeps the plan in Google Calendar. A round reads what changed in the app's calendars there, takes the
+// person's edits into the plan as steps Undo takes back, holds the few that need a decision, then writes what the plan
+// has and Google does not. Rounds and decisions run one at a time.
 import {
   bodyHash,
+  changeOf,
   fileProposals,
   googleBody,
   googleEventId,
@@ -12,17 +13,19 @@ import {
   readGoogleEvent,
   rowOf,
   toLocalString,
+  triage,
   type GoogleBody,
+  type GoogleCalendarRow,
   type GoogleEvent,
   type GoogleRow,
   type GoogleSync,
   type InboxItem,
   type Plan,
-  type PlanChange,
+  type Proposal,
 } from '@lc/plan-domain'
 
 import { canWrite, readPlan, readSync, saveChanges, writeSync } from '../store'
-import { GoogleCalendarApi } from './api'
+import { GoogleApiError, GoogleCalendarApi } from './api'
 import { accessToken, GoogleAuthError, googleClient, googleConnectedAt } from './oauth'
 
 /** Calls to Google in flight at once */
@@ -42,10 +45,31 @@ export interface GoogleStatus {
   connectedAt: number | null
   calendars: number
   events: number
+  /** Edits made in Google that wait for a decision */
   inbox: InboxItem[]
   lastRound: number | null
-  /** `reconnect` when Google ended the sign-in; otherwise what failed */
+  /** When an edit made in Google was last taken into the plan; the planner then reads the plan again */
+  takenAt: number | null
+  /** A `GoogleProblem` the planner explains, or what failed in Google's words */
   error: string | null
+}
+
+/**
+ * What stopped the last round, in words the planner turns into advice: the sign-in ended, the client was refused, the
+ * Calendar API is off in the person's Cloud project, access to the calendars was not granted, or Google was out of
+ * reach.
+ */
+export type GoogleProblem = 'reconnect' | 'client' | 'api-off' | 'scope' | 'offline'
+
+function problemOf(err: unknown): string {
+  if (err instanceof GoogleAuthError && (err.reason === 'reconnect' || err.reason === 'client')) return err.reason
+  if (err instanceof GoogleApiError) {
+    if (err.reason === 'accessNotConfigured' || err.reason === 'SERVICE_DISABLED') return 'api-off'
+    if (err.reason === 'insufficientPermissions' || err.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT') return 'scope'
+  }
+  // `fetch` without a network, and a call that ran out of time.
+  if (err instanceof Error && (err.message === 'fetch failed' || err.name === 'TimeoutError')) return 'offline'
+  return err instanceof Error ? err.message : String(err)
 }
 
 export function googleStatus(): GoogleStatus {
@@ -58,6 +82,7 @@ export function googleStatus(): GoogleStatus {
     events: Object.keys(sync.events).length,
     inbox: sync.inbox,
     lastRound: sync.lastRound ?? null,
+    takenAt: sync.takenAt ?? null,
     error: sync.error ?? null,
   }
 }
@@ -98,16 +123,21 @@ async function round(): Promise<GoogleStatus> {
   try {
     const plan = readPlan()
     const google = api()
-    await pull(google, plan, sync)
-    await push(google, plan, sync)
+    const { found, advance } = await pull(google, plan, sync)
+    const { take, hold } = triage(plan, sync, found)
+    for (const source of new Set(found.map((p) => p.source))) {
+      sync.inbox = fileProposals(
+        sync.inbox,
+        source,
+        hold.filter((p) => p.source === source),
+      )
+    }
+    await takeIn(google, sync, take)
+    advance()
+    await push(google, readPlan(), sync)
     sync.error = undefined
   } catch (err) {
-    sync.error =
-      err instanceof GoogleAuthError && err.reason === 'reconnect'
-        ? 'reconnect'
-        : err instanceof Error
-          ? err.message
-          : String(err)
+    sync.error = problemOf(err)
   }
   sync.lastRound = Date.now()
   writeGoogleSync(sync)
@@ -130,15 +160,17 @@ function forgetCalendar(sync: GoogleSync, calendar: string) {
   sync.inbox = sync.inbox.filter((item) => !gone.has(item.uid))
 }
 
-/** Notes what one Google event says: the app's own write, a title to put back, or proposals for the person. */
-function absorb(sync: GoogleSync, plan: Plan, item: GoogleEvent) {
+/** Notes what one Google event says (the app's own write, or something to put back) and returns the edits it makes. */
+function absorb(sync: GoogleSync, plan: Plan, item: GoogleEvent): Proposal[] {
   const reading = readGoogleEvent(item, plan, sync)
+  if (reading.kind === 'proposal') return reading.proposals
   if (reading.kind === 'seen' || reading.kind === 'reset') {
     const row = sync.events[reading.uid]
     if (row) row.etag = reading.etag
     if (row && reading.kind === 'reset') row.hash = ''
   }
-  sync.inbox = fileProposals(sync.inbox, item.id, reading.kind === 'proposal' ? reading.proposals : [])
+  sync.inbox = fileProposals(sync.inbox, item.id, [])
+  return []
 }
 
 /** Runs `work` on every item, a few at a time; after a failure nothing new starts, and the failure is thrown. */
@@ -160,8 +192,14 @@ async function lanes<T>(items: T[], work: (item: T) => Promise<void>): Promise<v
   if (failures.length) throw failure instanceof Error ? failure : new Error(String(failure))
 }
 
-const pull = (google: GoogleCalendarApi, plan: Plan, sync: GoogleSync) =>
-  lanes(Object.entries(sync.calendars), async ([calendar, row]) => {
+/**
+ * Reads what changed in each of the app's calendars and returns the edits made there, with `advance` to note where the
+ * reading ended once they are stored: a round cut short before that reads the same changes again.
+ */
+async function pull(google: GoogleCalendarApi, plan: Plan, sync: GoogleSync) {
+  const found: Proposal[] = []
+  const ends: [GoogleCalendarRow, string | undefined][] = []
+  await lanes(Object.entries(sync.calendars), async ([calendar, row]) => {
     let listing = await google.listEvents(row.id, row.syncToken)
     if (listing === 'gone') listing = await google.listEvents(row.id)
     // Deleted in Google, or in another account than the one connected now.
@@ -169,9 +207,33 @@ const pull = (google: GoogleCalendarApi, plan: Plan, sync: GoogleSync) =>
       forgetCalendar(sync, calendar)
       return
     }
-    for (const item of listing.items) absorb(sync, plan, item)
-    row.syncToken = listing.syncToken || undefined
+    for (const item of listing.items) found.push(...absorb(sync, plan, item))
+    ends.push([row, listing.syncToken || undefined])
   })
+  const advance = () => {
+    for (const [row, token] of ends) row.syncToken = token
+  }
+  return { found, advance }
+}
+
+/**
+ * Stores Google's edits in the plan, each a step Undo takes back; a session deleted there goes to the trash. A moved
+ * repeat becomes an event of its own, written by the push: the copy left in the series goes.
+ */
+async function takeIn(google: GoogleCalendarApi, sync: GoogleSync, items: Proposal[]) {
+  if (!items.length) return
+  saveChanges(items.map(changeOf), 'google')
+  sync.takenAt = Date.now()
+  for (const item of items) {
+    const row = sync.events[item.uid]
+    if (item.change === null) dropRow(sync, item.uid)
+    else if (row && !item.day) row.etag = item.etag
+  }
+  await lanes(items, async (item) => {
+    const row = sync.events[item.uid]
+    if (row && item.day && item.change?.type === 'event.detach') await google.deleteEvent(row.calendar, item.source)
+  })
+}
 
 const frozen = (sync: GoogleSync) => new Set(sync.inbox.map((item) => item.uid))
 
@@ -193,6 +255,7 @@ async function patch(
   else if (patched !== 'conflict') sync.events[uid] = rowOf(body, calendar, patched.etag ?? '')
   else {
     const fresh = await google.getEvent(calendar, id)
+    // An edit made meanwhile is read again by the next round, which takes it in.
     if (!fresh) dropRow(sync, uid)
     else absorb(sync, plan, fresh)
     if (fresh && retry) await patch(google, plan, sync, uid, calendar, body, false)
@@ -275,8 +338,8 @@ function settle(sync: GoogleSync, plan: Plan, chosen: InboxItem[]) {
 }
 
 /**
- * Takes Google's version of the chosen proposals into the plan, each change a step that Undo takes back; a session
- * deleted in Google goes to the trash. One the plan has moved past since it was read gets the plan's version instead.
+ * Takes Google's version of the chosen held edits into the plan, as a round does with the rest. One the plan has moved
+ * past since it was read gets the plan's version instead.
  */
 export async function acceptGoogle(ids: string[]): Promise<GoogleStatus> {
   await exclusive(async () => {
@@ -285,24 +348,13 @@ export async function acceptGoogle(ids: string[]): Promise<GoogleStatus> {
     const google = api()
     const chosen = sync.inbox.filter((item) => ids.includes(item.id))
     const taken = chosen.filter((item) => isCurrent(plan, item))
-    await lanes(taken, async (item) => {
-      const row = sync.events[item.uid]
-      // The moved repeat becomes an event of its own, written by the next round: the copy in the series goes.
-      if (row && item.day && item.change?.type === 'event.detach') await google.deleteEvent(row.calendar, item.source)
-    })
-    const changes = taken.map((item): PlanChange => item.change ?? { type: 'event.remove', uid: item.uid })
-    if (changes.length) saveChanges(changes)
+    await takeIn(google, sync, taken)
     await putBack(
       google,
       plan,
       sync,
       chosen.filter((item) => !taken.includes(item)),
     )
-    for (const item of taken) {
-      const row = sync.events[item.uid]
-      if (item.change === null) dropRow(sync, item.uid)
-      else if (row && !item.day) row.etag = item.etag
-    }
     settle(sync, readPlan(), chosen)
     writeGoogleSync(sync)
   })

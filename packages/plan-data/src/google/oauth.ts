@@ -2,19 +2,24 @@
 // `data/local.json` and never leave the server.
 import { createHash, randomBytes } from 'node:crypto'
 
+import { GOOGLE_SCOPE } from '@lc/plan-domain'
+
 import { readLocal, writeLocal } from '../store'
+
+export { GOOGLE_SCOPE } from '@lc/plan-domain'
 
 const AUTH = 'https://accounts.google.com/o/oauth2/v2/auth'
 const TOKEN = 'https://oauth2.googleapis.com/token'
 const REVOKE = 'https://oauth2.googleapis.com/revoke'
-/** Only the calendars the app makes, and their events: nothing else in the account, not even its address */
-export const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created'
 const PENDING_FOR = 10 * 60_000
 const TIMEOUT = 15_000
 
-/** Why signing in did not work: no client saved, a sign-in that expired or is not this one, or one to redo. */
+/**
+ * Why signing in did not work: no client saved or Google refused it, a sign-in that expired or is not this one, one to
+ * redo, or access to the calendars left out on Google's page.
+ */
 export class GoogleAuthError extends Error {
-  readonly reason: 'client' | 'state' | 'reconnect' | 'token'
+  readonly reason: 'client' | 'state' | 'reconnect' | 'token' | 'scope'
 
   constructor(reason: GoogleAuthError['reason'], detail = '') {
     super(`Google sign-in: ${reason}${detail ? ` (${detail})` : ''}`)
@@ -118,12 +123,15 @@ async function tokenRequest(params: Record<string, string>) {
   })
   const data: unknown = await response.json().catch(() => null)
   const error = text(field(data, 'error'))
-  if (!response.ok) throw new GoogleAuthError(error === 'invalid_grant' ? 'reconnect' : 'token', error)
+  if (!response.ok) {
+    const refused = error === 'invalid_client' || error === 'unauthorized_client'
+    throw new GoogleAuthError(error === 'invalid_grant' ? 'reconnect' : refused ? 'client' : 'token', error)
+  }
   const token = text(field(data, 'access_token'))
   const expires = field(data, 'expires_in')
   if (!token) throw new GoogleAuthError('token', 'no access token')
   cached = { token, until: Date.now() + (typeof expires === 'number' ? expires - 60 : 0) * 1000 }
-  return { token, refresh: text(field(data, 'refresh_token')) }
+  return { token, refresh: text(field(data, 'refresh_token')), scope: text(field(data, 'scope')) }
 }
 
 /** Finishes the sign-in `connectAddress` started, keeping the refresh token Google gives for it. */
@@ -131,12 +139,14 @@ export async function finishConnect(code: string, state: string): Promise<void> 
   const { pending } = readGoogle()
   if (!pending || pending.state !== state || Date.now() - pending.at > PENDING_FOR) throw new GoogleAuthError('state')
   writeGoogle({ pending: undefined })
-  const { refresh } = await tokenRequest({
+  const { refresh, scope } = await tokenRequest({
     grant_type: 'authorization_code',
     code,
     redirect_uri: pending.redirect,
     code_verifier: pending.verifier,
   })
+  // Google's page lets the person untick access to the calendars; the sign-in is then of no use.
+  if (scope && !scope.split(' ').includes(GOOGLE_SCOPE)) throw new GoogleAuthError('scope')
   if (!refresh) throw new GoogleAuthError('token', 'no refresh token')
   writeGoogle({ refreshToken: refresh, connectedAt: Date.now() })
 }

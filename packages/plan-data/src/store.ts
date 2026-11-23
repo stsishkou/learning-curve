@@ -21,6 +21,7 @@ import {
   type PlanEdits,
   type PlanHistory,
   type Revisions,
+  type StepSource,
 } from '@lc/plan-domain'
 
 import { bundledPlan } from './bundled'
@@ -165,9 +166,9 @@ export function currentHistory(): PlanHistory {
 
 /**
  * Stores changes in order, each as a step of the history, and regenerates the plan. All or nothing: when one
- * change does not fit, `applyChange` throws and no file is touched.
+ * change does not fit, `applyChange` throws and no file is touched. `source` says where they were made, when not here.
  */
-export function saveChanges(changes: PlanChange[]): { plan: Plan; edits: PlanEdits } {
+export function saveChanges(changes: PlanChange[], source?: StepSource): { plan: Plan; edits: PlanEdits } {
   const base = buildPlan()
   let history = currentHistory()
   // Purged first, as `writePlan` would do at the end: the last step then holds exactly the edits on disk.
@@ -175,7 +176,7 @@ export function saveChanges(changes: PlanChange[]): { plan: Plan; edits: PlanEdi
   for (const change of changes) {
     const before = applyEdits(base, edits).plan
     edits = applyChange(base, edits, change)
-    history = recordChange(history, before, change, edits)
+    history = recordChange(history, before, change, edits, source)
   }
   const written = writePlan(edits)
   writeHistory(history)

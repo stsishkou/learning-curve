@@ -22,11 +22,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const isEvent = (value: unknown): value is GoogleEvent => isRecord(value) && typeof value.id === 'string'
 const text = (value: unknown) => (typeof value === 'string' ? value : '')
 
+/** Google's word for what went wrong: the older `errors[].reason`, or the reason of the newer error details. */
 function reasonOf(data: unknown): string {
   const error = isRecord(data) ? data.error : null
-  const errors = isRecord(error) && Array.isArray(error.errors) ? error.errors : []
-  const first: unknown = errors[0]
-  return isRecord(first) ? text(first.reason) : ''
+  const list = (key: string): unknown[] => (isRecord(error) && Array.isArray(error[key]) ? error[key] : [])
+  const reasons = [...list('errors'), ...list('details')].map((entry) => (isRecord(entry) ? text(entry.reason) : ''))
+  return reasons.find(Boolean) ?? ''
 }
 
 /** Google's advice: back off exponentially, varied by ±25 %. */
