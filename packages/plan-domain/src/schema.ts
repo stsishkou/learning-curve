@@ -133,15 +133,10 @@ export const PLAN_SCHEMA: Schema = {
           description:
             'Most hours of study a week (Monday to Sunday) may hold. Busy, timed, non-repeating events count; free time and repeats such as the gym do not. An update must not push a week over it unless the person asked for that.',
         },
-        certDeadline: { ...DAY, description: 'Day by which the certificates of the plan must be earned.' },
         holidays: {
           type: 'array',
           items: DAY,
           description: 'Days without study: never put a session on one.',
-        },
-        lastCertDay: {
-          anyOf: [DAY, { type: 'null' }],
-          description: 'Day of the last certificate session, null when there is none.',
         },
         planEnd: { ...DAY, description: 'Day of the last event.' },
       },

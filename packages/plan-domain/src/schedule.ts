@@ -62,7 +62,6 @@ export function buildPlan(
 
   // ---- Certificates: weekdays 12:00–14:00, labs need the whole 2 h block ----
   const certQueue = [...CERT1, ...CERT2]
-  let lastCertDay: string | null = null
   for (let day = config.certStart; day <= config.certEnd && certQueue.length; day = addDays(day, 1)) {
     if (!isWorkday(day)) continue
     let hour = 12
@@ -73,17 +72,13 @@ export function buildPlan(
         // A lab cannot start at 13:00: pull the next 1 h session forward, run the lab the next day at 12:00.
         const j = certQueue.findIndex((x) => x.hours === 1)
         const [one] = j > 0 ? certQueue.splice(j, 1) : []
-        if (one) {
-          push('certs', one, at(day, 13), at(day, 14))
-          lastCertDay = day
-        }
+        if (one) push('certs', one, at(day, 13), at(day, 14))
         hour = 14
         continue
       }
       certQueue.shift()
       push('certs', next, at(day, hour), at(day, hour + next.hours))
       hour += next.hours
-      lastCertDay = day
     }
   }
   if (certQueue.length)
@@ -155,9 +150,7 @@ export function buildPlan(
       timezone: config.timezone,
       generated,
       weeklyBudgetHours: config.weeklyBudgetHours,
-      certDeadline: config.certDeadline,
       holidays: config.holidays,
-      lastCertDay,
       planEnd: lastDay,
     },
     calendars: CALENDARS,

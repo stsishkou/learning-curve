@@ -1,6 +1,6 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, HOUR, parseLocal, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
+import { DAY, HOUR, nextDeadline, parseLocal, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
 import { Hint } from '@lc/ui'
 
 interface Props {
@@ -23,13 +23,18 @@ const SEGMENT_DATES = 'ml-1.5 hidden font-normal text-muted md:inline'
 const LAB_DONE =
   "bg-current after:h-[3px] after:w-1.5 after:transform-[rotate(-45deg)_translate(1px,-1px)] after:border-b-2 after:border-l-2 after:border-surface after:content-['']"
 
-/** Horizontal strip from the first certificate session to the deadline, with a marker per challenge lab. */
+/**
+ * Horizontal strip from the first session of the calendar with the nearest deadline to that deadline, with a marker
+ * per lab. Before the clock is known (on the server) it shows the earliest deadline of the plan.
+ */
 export function Runway({ plan, now, onSelect }: Props) {
-  const certs = plan.events.filter((e) => e.calendar === 'certs' && !e.allDay)
-  const color = plan.calendars.find((c) => c.id === 'certs')?.color ?? '#2F5BEA'
-  if (!certs.length) return null
+  const next = nextDeadline(plan, now ?? 0)
+  const calendar = next && plan.calendars.find((c) => c.id === next.calendar)
+  const certs = next ? plan.events.filter((e) => e.calendar === next.calendar && !e.allDay) : []
+  if (!next || !calendar || !certs.length) return null
+  const { color } = calendar
 
-  const deadline = parseLocal(plan.meta.certDeadline)
+  const deadline = parseLocal(`${next.day}T00:00`)
   const start = startOfDay(Math.min(...certs.map((e) => parseLocal(e.start))))
   const end = deadline + DAY
   const x = (t: number) => `${Math.max(0, Math.min(100, ((t - start) / (end - start)) * 100))}%`
@@ -49,7 +54,7 @@ export function Runway({ plan, now, onSelect }: Props) {
   return (
     <section
       className="relative mt-5 mb-4 grid items-center gap-x-7 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:grid-cols-[auto_1fr] md:px-5 md:pt-[18px] md:pb-4 print:hidden"
-      aria-label={m.runway_label()}
+      aria-label={m.runway_label({ name: calendar.name })}
     >
       <Hint title={m.help_runway_title()} text={m.help_runway()} className="absolute top-2 right-2" />
       <div className="flex min-w-[150px] items-baseline gap-2.5 md:flex-col md:items-stretch md:gap-0">

@@ -1,6 +1,7 @@
 import { isSession, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, within } from 'storybook/test'
 
 import { PaceForecast } from './PaceForecast'
 
@@ -25,7 +26,21 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /** Sessions are done but no time is logged: each counts as planned, so the forecast equals the plan. */
-export const NothingLogged: Story = {}
+export const NothingLogged: Story = {
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText(/Gemini Certs.*30/)).toBeVisible()
+  },
+}
+
+const noDeadline: Plan = { ...fixturePlan, events: fixturePlan.events.filter((e) => e.kind !== 'milestone') }
+
+/** Without a deadline the forecast has no line about one. */
+export const NoDeadline: Story = {
+  args: { plan: noDeadline },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByText(/Gemini Certs.*30/)).toBeNull()
+  },
+}
 
 /** Every done session took half as long again: the rest needs more hours than the plan holds, and the finish slips. */
 export const SlowerThanPlanned: Story = { args: { plan: logged(1.5) } }

@@ -97,7 +97,7 @@
   "howto_duplicates": "Antes de volver a importar, elimina los eventos antiguos de estos calendarios; si no, habrá duplicados.",
   "download_plan_json": "Descargar el plan (.json)",
   "download_zip": "Descargar .zip con .ics",
-  "runway_label": "Certificados antes de la fecha límite",
+  "runway_label": "Camino a la fecha límite: {name}",
   "days_to_deadline": [
     {
       "declarations": [
@@ -108,12 +108,12 @@
         "countPlural"
       ],
       "match": {
-        "countPlural=one": "día hasta la fecha límite de los certificados",
-        "countPlural=*": "días hasta la fecha límite de los certificados"
+        "countPlural=one": "día hasta la fecha límite",
+        "countPlural=*": "días hasta la fecha límite"
       }
     }
   ],
-  "to_deadline": "hasta la fecha límite de los certificados",
+  "to_deadline": "hasta la fecha límite",
   "deadline_today": "la fecha límite es hoy",
   "deadline_passed": "la fecha límite ya pasó",
   "reserve": "Reserva",
@@ -371,7 +371,7 @@
   "dash_forecast_left_value": "{planned} → {needed}",
   "dash_forecast_none": "Registra el tiempo real en la tarjeta de una sesión y aquí aparecerá la previsión.",
   "dash_forecast_done": "hecho",
-  "dash_forecast_deadline": "Fecha límite de certificados {date}: {verdict}",
+  "dash_forecast_deadline": "Fecha límite de {name}, {date}: {verdict}",
   "dash_forecast_miss": "la previsión la supera en {count} d",
   "dash_forecast_ok": "{count} d de margen",
   "history_spent": "Tiempo registrado: {name}",
@@ -386,7 +386,7 @@
   "catchup_squeeze": "Recuperar en las próximas semanas",
   "catchup_squeeze_hint": "Solo se mueven las sesiones perdidas: a los sábados de reserva y una hora más tras las sesiones del día. El final se mantiene y las semanas pesan más.",
   "catchup_finish": "Fin del plan",
-  "catchup_deadline": "Fecha límite de certificados",
+  "catchup_deadline": "Fecha límite",
   "catchup_late": "{count} d tarde",
   "catchup_spare": "{count} d de margen",
   "catchup_peak": "Semana más cargada",
@@ -400,7 +400,7 @@
   "goals_week_none": "Ningún módulo termina esta semana.",
   "goals_course_ends": "el curso termina",
   "goals_modules": "{done}/{total} mód.",
-  "goals_deadline": "Para el {date}: certificados al {percent}%",
+  "goals_deadline": "Para el {date}: {name} al {percent}%",
   "review_open": "Resumen de la semana",
   "review_title": "Resumen de la semana",
   "review_hours": "Horas hechas",
@@ -571,7 +571,7 @@
   "help_dates_title": "Ir a una fecha",
   "help_dates": "Un mes para navegar: un clic en un día lo abre en el calendario, en un número de semana abre toda la semana. Los días con sesiones están marcados.",
   "help_runway_title": "El camino hasta la fecha límite",
-  "help_runway": "A la izquierda, los días que quedan hasta la fecha límite de los certificados. La franja muestra las etapas del plan en orden, los círculos son exámenes y puntos de control y la marca roja es hoy. Un clic en un círculo abre su evento.",
+  "help_runway": "A la izquierda, los días que quedan hasta la fecha límite más cercana. La franja muestra las etapas de ese curso en orden, los círculos son laboratorios y puntos de control y la marca roja es hoy. Un clic en un círculo abre su evento.",
   "help_file_title": "Archivo del plan, chat de IA y exportación",
   "help_file": "Archivo del plan muestra el plan como resumen, lista de eventos y JSON; su pestaña Biblioteca guarda archivos del plan con versiones y los compara, y la pestaña Chat de IA da un texto para cualquier modelo de lenguaje y aplica la respuesta como pasos que se pueden deshacer.\nExportar al calendario envía los cursos a Google, Outlook o Apple Calendar.",
   "help_burnup_title": "Cómo leer este gráfico",

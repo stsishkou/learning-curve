@@ -1,4 +1,5 @@
 export type { BusyBlock } from './busy'
+export { deadlineOf, nextDeadline } from './deadlines'
 export { nextFreeSlot, type FreeSlotOptions } from './free-slot'
 export { studyStreak, type StudyDay, type StudyStreak } from './streak'
 export {

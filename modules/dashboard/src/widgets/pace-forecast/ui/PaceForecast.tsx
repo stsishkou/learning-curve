@@ -1,6 +1,6 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, courseProgress, paceForecast, parseLocal, startOfDay, type Plan } from '@lc/plan-domain'
+import { DAY, courseProgress, nextDeadline, paceForecast, parseLocal, type Plan } from '@lc/plan-domain'
 import { calendarColor, Dot, Hint } from '@lc/ui'
 
 import { Card } from '../../../shared/ui'
@@ -31,9 +31,12 @@ export function PaceForecast({ plan, now }: Props) {
   const courses = courseProgress(plan)
   const rows = courses.map((course) => ({ course, forecast: paceForecast(plan, now, course.calendar.id) }))
   const logged = rows.reduce((sum, row) => sum + row.forecast.logged, 0)
-  const deadline = startOfDay(parseLocal(plan.meta.certDeadline))
-  const certs = paceForecast(plan, now, 'certs')
-  const margin = certs.finish === null ? null : days(deadline - certs.finish)
+  const next = nextDeadline(plan, now)
+  const towards = next && rows.find((row) => row.course.calendar.id === next.calendar)
+  const deadline = next && parseLocal(`${next.day}T00:00`)
+  const finish = towards ? towards.forecast.finish : null
+  const margin = deadline === null || finish === null ? null : days(deadline - finish)
+  const name = towards ? towards.course.calendar.name : ''
 
   return (
     <Card
@@ -108,9 +111,10 @@ export function PaceForecast({ plan, now }: Props) {
           </tbody>
         </table>
       </div>
-      {margin !== null && (
+      {margin !== null && deadline !== null && (
         <p className={`mt-3 text-[13px] ${margin < 0 ? 'text-today-ink' : 'text-muted'}`}>
           {m.dash_forecast_deadline({
+            name,
             date: fmtDay(deadline),
             verdict: margin < 0 ? m.dash_forecast_miss({ count: -margin }) : m.dash_forecast_ok({ count: margin }),
           })}

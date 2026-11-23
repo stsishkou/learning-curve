@@ -44,9 +44,7 @@ export interface PlanMeta {
   timezone: string
   generated: string
   weeklyBudgetHours: number
-  certDeadline: string
   holidays: string[]
-  lastCertDay: string | null
   planEnd: string
 }
 

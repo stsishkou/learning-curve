@@ -1,6 +1,6 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, parseLocal, startOfDay, type Plan, type PlanStats } from '@lc/plan-domain'
+import { DAY, nextDeadline, parseLocal, startOfDay, type Plan, type PlanStats } from '@lc/plan-domain'
 import { calendarColor, ProgressRing } from '@lc/ui'
 import type { ReactNode } from 'react'
 
@@ -16,7 +16,9 @@ interface Props {
 export function StatTiles({ plan, stats, now }: Props) {
   const share = stats.planned ? stats.done / stats.planned : 0
   const lead = stats.done - stats.plannedByNow
-  const daysLeft = now === null ? null : Math.ceil((parseLocal(plan.meta.certDeadline) - startOfDay(now)) / DAY)
+  const next = now === null ? null : nextDeadline(plan, now)
+  const deadline = next && parseLocal(`${next.day}T00:00`)
+  const daysLeft = now === null || deadline === null ? null : Math.ceil((deadline - startOfDay(now)) / DAY)
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -53,9 +55,11 @@ export function StatTiles({ plan, stats, now }: Props) {
       <Tile
         label={m.dash_deadline()}
         note={
-          stats.forecast === null
-            ? fmtDay(parseLocal(plan.meta.certDeadline))
-            : m.dash_forecast({ date: fmtDay(stats.forecast) })
+          stats.forecast !== null
+            ? m.dash_forecast({ date: fmtDay(stats.forecast) })
+            : deadline !== null
+              ? fmtDay(deadline)
+              : undefined
         }
       >
         {daysLeft === null ? '—' : m.dash_days({ count: Math.max(0, daysLeft) })}

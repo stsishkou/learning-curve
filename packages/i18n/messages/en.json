@@ -97,7 +97,7 @@
   "howto_duplicates": "Before importing again, delete the old events from these calendars, otherwise you will get duplicates.",
   "download_plan_json": "Download the plan (.json)",
   "download_zip": "Download .zip with .ics",
-  "runway_label": "Certificates before the deadline",
+  "runway_label": "On the way to the deadline: {name}",
   "days_to_deadline": [
     {
       "declarations": [
@@ -108,12 +108,12 @@
         "countPlural"
       ],
       "match": {
-        "countPlural=one": "day until the certificate deadline",
-        "countPlural=*": "days until the certificate deadline"
+        "countPlural=one": "day until the deadline",
+        "countPlural=*": "days until the deadline"
       }
     }
   ],
-  "to_deadline": "until the certificate deadline",
+  "to_deadline": "until the deadline",
   "deadline_today": "the deadline is today",
   "deadline_passed": "the deadline has passed",
   "reserve": "Reserve",
@@ -371,7 +371,7 @@
   "dash_forecast_left_value": "{planned} → {needed}",
   "dash_forecast_none": "Log the time you spent in a session's card and the forecast will appear here.",
   "dash_forecast_done": "done",
-  "dash_forecast_deadline": "Certificate deadline {date}: {verdict}",
+  "dash_forecast_deadline": "Deadline of {name}, {date}: {verdict}",
   "dash_forecast_miss": "the forecast is {count} d past it",
   "dash_forecast_ok": "{count} d to spare",
   "history_spent": "Time logged: {name}",
@@ -386,7 +386,7 @@
   "catchup_squeeze": "Make it up in the coming weeks",
   "catchup_squeeze_hint": "Only the missed sessions move: into the Saturday buffers and one more hour after a day's sessions. The end stays, the weeks get heavier.",
   "catchup_finish": "Plan ends",
-  "catchup_deadline": "Certificate deadline",
+  "catchup_deadline": "Deadline",
   "catchup_late": "{count} d past it",
   "catchup_spare": "{count} d to spare",
   "catchup_peak": "Heaviest week",
@@ -400,7 +400,7 @@
   "goals_week_none": "No module ends this week.",
   "goals_course_ends": "the course ends",
   "goals_modules": "{done}/{total} modules",
-  "goals_deadline": "By {date}: certificates {percent}% done",
+  "goals_deadline": "By {date}: {name} {percent}% done",
   "review_open": "Week review",
   "review_title": "Week review",
   "review_hours": "Hours done",
@@ -571,7 +571,7 @@
   "help_dates_title": "Jump to a date",
   "help_dates": "A month to navigate with: a click on a day opens it in the calendar, a click on a week number opens the whole week. Days with sessions are marked.",
   "help_runway_title": "The way to the deadline",
-  "help_runway": "On the left, the days left until the certificate deadline. The strip shows the stages of the plan in order, the circles are exams and checkpoints, and the red mark is today. A click on a circle opens its event.",
+  "help_runway": "On the left, the days left until the nearest deadline. The strip shows the stages of that course in order, the circles are labs and checkpoints, and the red mark is today. A click on a circle opens its event.",
   "help_file_title": "Plan file, AI chat and export",
   "help_file": "Plan file shows the plan as an overview, a list of events and JSON; its Library tab keeps plan files with versions and compares them, and its AI chat tab gives a text for any language model and applies the answer as steps you can undo.\nExport to calendar sends the courses to Google, Outlook or Apple Calendar.",
   "help_burnup_title": "How to read this chart",

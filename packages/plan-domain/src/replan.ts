@@ -1,4 +1,5 @@
 import { DAY, HOUR, mondayOf, parseLocal, startOfDay, toLocalString, weekday, ymd } from './dates'
+import { nextDeadline } from './deadlines'
 import { courseProgress, isSession, plannedHours } from './progress'
 import type { Plan, PlanEvent } from './types'
 
@@ -30,14 +31,13 @@ export interface PlanOutlook {
   missed: number
   /** Day of the last open session, wall-clock ms; null when nothing is left */
   finish: number | null
-  /** Days between the last open certificate session and the certificate deadline; negative when it is past it */
+  /** Days between the last open session of the nearest deadline's calendar and that deadline; negative when past it */
   deadlineMargin: number | null
   /** Study hours of the heaviest week from this one on, and how many such weeks are over the weekly budget */
   peakWeek: number
   overWeeks: number
 }
 
-const CERTS = 'certs'
 /** How far ahead `squeeze` looks for room */
 const SQUEEZE_DAYS = 56
 
@@ -49,7 +49,8 @@ const isMissed = (e: PlanEvent, now: number) => parseLocal(e.end) <= now
 export function planOutlook(plan: Plan, now: number): PlanOutlook {
   const open = openSessions(plan)
   const last = open.at(-1)
-  const lastCert = open.findLast((e) => e.calendar === CERTS)
+  const deadline = nextDeadline(plan, now)
+  const lastBefore = deadline && open.findLast((e) => e.calendar === deadline.calendar)
   const weeks = new Map<number, number>()
   for (const e of plan.events) {
     if (!isSession(e) || e.calendar === 'personal') continue
@@ -60,8 +61,8 @@ export function planOutlook(plan: Plan, now: number): PlanOutlook {
   return {
     missed: open.filter((e) => isMissed(e, now)).length,
     finish: last ? startOfDay(parseLocal(last.start)) : null,
-    deadlineMargin: lastCert
-      ? Math.round((startOfDay(parseLocal(plan.meta.certDeadline)) - startOfDay(parseLocal(lastCert.start))) / DAY)
+    deadlineMargin: lastBefore
+      ? Math.round((parseLocal(`${deadline.day}T00:00`) - startOfDay(parseLocal(lastBefore.start))) / DAY)
       : null,
     peakWeek: Math.max(0, ...loads),
     overWeeks: loads.filter((hours) => hours > plan.meta.weeklyBudgetHours + 1e-9).length,

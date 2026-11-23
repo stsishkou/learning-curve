@@ -3,14 +3,15 @@
 //   pnpm run plan --ics   → also writes exports/*.ics
 import { mkdirSync, writeFileSync } from 'node:fs'
 
-import { IMPORT_HOWTO, calendarICS, icsFileName, weeklyHours } from '@lc/plan-domain'
+import { IMPORT_HOWTO, calendarICS, icsFileName, nextDeadline, parseLocal, weeklyHours } from '@lc/plan-domain'
 
 import { readEdits, writePlan } from '../src/store'
 
 const edits = readEdits()
 const { plan, orphans } = writePlan(edits)
+const deadline = nextDeadline(plan, parseLocal(`${plan.meta.generated}T00:00`))
 console.log(
-  `data/plan.json: ${plan.events.length} events, ${Object.keys(edits.events).length} manual edits, certificates done ${plan.meta.lastCertDay}, plan ends ${plan.meta.planEnd}`,
+  `data/plan.json: ${plan.events.length} events, ${Object.keys(edits.events).length} manual edits, plan ends ${plan.meta.planEnd}${deadline ? `, next deadline ${deadline.day} (${deadline.calendar})` : ''}`,
 )
 if (orphans.length)
   console.warn('Edits for events that no longer exist (remove them from data/edits.json):', orphans.join(', '))

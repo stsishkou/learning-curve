@@ -5,6 +5,7 @@ import {
   courseProgress,
   goalsBetween,
   monthGoals,
+  nextDeadline,
   parseLocal,
   startOfMonth,
   type ModuleGoal,
@@ -47,7 +48,8 @@ export function GoalLadder({ plan, weekStart, onReview }: Props) {
   // The month the week mostly belongs to: the one of its Thursday.
   const monthStart = startOfMonth(weekStart + 3 * DAY)
   const month = monthGoals(plan, monthStart, startOfMonth(monthStart, 1))
-  const certs = courseProgress(plan).find((c) => c.calendar.id === 'certs')
+  const deadline = nextDeadline(plan, weekStart)
+  const course = deadline && courseProgress(plan).find((c) => c.calendar.id === deadline.calendar)
 
   return (
     <div className="grid gap-3.5 text-[13px]/[1.4]">
@@ -87,11 +89,12 @@ export function GoalLadder({ plan, weekStart, onReview }: Props) {
           </ul>
         </section>
       )}
-      {certs && (
+      {deadline && course && (
         <p className="text-muted">
           {m.goals_deadline({
-            date: fmtDay(parseLocal(plan.meta.certDeadline)),
-            percent: Math.round((certs.doneHours / certs.hours) * 100),
+            date: fmtDay(parseLocal(`${deadline.day}T00:00`)),
+            name: course.calendar.name,
+            percent: Math.round((course.doneHours / course.hours) * 100),
           })}
         </p>
       )}

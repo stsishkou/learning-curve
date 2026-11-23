@@ -1,7 +1,8 @@
-import { parseLocal } from '@lc/plan-domain'
+import { m } from '@lc/i18n/messages'
+import { parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 
 import { Runway } from './Runway'
 
@@ -15,10 +16,32 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+/** The way to the nearest deadline, the certificates' one, and the calendar that has it. */
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole('region', { name: m.runway_label({ name: 'Gemini Certs' }) }),
+    ).toBeVisible()
+  },
+}
 
 /** The "today" marker close to the deadline. */
 export const LastWeek: Story = { args: { now: parseLocal('2026-12-28T10:00') } }
 
-/** Past the deadline the count stays at zero and the "today" marker is gone. */
-export const AfterTheDeadline: Story = { args: { now: parseLocal('2027-01-12T10:00') } }
+/** Past the last deadline there is no way left to show: the strip steps aside. */
+export const AfterTheDeadline: Story = {
+  args: { now: parseLocal('2027-01-12T10:00') },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('section')).toBeNull()
+  },
+}
+
+const noDeadline: Plan = { ...fixturePlan, events: fixturePlan.events.filter((e) => e.kind !== 'milestone') }
+
+/** A plan without any deadline has no strip. */
+export const NoDeadline: Story = {
+  args: { plan: noDeadline },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('section')).toBeNull()
+  },
+}
