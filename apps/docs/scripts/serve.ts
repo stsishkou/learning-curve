@@ -1,10 +1,12 @@
 // Serves the built site the way GitHub Pages does: files only, `dir/` from `dir/index.html`, 404.html for anything
-// missing, `Access-Control-Allow-Origin: *` and `Cache-Control: max-age=600` on everything. `vite preview` would run
-// the TanStack Start server instead, which is not what is deployed. Usage: node scripts/serve.ts [port]
+// missing, `Access-Control-Allow-Origin: *` and `Cache-Control: max-age=600` on everything, text gzipped. `vite
+// preview` would run the TanStack Start server instead, which is not what is deployed. Usage: node scripts/serve.ts
+// [port]
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
+import { createGzip } from 'node:zlib'
 
 const root = resolve(import.meta.dirname, '../dist/client')
 const port = Number(process.argv[2] ?? process.env.PORT ?? 4310)
@@ -48,7 +50,16 @@ createServer((request, response) => {
       response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found')
       return
     }
-    response.writeHead(found ? 200 : 404, { 'Content-Type': TYPES[extname(served)] ?? 'application/octet-stream' })
-    createReadStream(served).pipe(response)
+    const type = TYPES[extname(served)] ?? 'application/octet-stream'
+    const text = /^(text\/|application\/(json|xml)|image\/svg)/.test(type)
+    const gzip = text && /\bgzip\b/.test(request.headers['accept-encoding'] ?? '')
+    response.writeHead(found ? 200 : 404, {
+      'Content-Type': type,
+      ...(text ? { Vary: 'Accept-Encoding' } : {}),
+      ...(gzip ? { 'Content-Encoding': 'gzip' } : {}),
+    })
+    const stream = createReadStream(served)
+    if (gzip) stream.pipe(createGzip()).pipe(response)
+    else stream.pipe(response)
   })()
 }).listen(port, () => console.log(`Serving ${root} at http://localhost:${port}${base}`))
