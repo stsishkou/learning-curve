@@ -114,8 +114,8 @@ unknown id fails the build.
   the planner does. Chapters are written in English first.
 - Routes are prefixed (`/ru/`, `/en/`, `/es/`); each page names its translations with `hreflang`, and the sitemap
   lists them.
-- `coverage` reports what is still English-only. At the time of writing that is every syllabus body and every prose
-  page in Russian and Spanish; titles and interface strings are complete.
+- `coverage` reports what is still English-only. At the time of writing that is the syllabus of every chapter in
+  Russian and Spanish; interface strings, titles and the prose pages exist in all three languages.
 
 ## The remote
 
