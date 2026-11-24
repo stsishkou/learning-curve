@@ -24,7 +24,7 @@ type Handlers = { [K in DocsEventName]: Set<(detail: DocsEvents[K]) => void> }
 
 /**
  * Key presses inside the guide stay inside it. They are composed events, so without this the host's shortcuts
- * (bound on the document) would also see a letter typed in the guide, retargeted to <lc-docs>.
+ * (bound on the window or the document) would also see a letter typed in the guide, retargeted to <lc-docs>.
  */
 const stopAtShadow = (event: Event) => event.stopPropagation()
 
