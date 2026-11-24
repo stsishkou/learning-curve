@@ -90,6 +90,7 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   },
   'events.done': { type: 'events.done', uids: [SESSION], done: true },
   'plan.rename': { type: 'plan.rename', title: 'Another plan' },
+  'plan.countdown': { type: 'plan.countdown', calendar: 'hfllm' },
   'reviews.plan': { type: 'reviews.plan', reviews: [session({ title: 'Review' })] },
   'course.add': { type: 'course.add', name: 'New course', color: '#0A7F5A', sessions: [courseSession] },
   'events.add': { type: 'events.add', events: [session(), session({ title: 'Extra 2' })] },
@@ -308,6 +309,15 @@ describe('names', () => {
     const renamed = apply([EXAMPLES['plan.rename']])
     expect(planOf(renamed).meta.title).toBe('Another plan')
     expect(apply([{ type: 'plan.rename', title: base.meta.title }], renamed).title).toBeUndefined()
+  })
+
+  test('plan.countdown names the calendar whose deadline the countdown follows; null names none again', () => {
+    const chosen = apply([EXAMPLES['plan.countdown']])
+    expect(planOf(chosen).meta.countdown).toBe('hfllm')
+    const cleared = apply([{ type: 'plan.countdown', calendar: null }], chosen)
+    expect(cleared.countdown).toBeUndefined()
+    expect(planOf(cleared).meta.countdown).toBeUndefined()
+    expect(() => apply([{ type: 'plan.countdown', calendar: 'nope' }])).toThrow('Unknown calendar "nope"')
   })
 
   test('calendar.save renames a calendar, or creates one without an id', () => {

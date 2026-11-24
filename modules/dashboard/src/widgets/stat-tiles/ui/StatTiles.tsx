@@ -1,6 +1,6 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, nextDeadline, parseLocal, startOfDay, type Plan, type PlanStats } from '@lc/plan-domain'
+import { DAY, countdown, parseLocal, startOfDay, type Plan, type PlanStats } from '@lc/plan-domain'
 import { calendarColor, ProgressRing } from '@lc/ui'
 import type { ReactNode } from 'react'
 
@@ -16,8 +16,8 @@ interface Props {
 export function StatTiles({ plan, stats, now }: Props) {
   const share = stats.planned ? stats.done / stats.planned : 0
   const lead = stats.done - stats.plannedByNow
-  const next = now === null ? null : nextDeadline(plan, now)
-  const deadline = next && parseLocal(`${next.day}T00:00`)
+  const target = now === null ? null : countdown(plan, now)
+  const deadline = target?.day ? parseLocal(`${target.day}T00:00`) : null
   const daysLeft = now === null || deadline === null ? null : Math.ceil((deadline - startOfDay(now)) / DAY)
 
   return (

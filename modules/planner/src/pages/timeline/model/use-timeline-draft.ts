@@ -1,8 +1,15 @@
 import { m } from '@lc/i18n/messages'
-import { previewUpdate, rebalanceChange, type Plan, type PlanChange, type UpdatePreview } from '@lc/plan-domain'
+import {
+  deadlineChange,
+  previewUpdate,
+  rebalanceChange,
+  type Plan,
+  type PlanChange,
+  type UpdatePreview,
+} from '@lc/plan-domain'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { deadlineChange, finishByRequest, type Rebalance } from '../../../features/reschedule'
+import { finishByRequest, type Rebalance } from '../../../features/reschedule'
 
 /** What the draft does to one course. A move and a finish-by day exclude each other: they are Reschedule's two modes. */
 export interface CourseEdit {

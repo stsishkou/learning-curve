@@ -52,6 +52,7 @@ import {
 } from '../../../features/calendar-sync'
 import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
+import { CountdownDialog } from '../../../features/countdown-settings'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
 import { describeStep, HistoryDialog } from '../../../features/history'
@@ -378,7 +379,12 @@ export function PlannerPage({
             </Button>
           </PlannerHeader>
 
-          <Runway plan={plan} now={now} onSelect={select} />
+          <Runway
+            plan={plan}
+            now={now}
+            onSelect={select}
+            onConfigure={canEdit ? () => dialogs.show('countdown') : undefined}
+          />
         </>
       )}
 
@@ -576,6 +582,13 @@ export function PlannerPage({
           dialogs.show('trash')
         }}
         onClose={() => dialogs.hide('calendars')}
+      />
+      <CountdownDialog
+        plan={plan}
+        now={now}
+        open={dialogs.isOpen('countdown')}
+        onApply={session.changeAll}
+        onClose={() => dialogs.hide('countdown')}
       />
       <RescheduleDialog
         plan={plan}

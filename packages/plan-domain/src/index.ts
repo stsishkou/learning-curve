@@ -1,5 +1,5 @@
 export type { BusyBlock } from './busy'
-export { deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
+export { countdown, deadlineChange, deadlineEvent, deadlineOf, nextDeadline, type Countdown } from './deadlines'
 export {
   calendarLanes,
   compareLanes,

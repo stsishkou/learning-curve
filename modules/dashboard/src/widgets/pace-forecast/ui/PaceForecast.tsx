@@ -1,6 +1,6 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, courseProgress, nextDeadline, paceForecast, parseLocal, type Plan } from '@lc/plan-domain'
+import { DAY, countdown, courseProgress, paceForecast, parseLocal, type Plan } from '@lc/plan-domain'
 import { calendarColor, Dot, Hint } from '@lc/ui'
 
 import { Card } from '../../../shared/ui'
@@ -31,7 +31,8 @@ export function PaceForecast({ plan, now }: Props) {
   const courses = courseProgress(plan)
   const rows = courses.map((course) => ({ course, forecast: paceForecast(plan, now, course.calendar.id) }))
   const logged = rows.reduce((sum, row) => sum + row.forecast.logged, 0)
-  const next = nextDeadline(plan, now)
+  const target = countdown(plan, now)
+  const next = target?.day ? { calendar: target.calendar, day: target.day } : null
   const towards = next && rows.find((row) => row.course.calendar.id === next.calendar)
   const deadline = next && parseLocal(`${next.day}T00:00`)
   const finish = towards ? towards.forecast.finish : null

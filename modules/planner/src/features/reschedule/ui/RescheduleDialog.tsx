@@ -2,6 +2,7 @@ import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   addDays,
+  deadlineChange,
   deadlineOf,
   defaultStudyHours,
   parseLocal,
@@ -18,7 +19,6 @@ import { Button, FIELD, FOOT, INPUT, META, Modal, Segmented, TITLE } from '@lc/u
 import { useId, useMemo, useState, type SubmitEvent } from 'react'
 
 import { RuleWarningList } from '../../../shared/ui'
-import { deadlineChange } from '../model/deadline-change'
 import { finishByRequest } from '../model/finish-by-request'
 import { useRebalance, type Rebalance } from '../model/use-rebalance'
 

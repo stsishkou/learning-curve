@@ -40,6 +40,7 @@ export type DialogName =
   | 'sync'
   | 'syncReview'
   | 'export'
+  | 'countdown'
 
 interface Context {
   nav: PlannerViewState

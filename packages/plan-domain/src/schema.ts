@@ -139,6 +139,11 @@ export const PLAN_SCHEMA: Schema = {
           description: 'Days without study: never put a session on one.',
         },
         planEnd: { ...DAY, description: 'Day of the last event.' },
+        countdown: {
+          type: 'string',
+          description:
+            'The `id` of the calendar whose deadline the person counts down to. Without it, the nearest deadline. A calendar\'s deadline is its earliest event of kind "milestone".',
+        },
       },
     },
     calendars: {

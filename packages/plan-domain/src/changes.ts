@@ -91,6 +91,8 @@ export type PlanChange =
   | { type: 'events.done'; uids: string[]; done: boolean }
   /** Gives the plan another name: the heading of the viewer and the names of the files it downloads */
   | { type: 'plan.rename'; title: string }
+  /** Names the calendar whose deadline the countdown follows; null: the nearest deadline, whichever calendar's it is */
+  | { type: 'plan.countdown'; calendar: string | null }
   /** Adds the review sessions of one finished module, as one step */
   | { type: 'reviews.plan'; reviews: NewEvent[] }
   /** Adds a course as one step: a new calendar with that name and color, and its sessions in it */
@@ -197,6 +199,8 @@ export function parseChange(input: unknown): PlanChange {
       return { type: 'event.remove', uid: text('uid') }
     case 'plan.rename':
       return { type: 'plan.rename', title: text('title').slice(0, TITLE_MAX) }
+    case 'plan.countdown':
+      return { type: 'plan.countdown', calendar: input.calendar === null ? null : text('calendar') }
     case 'calendar.save': {
       const color = text('color')
       if (!HEX_COLOR.test(color)) return fail('color must look like #1a2b3c')
@@ -316,6 +320,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     added: [...edits.added],
     removed: { events: { ...edits.removed.events }, calendars: { ...edits.removed.calendars } },
     ...(edits.title ? { title: edits.title } : {}),
+    ...(edits.countdown ? { countdown: edits.countdown } : {}),
   }
   const { removed } = next
   const removedAt = new Date(now).toISOString()
@@ -480,6 +485,11 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       // The generated name again is no edit at all.
       if (change.title === base.meta.title) delete next.title
       else next.title = change.title
+      break
+    case 'plan.countdown':
+      if (change.calendar === null) delete next.countdown
+      else if (calendarExists(change.calendar)) next.countdown = change.calendar
+      else fail(`Unknown calendar "${change.calendar}"`)
       break
     case 'events.shift': {
       if (change.calendar && !calendarExists(change.calendar)) fail(`Unknown calendar "${change.calendar}"`)

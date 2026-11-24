@@ -5,6 +5,7 @@ import {
   applyEdits,
   calendarLanes,
   DAY,
+  deadlineChange,
   deadlineOf,
   emptyHistory,
   historyEdits,
@@ -31,7 +32,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
 
-import { deadlineChange } from '../../../features/reschedule'
 import { TimelinePage } from './TimelinePage'
 
 // The page follows the real clock: the fixture is moved by whole weeks to the week the stand is opened in.

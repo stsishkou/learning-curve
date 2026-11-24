@@ -5,7 +5,7 @@ import {
   courseProgress,
   goalsBetween,
   monthGoals,
-  nextDeadline,
+  countdown,
   parseLocal,
   startOfMonth,
   type ModuleGoal,
@@ -48,7 +48,8 @@ export function GoalLadder({ plan, weekStart, onReview }: Props) {
   // The month the week mostly belongs to: the one of its Thursday.
   const monthStart = startOfMonth(weekStart + 3 * DAY)
   const month = monthGoals(plan, monthStart, startOfMonth(monthStart, 1))
-  const deadline = nextDeadline(plan, weekStart)
+  const target = countdown(plan, weekStart)
+  const deadline = target?.day ? { calendar: target.calendar, day: target.day } : null
   const course = deadline && courseProgress(plan).find((c) => c.calendar.id === deadline.calendar)
 
   return (

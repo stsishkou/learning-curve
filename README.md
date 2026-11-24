@@ -165,8 +165,13 @@ a Husky `commit-msg` hook checks them with commitlint.
   While the inputs change, the dialog shows when the course ends, its heaviest week and how many sessions move.
   When it cannot do better, it says why ("the weeks of 11 Jan – 7 Feb are full"). Apply stores the result as one
   history step. Each calendar can have its own deadline, set, moved or cleared in the same dialog and kept as the
-  calendar's milestone. The runway, the goals, the forecast and Catch up use the nearest one. How the re-balance
-  chooses, with a worked example: [docs/rebalancing.md](docs/rebalancing.md).
+  calendar's milestone. Catch up uses the nearest one. How the re-balance chooses, with a worked example:
+  [docs/rebalancing.md](docs/rebalancing.md).
+- **Countdown**: the bar above the calendar counts the days to one course's deadline and names the course and the
+  day under the number. `Set up` on it chooses what to count to: the nearest deadline of any course, or a course of
+  your choice, and sets, moves or clears that course's deadline day. The choice is kept in the plan (an undoable
+  step of the history), so the goals, the days-left tile and the forecast on Progress count to the same deadline.
+  With nothing to count to, the bar offers to set a deadline instead of disappearing.
 - **Timeline**: `/timeline` (the `Timeline` tab) is a lane per course, in its colour: its sessions from the first
   to the last (done, open, missed), the spare days before its deadline (◆) or the late ones after it, and today.
   The whole plan fits the width; `Month` and `Week` zoom in and scroll (the mouse wheel, Shift + wheel or a swipe,

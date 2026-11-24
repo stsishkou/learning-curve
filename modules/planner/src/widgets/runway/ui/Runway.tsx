@@ -1,7 +1,7 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, HOUR, nextDeadline, parseLocal, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
-import { Hint } from '@lc/ui'
+import { DAY, HOUR, countdown, deadlineEvent, parseLocal, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
+import { Button, Hint, Pencil } from '@lc/ui'
 
 interface Props {
   plan: Plan
@@ -9,6 +9,8 @@ interface Props {
   now: number | null
   /** Called with the challenge lab whose marker was clicked */
   onSelect: (e: PlanEvent) => void
+  /** Present where the plan can be changed: opens the settings of the countdown */
+  onConfigure?: (() => void) | undefined
 }
 
 interface Group {
@@ -24,18 +26,39 @@ const LAB_DONE =
   "bg-current after:h-[3px] after:w-1.5 after:transform-[rotate(-45deg)_translate(1px,-1px)] after:border-b-2 after:border-l-2 after:border-surface after:content-['']"
 
 /**
- * Horizontal strip from the first session of the calendar with the nearest deadline to that deadline, with a marker
- * per lab. Before the clock is known (on the server) it shows the earliest deadline of the plan.
+ * Horizontal strip from the first session of a course to its deadline, with a marker per lab: the course the plan
+ * names for the countdown, or the one with the nearest deadline. Before the clock is known (on the server) it shows
+ * the earliest deadline of the plan.
  */
-export function Runway({ plan, now, onSelect }: Props) {
-  const next = nextDeadline(plan, now ?? 0)
-  const calendar = next && plan.calendars.find((c) => c.id === next.calendar)
-  const certs = next ? plan.events.filter((e) => e.calendar === next.calendar && !e.allDay) : []
-  if (!next || !calendar || !certs.length) return null
+export function Runway({ plan, now, onSelect, onConfigure }: Props) {
+  const target = countdown(plan, now ?? 0)
+  const calendar = target && plan.calendars.find((c) => c.id === target.calendar)
+  if (!target || !calendar || target.day === null) {
+    if (!onConfigure) return null
+    return (
+      <section
+        className="mt-5 mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:px-5 print:hidden"
+        aria-label={m.countdown_title()}
+      >
+        <p className="mr-auto text-[14px] text-muted">
+          {target && calendar ? m.countdown_no_deadline({ name: calendar.name }) : m.countdown_empty()}
+        </p>
+        <Button
+          className="flex items-center gap-1.5"
+          icon={<Pencil size={15} aria-hidden />}
+          label={m.countdown_set()}
+          onClick={onConfigure}
+        />
+      </section>
+    )
+  }
   const { color } = calendar
+  const certs = plan.events.filter((e) => e.calendar === calendar.id && !e.allDay)
 
-  const deadline = parseLocal(`${next.day}T00:00`)
-  const start = startOfDay(Math.min(...certs.map((e) => parseLocal(e.start))))
+  const deadline = parseLocal(`${target.day}T00:00`)
+  // A course with a deadline but no sessions yet runs from today.
+  const starts = certs.length ? certs.map((e) => parseLocal(e.start)) : [Math.min(now ?? deadline, deadline)]
+  const start = startOfDay(Math.min(...starts))
   const end = deadline + DAY
   const x = (t: number) => `${Math.max(0, Math.min(100, ((t - start) / (end - start)) * 100))}%`
 
@@ -48,7 +71,7 @@ export function Runway({ plan, now, onSelect }: Props) {
     g.end = Math.max(g.end, parseLocal(e.end))
     if (e.kind === 'lab') g.labs.push(e)
   }
-  const lastEnd = Math.max(...groups.map((g) => startOfDay(g.end) + DAY))
+  const lastEnd = groups.length ? Math.max(...groups.map((g) => startOfDay(g.end) + DAY)) : start
   const days = now === null ? null : Math.ceil((deadline - startOfDay(now)) / DAY)
 
   return (
@@ -57,19 +80,40 @@ export function Runway({ plan, now, onSelect }: Props) {
       aria-label={m.runway_label({ name: calendar.name })}
     >
       <Hint title={m.help_runway_title()} text={m.help_runway()} className="absolute top-2 right-2" />
-      <div className="flex min-w-[150px] items-baseline gap-2.5 md:flex-col md:items-stretch md:gap-0">
-        <b className="font-display text-[40px] leading-none font-bold tracking-[-0.03em] tabular-nums md:text-[54px]">
-          {days === null ? '–' : Math.max(0, days)}
-        </b>
-        <span className="mt-1.5 text-[13px] text-muted">
-          {days === null
-            ? m.to_deadline()
-            : days > 0
-              ? m.days_to_deadline({ count: days })
-              : days === 0
-                ? m.deadline_today()
-                : m.deadline_passed()}
-        </span>
+      <div className="flex min-w-[150px] flex-col gap-2 md:gap-2.5">
+        <div className="flex items-baseline gap-2.5 md:flex-col md:items-stretch md:gap-0">
+          <b className="font-display text-[40px] leading-none font-bold tracking-[-0.03em] tabular-nums md:text-[54px]">
+            {days === null ? '–' : Math.max(0, days)}
+          </b>
+          <span className="mt-1.5 text-[13px] text-muted">
+            {days === null
+              ? m.to_deadline()
+              : days > 0
+                ? m.days_to_deadline({ count: days })
+                : days === 0
+                  ? m.deadline_today()
+                  : m.deadline_passed()}
+          </span>
+        </div>
+        {/* Whose deadline the days count to, and its day: the number means nothing without them. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 md:flex-col md:items-start">
+          <span
+            className="flex items-center gap-1.5 text-[13px] font-semibold"
+            data-tip={deadlineEvent(plan, calendar.id)?.title}
+          >
+            <span className="size-2 flex-none rounded-full" style={{ background: color }} aria-hidden />
+            {calendar.name} · {fmtDay(deadline)}
+          </span>
+          {onConfigure && (
+            <Button
+              className="flex items-center gap-1.5 py-1! text-[13px]"
+              icon={<Pencil size={14} aria-hidden />}
+              label={m.countdown_edit()}
+              data-tip={m.countdown_edit_hint()}
+              onClick={onConfigure}
+            />
+          )}
+        </div>
       </div>
       <div className="relative h-[92px]">
         <div className="absolute inset-x-0 top-10 h-3 overflow-hidden rounded-md bg-line-soft">
