@@ -39,7 +39,8 @@
         "dependsOn": [
           "@lc/docs:build",
           "build"
-        ]
+        ],
+        "cache": false
       }
     }
   }

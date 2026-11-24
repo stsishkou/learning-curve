@@ -53,10 +53,7 @@
     ],
     "targets": {
       "build": {
-        "inputs": [
-          "default",
-          "^production"
-        ]
+        "cache": false
       }
     }
   }
