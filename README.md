@@ -158,11 +158,13 @@ a Husky `commit-msg` hook checks them with commitlint.
   that time (its length stays), or click it to pick a time in its dialog. An event can be duplicated to the next
   day from its dialog.
 - **Reschedule**: `⋮` → `Reschedule` has two modes.
-  - `Move` shifts every session that is not done, from a chosen day, in every calendar or in one. It shifts by
-    days and by hours; `+1 h`, `−1 h`, `+1 day`, `+1 week` and `−1 week` fill both in.
-  - `Re-balance` spreads one calendar's open sessions over the study days ahead instead. It keeps a pace, from one
-    session every three study days to three a day, or finishes by a chosen day as evenly as it can: `Finish by`
-    starts at the day before the calendar's deadline, and another day there leaves the deadline as it is.
+  - `Move` shifts every session that is not done, from a chosen day, in every calendar or in the ones picked. It
+    shifts by days and by hours; `+1 h`, `−1 h`, `+1 day`, `+1 week` and `−1 week` fill both in.
+  - `Re-balance` spreads one calendar's open sessions over the study days ahead instead, from the course's first
+    open session: it changes the rhythm and the end, never the start. It aims at one of two things. `Pace` keeps
+    a pace, from one session every three study days to three a day; it starts at the course's own pace, which the
+    dialog names. `Finish by` spreads the sessions evenly up to a day, which starts at the day before the
+    calendar's deadline, or at the course's last session; another day there leaves the deadline as it is.
     The study hours, and whether a week may go over the budget, are part of the request.
 
   While the inputs change, the dialog shows when the course ends, its heaviest week and how many sessions move.

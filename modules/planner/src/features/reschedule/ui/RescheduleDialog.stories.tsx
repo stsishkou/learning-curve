@@ -2,7 +2,9 @@ import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   DAY,
+  currentPace,
   isSession,
+  nearestPace,
   parseLocal,
   toLocalString,
   type Plan,
@@ -166,6 +168,54 @@ export const MoveOntoAnotherEvent: Story = {
   },
 }
 
+const PACE_LABELS = new Map<number, () => string>([
+  [1 / 3, m.reschedule_pace_1_3],
+  [1 / 2, m.reschedule_pace_1_2],
+  [1, m.reschedule_pace_1],
+  [3 / 2, m.reschedule_pace_3_2],
+  [2, m.reschedule_pace_2],
+  [3, m.reschedule_pace_3],
+])
+
+/**
+ * The pace says how fast the course goes now, so a choice reads as faster or slower than that; picking Finish by
+ * puts a day in the place of the paces, as the one aim the re-balance follows.
+ */
+export const PaceAgainstTheCurrentOne: Story = {
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await rebalanceLlm(canvasElement)
+    const now = currentPace(fixturePlan, 'hfllm', FROM)
+    const label = PACE_LABELS.get(nearestPace(now ?? 1))?.() ?? ''
+    await waitFor(() => expect(body.getByText(m.reschedule_pace_now({ pace: label }))).toBeVisible())
+    await expect(body.getByText(m.reschedule_pace_hint())).toBeVisible()
+    await userEvent.click(body.getByRole('button', { name: m.reschedule_finish_by() }))
+    await expect(body.queryByRole('button', { name: m.reschedule_pace_1_2() })).toBeNull()
+    await expect(body.getByText(m.reschedule_finish_hint())).toBeVisible()
+  },
+}
+
+/** The pace the LLM course has now, as the dialog offers it */
+const usual = nearestPace(currentPace(fixturePlan, 'hfllm', FROM) ?? 1)
+/** A pace other than the usual one */
+const other = usual === 1 / 2 ? 2 : 1 / 2
+
+/** The pace starts at the course's own, so the first answer keeps its rhythm and only evens it out. */
+export const PaceStartsAtTheCurrentOne: Story = {
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await rebalanceLlm(canvasElement)
+    await waitFor(() =>
+      expect(args.rebalance).toHaveBeenLastCalledWith(
+        fixturePlan,
+        expect.objectContaining({ calendar: 'hfllm', target: { mode: 'pace', perDay: usual } }),
+      ),
+    )
+    const label = PACE_LABELS.get(usual)?.() ?? ''
+    await expect(body.getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'true')
+  },
+}
+
 /** One every two days: the dialog asks for that pace and shows when the course ends then. */
 export const RebalanceByPace: Story = {
   play: async ({ args, canvasElement }) => {
@@ -183,22 +233,20 @@ export const RebalanceByPace: Story = {
 }
 
 /**
- * A deadline typed for a calendar that has none: the re-balance can finish the day before it at once, and Apply
- * stores it as the calendar's milestone before the moves.
+ * A deadline typed for a calendar that has none: Finish by follows it to the day before, and Apply stores it as the
+ * calendar's milestone before the moves.
  */
 export const FinishBy: Story = {
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     await rebalanceLlm(canvasElement)
-    const finish = body.getByRole('checkbox', { name: m.reschedule_finish_by() })
-    await expect(finish).toBeDisabled()
+    await userEvent.click(body.getByRole('button', { name: m.reschedule_finish_by() }))
     await fireEvent.change(body.getByLabelText(new RegExp(`^${m.reschedule_deadline()}`)), {
       target: { value: '2027-02-16' },
     })
     await expect(body.getByLabelText(m.reschedule_finish_by(), { selector: 'input[type="date"]' })).toHaveValue(
       '2027-02-15',
     )
-    await userEvent.click(finish)
     await waitFor(() =>
       expect(args.rebalance).toHaveBeenLastCalledWith(
         fixturePlan,
@@ -242,7 +290,7 @@ export const FinishByFromTheTimeline: Story = {
         }),
       ),
     )
-    await expect(body.getByRole('checkbox', { name: m.reschedule_finish_by() })).toBeChecked()
+    await expect(body.getByRole('button', { name: m.reschedule_finish_by() })).toHaveAttribute('aria-pressed', 'true')
     const apply = body.getByRole('button', { name: m.reschedule_apply() })
     await waitFor(() => expect(apply).toBeEnabled())
     await userEvent.click(apply)
@@ -317,7 +365,7 @@ export const Shortfall: Story = {
 export const OlderAnswerNeverWins: Story = {
   args: {
     rebalance: fn(async (_plan: Plan, request: RebalanceRequest) => {
-      const older = request.target.mode === 'pace' && request.target.perDay === 1
+      const older = request.target.mode === 'pace' && request.target.perDay === usual
       await pause(older ? 1200 : 50)
       return result({ finish: older ? '2027-03-10' : '2027-02-20' })
     }),
@@ -326,7 +374,7 @@ export const OlderAnswerNeverWins: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await rebalanceLlm(canvasElement)
     await waitFor(() => expect(args.rebalance).toHaveBeenCalledTimes(1))
-    await userEvent.click(body.getByRole('button', { name: m.reschedule_pace_1_2() }))
+    await userEvent.click(body.getByRole('button', { name: PACE_LABELS.get(other)?.() ?? '' }))
     await expect(await body.findByText(ends('2027-02-20'), {}, { timeout: 2000 })).toBeVisible()
     await pause(1400)
     await expect(body.getByText(ends('2027-02-20'))).toBeVisible()

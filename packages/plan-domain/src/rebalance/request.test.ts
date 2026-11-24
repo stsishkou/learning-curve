@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import { fixturePlan } from '../fixtures'
 import type { Plan, PlanEvent } from '../types'
-import { defaultStudyHours, movingSessions, parseRebalanceRequest } from './request'
+import { currentPace, defaultStudyHours, movingSessions, nearestPace, parseRebalanceRequest } from './request'
 
 const event = (calendar: string, start: string, end: string, extra: Partial<PlanEvent> = {}): PlanEvent => ({
   uid: `${calendar}-${start}`,
@@ -16,14 +16,14 @@ const event = (calendar: string, start: string, end: string, extra: Partial<Plan
   ...extra,
 })
 
-const plan = (events: PlanEvent[]): Plan => ({
+const plan = (events: PlanEvent[], holidays: string[] = []): Plan => ({
   meta: {
     title: 'Test',
     version: 1,
     timezone: 'Europe/Minsk',
     generated: '2026-11-22',
     weeklyBudgetHours: 12,
-    holidays: [],
+    holidays,
     planEnd: '2027-12-31',
   },
   calendars: [
@@ -134,5 +134,38 @@ describe('movingSessions', () => {
     ]
     const moving = movingSessions(plan(events), parseRebalanceRequest(valid, plan(events)))
     expect(moving.map((e) => e.uid)).toEqual([first.uid, later.uid])
+  })
+})
+
+/** A session of `c` of 45 minutes */
+const at = (day: string, hour: string, extra: Partial<PlanEvent> = {}) =>
+  event('c', `${day}T${hour}`, `${day}T${hour.slice(0, 2)}:45`, extra)
+
+describe('currentPace', () => {
+  // Monday 7 to Friday 11 December, the Wednesday a holiday: six open sessions on four study days.
+  const week = [
+    at('2026-12-07', '11:00'),
+    at('2026-12-07', '12:00'),
+    at('2026-12-08', '11:00'),
+    at('2026-12-10', '11:00'),
+    at('2026-12-10', '12:00'),
+    at('2026-12-11', '11:00'),
+  ]
+
+  test('the open sessions per study day from the first to the last; holidays and weekends it does not use are not', () => {
+    expect(currentPace(plan([...week, at('2026-12-04', '11:00')], ['2026-12-09']), 'c', '2026-12-07')).toBe(1.5)
+  })
+
+  test('done sessions and reviews do not count, and nothing is known of fewer than two sessions', () => {
+    const done = week.map((e, i) => (i > 0 ? { ...e, done: true } : e))
+    expect(currentPace(plan(done), 'c', '2026-12-07')).toBeNull()
+    expect(currentPace(plan([...week, at('2026-12-11', '13:00', { kind: 'review' })]), 'c', '2026-12-07')).toBe(1.2)
+  })
+
+  test('the pace the dialog offers that comes nearest, by ratio', () => {
+    expect(nearestPace(1.36)).toBe(1.5)
+    expect(nearestPace(0.7)).toBe(0.5)
+    expect(nearestPace(0.75)).toBe(1)
+    expect(nearestPace(9)).toBe(3)
   })
 })
