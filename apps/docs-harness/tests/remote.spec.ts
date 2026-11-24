@@ -72,6 +72,17 @@ test('a chapter can be opened directly', async ({ page }) => {
   await expect(drawer(page).getByRole('heading', { level: 1, name: 'Микрофронтенды на этапе сборки' })).toBeVisible()
 })
 
+test('a link in the prose of a chapter moves the drawer, not the host page', async ({ page }) => {
+  await page.goto(HOME)
+  await page.getByRole('button', { name: 'Chapter 11' }).click()
+  // The prose of chapter 11 exists in English only, so its links carry English titles on a Russian page.
+  await drawer(page).getByRole('link', { name: 'Shipping it: where the planner can run' }).first().click()
+  await expect(
+    drawer(page).getByRole('heading', { level: 1, name: 'Выпуск: где может работать планировщик' }),
+  ).toBeVisible()
+  expect(new URL(page.url()).pathname).toBe('/')
+})
+
 test('the theme follows the host page', async ({ page }) => {
   await page.goto(HOME)
   await openDocs(page)
