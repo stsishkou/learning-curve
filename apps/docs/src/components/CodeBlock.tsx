@@ -34,10 +34,7 @@ export function CodeBlock({
     <figure className="lc-codeblock" translate="no" data-from={from}>
       <figcaption className="flex min-h-9 items-center justify-between gap-2 border-b border-line-soft py-1 pr-1 pl-3 text-xs">
         {file && at ? (
-          <a
-            className="lc-link inline-flex min-w-0 items-center gap-1.5"
-            href={sourceUrl(file, lineRange, at === 'worktree' ? 'HEAD' : at)}
-          >
+          <a className="lc-link inline-flex min-w-0 items-center gap-1.5" href={sourceUrl(file, lineRange, at)}>
             <span className="truncate font-mono">{file}</span>
             {lineRange && (
               <span className="shrink-0 text-muted">

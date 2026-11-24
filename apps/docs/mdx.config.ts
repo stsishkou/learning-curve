@@ -4,8 +4,9 @@
 //   ```ts file=modules/planner/src/index.ts lines=1-12
 //   ```
 //
-// `at=<sha>` reads another commit (the pinned one by default); `at=worktree` reads the working tree, for the docs
-// app's own files. A missing file or a line range past its end fails the build.
+// `at=<sha>` reads another commit (the pinned one by default); `at=main` reads the working tree, for files that land
+// on main with the guide itself, as the syllabus references do. A missing file or a line range past its end fails
+// the build.
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -34,7 +35,7 @@ function readAt(path: string, at: string): string {
   const hit = cache.get(key)
   if (hit !== undefined) return hit
   const text =
-    at === 'worktree'
+    at === 'main'
       ? readFileSync(resolve(REPO_ROOT, path), 'utf8')
       : execFileSync('git', ['show', key], { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
   cache.set(key, text)
