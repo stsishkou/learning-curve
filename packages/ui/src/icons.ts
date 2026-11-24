@@ -30,6 +30,7 @@ export {
   FileText,
   EyeOff,
   Flame,
+  Hourglass,
   Globe,
   GraduationCap,
   History,

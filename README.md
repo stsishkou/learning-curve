@@ -77,10 +77,13 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Reminders**: `⋮` → `Reminders` shows a system notification ten minutes before each start, while the planner
   is open in a tab.
 - **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs
-  the time it really took, in quarter-hour steps; the stopwatch survives a reload. Breaks of 25 + 5 or
-  50 + 10 minutes are optional: a chime says one is due, and taking it pauses the stopwatch and counts the rest down.
-  `Expand` (`E`) gives the stopwatch the whole window and `Full screen` (`Shift F`) the whole screen, with the
-  queue still beside it.
+  the time it really took, in quarter-hour steps; the stopwatch survives a reload. A pixel hourglass beside the
+  digits counts down the planned session, or work blocks of 25 + 5, 50 + 10 or your own minutes, in the course's
+  colour. When the sand runs out it chimes once; taking the break pauses the stopwatch and pours the rest through
+  the glass, `Later` turns it for another block, and both survive a reload. The tab title shows the minutes left.
+  The glass can be hidden or kept still (it also keeps still when the system asks for reduced motion). `Expand`
+  (`E`) and `Full screen` (`Shift F`) make the glass and the digits the centre of the screen, as large as it allows,
+  with the queue still beside them. How the glass was chosen: `docs/focus-hourglass-research.md`.
 - **The plan's name**: click the title to rename the plan (Enter saves, Escape cancels). It is one history step,
   and the plan's own download (`<Title>.json`) and the combined `.ics` are named after it.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;

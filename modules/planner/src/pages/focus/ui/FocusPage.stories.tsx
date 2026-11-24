@@ -1,5 +1,5 @@
 import { m } from '@lc/i18n/messages'
-import { isSession } from '@lc/plan-domain'
+import { isSession, parseLocal } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
@@ -46,6 +46,27 @@ const TAKE_BREAK = /Take a break|Сделать перерыв/
 const BACK_TO_WORK = /Back to work|Вернуться к работе/
 
 const open = itemAt(fixturePlan.events.filter((e) => isSession(e) && !e.done))
+const MINUTE = 60_000
+const planned = parseLocal(open.end) - parseLocal(open.start)
+
+const FOCUS_KEYS = ['learning-curve:focus', 'learning-curve:focus-breaks', 'learning-curve:focus-glass']
+const clearFocus = () => {
+  for (const key of FOCUS_KEYS) localStorage.removeItem(key)
+}
+const fresh = () => {
+  clearFocus()
+  return clearFocus
+}
+/** The stopwatch of the open session, paused at `banked` ms */
+const timing = (banked: number) =>
+  localStorage.setItem('learning-curve:focus', JSON.stringify({ uid: open.uid, banked, startedAt: null }))
+const stored = (key: string): unknown => JSON.parse(localStorage.getItem(key) ?? 'null')
+const glassOf = (canvasElement: HTMLElement) => {
+  const glass = canvasElement.querySelector('canvas')
+  if (!glass) throw new Error('No hourglass')
+  return glass
+}
+const timerOf = (canvasElement: HTMLElement) => within(canvasElement).getByRole('timer', { name: m.focus_elapsed() })
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -174,5 +195,135 @@ export const IconsOnly: Story = {
     )
     const start = page.getByRole('button', { name: START })
     await expect(within(start).getByText(START).getBoundingClientRect().width).toBeLessThanOrEqual(1)
+  },
+}
+
+/**
+ * The hourglass stands beside the digits, above them on a phone, and holds the planned session: the sand in the
+ * top is the time left.
+ */
+export const TheGlassBesideTheDigits: Story = {
+  args: { session: open.uid },
+  beforeEach: fresh,
+  play: async ({ canvasElement }) => {
+    const glass = await waitFor(() => glassOf(canvasElement))
+    await waitFor(() => expect(glass.getBoundingClientRect().height).toBeGreaterThan(100))
+    const box = glass.getBoundingClientRect()
+    const digits = timerOf(canvasElement).getBoundingClientRect()
+    if (window.innerWidth >= 701) await expect(box.right).toBeLessThanOrEqual(digits.left)
+    else await expect(box.bottom).toBeLessThanOrEqual(digits.top)
+  },
+}
+
+/** A break being taken is kept: a reload finds it counting down by the wall clock, with the stopwatch paused. */
+export const ABreakSurvivesAReload: Story = {
+  args: { session: open.uid },
+  beforeEach: () => {
+    clearFocus()
+    timing(25 * MINUTE)
+    localStorage.setItem('learning-curve:focus-breaks', 'short')
+    localStorage.setItem(
+      'learning-curve:focus-glass',
+      JSON.stringify({ uid: open.uid, from: 25 * MINUTE, restUntil: Date.now() + 3 * MINUTE, rest: 5 * MINUTE }),
+    )
+    return clearFocus
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText(/0?2:5\d/)).toBeVisible()
+    await expect(canvas.getByRole('button', { name: BACK_TO_WORK })).toBeVisible()
+    await expect(canvas.queryByRole('button', { name: TAKE_BREAK })).toBeNull()
+  },
+}
+
+/** "Later" is kept too: after a reload the skipped break is not due again, and the next one is a whole block on. */
+export const ASkippedBreakStaysSkipped: Story = {
+  args: { session: open.uid },
+  beforeEach: () => {
+    clearFocus()
+    timing(30 * MINUTE)
+    localStorage.setItem('learning-curve:focus-breaks', 'short')
+    localStorage.setItem(
+      'learning-curve:focus-glass',
+      JSON.stringify({ uid: open.uid, from: 27 * MINUTE, restUntil: null, rest: 0 }),
+    )
+    return clearFocus
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText(m.focus_break_in({ minutes: 22 }))).toBeVisible()
+    await expect(canvas.queryByRole('button', { name: TAKE_BREAK })).toBeNull()
+  },
+}
+
+/** A rhythm of your own. The minutes are stored when a field is left or Enter is pressed, not while typing. */
+export const ACustomRhythm: Story = {
+  args: { session: open.uid },
+  beforeEach: fresh,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await userEvent.click(await page.findByRole('button', { name: m.focus_glass_custom() }))
+    const work = page.getByLabelText(m.focus_glass_work())
+    await expect(work).toHaveValue(30)
+    await userEvent.clear(work)
+    await userEvent.type(work, '40')
+    await expect(stored('learning-curve:focus-breaks')).toMatchObject({ work: 30 })
+    await userEvent.keyboard('{Enter}')
+    await expect(page.getByText(m.focus_break_in({ minutes: 40 }))).toBeVisible()
+    await expect(stored('learning-curve:focus-breaks')).toMatchObject({ mode: 'custom', work: 40, rest: 5 })
+  },
+}
+
+/** The glass can be hidden, and stays hidden: the digits are then alone, with the bar of the session under them. */
+export const HideTheGlass: Story = {
+  beforeEach: fresh,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await waitFor(() => glassOf(canvasElement))
+    await userEvent.click(page.getByRole('button', { name: m.focus_glass_hide() }))
+    await expect(canvasElement.querySelector('canvas')).toBeNull()
+    await expect(stored('learning-curve:focus-breaks')).toMatchObject({ hidden: true })
+    await userEvent.click(page.getByRole('button', { name: m.focus_glass_show() }))
+    await waitFor(() => glassOf(canvasElement))
+  },
+}
+
+/** While the sand falls, the tab's title starts with the minutes left; a pause gives the title back. */
+export const TheTitleCountsDown: Story = {
+  args: { session: open.uid },
+  beforeEach: () => {
+    clearFocus()
+    const title = document.title
+    return () => {
+      clearFocus()
+      document.title = title
+    }
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    const base = document.title
+    await userEvent.click(await page.findByRole('button', { name: START }))
+    await waitFor(() => expect(document.title).toBe(`${m.focus_title_left({ minutes: planned / MINUTE })} · ${base}`))
+    await userEvent.click(page.getByRole('button', { name: PAUSE }))
+    await waitFor(() => expect(document.title).toBe(base))
+  },
+}
+
+/** Expand makes the watch the centre of the screen: the glass takes the height and the digits grow with it. */
+export const ExpandGrowsTheWatch: Story = {
+  beforeEach: fresh,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    const glass = await waitFor(() => glassOf(canvasElement))
+    await waitFor(() => expect(glass.getBoundingClientRect().height).toBeGreaterThan(0))
+    const before = {
+      glass: glass.getBoundingClientRect().height,
+      digits: Number.parseFloat(getComputedStyle(timerOf(canvasElement)).fontSize),
+    }
+    await userEvent.click(page.getByRole('button', { name: m.expand() }))
+    await waitFor(() => expect(glassOf(canvasElement).getBoundingClientRect().height).toBeGreaterThan(before.glass))
+    if (window.innerWidth >= 701) {
+      await expect(Number.parseFloat(getComputedStyle(timerOf(canvasElement)).fontSize)).toBeGreaterThan(before.digits)
+    }
   },
 }
