@@ -1,3 +1,188 @@
 # Integration guide
 
-Placeholder: written with the integration code.
+How to show this guide inside a React app, the way the planner does: a button that opens the chapters about the
+current screen in a drawer, in the app's language and theme, loaded from wherever the guide is deployed. Every
+excerpt below is real code from the two hosts in this repository: the planner (`apps/web`) and the test harness
+(`apps/docs-harness`).
+
+## What you get, and what it costs the host
+
+- **Nothing before the first click.** The federation runtime, the manifest and the guide's code load when the drawer
+  is first opened. The host's first bundle does not grow.
+- **One React.** The guide uses the host's React; it downloads none of its own.
+- **No leaks.** The drawer lives in a shadow root under one `<lc-docs>` element: the host's CSS does not reach in, the
+  guide's CSS does not reach out, keys typed in the guide do not trigger the host's shortcuts, and its links never
+  change the host's URL. `destroy()` removes all of it.
+- **The host decides** the language, the theme and which screen the person is on. The guide reports back through
+  typed events.
+- **A fallback.** If the guide cannot be loaded, the host links to the same page of the static site.
+
+Requirements: React within `^19.3.0`, and a way to give the browser a URL at run time.
+
+## 1. Add the two packages
+
+`@lc/docs-contract` holds the types and helpers both sides agree on; `@lc/docs-host` holds the React hook that loads
+the remote. In this repository they are workspace packages:
+
+```json file=apps/web/package.json at=main lines=18-19
+
+```
+
+They are not published to a registry. A host outside this repository would have to vendor them for now.
+
+## 2. Make the address a run-time setting
+
+The guide's address must not be baked into the host's build, or every redeploy of the guide to a new place would mean
+a rebuild of the host. The planner reads it on the server, per request:
+
+```ts file=apps/web/src/server/docs.ts at=main
+
+```
+
+| Variable          | Meaning                                                                                                     | When it is not set                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `DOCS_REMOTE_URL` | The remote's `mf-manifest.json`, e.g. `https://<owner>.github.io/learning-curve/remote/v1/mf-manifest.json` | Development: the local static server on port 4310. Production: no docs button.              |
+| `DOCS_SITE_URL`   | The static site, for the fallback link and "open in a new tab"                                              | Two levels up from the manifest, which is where the site is when both are deployed together |
+
+The harness does the same with query parameters (`?remote=`, `?site=`, `?timeout=`), so one build of it can be pointed
+at any deployment.
+
+## 3. Render a button
+
+`useDocsHost` returns a status, the reason of the last failure, and `open` / `close`. This is the planner's button:
+
+<Walkthrough>
+
+```tsx file=apps/web/src/shell/DocsButton.tsx at=main
+
+```
+
+<WalkStep lines="9-15" title="Map screens to features">
+
+A feature id names a slice of the code (`planner/pages/timeline`). The guide's catalogue knows which chapters built
+each one, so opening on a feature shows "chapters about this screen".
+
+</WalkStep>
+
+<WalkStep lines="28-31" title="The current screen and language">
+
+The route decides the feature. The host's language is passed if the guide has it, and Russian otherwise.
+
+</WalkStep>
+
+<WalkStep lines="33-36" title="The hook">
+
+`theme: 'inherit'` makes the drawer follow the host's colour scheme and design tokens. The context can change at any
+time; the hook passes changes to the open drawer.
+
+</WalkStep>
+
+<WalkStep lines="39-51" title="The fallback">
+
+When loading failed, the button becomes a link to the same target on the static site, built with `docsPageUrl`, and
+stays one until the page is reloaded.
+
+</WalkStep>
+
+<WalkStep lines="52-61" title="Open on click">
+
+`open` loads everything on first use. `aria-busy` tells assistive technology the button is working while it loads.
+
+</WalkStep>
+
+</Walkthrough>
+
+## 4. The context
+
+| Field       | Type                                 | What it does                                                                                                                         |
+| ----------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `locale`    | `'ru' \| 'en' \| 'es'`               | The language of the drawer. Changing it moves the open drawer to the same page in the new language.                                  |
+| `theme`     | `'inherit' \| 'light' \| 'dark'`     | `inherit` follows the host's `color-scheme` and CSS custom properties; `light` and `dark` pin it.                                    |
+| `tokens`    | `Partial<Record<DocsToken, string>>` | Optional CSS values for `bg`, `surface`, `surface-2`, `ink`, `muted`, `line`, `focus`, for a host whose own tokens have other names. |
+| `featureId` | `FeatureId`                          | The slice on screen. The drawer's home page lists the chapters that built it.                                                        |
+| `siteUrl`   | `string`                             | The static site, for "open in a new tab" and the error fallback inside the drawer.                                                   |
+
+A target for `open` is `{ chapterId }` for one chapter or `{ topicId }` for the chapters about a feature. Ids are typed
+by the contract, so a typo does not compile.
+
+## 5. Events
+
+Six events, each with a typed payload. The harness writes all of them to a log:
+
+```tsx file=apps/docs-harness/src/App.tsx at=main lines=45-62
+
+```
+
+| Event                   | Payload                        | When                                                                     |
+| ----------------------- | ------------------------------ | ------------------------------------------------------------------------ |
+| `docs:ready`            | `{ version }`                  | The drawer was created; the contract version the remote implements       |
+| `docs:open`             | a target                       | The host opened the drawer                                               |
+| `docs:navigate`         | a target                       | The person moved to another page inside the drawer                       |
+| `docs:close`            | `{ reason: 'user' \| 'host' }` | The drawer closed: `Escape` or the close button, or the host's `close()` |
+| `docs:language-changed` | `{ locale }`                   | The host changed `locale`                                                |
+| `docs:error`            | `{ feature, message }`         | A page of the guide failed to render; the drawer shows a retry           |
+
+Handlers are read when an event fires, so passing a new object on every render is fine.
+
+## 6. Versions
+
+The contract follows semver, and its changelog is in `packages/docs-contract/CHANGELOG.md`.
+
+- **Minor and patch** releases of the guide are picked up by every host on its next load. Nothing to do.
+- **A major** release is deployed under a new folder (`remote/v2/`) beside the old one. A host keeps loading `v1`
+  until it is upgraded: bump the contract package, fix what the compiler reports, point `DOCS_REMOTE_URL` at `v2`.
+
+The hook refuses a remote of another major before running any of its code, and reports why in `failure`:
+
+| `failure`     | Meaning                                           | What to check                                                                                    |
+| ------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `timeout`     | No answer within `timeoutMs` (8 s by default)     | The guide's host is up; the network                                                              |
+| `unavailable` | The manifest, the entry or a chunk failed to load | The URL; CORS on the guide's host; a deploy that replaced files while the page was open (reload) |
+| `shape`       | The module did not export `createDocsHost`        | The URL points at another remote                                                                 |
+| `version`     | The remote implements another major version       | Point the host at the matching `remote/vN/`, or upgrade the host                                 |
+
+The hook drops a failed load, so calling `open` again tries again. The harness keeps its button for that; the planner
+switches to the link instead.
+
+## 7. Deploy the guide
+
+The guide is static files: the site at the root, the remote under `remote/v1/`, the stand under `stand/`. Any static
+host works if it:
+
+- sends `Access-Control-Allow-Origin` for the remote's files (the host imports them from another origin);
+- does not cache `mf-manifest.json` for long, or lets the host bypass the cache. The hook adds a changing query to the
+  manifest URL. Every other file has a content hash in its name and may be cached forever.
+
+The repository deploys to GitHub Pages, which sends `Access-Control-Allow-Origin: *` and `max-age=600` on every file.
+The build reads two variables:
+
+| Variable      | Used for                                                     | Example                     |
+| ------------- | ------------------------------------------------------------ | --------------------------- |
+| `DOCS_BASE`   | The path the site is served under                            | `/learning-curve/`          |
+| `DOCS_ORIGIN` | Absolute URLs in `hreflang`, canonical links and the sitemap | `https://<owner>.github.io` |
+
+The remote itself needs neither: its chunk URLs are resolved from wherever its manifest was loaded.
+
+If the host sends a Content-Security-Policy, it must allow the guide's origin in `script-src` (the entry and chunks
+are scripts) and `connect-src` (the manifest is fetched), plus Google Fonts (`style-src https://fonts.googleapis.com`,
+`font-src https://fonts.gstatic.com`) unless the host already loads the guide's fonts. Neither host in this repository
+sends a policy: the list follows from what the drawer loads and has not been tested.
+
+## 8. Test it
+
+`apps/docs-harness` is a minimal host with hostile global CSS, shortcuts on the window and a language and theme
+switch. Its Playwright tests load the production build of the guide and check what a host cares about: nothing loads
+before the click, React is not downloaded twice, language and theme follow the host, links move only the drawer,
+styles and keys stay on their side, and the fallback appears when the remote is unreachable.
+
+<Terminal commands={['pnpm docs:test', 'DOCS_BASE=/learning-curve/ pnpm docs:test']} />
+
+## Troubleshooting
+
+| Symptom                                         | Likely cause                                                                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The button turns into a link at once            | The load failed: read `failure` from the hook, then the browser's network panel                                                                              |
+| A CORS error on `mf-manifest.json`              | The guide's host does not send `Access-Control-Allow-Origin`                                                                                                 |
+| A React warning about the shared version        | The host's React is outside `^19.3.0`; the remote still uses the host's copy                                                                                 |
+| A host shortcut fires while typing in the guide | The host listens in the capture phase (`addEventListener(…, true)`), which runs before the event reaches the guide's shadow root and cannot be stopped there |
+| Old chapters right after a deploy               | The static host's cache (ten minutes on GitHub Pages); a reload after that shows the new version                                                             |
