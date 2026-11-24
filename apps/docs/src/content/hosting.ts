@@ -79,7 +79,7 @@ export const PLANNER_HOSTS: readonly Host[] = [
     ssr: 'yes',
     api: 'partial',
     disk: 'no',
-    note: 'Read-only file system: the JSON files and tokens would move to Blob or a database.',
+    note: 'Read-only file system: runs the planner read-only as it is (untested); editing needs Blob or a database.',
   },
   {
     name: 'Netlify',
@@ -88,7 +88,7 @@ export const PLANNER_HOSTS: readonly Host[] = [
     ssr: 'yes',
     api: 'partial',
     disk: 'no',
-    note: '15 credits per production deploy; storage would move to Netlify Blobs.',
+    note: '15 credits per production deploy; read-only as it is (untested), editing needs Netlify Blobs.',
   },
   {
     name: 'Cloudflare Workers',
