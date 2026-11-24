@@ -343,7 +343,7 @@ const CHANGES: Schema[] = [
     ['days', 'hours'],
     change(
       'events.shift',
-      'Moves every session that is not done and starts on `from` or later by whole days, by whole or half hours, or both, in one calendar or in all: the way to make room after time off, or to study later in the day. It does not skip weekends or holidays: check where the sessions land. A session that would cross midnight stops the change.',
+      'Moves every session that is not done and starts on `from` or later by whole days, by whole or half hours, or both, in the calendars named or in all: the way to make room after time off, or to study later in the day. It does not skip weekends or holidays: check where the sessions land. A session that would cross midnight stops the change.',
       {
         from: DAY,
         days: {
@@ -359,7 +359,13 @@ const CHANGES: Schema[] = [
           maximum: 23.5,
           description: 'Hours to move by, whole or half; negative moves earlier. Give `days`, `hours` or both, not 0.',
         },
-        calendar: { type: 'string', description: 'The `id` of the only calendar to shift. Leave out to shift all.' },
+        calendars: {
+          type: 'array',
+          minItems: 1,
+          uniqueItems: true,
+          items: { type: 'string', minLength: 1 },
+          description: 'The `id` of each calendar to shift. Leave out to shift all.',
+        },
       },
       ['from'],
     ),

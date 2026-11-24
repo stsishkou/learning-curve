@@ -69,12 +69,13 @@ export type PlanChange =
   /** Removes everything in the trash for good */
   | { type: 'trash.empty' }
   /**
-   * Moves every session that is not done and starts on `from` (`YYYY-MM-DD`) or later by days, hours or both, in one
-   * calendar or in all of them: the way to catch up after time off, or to study later in the day
+   * Moves every session that is not done and starts on `from` (`YYYY-MM-DD`) or later by days, hours or both, in the
+   * `calendars` named or in all of them: the way to catch up after time off, or to study later in the day
    */
   | {
       type: 'events.shift'
-      calendar?: string | undefined
+      /** Ids, each once; absent for every calendar */
+      calendars?: string[] | undefined
       from: string
       days?: number | undefined
       hours?: number | undefined
@@ -261,10 +262,18 @@ export function parseChange(input: unknown): PlanChange {
       if (days === undefined && hours === undefined) return fail('Give days or hours to shift by, not zero')
       const from = text('from')
       if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) return fail('from must look like 2026-11-23')
-      const { calendar } = input
+      // A change stored before a shift could take several calendars names its one `calendar`.
+      const { calendars = typeof input.calendar === 'string' && input.calendar ? [input.calendar] : undefined } = input
+      const valid =
+        calendars === undefined ||
+        (Array.isArray(calendars) &&
+          calendars.length > 0 &&
+          calendars.every((id): id is string => typeof id === 'string' && id !== '') &&
+          new Set(calendars).size === calendars.length)
+      if (!valid) return fail('calendars must be a list of calendar ids, each once; leave it out for all')
       return {
         type: 'events.shift',
-        calendar: typeof calendar === 'string' && calendar ? calendar : undefined,
+        calendars,
         from,
         days,
         hours,
@@ -492,7 +501,8 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       else fail(`Unknown calendar "${change.calendar}"`)
       break
     case 'events.shift': {
-      if (change.calendar && !calendarExists(change.calendar)) fail(`Unknown calendar "${change.calendar}"`)
+      const unknown = change.calendars?.find((id) => !calendarExists(id))
+      if (unknown !== undefined) fail(`Unknown calendar "${unknown}"`)
       const moved = shiftTargets(applyEdits(base, next).plan, change)
       if (!moved.length) fail('No sessions to move')
       const days = change.days ?? 0
@@ -567,13 +577,16 @@ export function splitInHalves(event: PlanEvent): Extract<PlanChange, { type: 'ev
 }
 
 /** The sessions an `events.shift` change would move, in `plan` as it is shown. */
-export const shiftTargets = (plan: Plan, change: { calendar?: string | undefined; from: string }): PlanEvent[] =>
+export const shiftTargets = (
+  plan: Plan,
+  change: { calendars?: readonly string[] | undefined; from: string },
+): PlanEvent[] =>
   plan.events.filter(
     (e) =>
       isSession(e) &&
       !e.done &&
       e.start.slice(0, 10) >= change.from &&
-      (!change.calendar || e.calendar === change.calendar),
+      (!change.calendars || change.calendars.includes(e.calendar)),
   )
 
 /** True for an event created in the viewer, not generated from the course content. */

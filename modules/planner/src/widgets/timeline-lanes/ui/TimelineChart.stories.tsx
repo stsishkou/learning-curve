@@ -171,7 +171,7 @@ export const Zoomed: Story = {
   },
 }
 
-const moveCerts: PlanChange[] = [{ type: 'events.shift', calendar: 'certs', from: '2026-12-02', days: 14 }]
+const moveCerts: PlanChange[] = [{ type: 'events.shift', calendars: ['certs'], from: '2026-12-02', days: 14 }]
 
 /** A course the draft moves: its old bar stays under the new one, moved sessions are marked, the shift is named. */
 export const ChangedLane: Story = {

@@ -109,7 +109,7 @@ const compare = (changes: PlanChange[]) => {
 
 describe('compareLanes', () => {
   test('a course moved two weeks: its open sessions move and its end moves 14 days', () => {
-    const changed = compare([{ type: 'events.shift', calendar: 'certs', from: '2026-12-02', days: 14 }])
+    const changed = compare([{ type: 'events.shift', calendars: ['certs'], from: '2026-12-02', days: 14 }])
     expect([...changed.keys()]).toEqual(['certs'])
     expect(changed.get('certs')).toMatchObject({ moved: 26, startDays: 0, endDays: 14 })
     expect(changed.get('certs')?.after.last).toBe('2027-01-06')

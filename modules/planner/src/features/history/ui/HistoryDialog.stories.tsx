@@ -65,7 +65,7 @@ export const ShiftsAndRebalance: Story = {
         {
           at: '2026-12-03T08:00:00Z',
           subject: 'Gemini Certs',
-          change: { type: 'events.shift', calendar: 'certs', from: '2026-12-03', days: 1, hours: -1 },
+          change: { type: 'events.shift', calendars: ['certs'], from: '2026-12-03', days: 1, hours: -1 },
         },
         { at: '2026-12-03T08:10:00Z', subject: '', change: { type: 'events.shift', from: '2026-12-03', hours: 0.5 } },
         {

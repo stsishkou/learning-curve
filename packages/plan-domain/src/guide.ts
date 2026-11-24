@@ -194,7 +194,7 @@ The changes you can use:
 | \`event.split\` | Splits the session \`uid\` into \`parts\` (\`start\`, \`end\`) that add up to its length; the first part keeps the uid |
 | \`event.remove\` | Moves the event \`uid\` to the trash (restorable for 30 days) |
 | \`events.move\` | New \`start\` and \`end\` for several sessions (\`moves\`), as one step |
-| \`events.shift\` | Moves every not-done session from the day \`from\` on by \`days\`, \`hours\` or both, in one \`calendar\` or in all |
+| \`events.shift\` | Moves every not-done session from the day \`from\` on by \`days\`, \`hours\` or both, in the \`calendars\` named or in all |
 | \`events.done\` | Marks the sessions \`uids\` done or not done |
 | \`calendar.save\` | Renames or recolors the calendar \`id\` |
 | \`plan.rename\` | Gives the plan another \`title\` |

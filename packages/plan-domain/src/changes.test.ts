@@ -2,11 +2,12 @@ import { Ajv2020 } from 'ajv/dist/2020.js'
 import { describe, expect, test } from 'vitest'
 
 import { applyChange, parseChange, splitInHalves, type NewEvent, type PlanChange } from './changes'
-import { parseLocal } from './dates'
+import { parseLocal, toLocalString } from './dates'
 import { deadlineOf } from './deadlines'
 import { applyEdits, emptyEdits, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
 import { emptyHistory, recordChange } from './history'
+import { isSession } from './progress'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import { UPDATE_CHANGE_TYPES, UPDATE_SCHEMA } from './schema'
 import { TRASH_DAYS, trashOf } from './trash'
@@ -45,12 +46,14 @@ const milestone = (overrides: Record<string, unknown>) => () =>
   })
 
 const length = (event: PlanEvent | undefined) => (event ? parseLocal(event.end) - parseLocal(event.start) : 0)
-const shift = (by: { days?: number; hours?: number }): PlanChange => ({
+const shift = (by: { days?: number; hours?: number }): Extract<PlanChange, { type: 'events.shift' }> => ({
   type: 'events.shift',
-  calendar: 'certs',
+  calendars: ['certs'],
   from: '2026-11-23',
   ...by,
 })
+const firstSessionOf = (calendar: string) =>
+  base.events.find((e) => e.calendar === calendar && isSession(e) && e.start >= '2026-11-23')
 const parseShift = (by: object) => () => parseChange({ type: 'events.shift', from: '2026-11-23', ...by })
 
 /**
@@ -81,7 +84,7 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   'calendar.clear': { type: 'calendar.clear', id: 'journey' },
   'trash.restore': { type: 'trash.restore' },
   'trash.empty': { type: 'trash.empty' },
-  'events.shift': { type: 'events.shift', calendar: 'certs', from: '2026-11-23', days: 1, hours: 0.5 },
+  'events.shift': { type: 'events.shift', calendars: ['certs', 'hfllm'], from: '2026-11-23', days: 1, hours: 0.5 },
   'events.move': {
     type: 'events.move',
     moves: [{ uid: SESSION, start: '2026-11-23T19:00', end: '2026-11-23T20:00' }],
@@ -248,6 +251,36 @@ describe('several sessions', () => {
     expect(find(plan, SESSION)?.start).toBe(itemAt(base.events).start)
     expect(find(plan, NEXT)?.start).toBe('2026-11-24T13:30')
     expect(find(plan, GYM)?.start).toBe(find(base, GYM)?.start)
+  })
+
+  test('events.shift moves the calendars named and leaves the others', () => {
+    const [llm, python] = [firstSessionOf('hfllm'), firstSessionOf('pypy')]
+    const plan = planOf(apply([{ ...shift({ days: 7 }), calendars: ['certs', 'hfllm'] }]))
+    expect(find(plan, SESSION)?.start).toBe('2026-11-30T12:00')
+    expect(find(plan, llm?.uid ?? '')?.start).toBe(toLocalString(parseLocal(llm?.start ?? '') + 7 * 86_400_000))
+    expect(find(plan, python?.uid ?? '')?.start).toBe(python?.start)
+  })
+
+  test('events.shift reads the one calendar of a change stored before it took several', () => {
+    expect(parseChange({ type: 'events.shift', calendar: 'certs', from: '2026-11-23', days: 1 })).toEqual({
+      type: 'events.shift',
+      calendars: ['certs'],
+      from: '2026-11-23',
+      days: 1,
+    })
+  })
+
+  test('events.shift takes a list of calendars, each once, or none for all', () => {
+    expect(parseShift({ days: 1, calendars: [] })).toThrow(/calendars/)
+    expect(parseShift({ days: 1, calendars: 'certs' })).toThrow(/calendars/)
+    expect(parseShift({ days: 1, calendars: ['certs', 'certs'] })).toThrow(/calendars/)
+    expect(() => apply([{ ...shift({ days: 1 }), calendars: ['certs', 'nope'] }])).toThrow('Unknown calendar "nope"')
+  })
+
+  test('a shift of several calendars is one step, named after them', () => {
+    const change = EXAMPLES['events.shift']
+    const history = recordChange(emptyHistory(), base, change, apply([change]))
+    expect(history.steps[0]?.subject).toBe('Gemini Certs, Hugging Face: LLM Course')
   })
 
   test('events.shift by hours moves the start and keeps the length', () => {

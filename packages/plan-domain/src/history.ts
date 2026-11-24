@@ -75,6 +75,10 @@ function subjectOf(plan: Plan, change: PlanChange): string {
     case 'calendar.clear':
       return plan.calendars.find((c) => c.id === change.id)?.name ?? ''
     case 'events.shift':
+      return (change.calendars ?? [])
+        .map((id) => plan.calendars.find((c) => c.id === id)?.name ?? '')
+        .filter(Boolean)
+        .join(', ')
     case 'events.move':
       return change.calendar ? (plan.calendars.find((c) => c.id === change.calendar)?.name ?? '') : ''
     case 'events.done': {

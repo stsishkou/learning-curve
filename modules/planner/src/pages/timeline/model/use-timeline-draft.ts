@@ -67,7 +67,7 @@ async function changesOf(
   const own: PlanChange[] = []
   const step = edit.deadline ? deadlineChange(plan, calendar, edit.deadline) : null
   if (step) own.push(step)
-  if (edit.move) own.push({ type: 'events.shift', calendar, from: today, days: edit.move })
+  if (edit.move) own.push({ type: 'events.shift', calendars: [calendar], from: today, days: edit.move })
   else if (edit.finishBy && rebalance) {
     const base = own.length ? previewUpdate(plan, own).after : plan
     const result = await rebalance(base, finishByRequest(base, { calendar, from: today, finishBy: edit.finishBy }))

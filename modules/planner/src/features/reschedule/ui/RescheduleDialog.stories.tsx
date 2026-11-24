@@ -49,11 +49,18 @@ const ends = (finish: string, before = '2027-02-22') =>
 
 const pause = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+const nameOf = (id: string) => fixturePlan.calendars.find((c) => c.id === id)?.name ?? id
+
+/** Ticks the calendar's chip */
+async function pick(canvasElement: HTMLElement, id: string) {
+  const body = within(canvasElement.ownerDocument.body)
+  await userEvent.click(await body.findByRole('checkbox', { name: nameOf(id) }))
+}
+
 /** One calendar, then the Re-balance mode: the dialog asks for an answer at the default pace. */
 async function rebalanceLlm(canvasElement: HTMLElement) {
   const body = within(canvasElement.ownerDocument.body)
-  const calendar = await body.findByRole('combobox', { name: new RegExp(`^${m.field_calendar()}`) })
-  await userEvent.selectOptions(calendar, 'hfllm')
+  await pick(canvasElement, 'hfllm')
   await userEvent.click(body.getByRole('button', { name: m.reschedule_rebalance() }))
 }
 
@@ -74,7 +81,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Every open session from the chosen day moves by the same days and hours, in every calendar or in one. */
+/** Every open session from the chosen day moves by the same days and hours, in every calendar or in those picked. */
 export const Default: Story = {}
 
 /** Studying an hour later: a shift by hours alone, with no days in it. */
@@ -83,9 +90,52 @@ export const MoveByAnHour: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(await body.findByRole('button', { name: m.reschedule_hour_later() }))
     await userEvent.click(body.getByRole('button', { name: m.reschedule_apply() }))
+    await expect(args.onApply).toHaveBeenCalledWith([{ type: 'events.shift', from: FROM, hours: 1 }])
+  },
+}
+
+const openIn = (ids: string[]) =>
+  fixturePlan.events.filter((e) => ids.includes(e.calendar) && isSession(e) && !e.done && e.start >= FROM).length
+
+/**
+ * Two courses a week later: their open sessions move and the others stay. A deadline belongs to one course, so its
+ * field is gone while two are picked; All calendars takes everything again.
+ */
+export const MoveSeveralCalendars: Story = {
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const all = await body.findByRole('checkbox', { name: m.shift_all() })
+    await expect(all).toBeChecked()
+    await pick(canvasElement, 'hfllm')
+    await waitFor(() => expect(body.getByLabelText(new RegExp(`^${m.reschedule_deadline()}`))).toBeVisible())
+    await pick(canvasElement, 'pypy')
+    await expect(all).not.toBeChecked()
+    await expect(body.queryByLabelText(new RegExp(`^${m.reschedule_deadline()}`))).toBeNull()
+    await expect(body.getByText(m.shift_count({ count: openIn(['hfllm', 'pypy']) }))).toBeVisible()
+    await userEvent.click(body.getByRole('button', { name: m.reschedule_apply() }))
     await expect(args.onApply).toHaveBeenCalledWith([
-      { type: 'events.shift', calendar: undefined, from: FROM, hours: 1 },
+      { type: 'events.shift', calendars: ['hfllm', 'pypy'], from: FROM, days: 7 },
     ])
+    await userEvent.click(all)
+    await expect(body.getByRole('checkbox', { name: nameOf('hfllm') })).not.toBeChecked()
+    await expect(body.getByText(m.shift_count({ count: openIn(fixturePlan.calendars.map((c) => c.id)) }))).toBeVisible()
+  },
+}
+
+/** A re-balance takes one course: with two picked it asks for one, and a chip then picks only that one. */
+export const RebalanceTakesOneCalendar: Story = {
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await pick(canvasElement, 'hfllm')
+    await pick(canvasElement, 'pypy')
+    await userEvent.click(body.getByRole('button', { name: m.reschedule_rebalance() }))
+    await expect(body.getByText(m.reschedule_need_calendar())).toBeVisible()
+    await expect(body.queryByRole('radio', { checked: true })).toBeNull()
+    await userEvent.click(body.getByRole('radio', { name: nameOf('pypy') }))
+    await expect(body.queryByText(m.reschedule_need_calendar())).toBeNull()
+    await waitFor(() =>
+      expect(args.rebalance).toHaveBeenLastCalledWith(fixturePlan, expect.objectContaining({ calendar: 'pypy' })),
+    )
   },
 }
 
@@ -108,10 +158,7 @@ export const MoveOntoAnotherEvent: Story = {
   args: { plan: talk ? { ...fixturePlan, events: [...fixturePlan.events, talk] } : fixturePlan },
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.selectOptions(
-      await body.findByRole('combobox', { name: new RegExp(`^${m.field_calendar()}`) }),
-      'hfllm',
-    )
+    await pick(canvasElement, 'hfllm')
     await userEvent.click(body.getByRole('button', { name: m.reschedule_hour_later() }))
     const overlap = m.ai_warn_overlap({ title: firstOpen?.title ?? '', other: 'Talk' })
     await waitFor(() => expect(body.getByText(overlap)).toBeVisible())
@@ -211,7 +258,9 @@ export const MoveFromTheTimeline: Story = {
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(await body.findByRole('button', { name: m.reschedule_apply() }))
-    await expect(args.onApply).toHaveBeenCalledWith([{ type: 'events.shift', calendar: 'hfllm', from: FROM, days: 14 }])
+    await expect(args.onApply).toHaveBeenCalledWith([
+      { type: 'events.shift', calendars: ['hfllm'], from: FROM, days: 14 },
+    ])
   },
 }
 
@@ -219,10 +268,7 @@ export const MoveFromTheTimeline: Story = {
 export const DeadlineAlone: Story = {
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.selectOptions(
-      await body.findByRole('combobox', { name: new RegExp(`^${m.field_calendar()}`) }),
-      'hfllm',
-    )
+    await pick(canvasElement, 'hfllm')
     await fireEvent.change(body.getByLabelText(new RegExp(`^${m.reschedule_deadline()}`)), {
       target: { value: '2027-02-20' },
     })
