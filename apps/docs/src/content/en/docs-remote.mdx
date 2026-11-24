@@ -1,0 +1,241 @@
+### Two products from one codebase
+
+This guide ships twice from the same components: as a static site, which you may be reading now, and as the remote
+that the planner opens in a drawer. <ChapterLink id="module-federation" /> showed how the remote is loaded. This chapter
+covers what makes it safe to load into somebody else's page: an API that is versioned like a library, styles and keys
+that stay on their own side, and a router that never touches the host's URL.
+
+### The contract is a package
+
+A host and a remote are built and deployed apart, so the compiler cannot check one against the other. The next best
+thing is a small package both sides depend on: types, constants and pure helpers, with no React and no DOM, so
+importing it adds nothing to a host's bundle.
+
+<Walkthrough>
+
+```ts file=packages/docs-contract/src/index.ts at=main lines=9-114
+
+```
+
+<WalkStep lines="9-14" title="A version and the names">
+
+The contract has its own semver, separate from any app. Breaking changes bump the major and are listed in
+`CHANGELOG.md`; the federation names live here too, so neither side spells them by hand.
+
+</WalkStep>
+
+<WalkStep lines="24-41" title="What the host controls">
+
+The context is everything the host decides: the language, the theme (follow the host, or pin light or dark),
+optional design tokens, the feature the person is looking at and where the static site lives. The remote reads it
+and never sets it.
+
+</WalkStep>
+
+<WalkStep lines="43-58" title="Targets and events, as types">
+
+A target is a chapter or a feature. Events are a map from name to payload type, so `on('docs:navigate', handler)`
+gives the handler the right argument type without a cast.
+
+</WalkStep>
+
+<WalkStep lines="60-82" title="The API itself">
+
+Five methods and a version. `destroy()` is part of the contract: the remote must remove everything it added to the
+page. `DocsHelpModule` is what the federated module exports.
+
+</WalkStep>
+
+<WalkStep lines="84-100" title="Checks that run at load">
+
+Types disappear at run time, so two functions check what arrived over the network: the same major version, and the
+right shape.
+
+</WalkStep>
+
+<WalkStep lines="102-114" title="The fallback is part of the contract">
+
+When the remote cannot load, a host should still help. `docsPageUrl` turns the same target into the URL of the static
+page, so the fallback lands on the same chapter.
+
+</WalkStep>
+
+</Walkthrough>
+
+Semver rules for the contract are written down in its changelog: a removed or renamed method, event or id is a major
+change, and the remote of the new major is deployed under a new folder (`remote/v2/`) next to the old one. A host is
+upgraded when its owners choose, not when the guide is deployed.
+
+### Owning everything it adds
+
+The remote's entry module creates the drawer when the host asks, and can take every trace of it away again. Nothing is
+kept at module scope, so two hosts on one page would not share state.
+
+<Walkthrough>
+
+```tsx file=apps/docs/src/remote/help.tsx at=main lines=25-169
+
+```
+
+<WalkStep lines="25-29" title="Keys stay inside">
+
+Key events are composed: they cross the shadow boundary, retargeted to the custom element. The planner binds its
+shortcuts on `window`, so a letter typed in the guide's search would also reach them. Stopping keys at the shadow root
+keeps them in the guide.
+
+</WalkStep>
+
+<WalkStep lines="31-42" title="The theme comes from the host">
+
+With `inherit`, the drawer uses the host's colour scheme and its CSS custom properties, which do cross a shadow
+boundary. `light`, `dark` and explicit tokens override them on the custom element only.
+
+</WalkStep>
+
+<WalkStep lines="56-65" title="A custom element with a shadow root">
+
+Everything the guide renders lives under one `<lc-docs>` element. Its shadow root holds the stylesheet and the React
+root, so the host's selectors cannot match the guide's elements and the guide's selectors cannot match the host's.
+
+</WalkStep>
+
+<WalkStep lines="67-84" title="A typed event channel">
+
+One set of handlers per event name, created per drawer. A handler that throws is caught, so a host's bug cannot break
+the guide or the other handlers.
+
+</WalkStep>
+
+<WalkStep lines="86-90" title="Navigation becomes an event">
+
+The drawer's router reports every resolved page. The host hears `docs:navigate` with a typed target and can, for
+example, log which chapters people open from which screen.
+
+</WalkStep>
+
+<WalkStep lines="110-113" title="Ready after the caller's code">
+
+`docs:ready` is emitted in a microtask, so a handler registered right after `createDocsHost` returns still hears it.
+
+</WalkStep>
+
+<WalkStep lines="140-151" title="Context changes in place">
+
+A new locale moves the drawer's router to the same page in the new language and reports it; a new theme or tokens are
+applied to the element. The drawer is not re-created.
+
+</WalkStep>
+
+<WalkStep lines="159-167" title="destroy() means all of it">
+
+The router subscription, the React root, the element, the stylesheet hoisted to the document and every handler. After
+`destroy()` the page is as it was.
+
+</WalkStep>
+
+</Walkthrough>
+
+### Styles in a shadow root
+
+A shadow root isolates selectors both ways, which is exactly what a guide inside someone else's app needs. It also
+brings two surprises, both handled in one file:
+
+```ts file=apps/docs/src/remote/shadow.ts at=main
+
+```
+
+- **`@property` is ignored inside a shadow tree.** Tailwind 4 registers custom properties with `@property` to give
+  them initial values, and its borders, shadows and transforms rely on those. Inside a shadow root the rules do
+  nothing and borders vanish. The fix is to copy just those rules to the document, where they register properties
+  for the whole page. Registration does not style anything, so the host is unaffected.
+- **Fonts are loaded by the document**, not by the shadow root. The guide adds its font stylesheet to the document
+  head, unless the host already loads the same fonts.
+
+Selectors stop at the boundary, but inherited properties do not: a host's `body { letter-spacing: … }` would still
+reach the guide's text. The remote's stylesheet starts its host element over:
+
+```css file=apps/docs/src/styles/remote.css at=main lines=9-16
+
+```
+
+`all: initial` resets every inherited property except custom properties, so the host's design tokens, which the guide
+reads for its theme, still come through. The test harness keeps both directions honest: its page sets hostile
+styles (uppercase red headings, letter-spacing on `body`, outlines on the guide's own class names), and the tests
+check that none of them reach the drawer and that the guide's styles do not reach the host.
+
+### A router that stays in the drawer
+
+The guide's pages link to each other. In the site those links change the address bar; in the drawer they must not,
+because the address bar belongs to the planner. The drawer creates its own router with a memory history:
+
+```tsx file=apps/docs/src/remote/router.tsx at=main lines=1-2
+
+```
+
+```tsx file=apps/docs/src/remote/router.tsx at=main lines=42-49
+
+```
+
+The paths are the site's own (`/$locale/chapters/$chapterId/`), so every shared component's `<Link>` works in both
+modes unchanged. That includes the links in this prose: they are router links, not `<a href>`, because a plain anchor
+inside the drawer would navigate the planner away.
+
+The drawer itself is a modal `<dialog>`. `showModal()` gives focus trapping, `Escape` to close and an inert page
+behind it, all native, with no focus-trap library.
+
+### The same components, two environments
+
+Chapter pages, decision cards, code blocks and walkthroughs are written once. What differs between the site and the
+drawer is passed through one React context: the reader's language, where the site and the stand live, and a `mode`.
+Components read it instead of asking where they are. The table of contents, for example, appears only in the site,
+because its `#anchor` links would change the host's URL.
+
+### Pre-rendered, in three languages
+
+The site is TanStack Start with pre-rendering, so every page is a real HTML file with its content in it, which is what
+GitHub Pages can serve, search engines can read and the search index can be built from. The list of pages is
+computed once and used three times: for the build, for the sitemap and for each page's `hreflang` links.
+
+<Walkthrough>
+
+```ts file=apps/docs/vite.config.ts at=main lines=12-54
+
+```
+
+<WalkStep lines="12-16" title="Environment at build time">
+
+The base path and origin are build-time inputs here, unlike the remote: absolute `hreflang`, canonical and sitemap
+URLs are written into the HTML.
+
+</WalkStep>
+
+<WalkStep lines="18-29" title="Every page in every language">
+
+Pages come from the contract's chapter list times the three languages, each with its alternates for the sitemap.
+
+</WalkStep>
+
+<WalkStep lines="45-51" title="A broken link fails the build">
+
+With `crawlLinks` and `failOnError`, a link to a page that does not exist stops the build. The stand is filtered out
+because CI copies it next to the site only afterwards.
+
+</WalkStep>
+
+</Walkthrough>
+
+A chapter whose prose has not been translated yet is not missing in Russian or Spanish. It falls back to English and
+says so at the top of the page, and the coverage report (`pnpm --filter @lc/docs coverage`) lists what is left.
+
+### Only real code
+
+The guide claims to show how the project was built, so every excerpt is read from git at build time. A fence names a
+file, a commit and a line range, and the build fills it in:
+
+```ts file=apps/docs/mdx.config.ts at=main lines=31-69
+
+```
+
+A path that does not exist at that commit, or a range past the end of the file, fails the build. The syllabus
+references that are not code fences (files, line ranges, commits) are checked the same way by
+`pnpm --filter @lc/docs test`. Excerpts are never translated: the code is the same in every language.
