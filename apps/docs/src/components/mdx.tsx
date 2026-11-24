@@ -1,6 +1,7 @@
 import type { MDXComponents } from 'mdx/types'
 
 import { ArchitectureMap } from './ArchitectureMap'
+import { ChapterLink } from './ChapterLink'
 import { CodeBlock } from './CodeBlock'
 import { HostingMatrix } from './HostingMatrix'
 import { StoryEmbed, StoryList } from './Story'
@@ -11,6 +12,7 @@ import { WalkStep, Walkthrough } from './Walkthrough'
 export const mdxComponents: MDXComponents = {
   pre: CodeBlock,
   ArchitectureMap,
+  ChapterLink,
   HostingMatrix,
   StoryEmbed,
   StoryList,
