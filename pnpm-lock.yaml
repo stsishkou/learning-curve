@@ -450,6 +450,9 @@ importers:
       '@lc/dashboard':
         specifier: workspace:*
         version: link:../../modules/dashboard
+      '@lc/docs-contract':
+        specifier: workspace:*
+        version: link:../../packages/docs-contract
       '@lc/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

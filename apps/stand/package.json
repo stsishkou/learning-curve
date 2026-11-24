@@ -13,6 +13,7 @@
   "dependencies": {
     "@lc/calendar-export": "workspace:*",
     "@lc/dashboard": "workspace:*",
+    "@lc/docs-contract": "workspace:*",
     "@lc/i18n": "workspace:*",
     "@lc/plan-domain": "workspace:*",
     "@lc/planner": "workspace:*",
