@@ -314,6 +314,25 @@
   "history_start": "Antes de estos cambios",
   "history_here": "ahora",
   "history_undone": "deshecho",
+  "history_trim": "Borrar el historial",
+  "history_trim_confirm": "¿Dejar solo el primer cambio y el actual? Los cambios intermedios se integran en el actual y los deshechos se descartan. El plan no cambia.",
+  "history_trim_now": "Borrar",
+  "history_folded_hint": "Quitados del historial: deshacer este cambio también los revierte",
+  "history_folded": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "+{count} cambio anterior",
+        "countPlural=*": "+{count} cambios anteriores"
+      }
+    }
+  ],
   "history_added": "Añadido: {name}",
   "history_calendar_changed": "Calendario cambiado: {name}",
   "history_restored": "Restaurado de la papelera",

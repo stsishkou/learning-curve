@@ -11,6 +11,7 @@ import {
   recordChange,
   trashOf,
   travel,
+  trimHistory,
   type HistoryView,
   type Plan,
   type PlanChange,
@@ -51,6 +52,8 @@ interface Host {
   onChange: (change: PlanChange) => Promise<void>
   /** Moves the plan to a point of its history. Resolves once `state` is fresh. */
   onTravel: (cursor: number) => Promise<void>
+  /** Keeps the first change and the current one in the history. Resolves once `state` is fresh. */
+  onTrimHistory: () => Promise<void>
   /** Stores several changes in order, all or none. Without it they are sent one by one */
   onChangeAll?: ((changes: PlanChange[]) => Promise<void>) | undefined
 }
@@ -59,7 +62,7 @@ interface Host {
  * The plan on screen and the one way to change it. Normally that is the project plan and changes go to the host;
  * while a file is open, the file is shown and changes stay in the browser until it is downloaded.
  */
-export function usePlanSession(state: PlannerState, { onChange, onTravel, onChangeAll }: Host) {
+export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrimHistory, onChangeAll }: Host) {
   const [file, setFile] = useState<OpenFile | null>(null)
   // Changes on their way to the host, shown at once so a dragged event does not jump back while saving.
   const [pending, setPending] = useState<PlanChange[]>([])
@@ -136,6 +139,11 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onChan
     [file, onTravel],
   )
 
+  const trim = useCallback(async () => {
+    if (!file) return onTrimHistory()
+    setFile({ ...file, history: trimHistory(file.history) })
+  }, [file, onTrimHistory])
+
   const edited = useMemo(() => new Set(file ? editedUids(file.edits) : state.edited), [file, state.edited])
 
   return {
@@ -148,6 +156,7 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onChan
     changeAll,
     history,
     travel: go,
+    trimHistory: trim,
     /** The step a bar offers to take back right after it was made */
     lastStep: justChanged && history.cursor > 0 ? (history.steps[history.cursor - 1] ?? null) : null,
     dismissLastStep: () => setJustChanged(false),

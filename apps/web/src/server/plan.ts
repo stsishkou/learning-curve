@@ -17,6 +17,7 @@ import {
   parseChange,
   trashOf,
   travel,
+  trimHistory,
   type HistoryView,
   type Plan,
   type PlanTrash,
@@ -93,3 +94,10 @@ export const travelPlanHistory = createServerFn({ method: 'POST' })
     writeHistory(history)
     return pushed(written.plan)
   })
+
+/** Keeps the ends of the history, the first change and the current one; the plan itself stays as it is. */
+export const trimPlanHistory = createServerFn({ method: 'POST' }).handler((): PlanState => {
+  mustWrite()
+  writeHistory(trimHistory(currentHistory()))
+  return state(readPlan())
+})

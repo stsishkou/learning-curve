@@ -48,6 +48,7 @@ export {
 } from './changes'
 export { changedFields, diffPlans, type ChangedField, type PlanDiff } from './diff'
 export {
+  canTrim,
   emptyHistory,
   historyEdits,
   historyView,
@@ -55,6 +56,7 @@ export {
   parseHistory,
   recordChange,
   travel,
+  trimHistory,
   type HistoryStep,
   type HistoryView,
   type PlanHistory,

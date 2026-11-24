@@ -98,6 +98,8 @@ interface Props {
   onChange: (change: PlanChange) => Promise<void>
   /** Moves the plan to a point of its history: 0 is before the first change. Resolves once `state` is fresh. */
   onTravel: (cursor: number) => Promise<void>
+  /** Keeps only the first change and the current one in the history. Resolves once `state` is fresh. */
+  onTrimHistory: () => Promise<void>
   /** Stores the changes of an update in order, all or none. Without it they are sent to `onChange` one by one */
   onChangeAll?: (changes: PlanChange[]) => Promise<void>
   /** Present when the host keeps plan files with versions: the plan file reader lists them */
@@ -148,6 +150,7 @@ export function PlannerPage({
   onSearchChange,
   onChange,
   onTravel,
+  onTrimHistory,
   onChangeAll,
   library,
   headerAside,
@@ -162,7 +165,7 @@ export function PlannerPage({
   const now = useNow()
   const mod = useModKey()
   const { hidden, toggle, solo, showAll, reset } = useHiddenCalendars()
-  const session = usePlanSession(state, { onChange, onTravel, onChangeAll })
+  const session = usePlanSession(state, { onChange, onTravel, onTrimHistory, onChangeAll })
   const { plan, canEdit } = session
   const nav = usePlannerView(plan, search, onSearchChange)
   const { view, weekStart } = nav
@@ -626,6 +629,7 @@ export function PlannerPage({
         mod={mod}
         now={now}
         onTravel={session.travel}
+        onTrim={session.trimHistory}
         onClose={() => dialogs.hide('history')}
       />
       <SecondZoneDialog

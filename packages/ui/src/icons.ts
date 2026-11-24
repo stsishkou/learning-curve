@@ -25,6 +25,7 @@ export {
   Copy,
   Download,
   EllipsisVertical,
+  Eraser,
   ExternalLink,
   Eye,
   FileText,

@@ -17,6 +17,8 @@ export interface HistoryStep {
   /** Title of the event or name of the calendar it touched, as it was then; empty when it touched neither */
   subject: string
   source?: StepSource | undefined
+  /** Changes made before this one that the history no longer lists: undoing this step takes them back too */
+  folded?: number | undefined
 }
 
 interface StoredStep extends HistoryStep {
@@ -127,13 +129,32 @@ export const travel = (history: PlanHistory, cursor: number): PlanHistory => ({
 export const inSync = (history: PlanHistory, edits: PlanEdits) =>
   JSON.stringify(historyEdits(history)) === JSON.stringify(edits)
 
+/**
+ * The history with only its ends: the first change and the current one, which takes in the changes between them,
+ * so that undoing it goes back to the first. Undone changes are dropped. The plan stays where it is.
+ */
+export function trimHistory(history: PlanHistory): PlanHistory {
+  const applied = history.steps.slice(0, history.cursor)
+  const [first, ...rest] = applied
+  const current = rest.at(-1)
+  if (!first || !current) return { ...history, steps: applied }
+  const between = rest.slice(0, -1)
+  const folded = between.reduce((sum, step) => sum + 1 + (step.folded ?? 0), current.folded ?? 0)
+  return { ...history, steps: [first, between.length ? { ...current, folded } : current], cursor: 2 }
+}
+
+/** False when trimming would leave the history as it is */
+export const canTrim = (history: { steps: readonly unknown[]; cursor: number }) =>
+  history.steps.length > Math.min(history.cursor, 2)
+
 export const historyView = (history: PlanHistory): HistoryView => ({
   cursor: history.cursor,
-  steps: history.steps.map(({ at, change, subject, source }) => ({
+  steps: history.steps.map(({ at, change, subject, source, folded }) => ({
     at,
     change,
     subject,
     ...(source ? { source } : {}),
+    ...(folded ? { folded } : {}),
   })),
 })
 
@@ -148,6 +169,9 @@ export function parseHistory(value: unknown): PlanHistory {
         change: parseChange(raw.change),
         subject: typeof raw.subject === 'string' ? raw.subject : '',
         ...(isCalendarProvider(raw.source) ? { source: raw.source } : {}),
+        ...(typeof raw.folded === 'number' && Number.isInteger(raw.folded) && raw.folded > 0
+          ? { folded: raw.folded }
+          : {}),
         edits: parseEdits(raw.edits),
       }
     })

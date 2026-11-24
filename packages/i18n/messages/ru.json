@@ -324,6 +324,27 @@
   "history_start": "До этих изменений",
   "history_here": "сейчас",
   "history_undone": "отменено",
+  "history_trim": "Очистить историю",
+  "history_trim_confirm": "Оставить только первое изменение и текущее? Изменения между ними войдут в текущее, а отменённые пропадут. Сам план не изменится.",
+  "history_trim_now": "Очистить",
+  "history_folded_hint": "Убраны из истории: отмена этого изменения вернёт и их",
+  "history_folded": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "+{count} изменение раньше",
+        "countPlural=few": "+{count} изменения раньше",
+        "countPlural=many": "+{count} изменений раньше",
+        "countPlural=*": "+{count} изменения раньше"
+      }
+    }
+  ],
   "history_added": "Добавлено: {name}",
   "history_calendar_changed": "Календарь изменён: {name}",
   "history_restored": "Восстановлено из корзины",

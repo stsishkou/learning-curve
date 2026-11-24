@@ -15,7 +15,7 @@ import {
   syncCalendarNow,
 } from '#/server/calendars'
 import { getPlanFile, getPlanFiles, removeSavedPlan, renameSavedPlan, savePlanFile } from '#/server/library'
-import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory } from '#/server/plan'
+import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory, trimPlanHistory } from '#/server/plan'
 import { rebalancePlan } from '#/server/reschedule'
 import { ShellAside, STAND_URL } from '#/shell/ShellAside'
 import { setTheme } from '#/shell/theme'
@@ -81,6 +81,10 @@ function PlannerRoute() {
       }}
       onTravel={async (cursor) => {
         await travelPlanHistory({ data: cursor })
+        await router.invalidate()
+      }}
+      onTrimHistory={async () => {
+        await trimPlanHistory()
         await router.invalidate()
       }}
       onChangeAll={async (changes) => {

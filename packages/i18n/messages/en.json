@@ -314,6 +314,25 @@
   "history_start": "Before these changes",
   "history_here": "now",
   "history_undone": "undone",
+  "history_trim": "Clear history",
+  "history_trim_confirm": "Keep only the first change and the current one? The changes between them fold into the current one, and undone ones are dropped. The plan stays as it is.",
+  "history_trim_now": "Clear",
+  "history_folded_hint": "Cleared from the history: undoing this change takes them back too",
+  "history_folded": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "+{count} earlier change",
+        "countPlural=*": "+{count} earlier changes"
+      }
+    }
+  ],
   "history_added": "Added: {name}",
   "history_calendar_changed": "Calendar changed: {name}",
   "history_restored": "Restored from the trash",

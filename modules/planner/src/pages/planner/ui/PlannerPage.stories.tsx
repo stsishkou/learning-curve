@@ -10,6 +10,7 @@ import {
   recordChange,
   trashOf,
   travel,
+  trimHistory,
   ymd,
 } from '@lc/plan-domain'
 import { fixtureEdited, fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
@@ -59,6 +60,10 @@ function Host(props: ComponentProps<typeof PlannerPage>) {
         await props.onTravel(cursor)
         setHistory((prev) => travel(prev, cursor))
       }}
+      onTrimHistory={async () => {
+        await props.onTrimHistory()
+        setHistory(trimHistory)
+      }}
     />
   )
 }
@@ -84,6 +89,7 @@ const meta = {
     onSearchChange: fn(),
     onChange: fn(async () => {}),
     onTravel: fn(async () => {}),
+    onTrimHistory: fn(async () => {}),
     commands: [{ id: 'host', group: 'Host', label: 'A command the host adds', run: fn() }],
   },
   argTypes: { state: { control: false } },

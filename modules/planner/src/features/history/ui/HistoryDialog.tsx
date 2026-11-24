@@ -1,7 +1,15 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { hm, startOfDay, toMinsk, type CalendarProvider, type HistoryView, type PlanChange } from '@lc/plan-domain'
-import { Button, CalendarSync, FOOT, Kbd, META, Modal, Redo2, TITLE, Undo2 } from '@lc/ui'
+import {
+  canTrim,
+  hm,
+  startOfDay,
+  toMinsk,
+  type CalendarProvider,
+  type HistoryView,
+  type PlanChange,
+} from '@lc/plan-domain'
+import { Button, CalendarSync, Eraser, FOOT, Kbd, META, Modal, Redo2, TITLE, Undo2 } from '@lc/ui'
 import { useState } from 'react'
 
 import { appTitle } from '../../../shared/lib'
@@ -18,6 +26,8 @@ interface Props {
   now: number | null
   /** Rejects with the reason when the plan cannot be moved there */
   onTravel: (cursor: number) => Promise<void>
+  /** Keeps the first change and the current one; rejects with the reason */
+  onTrim: () => Promise<void>
   onClose: () => void
 }
 
@@ -32,20 +42,29 @@ const SIGN: Partial<Record<PlanChange['type'], string>> = {
 }
 
 /** Every change as a timeline: pick a point to move the plan there, back or forward. */
-export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Props) {
+export function HistoryDialog({ open, history, mod, now, onTravel, onTrim, onClose }: Props) {
   const [error, setError] = useState('')
+  const [confirming, setConfirming] = useState(false)
   const { steps, cursor } = history
 
-  async function go(to: number) {
+  async function attempt(work: () => Promise<void>) {
     try {
-      await onTravel(to)
+      await work()
       setError('')
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
     }
+    setConfirming(false)
   }
+  const go = (to: number) => attempt(() => onTravel(to))
 
-  const point = (to: number, sign: string, label: string, time: string, source?: CalendarProvider) => {
+  const point = (
+    to: number,
+    sign: string,
+    label: string,
+    time: string,
+    { source, folded }: { source?: CalendarProvider | undefined; folded?: number | undefined } = {},
+  ) => {
     const current = to === cursor
     const undone = to > cursor
     return (
@@ -71,6 +90,11 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
                 <span className="sr-only">{appTitle(source)}</span>
               </span>
             )}
+            {folded !== undefined && (
+              <span className="flex-none text-[12px] text-muted" data-tip={m.history_folded_hint()}>
+                {m.history_folded({ count: folded })}
+              </span>
+            )}
           </span>
           <span className="text-[12.5px] text-muted tabular-nums">
             {current ? m.history_here() : undone ? m.history_undone() : time}
@@ -81,9 +105,35 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
   }
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <h3 className={TITLE}>{m.history()}</h3>
+    <Modal
+      open={open}
+      onClose={() => {
+        setConfirming(false)
+        onClose()
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 className={TITLE}>{m.history()}</h3>
+        {canTrim(history) && (
+          <Button
+            className="-my-1 flex flex-none items-center gap-1.5 px-2.5! py-1! text-[13px]"
+            icon={<Eraser size={14} aria-hidden />}
+            label={m.history_trim()}
+            aria-expanded={confirming}
+            onClick={() => setConfirming(!confirming)}
+          />
+        )}
+      </div>
       <div className={META}>{m.history_hint()}</div>
+      {confirming && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-today/40 bg-[color-mix(in_srgb,var(--today)_6%,var(--surface))] px-3 py-2.5">
+          <p className="basis-full text-[13px] text-today-ink">{m.history_trim_confirm()}</p>
+          <Button className="border-today text-today-ink" onClick={() => void attempt(onTrim)}>
+            {m.history_trim_now()}
+          </Button>
+          <Button onClick={() => setConfirming(false)}>{m.cancel()}</Button>
+        </div>
+      )}
 
       {steps.length === 0 ? (
         <p className="mt-6 mb-2 text-center text-[14px] text-muted">{m.history_empty()}</p>
@@ -94,7 +144,7 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
               const at = toMinsk(Date.parse(step.at))
               const today = now !== null && startOfDay(at) === startOfDay(now)
               const time = today ? hm(at) : fmtDay(at)
-              return point(i + 1, SIGN[step.change.type] ?? '✎', describeStep(step), time, step.source)
+              return point(i + 1, SIGN[step.change.type] ?? '✎', describeStep(step), time, step)
             })
             .toReversed()}
           {point(0, '○', m.history_start(), '')}
@@ -106,6 +156,7 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
           {error}
         </p>
       )}
+      {/* The shortcuts mean nothing on a touch screen, where the row would only wrap on their account */}
       <div className={FOOT}>
         <span className="mr-auto flex flex-wrap gap-2">
           <Button
@@ -115,7 +166,9 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
             label={m.undo()}
             onClick={() => void go(cursor - 1)}
           >
-            <Kbd>{mod} Z</Kbd>
+            <span className="hidden md:inline-flex">
+              <Kbd>{mod} Z</Kbd>
+            </span>
           </Button>
           <Button
             className="flex items-center gap-1.5"
@@ -124,7 +177,9 @@ export function HistoryDialog({ open, history, mod, now, onTravel, onClose }: Pr
             label={m.redo()}
             onClick={() => void go(cursor + 1)}
           >
-            <Kbd>{mod} ⇧ Z</Kbd>
+            <span className="hidden md:inline-flex">
+              <Kbd>{mod} ⇧ Z</Kbd>
+            </span>
           </Button>
         </span>
         <Button onClick={onClose}>{m.close()}</Button>

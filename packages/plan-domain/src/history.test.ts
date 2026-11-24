@@ -2,7 +2,18 @@ import { expect, test } from 'vitest'
 
 import { applyChange, type PlanChange } from './changes'
 import { applyEdits, emptyEdits } from './edits'
-import { HISTORY_LIMIT, emptyHistory, historyEdits, inSync, parseHistory, recordChange, travel } from './history'
+import {
+  HISTORY_LIMIT,
+  canTrim,
+  emptyHistory,
+  historyEdits,
+  historyView,
+  inSync,
+  parseHistory,
+  recordChange,
+  travel,
+  trimHistory,
+} from './history'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
 
 const base = buildPlan(DEFAULT_CONFIG, '2026-11-22')
@@ -63,4 +74,42 @@ test('a history survives JSON, and a broken one reads as empty', () => {
   expect(parseHistory(JSON.parse(stored))).toEqual(history)
   expect(parseHistory({ steps: [{ at: 'now', change: { type: 'nope' } }] })).toEqual(emptyHistory())
   expect(parseHistory(null)).toEqual(emptyHistory())
+})
+
+test('trimming keeps the first change and the current one, which takes back those between', () => {
+  const history = record([rename('One'), rename('Two'), rename('Three'), rename('Four')])
+  const trimmed = trimHistory(history)
+  expect(trimmed.steps.map((step) => step.subject)).toEqual(['One', 'Four'])
+  expect(historyView(trimmed).steps.map((step) => step.folded)).toEqual([undefined, 2])
+  expect(trimmed.cursor).toBe(2)
+  expect(historyEdits(trimmed)).toEqual(historyEdits(history))
+  expect(titleAt(trimmed, 1)).toBe('One')
+  expect(trimmed.origin).toEqual(history.origin)
+})
+
+test('trimming drops the undone steps and leaves the plan where it is', () => {
+  const undone = travel(record([rename('One'), rename('Two'), rename('Three'), rename('Four')]), 3)
+  const trimmed = trimHistory(undone)
+  expect(trimmed.steps.map((step) => step.subject)).toEqual(['One', 'Three'])
+  expect(titleAt(trimmed)).toBe('Three')
+  expect(trimHistory(travel(undone, 0)).steps).toEqual([])
+})
+
+test('a history with only its ends left has nothing to trim', () => {
+  const two = record([rename('One'), rename('Two')])
+  expect(canTrim(historyView(two))).toBe(false)
+  expect(trimHistory(two)).toEqual(two)
+  expect(canTrim(historyView(travel(two, 1)))).toBe(true)
+  expect(canTrim(historyView(record([rename('One'), rename('Two'), rename('Three')])))).toBe(true)
+})
+
+test('folded changes add up over trims and survive JSON', () => {
+  const once = trimHistory(record([rename('One'), rename('Two'), rename('Three')]))
+  const twice = trimHistory(record([rename('Four'), rename('Five')], once))
+  expect(twice.steps.map((step) => [step.subject, step.folded])).toEqual([
+    ['One', undefined],
+    ['Five', 3],
+  ])
+  const stored = JSON.stringify(twice)
+  expect(parseHistory(JSON.parse(stored))).toEqual(twice)
 })
