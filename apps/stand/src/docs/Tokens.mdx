@@ -1,0 +1,64 @@
+import { Meta, Unstyled } from '@storybook/addon-docs/blocks'
+
+import { Breakpoints, Colors, Radii, Shadow, Typography } from './tokens'
+
+<Meta title="Design tokens" />
+
+# Design tokens
+
+The tokens live in `packages/ui/src/theme.css`, the one stylesheet every app imports
+(`@import '@lc/ui/theme.css'`). The colors, the font families, the shadow and the breakpoints below are parsed
+from that file when this page renders. Switch the theme in the toolbar: the samples follow it.
+
+## Colors
+
+Colors are CSS custom properties on `:root`. The dark values replace them in one place, so components never
+use a `dark:` variant: they use the Tailwind utility named after the token (`bg-surface`, `text-muted`,
+`border-line`) and get both themes.
+
+The scheme follows the system until `<meta name="color-scheme">` pins it to `light` or `dark`. That is what
+the app's theme switch does, and what the toolbar of this stand does.
+
+<Unstyled>
+  <Colors />
+</Unstyled>
+
+One more color is not a token but a variable: `--c`, the color of a calendar. Set it with `calendarColor()`
+on the element that owns an event, a chip or a legend row; `bg-cal`, `border-cal`, `text-cal` and
+`stroke-cal` read it. See **UI kit / calendarColor**.
+
+## Typography
+
+Two families, both loaded from Google Fonts by the app's document: Golos Text (400, 500, 600) for text and
+Unbounded (500, 700) for the big numbers and the page title. The base is 15px with a line height of 1.5.
+There is no type scale in the theme: components set sizes in place (`text-[13.5px]`), and the samples below
+are the ones that repeat.
+
+<Unstyled>
+  <Typography />
+</Unstyled>
+
+## Radii
+
+The theme defines no radius tokens. The kit uses Tailwind's default radius scale plus one value of its own,
+10px, for buttons and chips.
+
+<Unstyled>
+  <Radii />
+</Unstyled>
+
+## Shadow
+
+One shadow, `shadow-card`: a hairline under buttons and cards in the light theme, none in the dark one.
+
+<Unstyled>
+  <Shadow />
+</Unstyled>
+
+## Breakpoints
+
+Tailwind's default breakpoints are removed; only these two exist.
+
+<Unstyled>
+  <Breakpoints />
+</Unstyled>

@@ -1,0 +1,79 @@
+import { fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
+import type { Meta, StoryObj } from '@storybook/react-vite'
+import { useState, type ComponentProps } from 'react'
+import { expect, fn, userEvent, within } from 'storybook/test'
+
+import { CalendarFilter } from './CalendarFilter'
+
+/** Keeps the hidden set the way the page does with `useHiddenCalendars`, without the browser storage. */
+function Stateful(props: ComponentProps<typeof CalendarFilter>) {
+  const [hidden, setHidden] = useState(props.hidden)
+  const toggle = (id: string) => {
+    const next = new Set(hidden)
+    if (!next.delete(id)) next.add(id)
+    setHidden(next)
+    props.onToggle(id)
+  }
+  const solo = (id: string) => {
+    const others = props.calendars.filter((c) => c.id !== id).map((c) => c.id)
+    const alreadySolo = !hidden.has(id) && others.every((other) => hidden.has(other))
+    setHidden(new Set(alreadySolo ? [] : others))
+    props.onSolo(id)
+  }
+  return (
+    <CalendarFilter
+      {...props}
+      hidden={hidden}
+      onToggle={toggle}
+      onSolo={solo}
+      onShowAll={hidden.size ? () => setHidden(new Set()) : undefined}
+    />
+  )
+}
+
+const meta = {
+  title: 'Planner/Features/CalendarFilter',
+  component: CalendarFilter,
+  args: {
+    calendars: fixturePlan.calendars,
+    hidden: new Set<string>(),
+    onToggle: fn(),
+    onSolo: fn(),
+    onManage: fn(),
+  },
+  argTypes: { hidden: { control: false } },
+  render: (args) => <Stateful {...args} />,
+} satisfies Meta<typeof CalendarFilter>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Default: Story = {
+  play: async ({ canvasElement, args }) => {
+    const chip = within(canvasElement).getByRole('button', { name: 'Practical Python' })
+    await userEvent.click(chip)
+    await expect(args.onToggle).toHaveBeenCalledWith('pypy')
+    await expect(chip).toHaveAttribute('aria-pressed', 'false')
+  },
+}
+
+export const SomeHidden: Story = { args: { hidden: new Set(['journey', 'personal']) } }
+
+/** Without `onManage` there is no button for the calendars dialog. */
+export const ReadOnly: StoryObj<typeof CalendarFilter> = { args: { onManage: undefined } }
+
+/**
+ * The eye on a chip (it shows under the pointer or with the keyboard focus) leaves that calendar as the only one;
+ * the `Show all` chip that appears while anything is hidden brings the rest back.
+ */
+export const OnlyOne: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const eyes = canvasElement.querySelectorAll<HTMLButtonElement>('span > button + button')
+    await userEvent.click(itemAt(eyes, 1))
+    await expect(args.onSolo).toHaveBeenCalledWith(itemAt(fixturePlan.calendars, 1).id)
+    await expect(canvasElement.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1)
+    await userEvent.click(canvas.getByRole('button', { name: /Show all|Показать все|Mostrar todos/ }))
+    await expect(canvasElement.querySelectorAll('[aria-pressed="false"]')).toHaveLength(0)
+  },
+}

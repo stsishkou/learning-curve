@@ -1,0 +1,35 @@
+{
+  "name": "@lc/calendar-export",
+  "private": true,
+  "description": "Microfrontend: exporting the plan to .ics files for Google Calendar and Outlook. Feature-Sliced layers inside",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "lint:fsd": "steiger ./src"
+  },
+  "dependencies": {
+    "@lc/i18n": "workspace:*",
+    "@lc/plan-domain": "workspace:*",
+    "@lc/ui": "workspace:*",
+    "jszip": "3.10.2"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "storybook": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:module",
+      "scope:calendar-export"
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@lc/web",
+  "private": true,
+  "description": "The deployable web app: TanStack Start shell that composes the modules",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node .output/server/index.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json"
+  },
+  "dependencies": {
+    "@inlang/paraglide-js": "catalog:",
+    "@lc/calendar-export": "workspace:*",
+    "@lc/dashboard": "workspace:*",
+    "@lc/i18n": "workspace:*",
+    "@lc/plan-data": "workspace:*",
+    "@lc/plan-domain": "workspace:*",
+    "@lc/planner": "workspace:*",
+    "@lc/ui": "workspace:*",
+    "@tailwindcss/vite": "4.3.5",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-start": "1.169.7",
+    "highs": "catalog:",
+    "jszip": "3.10.2",
+    "nitro": "3.0.261103-rc",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "6.3.0",
+    "vite": "8.3.8"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:web"
+    ]
+  }
+}

@@ -1,0 +1,878 @@
+import { dowShort, fmtDay, fmtDuration, fmtHours, fmtShift } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import {
+  countsToBudget,
+  DAY,
+  durationHours,
+  hm,
+  HOUR,
+  layoutLanes,
+  parseLocal,
+  type BusyBlock,
+  type Occurrence,
+  type Plan,
+  type PlanEvent,
+  realLength,
+  startOfDay,
+  toLocalString,
+  ymd,
+} from '@lc/plan-domain'
+import { calendarColor, GraduationCap, Repeat, Timer } from '@lc/ui'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react'
+
+import { eventKey, useFillHeight, useJustDone } from '../../../shared/lib'
+import { useEdgePull, type Pull } from '../model/use-edge-pull'
+
+interface Props {
+  plan: Plan
+  /** The first day shown, Minsk wall-clock ms: the Monday of a week, or the one day of the day view */
+  weekStart: number
+  /** How many day columns: 7 for a week, 5 for a work week, 1 for a day */
+  dayCount?: number
+  /** Height of one hour in px: the time scale */
+  hourHeight?: number
+  /** All 24 hours in a scrolling grid; otherwise only the hours around the week's events */
+  fullDay?: boolean
+  /** The occurrences of that week, with the hidden calendars already left out */
+  items: Occurrence[]
+  /** Minsk wall-clock ms; null before the clock is known, as on the server */
+  now: number | null
+  /** Called with the event that was clicked: the page opens its dialog */
+  onSelect: (e: PlanEvent) => void
+  /** Present when the plan can be edited: called with the new slot (wall-clock ms) of a dragged or resized event */
+  onMove?: ((o: Occurrence, slot: { s: number; e: number }) => void) | undefined
+  /** Called when Delete is pressed on a focused event */
+  onRemove?: ((o: Occurrence) => void) | undefined
+  /**
+   * Present when events can be added: called with the slot that was double-clicked, or with the start and the end
+   * of the stretch drawn with the pointer on an empty part of a day, `YYYY-MM-DDTHH:MM`
+   */
+  onCreate?: ((start: string, end?: string) => void) | undefined
+  /** An event that is not stored yet, drawn dashed in its slot while its form is open */
+  draft?: DraftSlot | null
+  /** A second clock in the hour column: `label` names it, `shift` is what it is ahead of the plan's clock, in ms */
+  secondZone?: { label: string; shift: number } | null
+  /**
+   * Busy time of the person's own calendar, drawn in grey behind the events. It cannot be opened or moved, and the
+   * hours of the grid do not grow to hold it: it matters where the plan is.
+   */
+  busy?: BusyBlock[]
+  /** `eventKey` of the occurrence whose dialog is open: it gets a ring */
+  selectedKey?: string | null | undefined
+  /** An event being dragged in from outside the grid, such as a missed session: a slot under the pointer shows where it lands */
+  carried?: PlanEvent | null | undefined
+  /** Called with the start (wall-clock ms) of the slot `carried` was dropped on; its length stays */
+  onDropIn?: ((start: number) => void) | undefined
+}
+
+export interface DraftSlot {
+  /** wall-clock ms */
+  s: number
+  e: number
+  title: string
+  /** id of the calendar it takes its color from */
+  calendar: string
+}
+
+const DEFAULT_HOUR_HEIGHT = 56
+/** Narrowest a day column gets before the grid scrolls sideways, in px */
+const MIN_COLUMN = 101
+const GUTTER = 52
+/** With a second clock next to the plan's own */
+const GUTTER_TWO_ZONES = 108
+/** The `lg` breakpoint: from here the page puts the side panel next to the grid. */
+const TWO_COLUMNS = 961
+const SNAP = HOUR / 2
+/** Pointer travel in px before a press counts as a drag instead of a click */
+const DRAG_THRESHOLD = 5
+/** How long a finger rests on an event before it is picked up, in ms */
+const LONG_PRESS = 350
+/** How long the focus is given back to an event moved with the keyboard, in ms */
+const REFOCUS_FOR = 3000
+
+const HEAD = 'border-b border-line text-muted'
+// The hour column stays in place while the days scroll sideways on a narrow screen.
+const PINNED = 'sticky left-0 z-4 bg-surface'
+const DAY_OFF = 'bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line-soft)_6px_8px)]'
+const EVENT =
+  'absolute motion-safe:animate-[lc-rise_180ms_ease-out] overflow-hidden rounded-lg border-l-4 border-cal px-[7px] py-[5px] text-left text-[12px]/[1.3] text-ink transition-shadow duration-150 hover:z-2 hover:shadow-[0_6px_16px_rgb(10_16_30/0.18)]'
+const WEEKEND = 'bg-[color-mix(in_srgb,var(--muted)_5%,transparent)]'
+const isWeekend = (d: number) => new Date(d).getUTCDay() % 6 === 0
+const EVENT_BUSY =
+  'bg-[color-mix(in_srgb,var(--c)_16%,var(--surface))] hover:bg-[color-mix(in_srgb,var(--c)_26%,var(--surface))]'
+const EVENT_FREE =
+  'border-dashed bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_10%,var(--surface))_0_6px,var(--surface)_6px_12px)]'
+// A done event is toned down through its colours, not opacity: its text has to stay readable.
+const EVENT_DONE =
+  'border-[color-mix(in_srgb,var(--c)_45%,var(--surface))] bg-[color-mix(in_srgb,var(--c)_6%,var(--surface))] text-muted hover:bg-[color-mix(in_srgb,var(--c)_14%,var(--surface))]'
+const BUSY_FILL = 'bg-[repeating-linear-gradient(135deg,var(--line)_0_2px,var(--surface-2)_2px_7px)]'
+const EVENT_LAB = 'shadow-[inset_0_0_0_1.5px_var(--c)]'
+// What a session finished early left of its slot, and what it ran over: the slot itself stays the plan.
+const SLOT_LEFT =
+  'pointer-events-none absolute inset-x-0 bottom-0 border-t border-dashed border-[color-mix(in_srgb,var(--c)_60%,var(--surface))] bg-[color-mix(in_srgb,var(--surface)_70%,transparent)]'
+const OVERRUN =
+  'pointer-events-none absolute z-1 rounded-b-lg border-x-2 border-b-2 border-dashed border-[color-mix(in_srgb,var(--c)_60%,var(--surface))] bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_14%,transparent)_0_4px,transparent_4px_8px)]'
+// A long press picks an event up: it must not select text or open the system menu instead.
+const TOUCH_QUIET = 'select-none [-webkit-touch-callout:none]'
+
+/** A length as hours and minutes, `1:30`: short enough for the narrowest event. */
+const clock = (ms: number) => {
+  const minutes = Math.round(ms / (HOUR / 60))
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+const shortTitle = (o: Occurrence) =>
+  o.kind === 'study' || o.kind === 'lab' || o.kind === 'review' ? o.title.replace(/^[^—]+— /, '') : o.title
+
+/** `day` moves an all-day event between columns */
+type Mode = 'move' | 'resize' | 'resize-start' | 'day'
+
+interface Press {
+  o: Occurrence
+  mode: Mode
+  /** The day column it was pressed in */
+  column: Element
+  x: number
+  y: number
+  /** Where the pointer is now */
+  at: { x: number; y: number }
+  /** ms past midnight under the pointer when it went down */
+  t0: number
+  /** px from the pointer to the top and to the bottom of the event when it went down */
+  above: number
+  below: number
+  columnWidth: number
+  moved: boolean
+  /** false while a finger waits out the long press */
+  armed: boolean
+  timer?: number
+}
+
+interface Drag {
+  key: string
+  /** new wall-clock ms while the pointer is down */
+  s: number
+  e: number
+  /** horizontal shift in px, in whole day columns */
+  shiftX: number
+}
+
+/** A stretch being drawn on an empty part of a day */
+interface Drawing {
+  column: Element
+  day: number
+  /** where the pointer went down: px from the top of the window, and the slot it is in */
+  y: number
+  anchor: number
+  at: number
+  moved: boolean
+}
+
+/** Hours a drag has stretched the grid to, kept while the same days are shown so nothing jumps when it ends */
+interface Reach {
+  view: string
+  top: number
+  bottom: number
+}
+
+const keyOf = eventKey
+const NO_BUSY: BusyBlock[] = []
+const busyLabel = (b: BusyBlock) => b.title || m.busy_block()
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+const snap = (ms: number) => Math.round(ms / SNAP) * SNAP
+/** Which way the pointer has gone since it went down: a hand that shakes on the way does not turn it round. */
+const wayOf = (from: number, to: number) => Math.sign(to - from)
+
+/**
+ * Day columns with the events of a week, a work week or one day. With `onMove`, `onRemove` and `onCreate` it is an editor: drag an
+ * event to move it, drag its edge to resize, double-click an empty slot to add one, or do the same from the
+ * keyboard. On a touch screen a long press picks an event up. Held at the top or the bottom of the visible hours, a
+ * dragged event first scrolls the hidden ones in and then makes the day longer.
+ */
+export function WeekGrid({
+  plan,
+  weekStart,
+  dayCount = 7,
+  hourHeight = DEFAULT_HOUR_HEIGHT,
+  fullDay = false,
+  items,
+  now,
+  onSelect,
+  onMove,
+  onRemove,
+  onCreate,
+  draft = null,
+  secondZone = null,
+  busy = NO_BUSY,
+  selectedKey = null,
+  carried = null,
+  onDropIn,
+}: Props) {
+  const justDone = useJustDone(items)
+  const timed = items.filter((o) => !o.allDay)
+  const allDay = items.filter((o) => o.allDay)
+  const busyDays = busy.filter((b) => b.allDay)
+  const busyTimed = busy.filter((b) => !b.allDay)
+  // Where a carried event would land: the slot under the pointer.
+  const [dropAt, setDropAt] = useState<number | null>(null)
+  const carriedLength = carried ? parseLocal(carried.end) - parseLocal(carried.start) : 0
+  const dropping =
+    carried && onDropIn && dropAt !== null
+      ? { s: dropAt, e: dropAt + carriedLength, title: carried.title, calendar: carried.calendar }
+      : null
+  const [reach, setReach] = useState<Reach | null>(null)
+  let minH = 8
+  let maxH = 15
+  for (const o of timed) {
+    minH = Math.min(minH, new Date(o.s).getUTCHours())
+    maxH = Math.max(maxH, Math.ceil((o.e - startOfDay(o.e)) / HOUR) || 24)
+  }
+  const firstBusyHour = minH
+  // The hours grow to hold the event being created or dropped in, so its block is never cut off by the last row.
+  for (const slot of [draft, dropping]) {
+    if (slot && slot.e > slot.s && slot.s >= weekStart && slot.s < weekStart + dayCount * DAY) {
+      minH = Math.min(minH, new Date(slot.s).getUTCHours())
+      maxH = Math.max(maxH, Math.ceil((slot.e - startOfDay(slot.e)) / HOUR) || 24)
+    }
+  }
+  const view = `${weekStart}/${dayCount}`
+  if (reach?.view === view) {
+    minH = Math.min(minH, reach.top)
+    maxH = Math.max(maxH, reach.bottom)
+  }
+  if (fullDay) {
+    minH = 0
+    maxH = 24
+  }
+  const height = (maxH - minH) * hourHeight
+  const hours = Array.from({ length: maxH - minH - 1 }, (_, i) => minH + 1 + i)
+  const gutter = secondZone ? GUTTER_TWO_ZONES : GUTTER
+  const days = Array.from({ length: dayCount }, (_, i) => weekStart + i * DAY)
+  const today = now === null ? null : startOfDay(now)
+  const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
+  const studyHours = (day: number) =>
+    timed.reduce((sum, o) => (startOfDay(o.s) === day && countsToBudget(o) ? sum + durationHours(o) : sum), 0)
+
+  // On a narrow screen only some days fit: start at today when it is in this week.
+  const scroller = useRef<HTMLDivElement>(null)
+  // Next to the side panel the grid ends at the bottom of the screen and scrolls inside itself; the full day
+  // does so at any width, it is too tall for a page.
+  const maxHeight = useFillHeight(scroller, true, { minWidth: fullDay ? 0 : TWO_COLUMNS })
+  useEffect(() => {
+    const column = today === null ? null : scroller.current?.querySelector<HTMLElement>(`[data-day="${ymd(today)}"]`)
+    if (column && scroller.current) scroller.current.scrollLeft = column.offsetLeft - gutter
+  }, [today, weekStart, gutter])
+  // The full day opens at the first hour that has something, not at midnight.
+  // Only on opening the full day, another week or another time scale: an edit that changes the first hour must
+  // not move the view.
+  const openAt = useRef(firstBusyHour)
+  useEffect(() => {
+    openAt.current = firstBusyHour
+  }, [firstBusyHour])
+  useEffect(() => {
+    if (fullDay && scroller.current) scroller.current.scrollTop = openAt.current * hourHeight
+  }, [fullDay, weekStart, hourHeight])
+
+  // What a drag reads between renders: it is placed again on every frame, while the hours scroll or grow under it.
+  const geometry = useRef({ minH, maxH, hourHeight, weekStart, dayCount })
+  useLayoutEffect(() => {
+    geometry.current = { minH, maxH, hourHeight, weekStart, dayCount }
+  })
+  /** ms past midnight at `y`, px from the top of the window, in a day column */
+  const timeAt = (column: Element, y: number) =>
+    ((y - column.getBoundingClientRect().top) / geometry.current.hourHeight + geometry.current.minH) * HOUR
+  const header = useRef<HTMLDivElement>(null)
+  const edge = useEdgePull({
+    scroller,
+    header,
+    stretch: (way) => {
+      const { minH: top, maxH: bottom } = geometry.current
+      setReach({ view, top: way < 0 ? Math.max(0, top - 1) : top, bottom: way > 0 ? Math.min(24, bottom + 1) : bottom })
+    },
+  })
+
+  const [drag, setDrag] = useState<Drag | null>(null)
+  // A stretch being drawn on an empty part of a day: `anchor` is where the pointer went down.
+  const [drawn, setDrawn] = useState<{ anchor: number; s: number; e: number } | null>(null)
+  const drawing = useRef<Drawing | null>(null)
+  function dragOver(e: DragEvent<HTMLDivElement>, day: number) {
+    if (!carried || !onDropIn) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    // It may end past the last hour drawn: the hours grow to hold it.
+    const latest = Math.max(day + minH * HOUR, day + DAY - carriedLength)
+    const slot = Math.floor(timeAt(e.currentTarget, e.clientY) / SNAP) * SNAP
+    const at = clamp(day + slot, day + minH * HOUR, latest)
+    if (at !== dropAt) setDropAt(at)
+  }
+  function drop(e: DragEvent<HTMLDivElement>) {
+    if (!dropping) return
+    e.preventDefault()
+    setDropAt(null)
+    onDropIn?.(dropping.s)
+  }
+
+  function drawStart(e: PointerEvent<HTMLDivElement>, day: number) {
+    // A finger scrolls the grid; it adds an event with a double tap or the toolbar button.
+    if (!onCreate || e.button !== 0 || e.pointerType === 'touch') return
+    if (e.target instanceof Element && e.target.closest('button')) return
+    const column = e.currentTarget
+    const anchor = day + snap(timeAt(column, e.clientY))
+    drawing.current = { column, day, y: e.clientY, anchor, at: e.clientY, moved: false }
+    column.setPointerCapture(e.pointerId)
+  }
+
+  function placeDrawn() {
+    const d = drawing.current
+    if (!d?.moved) return
+    const { minH: first, maxH: last } = geometry.current
+    const at = clamp(d.day + snap(timeAt(d.column, d.at)), d.day + first * HOUR, d.day + last * HOUR)
+    const s = Math.min(d.anchor, at)
+    const end = Math.max(d.anchor, at)
+    setDrawn((prev) => (prev?.s === s && prev.e === end ? prev : { anchor: d.anchor, s, e: end }))
+  }
+
+  function drawMove(e: PointerEvent<HTMLDivElement>) {
+    const d = drawing.current
+    if (!d || (!d.moved && Math.abs(e.clientY - d.y) < DRAG_THRESHOLD)) return
+    d.at = e.clientY
+    if (!d.moved) {
+      d.moved = true
+      edge.start({
+        column: d.column,
+        place: placeDrawn,
+        pull: (): Pull | null => {
+          const way = wayOf(d.y, d.at)
+          return way ? { edge: d.at, way } : null
+        },
+      })
+    }
+    placeDrawn()
+  }
+
+  function drawStop() {
+    drawing.current = null
+    edge.stop()
+  }
+
+  function drawEnd() {
+    const stretch = drawn
+    drawStop()
+    if (!stretch) return
+    const end = Math.max(stretch.e, stretch.s + 2 * SNAP)
+    // After the click that ends this press: it would land outside the dialog that opens and close it at once.
+    window.setTimeout(() => {
+      setDrawn(null)
+      onCreate?.(toLocalString(stretch.s), toLocalString(end))
+    }, 50)
+  }
+  const press = useRef<Press | null>(null)
+  // The click that follows a drag must not open the event dialog.
+  const suppressClick = useRef(false)
+  // An event moved with the keyboard is drawn anew in its slot, first as a preview and again when the change is
+  // stored; each redraw can drop the focus, so it is given back for a short while after the key press.
+  const refocus = useRef<{ key: string; slot: string; until: number } | null>(null)
+  useEffect(() => {
+    const wanted = refocus.current
+    if (!wanted) return
+    if (Date.now() > wanted.until) {
+      refocus.current = null
+      return
+    }
+    // A repeat moved out of its series comes back as a new event: it is found by its title and its slot.
+    const find = (name: string, value: string) =>
+      scroller.current?.querySelector<HTMLElement>(`[data-${name}="${CSS.escape(value)}"]`)
+    const target = find('key', wanted.key) ?? find('slot', wanted.slot)
+    if (target && document.activeElement !== target) target.focus()
+  })
+
+  // A finger that has picked an event up must move it, not scroll the grid: only a non-passive listener can say so.
+  useEffect(() => {
+    const element = scroller.current
+    if (!element) return undefined
+    const hold = (e: TouchEvent) => {
+      if (press.current?.armed) e.preventDefault()
+    }
+    element.addEventListener('touchmove', hold, { passive: false })
+    return () => element.removeEventListener('touchmove', hold)
+  }, [])
+
+  function pointerDown(e: PointerEvent<HTMLElement>, o: Occurrence, wanted: Mode) {
+    if (!onMove || e.button !== 0) return
+    const column = e.currentTarget.closest('[data-day]')
+    if (!column) return
+    e.stopPropagation()
+    const touch = e.pointerType === 'touch'
+    // The edges are too thin for a finger: there it always moves, and the length is changed in the event card.
+    const mode = touch && wanted !== 'day' ? 'move' : wanted
+    const begin = () => setDrag({ key: keyOf(o), s: o.s, e: o.e, shiftX: 0 })
+    const card = (e.currentTarget.closest('button') ?? e.currentTarget).getBoundingClientRect()
+    const next: Press = {
+      o,
+      mode,
+      column,
+      x: e.clientX,
+      y: e.clientY,
+      at: { x: e.clientX, y: e.clientY },
+      t0: timeAt(column, e.clientY),
+      above: e.clientY - card.top,
+      below: card.bottom - e.clientY,
+      columnWidth: column.getBoundingClientRect().width,
+      moved: false,
+      armed: !touch,
+    }
+    press.current = next
+    if (!touch) {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      begin()
+      return
+    }
+    // A finger scrolls the grid; it picks an event up only after resting on it.
+    next.timer = window.setTimeout(() => {
+      next.armed = true
+      if ('vibrate' in navigator) navigator.vibrate(8)
+      begin()
+    }, LONG_PRESS)
+  }
+
+  /** Puts the dragged event where the pointer is now, inside the hours drawn: a pull at an end adds more of them. */
+  function placeDrag() {
+    const p = press.current
+    if (!p?.armed || !p.moved) return
+    const { o, mode } = p
+    const { minH: firstHour, maxH: lastHour, weekStart: firstDay, dayCount: columns } = geometry.current
+    const day = startOfDay(o.s)
+    const first = day + firstHour * HOUR
+    const last = day + lastHour * HOUR
+    const shift = snap(timeAt(p.column, p.at.y) - p.t0)
+    let { s, e } = o
+    let shiftX = 0
+    if (mode === 'resize') e = clamp(o.e + shift, o.s + SNAP, last)
+    else if (mode === 'resize-start') s = clamp(o.s + shift, first, o.e - SNAP)
+    else {
+      const dayIndex = (day - firstDay) / DAY
+      const dayShift = clamp(Math.round((p.at.x - p.x) / p.columnWidth), -dayIndex, columns - 1 - dayIndex)
+      const length = o.e - o.s
+      const start = mode === 'day' ? o.s : clamp(o.s + shift, first, last - length)
+      s = start + dayShift * DAY
+      e = start + length + dayShift * DAY
+      shiftX = dayShift * p.columnWidth
+    }
+    setDrag((prev) =>
+      prev?.s === s && prev.e === e && prev.shiftX === shiftX ? prev : { key: keyOf(o), s, e, shiftX },
+    )
+  }
+
+  /** The edge of the dragged event that leads the way it goes: an edge being resized only pulls outwards. */
+  function pullOfDrag(): Pull | null {
+    const p = press.current
+    const way = p ? wayOf(p.y, p.at.y) : 0
+    if (!p?.moved || !way || p.mode === 'day') return null
+    if ((p.mode === 'resize' && way < 0) || (p.mode === 'resize-start' && way > 0)) return null
+    if (p.mode !== 'move') return { edge: p.at.y, way }
+    return { edge: way < 0 ? p.at.y - p.above : p.at.y + p.below, way }
+  }
+
+  function pointerMove(e: PointerEvent<HTMLElement>) {
+    const p = press.current
+    if (!p) return
+    const dx = e.clientX - p.x
+    const dy = e.clientY - p.y
+    if (!p.armed) {
+      if (Math.hypot(dx, dy) > DRAG_THRESHOLD) release()
+      return
+    }
+    if (!p.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return
+    p.at = { x: e.clientX, y: e.clientY }
+    if (!p.moved) {
+      p.moved = true
+      edge.start({ column: p.column, place: placeDrag, pull: pullOfDrag })
+    }
+    placeDrag()
+  }
+
+  function release() {
+    window.clearTimeout(press.current?.timer)
+    press.current = null
+    edge.stop()
+    setDrag(null)
+  }
+
+  function pointerUp(o: Occurrence) {
+    const p = press.current
+    const dropped = drag
+    release()
+    if (!p?.moved || !dropped) return
+    suppressClick.current = true
+    // Cleared on a timer too, in case the browser sends no click after this drag.
+    window.setTimeout(() => (suppressClick.current = false), 50)
+    if (dropped.s !== o.s || dropped.e !== o.e) onMove?.(o, { s: dropped.s, e: dropped.e })
+  }
+
+  /** Alt + arrows move the focused event, with Shift they change its length, Delete removes it. */
+  function keyDown(e: KeyboardEvent<HTMLElement>, o: Occurrence) {
+    if (!onMove) return
+    let { s, e: end } = o
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (!onRemove) return
+      onRemove(o)
+    } else if (!e.altKey) {
+      return
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const shift = e.key === 'ArrowLeft' ? -DAY : DAY
+      s += shift
+      end += shift
+    } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !o.allDay) {
+      const shift = e.key === 'ArrowUp' ? -SNAP : SNAP
+      if (!e.shiftKey) s += shift
+      end += shift
+    } else {
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    const sameDay = o.allDay || startOfDay(end - 1) === startOfDay(s)
+    if ((s === o.s && end === o.e) || end - s < SNAP || !sameDay) return
+    refocus.current = { key: `${o.uid}-${s}`, slot: `${o.title}@${s}`, until: Date.now() + REFOCUS_FOR }
+    onMove(o, { s, e: end })
+  }
+
+  const handlers = (o: Occurrence, mode: Mode) => ({
+    'data-key': keyOf(o),
+    'data-slot': `${o.title}@${o.s}`,
+    onPointerDown: (ev: PointerEvent<HTMLElement>) => pointerDown(ev, o, mode),
+    onPointerMove: pointerMove,
+    onPointerUp: () => pointerUp(o),
+    onPointerCancel: release,
+    onKeyDown: (ev: KeyboardEvent<HTMLElement>) => keyDown(ev, o),
+    onClick: () => {
+      if (suppressClick.current) suppressClick.current = false
+      else onSelect(o)
+    },
+  })
+
+  return (
+    <div className="relative">
+      <div
+        ref={scroller}
+        className={`snap-x overflow-auto rounded-2xl ${fullDay ? 'max-h-[70dvh]' : ''}`}
+        style={{ maxHeight, scrollPaddingLeft: gutter }}
+      >
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: `${gutter}px repeat(${dayCount}, minmax(0, 1fr))`,
+            // A single day always fits; more of them scroll sideways on a narrow screen.
+            minWidth: dayCount > 1 ? gutter + dayCount * MIN_COLUMN : undefined,
+          }}
+        >
+          <div
+            ref={header}
+            className={`${HEAD} ${PINNED} top-0 z-6 flex items-end justify-end gap-2 rounded-tl-2xl pr-2 pb-2 text-[10.5px]`}
+          >
+            {secondZone && (
+              <>
+                {/* Two clocks, each over its own column of hours: the other zone with how far it is from the
+                    plan, then the plan's own. */}
+                <span className="w-[42px] text-right" title={secondZone.label}>
+                  <span className="block truncate">{secondZone.label}</span>
+                  <span className="block tabular-nums">{fmtShift(secondZone.shift) || '='}</span>
+                </span>
+                <span className="w-[38px] text-right font-semibold text-ink">
+                  <span className="block truncate">{m.plan_zone()}</span>
+                  <span className="block font-normal text-muted">{m.zone_plan_short()}</span>
+                </span>
+              </>
+            )}
+          </div>
+          {days.map((d) => {
+            const off = plan.meta.holidays.includes(ymd(d))
+            return (
+              <div
+                key={d}
+                className={`${HEAD} sticky top-0 z-5 snap-start bg-surface px-2 pt-2.5 pb-2 text-[13px] ${off ? DAY_OFF : ''} ${d === today ? 'shadow-[inset_0_2px_0_var(--today)]' : ''} ${d === days.at(-1) ? 'rounded-tr-2xl' : ''}`}
+              >
+                <span className="flex items-center justify-between gap-1">
+                  {dowShort(d)}
+                  {studyHours(d) > 0 && (
+                    <small
+                      className="flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-px text-[11px] font-medium whitespace-nowrap tabular-nums"
+                      title={m.study_that_day()}
+                    >
+                      <GraduationCap size={11} aria-hidden />
+                      <span className="sr-only">{m.study_that_day()}: </span>
+                      {fmtHours(studyHours(d))}
+                    </small>
+                  )}
+                </span>
+                <b
+                  className={`block text-[18px]/[1.1] font-semibold tabular-nums ${d === today ? 'text-today-ink' : 'text-ink'}`}
+                >
+                  {new Date(d).getUTCDate()}
+                </b>
+                {off && <small className="mt-0.5 block text-[11px] text-today-ink">{m.day_off()}</small>}
+              </div>
+            )
+          })}
+
+          {(allDay.length > 0 || busyDays.some((b) => b.s < weekStart + dayCount * DAY && b.e > weekStart)) && (
+            <>
+              <div className={`${HEAD} ${PINNED} px-2 py-1.5 text-[11px]`}>{m.all_day()}</div>
+              {days.map((d) => (
+                <div
+                  key={d}
+                  data-day={ymd(d)}
+                  className="grid min-w-0 content-start gap-1 border-b border-line-soft p-1"
+                >
+                  {busyDays
+                    .filter((b) => b.s <= d && d < b.e)
+                    .map((b) => (
+                      <span
+                        key={`${b.s}-${b.title}`}
+                        data-busy
+                        className={`${BUSY_FILL} truncate rounded-md px-1.5 py-[3px] text-[12px] text-muted`}
+                        title={m.busy_from_calendar({ title: busyLabel(b), time: m.all_day() })}
+                      >
+                        <span className="rounded-sm bg-surface px-1">{busyLabel(b)}</span>
+                      </span>
+                    ))}
+                  {allDay
+                    .filter((o) => o.s === d)
+                    .map((o) => {
+                      const dragged = drag?.key === keyOf(o) ? drag : null
+                      return (
+                        <button
+                          key={o.uid}
+                          type="button"
+                          className={`${TOUCH_QUIET} truncate rounded-md bg-[color-mix(in_srgb,var(--today)_14%,var(--surface))] px-1.5 py-[3px] text-left text-[12px] font-semibold text-today-ink ${onMove ? 'cursor-grab' : ''} ${dragged ? 'relative z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : ''}`}
+                          style={{ transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined }}
+                          title={`${fmtDay(o.s)}: ${o.title}`}
+                          {...handlers(o, 'day')}
+                        >
+                          {o.title}
+                        </button>
+                      )
+                    })}
+                </div>
+              ))}
+            </>
+          )}
+
+          <div className={`${PINNED} relative rounded-bl-2xl border-r border-line-soft`} style={{ height }}>
+            {hours.map((h) => (
+              <span
+                key={h}
+                className="absolute right-2 flex -translate-y-1/2 gap-2 text-[11.5px] text-muted tabular-nums"
+                style={{ top: (h - minH) * hourHeight }}
+              >
+                {secondZone && (
+                  <span className="w-[42px] text-right">{hm(weekStart + h * HOUR + secondZone.shift)}</span>
+                )}
+                <span className={secondZone ? 'w-[38px] text-right font-medium text-ink' : ''}>
+                  {String(h).padStart(2, '0')}:00
+                </span>
+              </span>
+            ))}
+          </div>
+
+          {days.map((d) => {
+            const dayItems = timed.filter((o) => startOfDay(o.s) === d)
+            const lanes = layoutLanes(dayItems)
+            return (
+              // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- the keyboard path to a new event is the toolbar button and the N key
+              <div
+                key={d}
+                data-day={ymd(d)}
+                className={`relative border-r border-line-soft select-none last:border-r-0 ${isWeekend(d) ? WEEKEND : ''}`}
+                style={{ height }}
+                onPointerDown={(e) => drawStart(e, d)}
+                onPointerMove={drawMove}
+                onPointerUp={drawEnd}
+                onPointerCancel={() => {
+                  drawStop()
+                  setDrawn(null)
+                }}
+                onDragOver={(e) => dragOver(e, d)}
+                onDragLeave={(e) => {
+                  if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget))) setDropAt(null)
+                }}
+                onDrop={drop}
+                onDoubleClick={(e) => {
+                  if (!onCreate || (e.target instanceof Element && e.target.closest('button'))) return
+                  const y = e.clientY - e.currentTarget.getBoundingClientRect().y
+                  const slot = Math.floor(((y / hourHeight + minH) * HOUR) / SNAP) * SNAP
+                  onCreate(toLocalString(d + clamp(slot, 0, DAY - HOUR)))
+                }}
+              >
+                {hours.map((h) => (
+                  <div
+                    key={h}
+                    className="absolute inset-x-0 border-t border-line-soft"
+                    style={{ top: (h - minH) * hourHeight }}
+                  />
+                ))}
+                {/* What has passed is a shade darker, up to the line of the present moment. */}
+                {now !== null && now > d + minH * HOUR && (
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0 bg-[color-mix(in_srgb,var(--muted)_7%,transparent)]"
+                    style={{ height: Math.min(height, ((now - d) / HOUR - minH) * hourHeight) }}
+                  />
+                )}
+                {busyTimed
+                  .filter((b) => b.s < d + maxH * HOUR && b.e > d + minH * HOUR)
+                  .map((b) => {
+                    const upper = ((Math.max(b.s, d + minH * HOUR) - d) / HOUR - minH) * hourHeight
+                    const lower = ((Math.min(b.e, d + maxH * HOUR) - d) / HOUR - minH) * hourHeight
+                    const label = m.busy_from_calendar({ title: busyLabel(b), time: `${hm(b.s)}–${hm(b.e)}` })
+                    return (
+                      <div key={`${b.s}-${b.e}-${b.title}`} data-busy title={label}>
+                        <div
+                          className={`${BUSY_FILL} absolute inset-x-0.5 overflow-hidden rounded-md px-1.5 py-0.5 text-[11px]/[1.3] text-muted`}
+                          style={{ top: upper + 1, height: Math.max(8, lower - upper - 2) }}
+                        >
+                          <span className="rounded-sm bg-surface px-1">{busyLabel(b)}</span>
+                        </div>
+                        {/* Over the events: a block they cover is still seen at the edge of the day. */}
+                        <i
+                          className="pointer-events-none absolute right-0 z-1 w-1 rounded-l-sm bg-muted"
+                          style={{ top: upper + 1, height: Math.max(8, lower - upper - 2) }}
+                        />
+                      </div>
+                    )
+                  })}
+                {dayItems.map((o) => {
+                  const dragged = drag?.key === keyOf(o) ? drag : null
+                  const s = dragged?.s ?? o.s
+                  const e = dragged?.e ?? o.e
+                  const { lane, lanes: count } = lanes.get(o) ?? { lane: 0, lanes: 1 }
+                  const real = dragged ? null : realLength(o)
+                  const left = `calc(${(lane / count) * 100}% + 4px)`
+                  const width = `calc(${100 / count}% - 8px)`
+                  const slotEnd = ((e - d) / HOUR - minH) * hourHeight
+                  return [
+                    <button
+                      key={keyOf(o)}
+                      type="button"
+                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : keyOf(o) === selectedKey ? 'z-3 ring-2 ring-focus' : ''}`}
+                      style={{
+                        ...calendarColor(colorOf(o.calendar)),
+                        top: ((s - startOfDay(s)) / HOUR - minH) * hourHeight + 1,
+                        height: Math.max(22, ((e - s) / HOUR) * hourHeight - 3),
+                        left,
+                        width,
+                        transform: dragged?.shiftX ? `translateX(${dragged.shiftX}px)` : undefined,
+                      }}
+                      {...handlers(o, 'move')}
+                    >
+                      {real !== null && real < e - s && (
+                        <span aria-hidden className={SLOT_LEFT} style={{ height: `${(1 - real / (e - s)) * 100}%` }} />
+                      )}
+                      {justDone.has(keyOf(o)) && (
+                        <span aria-hidden className="lc-done-glow pointer-events-none absolute inset-0 bg-done/35" />
+                      )}
+                      <b className={`relative block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
+                        {o.done && (
+                          <span
+                            className={`mr-1 inline-block text-done-ink no-underline ${justDone.has(keyOf(o)) ? 'lc-done-pop' : ''}`}
+                          >
+                            ✓
+                          </span>
+                        )}
+                        {shortTitle(o)}
+                      </b>
+                      <small className="relative text-muted tabular-nums">
+                        {hm(s)}–{hm(e)}
+                        {real !== null && real !== e - s && (
+                          <span className="ml-1 inline-flex items-center gap-0.5">
+                            <Timer aria-hidden size={10} />
+                            <span aria-hidden>{clock(real)}</span>
+                            <span className="sr-only">{m.grid_took({ time: fmtDuration(real) })}</span>
+                          </span>
+                        )}
+                      </small>
+                      {o.rrule && <Repeat aria-hidden size={11} className="absolute top-1.5 right-1.5 text-muted" />}
+                      {now !== null && !dragged && o.s <= now && now < o.e && (
+                        <i
+                          aria-hidden
+                          className="absolute bottom-0 left-0 h-[3px] rounded-r-full bg-cal"
+                          style={{ width: `${((now - o.s) / (o.e - o.s)) * 100}%` }}
+                        />
+                      )}
+                      {onMove && (
+                        <>
+                          <span
+                            aria-hidden
+                            className="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize"
+                            onPointerDown={(ev) => pointerDown(ev, o, 'resize-start')}
+                          />
+                          <span
+                            aria-hidden
+                            className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+                            onPointerDown={(ev) => pointerDown(ev, o, 'resize')}
+                          />
+                        </>
+                      )}
+                    </button>,
+                    real !== null && real > e - s && (
+                      <div
+                        key={`${keyOf(o)}-over`}
+                        aria-hidden
+                        className={OVERRUN}
+                        style={{
+                          ...calendarColor(colorOf(o.calendar)),
+                          top: slotEnd - 2,
+                          height: Math.min(((real - (e - s)) / HOUR) * hourHeight, height - slotEnd + 2),
+                          left,
+                          width,
+                        }}
+                      />
+                    ),
+                  ]
+                })}
+                {[drawn && { ...drawn, title: '', calendar: '' }, dropping, draft]
+                  .flatMap((slot) => (slot !== null && slot.e > slot.s && startOfDay(slot.s) === d ? [slot] : []))
+                  .slice(0, 1)
+                  .map((slot) => (
+                    <div
+                      key="draft"
+                      data-draft
+                      className="pointer-events-none absolute inset-x-1 z-4 overflow-hidden rounded-lg border-2 border-dashed border-focus bg-[color-mix(in_srgb,var(--focus)_16%,transparent)] px-[7px] py-[3px] text-[12px]/[1.3]"
+                      style={{
+                        top: ((slot.s - d) / HOUR - minH) * hourHeight + 1,
+                        height: Math.max(22, ((slot.e - slot.s) / HOUR) * hourHeight - 3),
+                      }}
+                    >
+                      <b className="block truncate font-semibold">{slot.title || m.new_event()}</b>
+                      <small className="text-ink tabular-nums">
+                        {hm(slot.s)}–{hm(slot.e)}
+                      </small>
+                    </div>
+                  ))}
+                {now !== null && startOfDay(now) === d && (now - d) / HOUR >= minH && (now - d) / HOUR <= maxH && (
+                  <div
+                    className="absolute inset-x-0 z-2 h-0.5 bg-today before:absolute before:-top-[3px] before:-left-1 before:size-2 before:rounded-full before:bg-today before:content-[''] after:absolute after:-top-[3px] after:-left-1 after:size-2 after:rounded-full after:bg-today after:content-[''] motion-safe:after:animate-ping motion-safe:after:[animation-iteration-count:3]"
+                    style={{ top: ((now - d) / HOUR - minH) * hourHeight }}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      {/* Over the grid, not under it: the grid already ends where the window does. */}
+      {!items.length && (
+        <div className="pointer-events-none absolute inset-x-4 top-24 mx-auto w-fit max-w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-center text-[13.5px] text-muted shadow-card">
+          {m.no_events_this_week()}
+        </div>
+      )}
+    </div>
+  )
+}

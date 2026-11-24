@@ -1,0 +1,6 @@
+@import 'tailwindcss';
+@import '@lc/ui/theme.css';
+
+/* Workspace packages are linked through node_modules, which Tailwind does not scan on its own. */
+@source '../../../packages/ui/src';
+@source '../../../modules';

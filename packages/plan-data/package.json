@@ -1,0 +1,33 @@
+{
+  "name": "@lc/plan-data",
+  "private": true,
+  "description": "The plan database on disk (data/plan.json, data/edits.json) and the command that regenerates it. Node only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "plan": "tsx scripts/build-plan.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "vitest run",
+    "mcp": "tsx scripts/mcp.ts"
+  },
+  "dependencies": {
+    "@lc/plan-domain": "workspace:*",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "highs": "catalog:",
+    "ical.js": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:data",
+      "scope:plan"
+    ]
+  }
+}

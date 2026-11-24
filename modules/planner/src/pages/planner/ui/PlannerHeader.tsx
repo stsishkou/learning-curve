@@ -1,0 +1,34 @@
+import { fmtDay } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
+import { parseLocal, type Plan } from '@lc/plan-domain'
+import { PageHeader } from '@lc/ui'
+import type { ReactNode } from 'react'
+
+import { PlanTitle } from '../../../features/rename-plan'
+
+interface Props {
+  plan: Plan
+  /** Present when the plan can be renamed */
+  onRename?: ((title: string) => void) | undefined
+  /** Controls the host owns, such as the sections of the app and the language */
+  aside?: ReactNode
+  /** Buttons that work on the whole plan: its file, its export */
+  children?: ReactNode
+}
+
+/** What plan this is and how big, with the host's controls and the plan-wide actions next to it. */
+export function PlannerHeader({ plan, onRename, aside, children }: Props) {
+  return (
+    <PageHeader aside={aside} actions={children}>
+      <p className="text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">{m.plan_label()}</p>
+      <PlanTitle title={plan.meta.title} onRename={onRename} />
+      <p className="mt-1 text-[14px] text-muted">
+        {m.plan_summary({
+          events: m.events_count({ count: plan.events.length }),
+          calendars: m.in_calendars({ count: plan.calendars.length }),
+          date: fmtDay(parseLocal(plan.meta.planEnd)),
+        })}
+      </p>
+    </PageHeader>
+  )
+}

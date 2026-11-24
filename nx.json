@@ -1,0 +1,54 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json", "{workspaceRoot}/pnpm-lock.yaml"],
+    "lintConfig": ["{workspaceRoot}/.oxlintrc.json"],
+    "production": ["default", "!{projectRoot}/**/*.stories.tsx", "!{projectRoot}/**/*.mdx", "!{projectRoot}/**/*.md"]
+  },
+  "targetDefaults": {
+    "i18n": {
+      "cache": true,
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/src/paraglide"]
+    },
+    "typecheck": {
+      "cache": true,
+      "dependsOn": ["^i18n", "i18n"],
+      "inputs": ["default", "^default"]
+    },
+    "lint": {
+      "cache": true,
+      "dependsOn": ["^i18n", "i18n"],
+      "inputs": ["default", "^default", "lintConfig"]
+    },
+    "lint:fsd": {
+      "cache": true,
+      "inputs": ["default", "{workspaceRoot}/steiger.config.ts"]
+    },
+    "check:i18n": {
+      "cache": true,
+      "inputs": ["default", "{workspaceRoot}/apps/*/src/**/*", "{workspaceRoot}/modules/*/src/**/*"]
+    },
+    "build": {
+      "cache": true,
+      "dependsOn": ["^build", "^i18n", "i18n"],
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/.output", "{projectRoot}/dist"]
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": ["^i18n", "i18n"],
+      "inputs": ["default", "^default"]
+    },
+    "dev": {
+      "continuous": true
+    },
+    "start": {
+      "dependsOn": ["build"],
+      "continuous": true
+    }
+  },
+  "analytics": false
+}

@@ -1,43 +1,45 @@
 {
   "name": "learning-curve",
   "private": true,
+  "description": "Personal study plan: schedule database, viewer and .ics export",
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "node .output/server/index.mjs",
-    "plan": "tsx scripts/build-plan.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@tanstack/react-router": "1.170.46",
-    "@tanstack/react-start": "1.169.4",
-    "jszip": "3.10.2",
-    "nitro": "3.0.260903-beta",
-    "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "dev": "nx run @lc/web:dev",
+    "build": "nx run-many -t build --output-style=stream",
+    "start": "nx run @lc/web:start",
+    "stand": "nx run @lc/stand:dev",
+    "stand:build": "nx run @lc/stand:build --output-style=stream",
+    "stand:test": "nx run @lc/stand:test --output-style=stream",
+    "test": "nx run-many -t test -p @lc/plan-domain @lc/plan-data --output-style=stream",
+    "plan": "nx run @lc/plan-data:plan --output-style=stream",
+    "mcp": "pnpm --silent --filter @lc/plan-data run mcp",
+    "i18n": "nx run-many -t i18n",
+    "typecheck": "nx run-many -t typecheck",
+    "lint": "nx run-many -t lint lint:fsd",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "check:i18n": "nx run-many -t check:i18n",
+    "check": "nx run-many -t typecheck lint lint:fsd check:i18n --output-style=stream && oxfmt --check",
+    "affected": "nx affected -t typecheck lint lint:fsd check:i18n build --output-style=stream",
+    "graph": "nx graph",
+    "prepare": "husky && nx run-many -t i18n"
   },
   "devDependencies": {
-    "@types/node": "22.20.5",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.2.1",
-    "tsx": "4.23.15",
-    "typescript": "6.0.3",
-    "vite": "8.3.6"
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@feature-sliced/steiger-plugin": "0.8.2",
+    "@inlang/paraglide-js": "catalog:",
+    "husky": "9.1.7",
+    "nx": "24.0.6",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
+    "oxlint-tsgolint": "7.0.2008",
+    "steiger": "0.10.0",
+    "typescript": "7.0.2"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
-  },
-  "description": "Personal study plan: schedule database, viewer and .ics export",
   "engines": {
-    "node": ">=22.12"
-  }
+    "node": ">=26"
+  },
+  "packageManager": "pnpm@12.21.0"
 }

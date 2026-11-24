@@ -1,0 +1,263 @@
+/* Color tokens live on :root so the scheme swaps them without a `dark:` variant on every class: each holds a light
+   and a dark value. The page follows the system unless <meta name="color-scheme"> pins it to light or dark (see the
+   app's theme switch). */
+:root {
+  color-scheme: light dark;
+  &:has(> head > meta[name='color-scheme'][content='light']) {
+    color-scheme: light;
+  }
+  &:has(> head > meta[name='color-scheme'][content='dark']) {
+    color-scheme: dark;
+  }
+  --bg: light-dark(#edf1f6, #121722);
+  --surface: light-dark(#ffffff, #1a2130);
+  --surface-2: light-dark(#f5f7fa, #202838);
+  --ink: light-dark(#172033, #e5eaf1);
+  --muted: light-dark(#5a6578, #9aa5b6);
+  --line: light-dark(#d4dbe5, #2c3547);
+  --line-soft: light-dark(#e6ebf1, #242d3d);
+  --today: light-dark(#d8473b, #ff6b5e);
+  /* Text in the accent colours: the light fills are too light to read as text on a light surface. */
+  --today-ink: light-dark(#b93026, #ff6b5e);
+  --focus: light-dark(#2f5bea, #7c9bff);
+  --done: light-dark(#1f9d6b, #46c692);
+  --done-ink: light-dark(#14704b, #46c692);
+  --shadow: 0 1px 0 light-dark(rgb(23 32 51 / 0.06), transparent);
+  /* At least 3:1 against every surface it is drawn on: the track is transparent. */
+  --scroll-thumb: light-dark(#7d899b, #7f8a9c);
+  /* Checkboxes and other native controls take the colour of focus, not the system's. */
+  accent-color: var(--focus);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@theme {
+  --color-*: initial;
+  --breakpoint-*: initial;
+  --breakpoint-md: 701px;
+  --breakpoint-lg: 961px;
+  --font-sans: 'Golos Text', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  --font-display: 'Unbounded', 'Golos Text', 'Segoe UI', system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-today: var(--today);
+  --color-today-ink: var(--today-ink);
+  --color-focus: var(--focus);
+  /* --c is the calendar color, set inline on the element that owns the event, chip or legend row */
+  --color-cal: var(--c);
+  --color-done: var(--done);
+  --color-done-ink: var(--done-ink);
+  --shadow-card: var(--shadow);
+}
+
+@layer base {
+  html {
+    /* Below the bars that stick to the top (see sticky-top.ts), so a focused control is never hidden under them. */
+    scroll-padding-top: calc(var(--lc-sticky-top, 0px) + env(safe-area-inset-top, 0px));
+    /* Where scrollbars take room, the page keeps its width when its scrollbar comes and goes. */
+    scrollbar-gutter: stable;
+  }
+  * {
+    scrollbar-color: var(--scroll-thumb) transparent;
+    scrollbar-width: thin;
+  }
+  @supports not (scrollbar-color: auto) {
+    * {
+      scrollbar-width: auto;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      border-radius: 4px;
+      background: var(--scroll-thumb);
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button {
+    cursor: pointer;
+  }
+  /* Short headings break into even lines; running text keeps its last word company. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p,
+  li {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@keyframes lc-rise {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+/* An event just marked done: its check springs in and the card glows once in the colour of done. Without motion
+   both stay in their final state: the check in place, the glow gone. */
+@keyframes lc-pop {
+  from {
+    scale: 0.2;
+  }
+}
+@keyframes lc-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes lc-glow {
+  from {
+    opacity: 1;
+  }
+}
+.lc-done-pop {
+  scale: 1;
+  @media (prefers-reduced-motion: no-preference) {
+    /* The overshoot is on scale only: on opacity it would flicker. */
+    animation:
+      lc-pop 700ms
+        linear(
+          0,
+          0.226 2%,
+          1.116 5.4%,
+          1.527 7.7%,
+          1.585 8.8%,
+          1.559 9.8%,
+          0.937 14.3%,
+          0.693 16.6%,
+          0.657 17.7%,
+          0.729 19.8%,
+          1.13 24.5%,
+          1.201 26.7%,
+          1.156 28.8%,
+          0.925 33.4%,
+          0.882 35.6%,
+          0.907 37.7%,
+          1.069 44.5%,
+          0.96 53.4%,
+          1.024 62.3%,
+          0.986 71.2%,
+          1
+        ),
+      lc-fade-in 120ms ease-out;
+  }
+}
+.lc-done-glow {
+  opacity: 0;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: lc-glow 900ms ease-out;
+  }
+}
+
+/* Dialogs, menus and help notes fade in and out; where motion is welcome they also grow from a little smaller.
+   `overlay` and a transition of `display` keep them in the top layer until they have faded out. Browsers without
+   those (Firefox, Safari) fade them in and close them at once. */
+.lc-layer {
+  opacity: 0;
+  transition-property: opacity, scale, display, overlay;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+  @media (prefers-reduced-motion: no-preference) {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: 100ms;
+  }
+  &::backdrop {
+    opacity: 0;
+    transition-property: opacity, display, overlay;
+    transition-duration: 150ms;
+    transition-behavior: allow-discrete;
+  }
+}
+.lc-layer:is([open], :popover-open) {
+  opacity: 1;
+  @starting-style {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    scale: 1;
+    @starting-style {
+      scale: 0.97;
+    }
+  }
+  &::backdrop {
+    opacity: 1;
+    @starting-style {
+      opacity: 0;
+    }
+  }
+}
+
+/* Only the calendar changes between two views or two weeks: it alone gets a name, the rest of the page is one
+   picture that does not move. */
+.lc-calendar {
+  view-transition-name: lc-calendar;
+}
+::view-transition-old(lc-calendar),
+::view-transition-new(lc-calendar) {
+  animation-duration: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* On paper the calendar is whole: nothing scrolls, so every box inside it loses its height limit. */
+@media print {
+  .lc-calendar,
+  .lc-calendar * {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .lc-calendar {
+    border: 0;
+  }
+  .lc-calendar .sticky {
+    position: static;
+  }
+}
+
+/* A help note opens beside its mark. Where anchor positioning is missing the note keeps the browser's own
+   place for a popover, the middle of the window, so the rules that take it from there are inside the check. */
+@supports (position-area: block-end) {
+  .lc-hint {
+    inset: auto;
+    margin: 6px 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+  }
+}

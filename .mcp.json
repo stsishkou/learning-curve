@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "learning-curve": {
+      "command": "pnpm",
+      "args": ["--silent", "run", "mcp"]
+    }
+  }
+}

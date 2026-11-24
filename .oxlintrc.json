@@ -1,0 +1,245 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "react", "jsx-a11y", "import", "promise", "unicorn", "oxc"],
+  "jsPlugins": [{ "name": "paraglide", "specifier": "@inlang/paraglide-js/eslint" }],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "options": {
+    "typeAware": true
+  },
+  "ignorePatterns": ["**/src/paraglide/**", "**/routeTree.gen.ts", ".nx/**"],
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    // Its fix is mutation; plans are values here and a copy is what keeps the caller's plan intact.
+    "oxc/no-map-spread": "off",
+    // useNow and useHiddenCalendars set state after mount on purpose, so server and client markup match.
+    "react/set-state-in-effect": "off",
+    // Duplicates react/exhaustive-deps and rejects dependencies used only to re-run an effect.
+    "react/exhaustive-effect-dependencies": "off",
+    // Would turn the role="group" button rows into fieldsets and the budget meter into an <img>.
+    "jsx-a11y/prefer-tag-over-role": "off",
+    // Type safety: what the compiler allows but a strict codebase does not.
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/consistent-type-definitions": "error",
+    "typescript/array-type": "error",
+    // An empty string and `false` must fall through wherever `||` meets a string or a boolean here.
+    "typescript/prefer-nullish-coalescing": ["error", { "ignorePrimitives": { "string": true, "boolean": true } }],
+    "typescript/prefer-optional-chain": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/require-await": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/restrict-plus-operands": "error",
+    "typescript/no-unnecessary-type-arguments": "error",
+    "typescript/prefer-includes": "error",
+    "typescript/prefer-string-starts-ends-with": "error",
+    "typescript/no-import-type-side-effects": "error",
+    "typescript/consistent-type-exports": "error",
+    "typescript/no-inferrable-types": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/prefer-reduce-type-parameter": "error",
+    "typescript/no-meaningless-void-operator": "error",
+    "typescript/no-redundant-type-constituents": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/unbound-method": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/prefer-find": "error",
+    "typescript/no-array-delete": "error",
+    "typescript/prefer-for-of": "error",
+    "typescript/no-dynamic-delete": "error",
+    // A promise started on purpose is written `void work()`: the arrow shorthand and that operator stay allowed.
+    "typescript/no-confusing-void-expression": ["error", { "ignoreArrowShorthand": true, "ignoreVoidOperator": true }],
+    // Plain JavaScript pitfalls.
+    "eqeqeq": "error",
+    "no-console": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-else-return": "error",
+    "no-param-reassign": "error",
+    "no-unneeded-ternary": "error",
+    "no-useless-return": "error",
+    "prefer-template": "error",
+    "object-shorthand": "error",
+    "no-shadow": "error",
+    "default-case-last": "error",
+    "no-implicit-coercion": "error",
+    "prefer-object-spread": "error",
+    "no-lonely-if": "error",
+    "yoda": "error",
+    "no-alert": "error",
+    "no-eval": "error",
+    "no-new-func": "error",
+    "radix": "error",
+    "no-throw-literal": "error",
+    "prefer-rest-params": "error",
+    "prefer-spread": "error",
+    "no-useless-concat": "error",
+    "no-return-assign": "error",
+    "no-sequences": "error",
+    "no-empty-function": "error",
+    "react/jsx-key": "error",
+    "react/no-array-index-key": "error",
+    "react/self-closing-comp": "error",
+    "react/jsx-no-useless-fragment": "error",
+    "react/button-has-type": "error",
+    "react/jsx-boolean-value": "error",
+    "react/jsx-curly-brace-presence": "error",
+    "react/no-danger": "error",
+    "react/no-unstable-nested-components": "error",
+    "react/jsx-no-constructed-context-values": "error",
+    "react/jsx-no-target-blank": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "import/no-self-import": "error",
+    "import/first": "error",
+    "import/no-mutable-exports": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/no-array-for-each": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/prefer-string-replace-all": "error",
+    "unicorn/prefer-at": "error",
+    "unicorn/prefer-number-properties": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/prefer-structured-clone": "error",
+    "unicorn/prefer-math-trunc": "error",
+    "unicorn/prefer-set-has": "error",
+    "unicorn/prefer-string-slice": "error",
+    "unicorn/no-zero-fractions": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/error-message": "error",
+    "unicorn/no-instanceof-array": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/prefer-export-from": "error",
+    "unicorn/no-await-expression-member": "error",
+    "unicorn/catch-error-name": ["error", { "name": "err" }],
+    "promise/prefer-await-to-then": "error",
+    "promise/catch-or-return": "error",
+    "promise/no-nesting": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "paraglide/no-dynamic-message-access": ["error", { "messageModuleDirectories": ["paraglide"] }]
+  },
+  // Workspace dependency rules: app → modules → domain and shared; data → domain. pnpm already refuses an import
+  // of a package that is not in package.json; these rules say which dependencies may be added at all.
+  "overrides": [
+    {
+      // A command-line script reports to the terminal.
+      "files": ["**/scripts/**"],
+      "rules": { "no-console": "off" }
+    },
+    {
+      // A story passes handlers that do nothing and async stand-ins for the server.
+      "files": ["**/*.stories.tsx"],
+      "rules": { "no-empty-function": "off", "typescript/require-await": "off" }
+    },
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["modules/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": ["@lc/*", "!@lc/plan-domain", "!@lc/plan-domain/*", "!@lc/ui", "!@lc/ui/*", "!@lc/i18n/*"],
+                "message": "A module never imports another module or the app: the app composes them through props and slots."
+              },
+              {
+                "group": ["@lc/plan-data", "node:*", "@tanstack/react-start", "@tanstack/react-start/**"],
+                "message": "Modules are browser-safe and transport-free: the app owns storage and server functions and passes data in."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-domain/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-data/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "!@lc/plan-domain", "react", "react/**"],
+                "message": "The data store depends on the domain only."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/ui/**", "packages/i18n/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "node:*"],
+                "message": "Shared packages know nothing about the plan, the modules or the app."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

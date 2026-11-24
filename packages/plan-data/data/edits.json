@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "events": {
+    "journey-001@learning-curve": {
+      "start": "2026-11-28T09:00",
+      "end": "2026-11-28T11:00"
+    }
+  },
+  "calendars": {},
+  "added": [],
+  "removed": {
+    "events": {},
+    "calendars": {}
+  }
+}

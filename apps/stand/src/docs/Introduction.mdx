@@ -1,0 +1,77 @@
+import { Meta, Unstyled } from '@storybook/addon-docs/blocks'
+
+import { Catalog } from './catalog'
+
+<Meta title="Introduction" />
+
+# The component stand
+
+Every component of the workspace, rendered on its own with fixed data, next to its documentation. Use it to
+see what already exists before building something new, to try a component in both themes and three
+languages, and to check a change without clicking through the app.
+
+## What is here
+
+**Design tokens** documents `packages/ui/src/theme.css`: colors, typography, radii, breakpoints. Everything else
+is a component, listed below with the first sentence of its description. The list is read from the story files,
+so it is always complete.
+
+<Unstyled>
+  <Catalog />
+</Unstyled>
+
+## Reading a component's page
+
+Each component has a **Docs** page, built from the component's own file:
+
+- **The path under the title** is where the component lives. The UI kit is imported by name
+  (`import { Button } from '@lc/ui'`); a widget or a feature is internal to its module and is used by that
+  module's page.
+- **The description** is the JSDoc comment above the component.
+- **The first story with its controls**: change a prop in the table and the story follows. Big objects such as
+  the plan have no control.
+- **The table of props**: name, type, default and the comment above the prop in its interface. A prop marked
+  with a red asterisk is required.
+- **Every story**, each a state worth knowing about, with a line on what to look at. "Show code" under a story
+  gives the JSX that renders it.
+
+## The toolbar
+
+- **Theme**: light or dark. It rewrites `<meta name="color-scheme">`, the same switch the app uses.
+- **Language**: ru, en, es. Interface text comes from `@lc/i18n`; the plan itself (event titles, course
+  names) stays Russian, as in the app.
+- **Accessibility** (panel at the bottom): axe checks of the story on screen.
+- **Interactions** (panel at the bottom): stories with a `play` function click through a scenario and assert
+  the result.
+
+`pnpm run stand:test` runs both for every story in a headless browser.
+
+## How the workspace is layered
+
+```
+apps/web, apps/stand ──▶ modules/* ──▶ packages/plan-domain
+   │                         └───────▶ packages/ui, packages/i18n
+   └── apps/web only ──▶ packages/plan-data ──▶ packages/plan-domain
+```
+
+- **`packages/ui`** knows nothing about the plan: plain controls and the theme.
+- **`packages/plan-domain`** is the plan in pure TypeScript: types, dates, schedule rules, edits.
+- **`modules/*`** are the product, split by Feature-Sliced layers. A **widget** shows a part of the plan and
+  reports what the person did through callbacks. A **feature** is one user action, usually a dialog. A
+  **page** composes them and owns the state.
+- **Apps** compose modules. A module never loads data or saves it: the app passes the plan in and receives
+  every edit as one `PlanChange` value.
+
+That last rule is why every component here works without a server: a story passes a plan and a callback,
+exactly as the app does. The full rules are in `docs/architecture.md`.
+
+## The data in the stories
+
+All stories share one plan from `@lc/plan-domain/fixtures`: the real schedule, built in memory by
+`buildPlan()`, with "now" fixed at Wednesday, 2 December 2026, 12:40. Nothing reads `packages/plan-data`,
+so the stories do not change when the plan is edited in the app. The planner page story is the exception for
+the clock: it follows the real time, like the app.
+
+## Adding a story
+
+Put `Name.stories.tsx` next to `Name.tsx`. See `docs/component-stand.md` for a template.
