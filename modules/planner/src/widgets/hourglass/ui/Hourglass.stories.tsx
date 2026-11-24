@@ -4,6 +4,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState, type ComponentProps } from 'react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 
+import { buildGlass } from '../model/glass'
 import { Hourglass } from './Hourglass'
 
 const MINUTE = 60_000
@@ -34,7 +35,7 @@ const meta = {
     tone: 'work',
     color: fixturePlan.calendars[0]?.color,
     turn: 'work:0',
-    className: 'h-[176px] w-[100px]',
+    className: 'h-[189px] w-[117px]',
   },
   render: (args) => <Turning {...args} />,
 } satisfies Meta<typeof Hourglass>
@@ -47,12 +48,13 @@ const canvasOf = (root: HTMLElement) => {
   if (!canvas) throw new Error('No canvas')
   return canvas
 }
-/** Sand is the only kind of cell drawn fully opaque in the middle column */
+/** Inside the glass, sand is the only kind of cell drawn fully opaque */
 const sandAt = (canvas: HTMLCanvasElement, x: number, y: number) =>
   canvas.getContext('2d')?.getImageData(x, y, 1, 1).data[3] === 255
-const TOP = 10
-const NECK = 17
-const FLOOR = 31
+const { width: COLUMNS, height: ROWS, center: MIDDLE, top, neck: NECK, floor: FLOOR } = buildGlass()
+/** A row deep in the sand of a full glass */
+const TOP = top + 8
+const BOX = 189
 
 /**
  * A full glass at the start of a block. It is drawn one pixel per cell and scaled to the largest whole number of
@@ -63,12 +65,12 @@ export const Full: Story = {
     const canvas = canvasOf(canvasElement)
     await waitFor(() => expect(canvas.style.visibility).toBe(''))
     const { width, height } = canvas.getBoundingClientRect()
-    await expect(Number.isInteger((width / 19) * window.devicePixelRatio)).toBe(true)
-    await expect(height / 35).toBe(width / 19)
-    await expect(height).toBeLessThanOrEqual(176)
-    await expect(height + 35 / window.devicePixelRatio).toBeGreaterThan(176)
-    await waitFor(() => expect(sandAt(canvas, 9, TOP)).toBe(true))
-    await expect(sandAt(canvas, 9, FLOOR)).toBe(false)
+    await expect(Number.isInteger((width / COLUMNS) * window.devicePixelRatio)).toBe(true)
+    await expect(height / ROWS).toBe(width / COLUMNS)
+    await expect(height).toBeLessThanOrEqual(BOX)
+    await expect(height + ROWS / window.devicePixelRatio).toBeGreaterThan(BOX)
+    await waitFor(() => expect(sandAt(canvas, MIDDLE, TOP)).toBe(true))
+    await expect(sandAt(canvas, MIDDLE, FLOOR)).toBe(false)
   },
 }
 
@@ -77,8 +79,8 @@ export const Empty: Story = {
   args: { run: 25 * MINUTE },
   play: async ({ canvasElement }) => {
     const canvas = canvasOf(canvasElement)
-    await waitFor(() => expect(sandAt(canvas, 9, FLOOR)).toBe(true))
-    await expect(sandAt(canvas, 9, TOP)).toBe(false)
+    await waitFor(() => expect(sandAt(canvas, MIDDLE, FLOOR)).toBe(true))
+    await expect(sandAt(canvas, MIDDLE, TOP)).toBe(false)
   },
 }
 
@@ -87,7 +89,7 @@ export const Running: Story = {
   args: { run: 10 * MINUTE, at: Date.now(), running: true },
   play: async ({ canvasElement }) => {
     const canvas = canvasOf(canvasElement)
-    await waitFor(() => expect(sandAt(canvas, 9, NECK)).toBe(true))
+    await waitFor(() => expect(sandAt(canvas, MIDDLE, NECK)).toBe(true))
   },
 }
 
@@ -96,11 +98,11 @@ export const Still: Story = {
   args: { run: 10 * MINUTE, at: Date.now(), running: true, still: true },
   play: async ({ canvasElement }) => {
     const canvas = canvasOf(canvasElement)
-    await waitFor(() => expect(sandAt(canvas, 9, FLOOR)).toBe(true))
+    await waitFor(() => expect(sandAt(canvas, MIDDLE, FLOOR)).toBe(true))
     const neck = await new Promise<boolean[]>((resolve) => {
       const seen: boolean[] = []
       const timer = setInterval(() => {
-        seen.push(sandAt(canvas, 9, NECK))
+        seen.push(sandAt(canvas, MIDDLE, NECK))
         if (seen.length < 4) return
         clearInterval(timer)
         resolve(seen)
@@ -132,4 +134,4 @@ export const StillDoesNotTurn: Story = {
 }
 
 /** Fills a tall box, as in Expand and Full screen: the cells grow, still on whole device pixels. */
-export const Tall: Story = { args: { className: 'h-[560px] w-[320px]' } }
+export const Tall: Story = { args: { className: 'h-[560px] w-[347px]' } }

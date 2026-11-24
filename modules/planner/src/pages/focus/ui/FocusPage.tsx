@@ -65,16 +65,20 @@ function stopwatchText(ms: number) {
 /** What gets logged: quarter-hour steps, like the time field of a session, and never nothing. */
 const loggedMinutes = (ms: number) => Math.max(QUARTER, Math.round(ms / QUARTER) * QUARTER) / MINUTE
 
-const GLASS_BOX = 'h-[140px] w-[80px] md:h-[176px] md:w-[100px]'
+// Whole multiples of the glass's 39 × 63 cells, so it fills its box at one, two and three device pixels per CSS pixel.
+const GLASS_BOX = 'h-[126px] w-[78px] md:h-[189px] md:w-[117px]'
 const DIGITS = 'text-[72px]/[1] md:text-[104px]/[1]'
 // Expand and Full screen. From md up the card has the screen's height and the watch row takes what the rest of the
-// card leaves, as a size container: the glass is as tall as the row, and the digits take the width it leaves
-// (`--beside`), counted in their own width in em (`--digits`). On a phone the page scrolls instead.
-const WIDE_ROW = 'self-stretch md:min-h-[220px] md:flex-1 md:gap-x-16 md:[container-type:size]'
-const WIDE_GLASS_BOX = 'h-[min(42dvh,320px)] w-[calc(min(42dvh,320px)*19/35)] md:h-[100cqh] md:w-[calc(100cqh*19/35)]'
+// card leaves, as a size container: the glass is as tall as the row (`--glass`) unless that would take more than
+// 38% of its width from the digits, and the digits take the width it leaves (`--beside`), counted in their own width
+// in em (`--digits`). On a phone the page scrolls instead.
+const WIDE_ROW =
+  'self-stretch md:min-h-[220px] md:flex-1 md:gap-x-16 md:[container-type:size] md:[--glass:min(100cqh,calc(38cqw*63/39))]'
+const WIDE_GLASS_BOX =
+  'h-[min(42dvh,320px)] w-[calc(min(42dvh,320px)*39/63)] md:h-[var(--glass)] md:w-[calc(var(--glass)*39/63)]'
 const WIDE_DIGITS =
   'text-[72px]/[1] md:text-[clamp(64px,min(calc((100cqw_-_var(--beside))/var(--digits)),calc(100cqh_-_120px)),240px)]/[1]'
-const BESIDE = { glass: '[--beside:calc(100cqh*19/35_+_4rem)]', alone: '[--beside:0px]' }
+const BESIDE = { glass: '[--beside:calc(var(--glass)*39/63_+_4rem)]', alone: '[--beside:0px]' }
 /** The digits' width in em, for `25:04` and for `1:05:04` in the display font, with a little to spare */
 const DIGITS_EM = { minutes: '[--digits:3.5]', hours: '[--digits:4.6]' }
 

@@ -1,7 +1,7 @@
 import { calendarColor } from '@lc/ui'
 import { useEffect, useRef, useState } from 'react'
 
-import { readPalette, type Palette } from '../lib/palette'
+import { readPalette, sandGrain, type Palette } from '../lib/palette'
 import { useFrames } from '../lib/use-frames'
 import { usePixelFit } from '../lib/use-pixel-fit'
 import { useReducedMotion } from '../lib/use-reduced-motion'
@@ -38,14 +38,6 @@ const STREAM_STEP = 83
 const FALL = 600
 const TURN: Keyframe[] = [{ transform: 'rotate(180deg)' }, { transform: 'rotate(360deg)' }]
 
-/** Per cell, which of the three shades of sand it shows: a fixed grain, so the sand does not shimmer */
-function grainOf(glass: Glass) {
-  return Uint8Array.from({ length: glass.width * glass.height }, (_, cell) => {
-    const hash = Math.imul(cell ^ 0x9e3779b9, 0x85ebca6b) >>> 29
-    return hash < 5 ? 0 : hash < 7 ? 1 : 2
-  })
-}
-
 /**
  * A pixel hourglass that counts a block down: the sand in the top is the time left. It is drawn on a canvas of one
  * pixel per cell, scaled up without smoothing, and the frame is worked out from the clock each time, so it is
@@ -61,7 +53,7 @@ export function Hourglass({ run, at, length, running, tone, color, still = false
   const fit = usePixelFit(box, glass.width, glass.height)
   const scheme = useScheme()
   const [palette, setPalette] = useState<Palette | null>(null)
-  const [grain] = useState(() => grainOf(glass))
+  const [grain] = useState(() => sandGrain(glass.width * glass.height))
   const [cells] = useState(() => new Uint8Array(glass.width * glass.height))
   const drawn = useRef('')
 
@@ -79,7 +71,7 @@ export function Hourglass({ run, at, length, running, tone, color, still = false
     const motion =
       running && !calm && passed < glass.grains
         ? {
-            phase: Math.floor(time / STREAM_STEP) % 3,
+            phase: Math.floor(time / STREAM_STEP) % 4,
             landing: Math.min(1, (live - passed * slot) / Math.min(FALL, slot)),
           }
         : null
@@ -110,10 +102,7 @@ export function Hourglass({ run, at, length, running, tone, color, still = false
     <div ref={box} className={`relative ${className}`} style={calendarColor(color)} aria-hidden>
       <span ref={probes} hidden>
         <span data-probe="sand" className={tone === 'rest' ? 'text-done' : 'text-cal'} />
-        <span data-probe="ink" className="text-ink" />
-        <span data-probe="muted" className="text-muted" />
         <span data-probe="surface" className="text-surface" />
-        <span data-probe="air" className="text-line-soft" />
       </span>
       <canvas
         ref={canvas}
