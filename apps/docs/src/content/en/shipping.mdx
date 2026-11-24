@@ -122,10 +122,10 @@ Prices and limits were read from the providers' own pages on 2026-11-23/24 and w
 
 How to read the planner table:
 
-- **SSR** is "yes" everywhere it can run at all: server rendering is not the hard part.
-- **API** is "partial" where functions run but cannot keep state between requests: reads work, writes need another
+- **SSR** is "Yes" everywhere it can run at all: server rendering is not the hard part.
+- **API** is "With changes" where functions run but cannot keep state between requests: reads work, writes need another
   store.
-- **Disk** is the column that decides. Every "no" means `store.ts` becomes an interface with a second, database- or
+- **Disk** is the column that decides. Every "No" means `store.ts` becomes an interface with a second, database- or
   blob-backed implementation, plus a migration.
 
 ### The decision
