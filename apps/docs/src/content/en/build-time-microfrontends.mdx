@@ -1,0 +1,207 @@
+### Microfrontends without a network
+
+"Microfrontend" usually brings to mind several deployments stitched together in the browser. Take the network away and
+the useful part is still there: a slice of the product that owns its screens and its state, talks to the rest through
+a narrow API, and cannot reach past it. How the slices meet, in the bundler or over the network, is a second and
+separate decision.
+
+learning-curve took the first part and postponed the second. In commit `cf289bd` the planner page left `apps/web` for
+`modules/planner`, the export dialog left for `modules/calendar-export`, and the app became a shell. Nothing changed
+for the person using it, and nothing about deployment changed either: Vite still produced one server and one client
+bundle. What changed is who may import what.
+
+Three pieces make up the whole mechanism: a shell that only wires, a page that declares what it needs instead of
+importing it, and lint rules that keep both honest. Each is read below from the commit that introduced it.
+
+### The shell: wiring only
+
+Before the split, `apps/web/src/routes/index.tsx` was 262 lines: loading, the grid, the agenda, the budget, the
+dialogs. Right after it, the route is 31 lines and renders no UI of its own.
+
+<Walkthrough>
+
+```tsx file=apps/web/src/routes/index.tsx at=cf289bd
+
+```
+
+<WalkStep lines="1-2" title="Modules by package name">
+
+The planner and the export dialog are imported like any npm package. pnpm links `@lc/planner` and
+`@lc/calendar-export` from `modules/*`, and their `exports` point at `src/index.ts`: TypeScript source, no build step,
+and no way to reach a file the module did not export.
+
+</WalkStep>
+
+<WalkStep lines="5-6" title="What only the app knows">
+
+Server functions and the language switcher stay in the app. `#/` is the app's own path alias. Modules may not use
+one: the app type-checks their sources with its own `tsconfig`, where a module's alias would mean nothing.
+
+</WalkStep>
+
+<WalkStep lines="9-13" title="The route borrows the module's rules">
+
+The module owns the shape of its URL (`parsePlannerSearch`) but not the router; the app plugs the parser into
+`validateSearch`. Loading is a server function, which a module is not allowed to call.
+
+</WalkStep>
+
+<WalkStep lines="15-22" title="Data down, intentions up">
+
+The page gets its data (`state`, `search`) and a callback for what it wants: "change these keys of the URL". The app
+decides that this means `navigate`. The module never learns that a router exists.
+
+</WalkStep>
+
+<WalkStep lines="23-26" title="Saving belongs to the app">
+
+An edit goes to the server and then `router.invalidate()` re-runs the loader, so the page receives a fresh `state`.
+The module's prop documents exactly this promise: it resolves once `state` is fresh.
+
+</WalkStep>
+
+<WalkStep lines="27-28" title="A slot and a render prop">
+
+`headerAside` is a slot: a node the module renders where it chooses. `renderActions` is a render prop: the module
+calls it with the plan as it is shown, filters included. That is how the export dialog appears inside the planner
+page while neither module imports the other.
+
+</WalkStep>
+
+</Walkthrough>
+
+### The page: a contract instead of imports
+
+The other side of the same boundary. The top of `PlannerPage.tsx` lists everything the page uses, and every line of
+it is allowed by a rule you will see below.
+
+<Walkthrough>
+
+```tsx file=modules/planner/src/pages/planner/ui/PlannerPage.tsx at=cf289bd lines=1-58
+
+```
+
+<WalkStep lines="1-17" title="What a module may import">
+
+Translations, the plan domain, the UI kit and React. No `apps/*`, no other module, no `@lc/plan-data`, nothing from
+`node:*` and no TanStack Start. The module can therefore run in a browser, in a Storybook story or in a unit test with
+no server behind it.
+
+</WalkStep>
+
+<WalkStep lines="19-27" title="Layers inside">
+
+Feature-Sliced Design in practice. The page composes features (one user action each: edit an event, filter
+calendars, open a file), widgets (self-contained blocks: the week grid, the agenda) and `shared`. Each comes in
+through its slice's `index.ts`; the page's own `model` segment holds the URL search type.
+
+</WalkStep>
+
+<WalkStep lines="29-35" title="The data the host must provide">
+
+`PlannerState` is what the app has to load. `canEdit` is already here, so a host without a writable disk can hide
+the editing controls; <ChapterLink id="shipping" /> uses exactly that.
+
+</WalkStep>
+
+<WalkStep lines="37-48" title="The props are the API">
+
+Two data props, two callbacks with their promise semantics written down, a slot and a render prop. Read as a whole,
+this interface is the module's contract with any host: a different app could render the planner by providing these
+six props.
+
+</WalkStep>
+
+<WalkStep lines="58" title="Nothing else comes in">
+
+The component takes exactly those props. Everything else it touches is its own state or an import the rules allow.
+
+</WalkStep>
+
+</Walkthrough>
+
+The project's architecture document states the rule this page follows: modules "do not know about each other, about
+the router, or about where data comes from. The app passes that in." The payoff is testability. A module is a function
+of its props, so a story or a test renders it with a fixture, and the component stand (<ChapterLink id="component-stand" />)
+does exactly that.
+
+### The walls
+
+Conventions erode on the first hurried change, so the boundaries are lint errors. Oxlint's `no-restricted-imports`
+takes glob patterns per folder. This is the override for everything under `modules/`, as it stands at the pinned
+commit:
+
+<Walkthrough>
+
+```json file=.oxlintrc.json lines=172-195
+
+```
+
+<WalkStep lines="172-173" title="Rules by path">
+
+An override applies to the files it names. The Nx boundary plugin would let you write the same rules per project
+tag, but it loads typescript-eslint, which cannot run on TypeScript 7 (commit `60fdbe1` says so), so the rules are
+written per folder.
+
+</WalkStep>
+
+<WalkStep lines="179-182" title="Only public entries">
+
+No reaching into another package's `src`, and no relative path that climbs into `apps/`, `modules/` or `packages/`.
+A package is used through its name and its `exports`, or not at all.
+
+</WalkStep>
+
+<WalkStep lines="183-186" title="Modules never meet">
+
+Every `@lc/*` import is an error, except the shared packages listed with `!`: an allow-list written inside a deny
+pattern. A new module is covered without touching this file.
+
+</WalkStep>
+
+<WalkStep lines="187-190" title="Browser-safe and transport-free">
+
+No data store, no Node built-ins, no TanStack Start. The message says why: the app owns storage and server functions
+and passes data in.
+
+</WalkStep>
+
+</Walkthrough>
+
+Oxlint sees imports between packages, but not the direction of imports inside a module: a widget importing a feature
+is fine, a feature importing a widget is not. Steiger checks those Feature-Sliced rules:
+
+```ts file=steiger.config.ts
+
+```
+
+The one rule switched off is a deliberate choice recorded in the comment: slices used only once stay separate,
+because each module is laid out to grow.
+
+### Try it
+
+Break a wall on purpose. In any file under `modules/dashboard/src`, add `import '@lc/planner'` and run the lint: it
+fails with "A module never imports another module or the app". Then check the layers of one module and look at the
+project graph, where `@lc/web` depends on the modules and no module depends on another.
+
+<Terminal commands={['pnpm run lint', 'pnpm --filter @lc/planner run lint:fsd', 'pnpm exec nx graph']} />
+
+### Build time now, run time later
+
+Everything above works without a network between the parts. Here is what the choice costs and saves. The comparison
+is general, not specific to this repository:
+
+|                           | Composed at build time (this chapter)  | Composed at run time (chapter 23)               |
+| ------------------------- | -------------------------------------- | ----------------------------------------------- |
+| Types across the boundary | Checked by the compiler on every build | A contract package and a version check at load  |
+| Shipping a change         | Rebuild and redeploy the app           | Deploy the remote; the host picks it up         |
+| Shared dependencies       | One copy, resolved by the bundler      | Negotiated at run time (singletons, versions)   |
+| Server rendering          | Works unchanged                        | Needs extra setup per remote, or client-only    |
+| New failure modes         | None                                   | The remote is down, slow, stale or incompatible |
+
+For one person shipping one app, the left column wins on every row that matters day to day. The right column pays
+off when parts are owned and released by different teams, or when a part must update without the host rebuilding.
+
+The architecture document keeps that door open: a module's public entry "is already the federation boundary". The
+guide you are reading is the project's first part composed at run time. <ChapterLink id="module-federation" /> walks
+through how it is cut, loaded and isolated.
