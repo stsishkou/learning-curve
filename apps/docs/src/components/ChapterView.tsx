@@ -93,7 +93,7 @@ export function ChapterView({ chapterId, syllabus, prose, notice }: Props) {
       <div className="grid gap-8 @5xl:grid-cols-[minmax(0,1fr)_14rem]">
         <article className="flex min-w-0 flex-col gap-10" data-pagefind-body>
           <header className="flex flex-col gap-3 border-l-4 border-(--part) pl-4">
-            <p className="text-sm font-semibold text-(--part)" data-pagefind-ignore>
+            <p className="lc-part-text text-sm font-semibold" data-pagefind-ignore>
               {part && `${m.part_label({ number: part.number }, { locale })} · ${partTitle(part.id, locale)} · `}
               {m.chapter_label({ number: chapter.number }, { locale })} ·{' '}
               {m.minutes({ count: chapter.minutes }, { locale })}
@@ -180,7 +180,7 @@ export function ChapterView({ chapterId, syllabus, prose, notice }: Props) {
                 {syllabus.steps.map((step, stepIndex) => (
                   <li key={step.title} className="lc-card flex flex-col gap-3 p-4">
                     <h3 className="flex items-baseline gap-2 font-semibold">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-(--part) text-xs text-surface">
+                      <span className="lc-part-fill flex size-6 shrink-0 items-center justify-center rounded-full text-xs">
                         {stepIndex + 1}
                       </span>
                       <InlineText text={step.title} />

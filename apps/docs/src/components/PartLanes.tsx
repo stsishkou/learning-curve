@@ -34,7 +34,7 @@ export function PartLanes() {
                     className="lc-card group flex h-full flex-col gap-1.5 p-3 transition-colors hover:border-(--part)"
                   >
                     <span className="flex items-center justify-between text-xs text-muted">
-                      <span className="font-semibold text-(--part)">
+                      <span className="lc-part-text font-semibold">
                         {m.chapter_label({ number: chapter.number }, { locale })}
                       </span>
                       <span>{m.minutes({ count: chapter.minutes }, { locale })}</span>

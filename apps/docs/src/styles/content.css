@@ -93,7 +93,6 @@
     display: inline-block;
     min-width: 100%;
     padding-right: 1rem;
-    transition: opacity 200ms;
     &[data-line]::before {
       content: attr(data-line);
       display: inline-block;
@@ -104,16 +103,24 @@
       user-select: none;
     }
   }
-  .lc-walk-code:has([data-focus]) .line:not([data-focus]) {
-    opacity: 0.38;
-  }
+  /* The lines of the step in view are marked in the gutter. Dimming the others, or tinting behind the code, would
+     take the tokens below 4.5:1. */
   .lc-walk-code .line[data-focus] {
-    background: color-mix(in oklab, var(--color-focus) 10%, transparent);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .shiki .line {
-      transition: none;
+    box-shadow: inset 3px 0 0 var(--color-focus);
+    &::before {
+      background: color-mix(in oklab, var(--color-focus) 14%, transparent);
+      color: var(--color-ink);
     }
+  }
+
+  /* Part colours are one hue for both schemes. Mixed towards the ink they keep 4.5:1 as text on the page, and as a fill
+     behind text in the surface colour. */
+  .lc-part-text {
+    color: color-mix(in oklab, var(--part) 60%, var(--color-ink));
+  }
+  .lc-part-fill {
+    background: color-mix(in oklab, var(--part) 60%, var(--color-ink));
+    color: var(--color-surface);
   }
 
   .lc-prose {

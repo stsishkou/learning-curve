@@ -94,7 +94,9 @@ export const mdxOptions: MdxOptions = {
     [
       rehypeShiki,
       {
-        themes: { light: 'github-light', dark: 'github-dark' },
+        // The high-contrast pair: the plain GitHub themes fall below 4.5:1 on the code background for red, orange and
+        // comment tokens.
+        themes: { light: 'github-light-high-contrast', dark: 'github-dark-high-contrast' },
         // Both colours become custom properties, and CSS picks one with light-dark(): the page and a host's theme
         // switch it without re-highlighting.
         defaultColor: false,

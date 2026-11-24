@@ -2,6 +2,7 @@ import { Children, type ReactNode, isValidElement, useEffect, useRef, useState }
 
 import { useLocale } from '../app/env'
 import { m } from '../paraglide/messages'
+import type { CodeBlockProps } from './CodeBlock'
 
 interface StepProps {
   /** Lines of the file, as numbered in the code block: `12-20` */
@@ -14,7 +15,7 @@ interface StepProps {
 export function WalkStep({ title, children }: StepProps) {
   return (
     <>
-      {title && <h4 className="font-semibold">{title}</h4>}
+      {title && <p className="font-semibold">{title}</p>}
       {children}
     </>
   )
@@ -34,6 +35,11 @@ export function Walkthrough({ children }: { children: ReactNode }) {
   const all = Children.toArray(children)
   const steps = all.flatMap((child) => (isValidElement<StepProps>(child) && child.type === WalkStep ? [child] : []))
   const code = all.filter((child) => !(isValidElement(child) && child.type === WalkStep))
+  const file = code
+    .flatMap((child) =>
+      isValidElement<CodeBlockProps>(child) && child.props['data-file'] ? [child.props['data-file']] : [],
+    )
+    .at(0)
   const [active, setActive] = useState(0)
   const codeRef = useRef<HTMLDivElement>(null)
   const stepRefs = useRef<(HTMLLIElement | null)[]>([])
@@ -73,9 +79,11 @@ export function Walkthrough({ children }: { children: ReactNode }) {
   }, [activeLines])
 
   return (
-    <section
+    // A group, not a section: a page holds several walkthroughs, and each would be one more landmark to skip.
+    <div
+      role="group"
       className="lc-walk my-6 grid gap-4 @4xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]"
-      aria-label={m.walkthrough_label({}, { locale })}
+      aria-label={file ? `${m.walkthrough_label({}, { locale })}: ${file}` : m.walkthrough_label({}, { locale })}
     >
       <div
         ref={codeRef}
@@ -91,7 +99,7 @@ export function Walkthrough({ children }: { children: ReactNode }) {
             ref={(element) => {
               stepRefs.current[index] = element
             }}
-            className={`lc-card flex flex-col gap-2 p-4 transition-opacity motion-reduce:transition-none ${index === active ? '' : 'opacity-60'}`}
+            className="lc-card flex flex-col gap-2 p-4 transition-colors aria-[current=step]:border-focus aria-[current=step]:shadow-[0_0_0_1px_var(--color-focus)] motion-reduce:transition-none"
             aria-current={index === active ? 'step' : undefined}
           >
             <span className="text-xs text-muted">
@@ -102,6 +110,6 @@ export function Walkthrough({ children }: { children: ReactNode }) {
           </li>
         ))}
       </ol>
-    </section>
+    </div>
   )
 }
