@@ -88,9 +88,9 @@ export const earliestDays = (room: Room, sessions: PlanEvent[], request: Rebalan
  * - At a pace: the rhythm asked for, from the course's first session: one every `1 / perDay` study days. A
  *   re-balance changes the rhythm, not where the course starts; a first session already past starts again today.
  * - Towards a deadline: the slowest such rhythm that still has every session before the deadline, found by halving
- *   the gap. It starts at the course's first session, or at the first day when that lets it run slower. It keeps to
- *   the budget whenever that still finishes in time, as going over serves only to be in time. When even the earliest
- *   placement cannot finish in time, the targets are that placement, as nothing finishes sooner.
+ *   the gap. It starts at the course's first session too. It keeps to the budget whenever that still finishes in
+ *   time, as going over serves only to be in time. When even the earliest placement cannot finish in time, the
+ *   targets are that placement, as nothing finishes sooner.
  */
 export function targetDays(room: Room, sessions: PlanEvent[], request: RebalanceRequest): (number | null)[] {
   const first = sessions[0]?.start.slice(0, 10) ?? ''
@@ -108,22 +108,15 @@ export function targetDays(room: Room, sessions: PlanEvent[], request: Rebalance
   const rules = inTime(earliestDays(room, sessions, within)) ? within : request
   const earliest = earliestDays(room, sessions, rules)
   if (!inTime(earliest)) return earliest
-  const slowestFrom = (start: number) => {
-    if (!inTime(rhythmDays(room, sessions, rules, 0, start))) return -1
-    let slowest = 0
-    let tooSlow = Math.max(1, room.days.filter((d) => d.day < deadline).length)
-    for (let step = 0; step < HALVINGS; step++) {
-      const gap = (slowest + tooSlow) / 2
-      if (inTime(rhythmDays(room, sessions, rules, gap, start))) slowest = gap
-      else tooSlow = gap
-    }
-    return slowest
+  if (!inTime(rhythmDays(room, sessions, rules, 0, anchor))) return earliest
+  let slowest = 0
+  let tooSlow = Math.max(1, room.days.filter((d) => d.day < deadline).length)
+  for (let step = 0; step < HALVINGS; step++) {
+    const gap = (slowest + tooSlow) / 2
+    if (inTime(rhythmDays(room, sessions, rules, gap, anchor))) slowest = gap
+    else tooSlow = gap
   }
-  const kept = slowestFrom(anchor)
-  const fromFirst = anchor === 0 ? kept : slowestFrom(0)
-  return fromFirst > kept + EPSILON
-    ? rhythmDays(room, sessions, rules, fromFirst, 0)
-    : rhythmDays(room, sessions, rules, kept, anchor)
+  return rhythmDays(room, sessions, rules, slowest, anchor)
 }
 
 /**

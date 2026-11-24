@@ -63,6 +63,11 @@ const course = [event('c', '2026-12-07T11:00', '2026-12-07T12:00'), event('c', '
 const busyTuesday = plan([...course, event('o', '2026-12-08T12:00', '2026-12-08T13:00')])
 
 describe('roomOf', () => {
+  test("starts at the course's first open session when that comes after the first day", () => {
+    const later = plan([event('c', '2026-12-09T11:00', '2026-12-09T12:00')])
+    expect(room(later).days[0]).toMatchObject({ day: '2026-12-09', index: 1 })
+  })
+
   test('a day keeps the half hours other calendars leave free inside the study hours; the gym blocks none', () => {
     expect(dayOf(room(busyTuesday), '2026-12-08')).toMatchObject({
       week: '2026-12-07',

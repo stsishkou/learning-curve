@@ -454,7 +454,7 @@
   "reschedule_reason_nothing_to_move": "El calendario no tiene sesiones pendientes desde este día.",
   "reschedule_reason_full_weeks": "Las semanas del {from} al {to} están llenas: amplía las horas de estudio o permite pasar del presupuesto para terminar antes.",
   "reschedule_reason_days_off": "Sin horas de estudio libres: {days}.",
-  "reschedule_reason_late": "Caben {placed} de {total} sesiones antes del {deadline}: ayudaría una fecha límite posterior, más horas de estudio o pasar del presupuesto.",
+  "reschedule_reason_late": "Caben {placed} de {total} sesiones antes del {deadline}: ayudaría una fecha límite posterior, más horas de estudio, pasar del presupuesto o empezar el curso antes con Mover.",
   "reschedule_reason_no_lab_block": "«{title}» necesita dos horas libres seguidas y las horas de estudio no las tienen.",
   "reschedule_reason_limit": "Algunas sesiones no encuentran sitio en un año: amplía las horas de estudio o permite pasar del presupuesto.",
   "reschedule_reason_not_proven": "La búsqueda se detuvo por tiempo, así que puede existir una distribución mejor.",

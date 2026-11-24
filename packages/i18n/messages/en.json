@@ -454,7 +454,7 @@
   "reschedule_reason_nothing_to_move": "The calendar has no open sessions from this day on.",
   "reschedule_reason_full_weeks": "The weeks of {from} – {to} are full: widen the study hours or allow going over the budget to finish sooner.",
   "reschedule_reason_days_off": "No free study hours on {days}.",
-  "reschedule_reason_late": "Fits {placed} of {total} sessions before {deadline}: a later deadline, wider study hours or going over the budget would help.",
+  "reschedule_reason_late": "Fits {placed} of {total} sessions before {deadline}: a later deadline, wider study hours, going over the budget or starting the course sooner with Move would help.",
   "reschedule_reason_no_lab_block": "“{title}” needs two free hours in a row, and the study hours have none.",
   "reschedule_reason_limit": "Some sessions find no room within a year: widen the study hours or allow going over the budget.",
   "reschedule_reason_not_proven": "The search stopped at its time limit, so a better placement may exist.",
