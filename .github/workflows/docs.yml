@@ -37,8 +37,10 @@ jobs:
         run: pnpm exec nx run-many -t test -p @lc/docs-contract @lc/docs --output-style=stream
       - name: Build the guide and its remote
         run: pnpm --filter @lc/docs run build
-      - name: Build the component stand
-        run: pnpm --filter @lc/stand run build
+      - name: Build the component stand and check the stories the chapters cite
+        run: |
+          pnpm --filter @lc/stand run build
+          pnpm --filter @lc/docs exec tsx scripts/check-stories.ts
       - name: Test the remote in a host
         run: |
           pnpm --filter @lc/docs-harness exec playwright install --with-deps chromium
