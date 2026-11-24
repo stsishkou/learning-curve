@@ -84,7 +84,7 @@ export function Walkthrough({ children }: { children: ReactNode }) {
       >
         {code}
       </div>
-      <ol className="flex flex-col gap-[30vh] pb-[20vh] @4xl:pt-[10vh]">
+      <ol className="flex list-none flex-col gap-[30vh] pb-[20vh] pl-0 @4xl:pt-[10vh] [&>li]:mt-0">
         {steps.map((step, index) => (
           <li
             key={step.props.lines}
