@@ -1,0 +1,234 @@
+### Dos tipos de software
+
+«¿Dónde lo desplegamos?» no tiene una única respuesta aquí, porque el repositorio construye dos tipos de software
+distintos:
+
+- **El planificador** (`apps/web`) renderiza páginas en el servidor, responde peticiones `/api/*`, escribe archivos
+  JSON en cada edición y resuelve un programa entero con una versión de HiGHS compilada a WebAssembly. Necesita un
+  proceso que siga en marcha y un disco en el que pueda escribir.
+- **La guía, su remote de federación y el banco de componentes** son archivos: HTML, CSS, JavaScript, un índice de
+  búsqueda. Necesitan una CDN, CORS en los archivos del remote y una política de caché sensata, y nada más.
+
+Un hosting gratuito y perfecto para el segundo tipo puede no servir de nada para el primero. Por eso el capítulo parte
+de lo que pide el código del planificador, y solo después mira los precios.
+
+### Tres preguntas para cualquier hosting
+
+**¿Puede ejecutar el renderizado en servidor?** TanStack Start compila el servidor como una salida de Nitro:
+`node .output/server/index.mjs` arranca un servidor HTTP que renderiza páginas, ejecuta funciones de servidor y sirve
+`/api/*`. Cualquier cosa que ejecute un proceso de Node, o uno de los presets de despliegue de Nitro, puede servirlo.
+Un hosting estático no puede: ahí solo cabe una build prerenderizada o solo de cliente, y por eso esta guía está
+prerenderizada.
+
+**¿Puede ejecutar la API?** Las rutas de API del planificador en el commit fijado son feeds de calendario
+(`ics.$calendarId`, `ics-zip`), OAuth para la sincronización de calendarios (`$provider.connect`, `$provider.callback`)
+y el plan para herramientas y modelos (`plan`, `plan-guide`, `plan-schema`, `plan-update`). En una VM o en un
+contenedor son código normal dentro del proceso. En una plataforma serverless cada petición puede recibir una instancia
+nueva y de vida corta, lo cual está bien para leer y mal para «escribe este archivo y léelo en la siguiente petición».
+
+**¿Puede conservar un archivo?** Esa es la pregunta que lo decide todo, y la respuesta está en un solo archivo.
+
+### Lo que el store le pide al hosting
+
+Toda escritura del planificador pasa por `packages/plan-data/src/store.ts`, por diseño. Leámoslo como quien despliega,
+no como quien desarrolla:
+
+<Walkthrough>
+
+```ts file=packages/plan-data/src/store.ts lines=29-134
+
+```
+
+<WalkStep lines="29-38" title="Dónde viven los datos">
+
+En un checkout del repositorio, el store encuentra `packages/plan-data/data` subiendo desde el directorio de trabajo.
+Un contenedor no tiene checkout, así que `PLAN_DATA_DIR` indica el directorio: monta un volumen ahí, copia `plan.json`
+una vez y no cambia nada del código.
+
+</WalkStep>
+
+<WalkStep lines="40-48" title="Qué escribe">
+
+El plan y sus ediciones, el historial de cambios, el estado de la sincronización de calendarios y `local.json`, que
+guarda secretos (client secrets de los calendarios, la dirección de un feed de horas ocupadas). En un servidor todos
+viven en el volumen. El archivo de secretos nunca debe quedar incrustado en una imagen.
+
+</WalkStep>
+
+<WalkStep lines="100-105" title="Una alternativa incorporada">
+
+Cuando falta el archivo del plan, el store sirve el plan empaquetado en la build. Un hosting sin ningún directorio de
+datos sigue mostrando un plan: el `plan.json` a partir del cual se hizo la build.
+
+</WalkStep>
+
+<WalkStep lines="117-123" title="Escribe solo donde puede">
+
+Incluso servir un feed de calendario puede escribir (la versión de cada evento). Aquí está protegido: donde no se puede
+escribir nada, el feed se sirve a partir de lo que ya está guardado.
+
+</WalkStep>
+
+<WalkStep lines="125-134" title="El interruptor">
+
+`canWrite()` decide si el planificador muestra sus controles de edición. Es falso cuando `PLAN_READONLY=1` o cuando no
+se puede escribir en el archivo del plan. El módulo del planificador ya recibe `canEdit` como prop (<ChapterLink id="build-time-microfrontends" />),
+así que un despliegue de solo lectura es una configuración, no un fork.
+
+</WalkStep>
+
+</Walkthrough>
+
+Así que el planificador tiene dos modos de despliegue reales. Un despliegue **personal** necesita un disco
+persistente y escribible. Un **escaparate público** puede ejecutarse en solo lectura en cualquier cosa que ejecute
+Node, con `PLAN_READONLY=1`. Que el modo de solo lectura funcione sin cambios en un hosting serverless es nuestra
+lectura de este código; el proyecto no lo ha probado.
+
+### La dependencia nativa
+
+HiGHS encuentra `highs.wasm` junto a su propio archivo JavaScript, mediante `import.meta.url`. Un bundler que incrusta o
+mueve el cargador rompe eso, y el trazador de archivos de Nitro no ve un archivo que se encuentra de esa forma. La
+configuración resuelve las dos cosas:
+
+<Walkthrough>
+
+```ts file=apps/web/vite.config.ts lines=8-30
+
+```
+
+<WalkStep lines="10-11" title="Que siga siendo un paquete en la build del servidor">
+
+`ssr.external` le dice a Vite que no meta `highs` en el bundle del código del servidor: sigue siendo un `import` de un
+paquete en disco, donde su cargador puede encontrar el `.wasm` a su lado.
+
+</WalkStep>
+
+<WalkStep lines="22-23" title="Copiar el paquete entero a la salida">
+
+`traceDeps: ['highs*']` hace que Nitro copie el paquete en `.output/server/node_modules`, `.wasm` incluido. La misma
+línea también marca `@sentry/*` como externo, aunque nada en el repositorio importa Sentry en el commit fijado. Lo
+interpretamos como un resto que quedó; no hace daño.
+
+</WalkStep>
+
+</Walkthrough>
+
+Un hosting que no puede leer archivos de su propio bundle de despliegue (un worker en el edge con un sistema de archivos
+virtual) necesitaría importar HiGHS como módulo WebAssembly: un cambio de código, y una de las razones por las que el
+edge es la opción más cara de las que siguen.
+
+### Las opciones, comparadas
+
+Los precios y límites se tomaron de las propias páginas de los proveedores el 2026-11-23/24 y irán cambiando. El
+documento de investigación (`docs/deployment-research.md`) guarda las fuentes y marca lo que no se pudo verificar.
+
+<HostingMatrix />
+
+Cómo leer la tabla del planificador:
+
+- **SSR** es «Sí» allí donde el planificador puede ejecutarse de algún modo: el renderizado en servidor no es la parte
+  difícil.
+- **API** es «Con cambios» donde las funciones se ejecutan pero no pueden conservar estado entre peticiones: las
+  lecturas funcionan; las escrituras necesitan otro almacenamiento.
+- **Disco** es la columna que decide. Cada «No» significa que `store.ts` pasa a ser una interfaz con una segunda
+  implementación respaldada por una base de datos o por almacenamiento de blobs, más una migración.
+
+### La decisión
+
+El hosting más barato que ejecuta el planificador sin cambiar código es **Fly.io**: una máquina de 512 MB y un volumen
+de 1 GB suman $3.84 al mes, dentro de los $5 de uso mensual que Fly da a una cuenta con tarjeta registrada, así que en
+la práctica $0. **Railway Hobby** cuesta $5 y es la mejor relación calidad-precio cuando no tener que configurar nada
+importa más que esos $5 (es partner oficial de hosting de TanStack Start). Una VM de **Hetzner** a €5.99 + IVA es la
+opción para tener control total y un cron de verdad, con el sistema operativo, TLS, las copias de seguridad y los
+despliegues a tu cargo.
+
+El precio de una sola máquina con un solo volumen es un corte breve en cada despliegue y ningún failover: un volumen
+pertenece a una máquina. Escalar a dos instancias le daría a cada una su propia copia del plan, que es justo el bug al
+que invita un almacenamiento en archivos.
+
+El planificador **aún no está desplegado**. Esta es la recomendación de la investigación, no una decisión registrada
+del proyecto, y las tarjetas de decisión del capítulo la marcan como inferida.
+
+### La mitad estática: GitHub Pages
+
+La guía, el remote y el banco sí están desplegados, desde un único workflow. GitHub Pages ganó por coste y fricción: no
+hace falta ninguna cuenta aparte del repositorio, y ya envía `Access-Control-Allow-Origin: *`, que un host necesita para
+hacer `import()` del remote desde otro origen (comprobado en vivo con `curl -I`).
+
+<Walkthrough>
+
+```yaml file=.github/workflows/docs.yml at=main
+
+```
+
+<WalkStep lines="5-9" title="Cuándo se ejecuta">
+
+Cada pull request y cada push a `main` o `develop` compila y ejecuta los tests. Solo un push a `main` publica.
+
+</WalkStep>
+
+<WalkStep lines="21-24" title="Un sitio bajo una subruta">
+
+Un sitio de proyecto vive en `https://<owner>.github.io/<repo>/`, así que cada enlace absoluto de la build estática
+necesita esa base. Sale del nombre del repositorio, no de una cadena fija en el código.
+
+</WalkStep>
+
+<WalkStep lines="26-29" title="Historial completo">
+
+Los capítulos leen sus fragmentos de código de git en los commits que citan, así que un clon superficial (shallow
+clone) haría fallar la build.
+
+</WalkStep>
+
+<WalkStep lines="36-48" title="Comprobar antes de publicar">
+
+Se comprueban el contrato y cada archivo, rango de líneas y commit que citan los capítulos; se compilan la guía y el
+remote; se compila el banco y se comprueba que exista cada historia que cita un capítulo; y el remote se carga en un
+host de prueba con Playwright.
+
+</WalkStep>
+
+<WalkStep lines="55-60" title="Un solo artefacto">
+
+Pages sirve un sitio por repositorio, así que el banco se copia en `stand/` junto a la guía, con el remote ya en
+`remote/v1/`, y la carpeta entera se sube una sola vez.
+
+</WalkStep>
+
+<WalkStep lines="62-74" title="Desplegar con el mínimo permiso">
+
+Solo el job de despliegue recibe `pages: write` e `id-token: write` (Pages verifica la identidad del workflow con
+OIDC). El job de build solo puede leer el repositorio.
+
+</WalkStep>
+
+</Walkthrough>
+
+### Convivir con una caché de diez minutos
+
+Pages envía `cache-control: max-age=600` en cada archivo y no deja que nadie lo cambie. Para un sitio es una molestia;
+para un remote de federación es un riesgo real, porque un host podría combinar una entrada desactualizada con chunks
+nuevos. En lugar de pelear con la cabecera, la build hace inofensivos los nombres fijos:
+
+- cada chunk ya lleva un hash de contenido en el nombre;
+- la entrada del remote también lleva uno (`remoteEntry-[hash].js`), así que el manifiesto siempre nombra la entrada
+  que corresponde a sus chunks;
+- el manifiesto es el único nombre fijo que pide un host, y el host lo solicita con una query que cambia en cada carga.
+
+Queda una ventana: una página abierta antes de un despliegue que carga el remote después de él puede pedir chunks que
+el despliegue reemplazó. El planificador trata cualquier fallo de carga como «guía no disponible» y, en su lugar,
+enlaza al sitio estático. Si eso llega a importar, el archivo `_headers` de Cloudflare (`no-cache` en el manifiesto,
+`immutable` en los archivos con hash) es la solución limpia.
+
+El capítulo <ChapterLink id="module-federation" /> muestra el cargador que hace todo esto.
+
+### Qué cambiaría la decisión
+
+- **Más de un escritor** (una segunda persona, un segundo dispositivo editando a la vez): los archivos con
+  last-write-wins (gana la última escritura) dejan de bastar, y el siguiente paso es una base de datos, que además abre
+  la puerta a los hostings serverless.
+- **Previsualizaciones por pull request** para la guía: los static assets de Cloudflare Workers las dan por $0, a
+  cambio de una cuenta y un token en CI.
+- **Tareas programadas** (sincronización periódica de calendarios, vaciar la papelera con un temporizador): un proceso
+  que siga en marcha, o un cron de la plataforma (Vercel Hobby ejecuta uno una vez al día).

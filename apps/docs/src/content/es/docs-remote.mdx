@@ -1,0 +1,249 @@
+### Dos productos de un mismo código
+
+Esta guía se publica dos veces a partir de los mismos componentes: como sitio estático, que quizá estés leyendo ahora,
+y como el remote que el planificador abre en un panel lateral. El capítulo <ChapterLink id="module-federation" /> mostró
+cómo se carga el remote. Este capítulo trata de lo que hace seguro cargarlo en la página de otro: una API versionada
+como una biblioteca, estilos y teclas que se quedan en su lado, y un router que nunca toca la URL del host.
+
+### El contrato es un paquete
+
+Un host y un remote se compilan y se despliegan por separado, así que el compilador no puede comprobar uno contra el
+otro. Lo mejor que queda es un paquete pequeño del que dependen ambos lados: tipos, constantes y helpers puros, sin
+React y sin DOM, así que importarlo no añade nada al bundle de un host.
+
+<Walkthrough>
+
+```ts file=packages/docs-contract/src/index.ts at=main lines=9-114
+
+```
+
+<WalkStep lines="9-14" title="Una versión y los nombres">
+
+El contrato tiene su propio semver, independiente de cualquier app. Los cambios incompatibles suben la versión mayor y
+se listan en `CHANGELOG.md`; los nombres de federación también viven aquí, así que ninguno de los dos lados los escribe
+a mano.
+
+</WalkStep>
+
+<WalkStep lines="24-41" title="Lo que controla el host">
+
+El contexto es todo lo que decide el host: el idioma, el tema (seguir al host, o fijarlo en claro u oscuro), tokens de
+diseño opcionales, la feature que la persona está mirando y dónde vive el sitio estático. El remote lo lee y nunca lo
+modifica.
+
+</WalkStep>
+
+<WalkStep lines="43-58" title="Destinos y eventos, como tipos">
+
+Un destino es un capítulo o una feature. Los eventos son un mapa de nombre a tipo de payload, así que
+`on('docs:navigate', handler)` le da al handler el tipo de argumento correcto sin ningún cast.
+
+</WalkStep>
+
+<WalkStep lines="60-82" title="La API en sí">
+
+Cinco métodos y una versión. `destroy()` forma parte del contrato: el remote debe quitar todo lo que añadió a la
+página. `DocsHelpModule` es lo que exporta el módulo federado.
+
+</WalkStep>
+
+<WalkStep lines="84-100" title="Comprobaciones al cargar">
+
+Los tipos desaparecen en tiempo de ejecución, así que dos funciones comprueban lo que llegó por la red: la misma versión
+mayor y la forma correcta.
+
+</WalkStep>
+
+<WalkStep lines="102-114" title="La alternativa es parte del contrato">
+
+Cuando el remote no puede cargarse, un host debería seguir ayudando. `docsPageUrl` convierte el mismo destino en la URL
+de la página estática, así que la alternativa lleva al mismo capítulo.
+
+</WalkStep>
+
+</Walkthrough>
+
+Las reglas de semver del contrato están escritas en su changelog: un método, evento o id eliminado o renombrado es un
+cambio mayor, y el remote de la nueva versión mayor se despliega en una carpeta nueva (`remote/v2/`) junto a la
+antigua. Un host se actualiza cuando lo deciden sus responsables, no cuando se despliega la guía.
+
+### Responsable de todo lo que añade
+
+El módulo de entrada del remote crea el panel cuando el host lo pide, y puede volver a borrar todo rastro de él. No se
+guarda nada en el ámbito del módulo, así que dos hosts en una misma página no compartirían estado.
+
+<Walkthrough>
+
+```tsx file=apps/docs/src/remote/help.tsx at=main lines=25-169
+
+```
+
+<WalkStep lines="25-29" title="Las teclas se quedan dentro">
+
+Los eventos de teclado son composed: cruzan la frontera del shadow DOM, redirigidos (retargeted) al custom element. El
+planificador registra sus atajos en `window`, así que una letra escrita en el buscador de la guía también les llegaría.
+Detener las teclas en el shadow root las mantiene en la guía.
+
+</WalkStep>
+
+<WalkStep lines="31-42" title="El tema viene del host">
+
+Con `inherit`, el panel usa el esquema de color del host y sus propiedades personalizadas de CSS, que sí cruzan la
+frontera del shadow DOM. `light`, `dark` y los tokens explícitos las sobrescriben solo en el custom element.
+
+</WalkStep>
+
+<WalkStep lines="56-65" title="Un custom element con shadow root">
+
+Todo lo que renderiza la guía vive bajo un único elemento `<lc-docs>`. Su shadow root contiene la hoja de estilos y la
+raíz de React, así que los selectores del host no pueden coincidir con los elementos de la guía, ni los selectores de
+la guía con los del host.
+
+</WalkStep>
+
+<WalkStep lines="67-84" title="Un canal de eventos tipado">
+
+Un conjunto de handlers por nombre de evento, creado para cada panel. Si un handler lanza una excepción, se captura, así
+que un bug del host no puede romper la guía ni los demás handlers.
+
+</WalkStep>
+
+<WalkStep lines="86-90" title="La navegación se convierte en un evento">
+
+El router del panel informa de cada página resuelta. El host recibe `docs:navigate` con un destino tipado y puede, por
+ejemplo, registrar qué capítulos abre la gente desde qué pantalla.
+
+</WalkStep>
+
+<WalkStep lines="110-113" title="Listo después del código de quien llama">
+
+`docs:ready` se emite en una microtarea, así que un handler registrado justo después de que `createDocsHost` retorne
+todavía lo recibe.
+
+</WalkStep>
+
+<WalkStep lines="140-151" title="Cambios de contexto sin recrear el panel">
+
+Un locale nuevo lleva el router del panel a la misma página en el nuevo idioma y lo notifica; un tema o unos tokens
+nuevos se aplican al elemento. El panel no se vuelve a crear.
+
+</WalkStep>
+
+<WalkStep lines="159-167" title="destroy() lo quita todo">
+
+La suscripción al router, la raíz de React, el elemento, la hoja de estilos llevada al documento y cada handler.
+Después de `destroy()` la página queda como estaba.
+
+</WalkStep>
+
+</Walkthrough>
+
+### Estilos en un shadow root
+
+Un shadow root aísla los selectores en ambas direcciones, que es justo lo que necesita una guía dentro de la app de
+otro. También trae dos sorpresas, las dos resueltas en un archivo:
+
+```ts file=apps/docs/src/remote/shadow.ts at=main
+
+```
+
+- **`@property` se ignora dentro de un shadow tree.** Tailwind 4 registra propiedades personalizadas con `@property`
+  para darles valores iniciales, y sus bordes, sombras y transformaciones dependen de ellos. Dentro de un shadow root
+  esas reglas no hacen nada y los bordes desaparecen. La solución es copiar solo esas reglas al documento, donde
+  registran las propiedades para toda la página. Registrar no aplica ningún estilo, así que el host no se ve afectado.
+- **Las fuentes las carga el documento**, no el shadow root. La guía añade su hoja de estilos de fuentes al head del
+  documento, salvo que el host ya cargue esas mismas fuentes.
+
+Los selectores se detienen en la frontera, pero las propiedades heredadas no: un `body { letter-spacing: … }` del host
+seguiría llegando al texto de la guía. La hoja de estilos del remote hace que su elemento host parta de cero:
+
+```css file=apps/docs/src/styles/remote.css at=main lines=9-16
+
+```
+
+`all: initial` devuelve cada propiedad del elemento a su valor inicial, también las heredadas. Las propiedades
+personalizadas no se tocan (tampoco `direction` ni `unicode-bidi`), así que los tokens de diseño del host, que la guía
+lee para su tema, siguen llegando. El harness de pruebas vigila las dos direcciones: su
+página define estilos hostiles (encabezados rojos en mayúsculas, letter-spacing en `body`, outlines en los propios
+nombres de clase de la guía), y las pruebas comprueban que ninguno llega al panel y que los estilos de la guía no
+llegan al host.
+
+### Un router que se queda en el panel
+
+Las páginas de la guía se enlazan entre sí. En el sitio, esos enlaces cambian la barra de direcciones; en el panel no
+deben hacerlo, porque la barra de direcciones pertenece al planificador. El panel crea su propio router con un
+historial en memoria:
+
+```tsx file=apps/docs/src/remote/router.tsx at=main lines=1-2
+
+```
+
+```tsx file=apps/docs/src/remote/router.tsx at=main lines=42-49
+
+```
+
+Las rutas son las del propio sitio (`/$locale/chapters/$chapterId/`), así que el `<Link>` de cada componente compartido
+funciona sin cambios en ambos modos. Eso incluye los enlaces de este texto: son enlaces del router, no `<a href>`,
+porque un enlace normal dentro del panel haría que el planificador navegara fuera de su página.
+
+El panel en sí es un `<dialog>` modal. `showModal()` da captura del foco, `Escape` para cerrar y una página inerte
+detrás, todo nativo, sin ninguna biblioteca de focus trap.
+
+### Los mismos componentes, dos entornos
+
+Las páginas de capítulo, las tarjetas de decisión, los bloques de código y los recorridos se escriben una sola vez. Lo
+que cambia entre el sitio y el panel se pasa a través de un único contexto de React: el idioma del lector, dónde viven
+el sitio y el banco de componentes, y un `mode`. Los componentes lo leen en lugar de preguntar dónde están. El índice,
+por ejemplo, solo aparece en el sitio, porque sus enlaces `#anchor` cambiarían la URL del host.
+
+### Prerenderizado, en tres idiomas
+
+El sitio es TanStack Start con prerenderizado, así que cada página es un archivo HTML real con su contenido dentro:
+algo que GitHub Pages puede servir, que los buscadores pueden leer y a partir de lo cual se puede construir el índice de
+búsqueda. La lista de páginas se calcula una vez y se usa tres veces: para la build, para el sitemap y para los enlaces
+`hreflang` de cada página.
+
+<Walkthrough>
+
+```ts file=apps/docs/vite.config.ts at=main lines=12-54
+
+```
+
+<WalkStep lines="12-16" title="Entorno en tiempo de compilación">
+
+Aquí la ruta base y el origen son entradas de tiempo de compilación, a diferencia del remote: las URL absolutas de
+`hreflang`, las canónicas y las del sitemap se escriben en el HTML.
+
+</WalkStep>
+
+<WalkStep lines="18-29" title="Cada página en cada idioma">
+
+Las páginas salen de la lista de capítulos del contrato multiplicada por los tres idiomas, cada una con sus versiones
+alternativas para el sitemap.
+
+</WalkStep>
+
+<WalkStep lines="45-51" title="Un enlace roto hace fallar la build">
+
+Con `crawlLinks` y `failOnError`, un enlace a una página que no existe detiene la build. El banco de componentes se
+excluye porque CI lo copia junto al sitio solo después.
+
+</WalkStep>
+
+</Walkthrough>
+
+Un capítulo cuyo texto aún no se ha traducido no falta en ruso ni en español. Se muestra en inglés y lo avisa al
+principio de la página, y el informe de cobertura (`pnpm --filter @lc/docs coverage`) lista lo que queda.
+
+### Solo código real
+
+La guía dice mostrar cómo se construyó el proyecto, así que cada fragmento se lee de git en tiempo de compilación. Un
+bloque de código nombra un archivo, un commit y un rango de líneas, y la build lo rellena:
+
+```ts file=apps/docs/mdx.config.ts at=main lines=31-69
+
+```
+
+Una ruta que no existe en ese commit, o un rango que pasa del final del archivo, hace fallar la build. Las referencias
+del temario que no son bloques de código (archivos, rangos de líneas, commits) se comprueban igual con
+`pnpm --filter @lc/docs test`. Los fragmentos nunca se traducen: el código es el mismo en todos los idiomas.
