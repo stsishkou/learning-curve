@@ -7,8 +7,9 @@
 @source '../../../../packages/ui/src';
 
 :host {
-  /* Inherited properties (font, colour, line height, direction…) start over: a host's body styles stay outside.
-     Custom properties are not reset by `all`, so the host's tokens still come through. */
+  /* Every property starts over, the inherited ones (font, colour, line height…) included: a host's body styles stay
+     outside. `all` leaves custom properties alone, so the host's tokens still come through, and `direction`, which
+     keeps following the host page. */
   all: initial;
   color-scheme: inherit;
   font-family: var(--font-sans);

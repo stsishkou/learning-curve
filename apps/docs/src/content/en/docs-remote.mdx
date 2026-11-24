@@ -158,8 +158,9 @@ reach the guide's text. The remote's stylesheet starts its host element over:
 
 ```
 
-`all: initial` resets every inherited property except custom properties, so the host's design tokens, which the guide
-reads for its theme, still come through. The test harness keeps both directions honest: its page sets hostile
+`all: initial` puts every property of the element back to its initial value, the inherited ones included. Custom
+properties are left alone (as are `direction` and `unicode-bidi`), so the host's design tokens, which the guide reads
+for its theme, still come through. The test harness keeps both directions honest: its page sets hostile
 styles (uppercase red headings, letter-spacing on `body`, outlines on the guide's own class names), and the tests
 check that none of them reach the drawer and that the guide's styles do not reach the host.
 
