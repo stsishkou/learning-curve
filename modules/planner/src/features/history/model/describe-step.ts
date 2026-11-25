@@ -24,6 +24,10 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return m.calendar_cleared({ name: subject })
     case 'calendar.save':
       return change.id ? m.history_calendar_changed({ name: subject }) : m.history_added({ name: subject })
+    case 'calendars.order':
+      return m.history_calendars_ordered()
+    case 'calendar.hide':
+      return change.hidden ? m.history_calendar_hidden({ name: subject }) : m.history_calendar_shown({ name: subject })
     case 'trash.restore':
       return m.history_restored()
     case 'trash.empty':

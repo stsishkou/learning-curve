@@ -1,6 +1,7 @@
 import { fmtDay, fmtDuration, fmtFactor, fmtRatio } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
+  hiddenCalendarIds,
   hm,
   isSession,
   parseLocal,
@@ -150,7 +151,11 @@ export function FocusPage(props: Props) {
     .toSorted((a, b) => parseLocal(a.start) - parseLocal(b.start))
   // What is left of today comes first, missed sessions included; then what follows.
   const today = now === null ? null : startOfDay(now)
-  const queue = (today === null ? open : open.filter((e) => parseLocal(e.start) >= today)).slice(0, QUEUE)
+  // A calendar hidden from the list stays out of the queue; a stopwatch already running on one keeps its session.
+  const parked = hiddenCalendarIds(plan)
+  const queue = (today === null ? open : open.filter((e) => parseLocal(e.start) >= today))
+    .filter((e) => !parked.has(e.calendar))
+    .slice(0, QUEUE)
   const inProgress = now === null ? undefined : queue.find((e) => parseLocal(e.start) <= now && now < parseLocal(e.end))
   const upcoming = now === null ? undefined : queue.find((e) => parseLocal(e.end) > now)
   const byUid = (uid: string | null | undefined) => open.find((e) => e.uid === uid)

@@ -1,6 +1,15 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, finishRange, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
+import {
+  DAY,
+  finishRange,
+  paceForecast,
+  parseLocal,
+  planStats,
+  shownPlan,
+  type Plan,
+  type WeekStats,
+} from '@lc/plan-domain'
 import { HelpToggle, IconsToggle, PageHeader, ScreenButtons, stickyTop, useFullscreen, useShortcuts } from '@lc/ui'
 import { useMemo, type ReactNode } from 'react'
 
@@ -46,7 +55,7 @@ function tableRows(weeks: WeekStats[]) {
 
 /** Progress of the plan in numbers and charts. Read-only: marks are made in the planner. */
 export function DashboardPage({
-  plan,
+  plan: wholePlan,
   headerAside,
   now: fixed,
   expanded = false,
@@ -55,6 +64,8 @@ export function DashboardPage({
 }: Props) {
   const clock = useNow()
   const now = fixed ?? clock
+  // Calendars hidden from the list in the planner are out of the charts too.
+  const plan = useMemo(() => shownPlan(wholePlan), [wholePlan])
   const stats = useMemo(() => planStats(plan, now ?? 0), [plan, now])
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   const range = useMemo(() => (now === null ? null : finishRange(plan, now)), [plan, now])

@@ -66,6 +66,12 @@ export function purgeTrash(base: Plan, edits: PlanEdits, now = Date.now()): Plan
     }
     removed.calendars = without(removed.calendars, id)
     next.calendars = without(next.calendars, id)
+    const order = next.order?.filter((other) => other !== id)
+    if (order?.length) next.order = order
+    else delete next.order
+    const hidden = next.hidden?.filter((other) => other !== id)
+    if (hidden?.length) next.hidden = hidden
+    else delete next.hidden
     next.added = next.added.filter((e) => e.calendar !== id)
     for (const [uid, patch] of Object.entries(next.events)) {
       if (patch.calendar !== id) continue

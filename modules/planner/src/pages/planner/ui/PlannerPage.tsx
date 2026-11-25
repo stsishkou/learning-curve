@@ -3,6 +3,7 @@ import {
   DAY,
   HOUR,
   doneWithoutTime,
+  hiddenCalendarIds,
   isSession,
   mondayOf,
   moveOccurrence,
@@ -12,6 +13,7 @@ import {
   planStart,
   removeOccurrence,
   reviewOffers,
+  shownPlan,
   startOfDay,
   toLocalString,
   ymd,
@@ -168,7 +170,9 @@ export function PlannerPage({
   const mod = useModKey()
   const { hidden, toggle, solo, showAll, reset } = useHiddenCalendars()
   const session = usePlanSession(state, { onChange, onTravel, onTrimHistory, onChangeAll })
-  const { plan, canEdit } = session
+  const { plan: wholePlan, canEdit } = session
+  // Calendars hidden from the list are out of every view; what saves, exports or re-plans still gets the whole plan.
+  const plan = useMemo(() => shownPlan(wholePlan), [wholePlan])
   const nav = usePlannerView(plan, search, onSearchChange)
   const { view, weekStart } = nav
   const fullscreen = useFullscreen()
@@ -234,6 +238,7 @@ export function PlannerPage({
     onSearchChange({ event: e.uid })
   }
   const trashCount = session.trash.events.length + session.trash.calendars.length
+  const exportHidden = useMemo(() => new Set([...hidden, ...hiddenCalendarIds(wholePlan)]), [hidden, wholePlan])
 
   const weekItems = useMemo(() => occurrences(plan, weekStart, weekStart + 7 * DAY, hidden), [plan, weekStart, hidden])
   const kept = (o: Occurrence) => !(nav.hideDone && o.done)
@@ -378,7 +383,11 @@ export function PlannerPage({
             <HelpToggle label={m.help_toggle()} className="max-md:hidden" />
             <Hint title={m.help_file_title()} text={m.help_file()} className="self-center max-md:hidden" />
             <OpenPlanFile
-              shown={{ name: session.file?.name ?? planFileName(plan), plan, origin: session.file?.origin }}
+              shown={{
+                name: session.file?.name ?? planFileName(wholePlan),
+                plan: wholePlan,
+                origin: session.file?.origin,
+              }}
               project={state.plan}
               onOpen={(file) => {
                 session.openFile(file.name, file.plan, file.origin)
@@ -607,7 +616,7 @@ export function PlannerPage({
         anchor={dialogAnchor}
       />
       <CalendarsDialog
-        plan={plan}
+        plan={wholePlan}
         open={dialogs.isOpen('calendars')}
         onChange={session.change}
         undo={quiet.lastStep}
@@ -626,7 +635,7 @@ export function PlannerPage({
         onClose={() => dialogs.hide('countdown')}
       />
       <RescheduleDialog
-        plan={plan}
+        plan={wholePlan}
         from={reschedule}
         onApply={session.changeAll}
         rebalance={rebalance}
@@ -642,7 +651,7 @@ export function PlannerPage({
       />
       <ResizedDoneDialog resized={resized} onChange={session.change} onClose={() => setResized(null)} />
       <LogDoneDialog
-        plan={plan}
+        plan={wholePlan}
         uids={logDone}
         onChange={session.change}
         onClose={() => {
@@ -659,7 +668,7 @@ export function PlannerPage({
         onClose={() => dialogs.hide('catchUp')}
       />
       <TrashDialog
-        plan={plan}
+        plan={wholePlan}
         trash={session.trash}
         open={dialogs.isOpen('trash')}
         onChange={session.change}
@@ -701,7 +710,12 @@ export function PlannerPage({
         onBusy={() => dialogs.show('busy')}
         onClose={() => dialogs.hide('integrations')}
       />
-      {renderExport?.({ plan, hidden, open: dialogs.isOpen('export'), onClose: () => dialogs.hide('export') })}
+      {renderExport?.({
+        plan: wholePlan,
+        hidden: exportHidden,
+        open: dialogs.isOpen('export'),
+        onClose: () => dialogs.hide('export'),
+      })}
       {shownSource && shownStatus && (
         <CalendarSyncDialog
           // Each app's form starts empty.
@@ -724,7 +738,7 @@ export function PlannerPage({
       )}
       <CalendarReviewDialog
         open={dialogs.isOpen('syncReview') && apps.held.length > 0}
-        plan={plan}
+        plan={wholePlan}
         items={apps.held}
         working={apps.working()}
         error={apps.error()}

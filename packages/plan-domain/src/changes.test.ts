@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 import { applyChange, parseChange, splitInHalves, type NewEvent, type PlanChange } from './changes'
 import { parseLocal, toLocalString } from './dates'
 import { deadlineOf } from './deadlines'
-import { applyEdits, emptyEdits, parseEdits, type PlanEdits } from './edits'
+import { applyEdits, emptyEdits, parseEdits, shownPlan, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
 import { emptyHistory, recordChange } from './history'
 import { isSession } from './progress'
@@ -82,6 +82,8 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   'calendar.save': { type: 'calendar.save', id: 'journey', name: 'Journey', color: '#123456' },
   'calendar.remove': { type: 'calendar.remove', id: 'journey' },
   'calendar.clear': { type: 'calendar.clear', id: 'journey' },
+  'calendars.order': { type: 'calendars.order', ids: ['personal', 'certs'] },
+  'calendar.hide': { type: 'calendar.hide', id: 'journey', hidden: true },
   'trash.restore': { type: 'trash.restore' },
   'trash.empty': { type: 'trash.empty' },
   'events.shift': { type: 'events.shift', calendars: ['certs', 'hfllm'], from: '2026-11-23', days: 1, hours: 0.5 },
@@ -403,6 +405,57 @@ describe('trash', () => {
     const removed = apply([EXAMPLES['event.remove']])
     expect(trashOf(base, removed, NOW + (TRASH_DAYS - 1) * 86_400_000).events).toHaveLength(1)
     expect(trashOf(base, removed, NOW + (TRASH_DAYS + 1) * 86_400_000).events).toHaveLength(0)
+  })
+})
+
+const ids = (plan: Plan) => plan.calendars.map((c) => c.id)
+
+describe('calendar order and visibility', () => {
+  const natural = ids(base)
+
+  test('calendars.order puts the calendars named first and keeps the others after them, in their own order', () => {
+    expect(ids(planOf(apply([EXAMPLES['calendars.order']])))).toEqual([
+      'personal',
+      'certs',
+      ...natural.filter((id) => id !== 'personal' && id !== 'certs'),
+    ])
+  })
+
+  test('the natural order again is no edit at all', () => {
+    const edits = apply([EXAMPLES['calendars.order'], { type: 'calendars.order', ids: natural }])
+    expect(edits.order).toBeUndefined()
+  })
+
+  test('calendars.order refuses a calendar that is not in the plan, and a calendar named twice', () => {
+    expect(() => apply([{ type: 'calendars.order', ids: ['certs', 'nope'] }])).toThrow(/nope/)
+    expect(() => parseChange({ type: 'calendars.order', ids: ['certs', 'certs'] })).toThrow(/each once/)
+  })
+
+  test('a hidden calendar keeps its events in the plan; showing it again leaves no edit', () => {
+    const hidden = apply([EXAMPLES['calendar.hide']])
+    const plan = planOf(hidden)
+    expect(plan.calendars.find((c) => c.id === 'journey')?.hidden).toBe(true)
+    expect(plan.events.some((e) => e.calendar === 'journey')).toBe(true)
+    expect(apply([{ type: 'calendar.hide', id: 'journey', hidden: false }], hidden).hidden).toBeUndefined()
+  })
+
+  test('the last calendar shown cannot be hidden', () => {
+    const all = natural.map((id): PlanChange => ({ type: 'calendar.hide', id, hidden: true }))
+    expect(() => apply(all)).toThrow(/last calendar/)
+  })
+
+  test('the order and the hidden calendars survive a trip through the edits file', () => {
+    const edits = apply([EXAMPLES['calendars.order'], EXAMPLES['calendar.hide']])
+    const stored = JSON.stringify(edits)
+    expect(parseEdits(JSON.parse(stored))).toEqual(edits)
+  })
+
+  test('shownPlan leaves out a hidden calendar and its events, and nothing else', () => {
+    const plan = planOf(apply([EXAMPLES['calendar.hide']]))
+    const shown = shownPlan(plan)
+    expect(ids(shown)).toEqual(natural.filter((id) => id !== 'journey'))
+    expect(shown.events).toEqual(plan.events.filter((e) => e.calendar !== 'journey'))
+    expect(shownPlan(base)).toBe(base)
   })
 })
 

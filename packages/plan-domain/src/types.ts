@@ -8,6 +8,11 @@ export interface PlanCalendar {
   note?: string
   /** true for a calendar added in the viewer, not defined in the course content */
   custom?: boolean
+  /**
+   * true when it was hidden from the list in the viewer: it and its events are out of every view, but still planned,
+   * so the weekly budget, the re-balance and the feeds count them
+   */
+  hidden?: boolean
 }
 
 /** `review` is a short session that goes back to a finished module; it is planned in the viewer, not generated. */

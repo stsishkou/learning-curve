@@ -69,6 +69,10 @@ export interface PlanEdits {
   title?: string
   /** The calendar whose deadline the countdown follows, when one was chosen in the viewer */
   countdown?: string
+  /** Calendar ids in the order the viewer lists them; the calendars not named follow in their own order */
+  order?: string[]
+  /** Ids of the calendars hidden from the list in the viewer */
+  hidden?: string[]
 }
 
 export const emptyEdits = (): PlanEdits => ({
@@ -217,6 +221,10 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
   return patchProblem(event, {}) ? null : event
 }
 
+/** Calendar ids from untrusted input, each once; anything else is dropped. */
+const idList = (value: unknown): string[] =>
+  Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === 'string' && id !== ''))] : []
+
 export function parseEdits(value: unknown): PlanEdits {
   const edits = emptyEdits()
   if (!isRecord(value)) return edits
@@ -249,6 +257,10 @@ export function parseEdits(value: unknown): PlanEdits {
   }
   if (typeof value.title === 'string' && value.title.trim()) edits.title = value.title.trim().slice(0, TITLE_MAX)
   if (typeof value.countdown === 'string' && value.countdown) edits.countdown = value.countdown
+  const order = idList(value.order)
+  if (order.length) edits.order = order
+  const hidden = idList(value.hidden)
+  if (hidden.length) edits.hidden = hidden
   return edits
 }
 
@@ -268,12 +280,17 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
   const orphans = Object.keys(edits.events).filter((uid) => !known.has(uid))
 
   const generatedIds = new Set(plan.calendars.map((c) => c.id))
+  const rank = new Map((edits.order ?? []).map((id, at) => [id, at]))
+  const rankOf = (c: PlanCalendar) => rank.get(c.id) ?? rank.size
+  const hidden = new Set(edits.hidden)
   const calendars: PlanCalendar[] = [
     ...plan.calendars.map((c) => ({ ...c, ...edits.calendars[c.id] })),
     ...Object.entries(edits.calendars)
       .filter(([id]) => !generatedIds.has(id))
       .map(([id, patch]) => ({ id, ...patch, isNew: true, custom: true })),
   ]
+    .toSorted((a, b) => rankOf(a) - rankOf(b))
+    .map((c) => (hidden.has(c.id) ? { ...c, hidden: true } : c))
   const calendarIds = new Set(calendars.map((c) => c.id))
   const gone = edits.removed
 
@@ -314,4 +331,22 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
     ...(edits.countdown ? { countdown: edits.countdown } : {}),
   }
   return { plan: { ...plan, meta, calendars: shown, events }, orphans }
+}
+
+/** Ids of the calendars hidden from the list in the viewer. */
+export const hiddenCalendarIds = (plan: Plan): ReadonlySet<string> =>
+  new Set(plan.calendars.filter((c) => c.hidden).map((c) => c.id))
+
+/**
+ * The plan as the viewer shows it: without the calendars hidden from the list and their events. Only for showing:
+ * they are still planned, so the rules of the plan and anything that changes it work on the whole plan.
+ */
+export function shownPlan(plan: Plan): Plan {
+  const hidden = hiddenCalendarIds(plan)
+  if (!hidden.size) return plan
+  return {
+    ...plan,
+    calendars: plan.calendars.filter((c) => !hidden.has(c.id)),
+    events: plan.events.filter((e) => !hidden.has(e.calendar)),
+  }
 }

@@ -2,6 +2,7 @@ import { m } from '@lc/i18n/messages'
 import {
   calendarLanes,
   compareLanes,
+  hiddenCalendarIds,
   laneMoveBounds,
   lanesRange,
   movedSessions,
@@ -76,8 +77,13 @@ export function TimelinePage(props: Props) {
   const [more, setMore] = useState<string | null>(null)
 
   const { preview } = draft
-  const before = useMemo(() => calendarLanes(plan, now, NONE), [plan, now])
-  const after = useMemo(() => (preview ? calendarLanes(preview.after, now, NONE) : before), [preview, now, before])
+  // A calendar hidden from the list has no lane; the draft still works on the whole plan.
+  const parked = useMemo(() => hiddenCalendarIds(plan), [plan])
+  const before = useMemo(() => calendarLanes(plan, now, parked), [plan, now, parked])
+  const after = useMemo(
+    () => (preview ? calendarLanes(preview.after, now, parked) : before),
+    [preview, now, parked, before],
+  )
   const moved = useMemo(() => (preview ? movedSessions(preview.diff) : NONE), [preview])
   const changes = useMemo(() => compareLanes(before, after, moved), [before, after, moved])
   const range = useMemo(() => lanesRange([...before, ...after], now), [before, after, now])

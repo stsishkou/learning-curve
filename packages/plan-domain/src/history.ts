@@ -74,7 +74,10 @@ function subjectOf(plan: Plan, change: PlanChange): string {
       return change.reviews[0]?.title.replace(/ \(\d+\/\d+\)$/, '') ?? ''
     case 'calendar.remove':
     case 'calendar.clear':
+    case 'calendar.hide':
       return plan.calendars.find((c) => c.id === change.id)?.name ?? ''
+    case 'calendars.order':
+      return ''
     case 'events.shift':
       return (change.calendars ?? [])
         .map((id) => plan.calendars.find((c) => c.id === id)?.name ?? '')

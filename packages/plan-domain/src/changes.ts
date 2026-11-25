@@ -68,6 +68,10 @@ export type PlanChange =
   | { type: 'calendar.remove'; id: string }
   /** Moves every event of the calendar to the trash and keeps the calendar */
   | { type: 'calendar.clear'; id: string }
+  /** Lists the calendars in this order; the ones not named follow in their own order */
+  | { type: 'calendars.order'; ids: string[] }
+  /** Hides the calendar and its events from every view, or shows them again; they stay planned */
+  | { type: 'calendar.hide'; id: string; hidden: boolean }
   /** Brings back the listed events and calendars, or the whole trash when neither is given */
   | { type: 'trash.restore'; events?: string[] | undefined; calendars?: string[] | undefined }
   /** Removes everything in the trash for good */
@@ -251,6 +255,22 @@ export function parseChange(input: unknown): PlanChange {
       return { type: 'calendar.remove', id: text('id') }
     case 'calendar.clear':
       return { type: 'calendar.clear', id: text('id') }
+    case 'calendars.order': {
+      const { ids } = input
+      if (
+        !Array.isArray(ids) ||
+        !ids.length ||
+        !ids.every((id): id is string => typeof id === 'string' && id !== '') ||
+        new Set(ids).size !== ids.length
+      ) {
+        return fail('ids must list calendar ids, each once')
+      }
+      return { type: 'calendars.order', ids }
+    }
+    case 'calendar.hide':
+      return typeof input.hidden === 'boolean'
+        ? { type: 'calendar.hide', id: text('id'), hidden: input.hidden }
+        : fail('hidden must be true or false')
     case 'trash.restore': {
       const ids = (key: string) => {
         const value = input[key]
@@ -367,6 +387,8 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     removed: { events: { ...edits.removed.events }, calendars: { ...edits.removed.calendars } },
     ...(edits.title ? { title: edits.title } : {}),
     ...(edits.countdown ? { countdown: edits.countdown } : {}),
+    ...(edits.order ? { order: [...edits.order] } : {}),
+    ...(edits.hidden ? { hidden: [...edits.hidden] } : {}),
   }
   const { removed } = next
   const removedAt = new Date(now).toISOString()
@@ -523,6 +545,31 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       for (const event of applyEdits(base, next).plan.events) {
         if (event.calendar === id) removed.events[event.uid] = removedAt
       }
+      break
+    }
+    case 'calendars.order': {
+      const unknown = change.ids.find((id) => !calendarExists(id))
+      if (unknown !== undefined) fail(`Unknown calendar "${unknown}"`)
+      next.order = change.ids
+      const listed = (sofar: PlanEdits) =>
+        applyEdits(base, sofar)
+          .plan.calendars.map((c) => c.id)
+          .join()
+      // The order the calendars come in by themselves is no edit at all.
+      const { order: _order, ...natural } = next
+      if (listed(next) === listed(natural)) delete next.order
+      break
+    }
+    case 'calendar.hide': {
+      const { id, hidden } = change
+      if (!calendarExists(id)) fail(`Unknown calendar "${id}"`)
+      const others = (next.hidden ?? []).filter((other) => other !== id)
+      if (hidden && !applyEdits(base, next).plan.calendars.some((c) => c.id !== id && !c.hidden)) {
+        fail('The last calendar shown cannot be hidden')
+      }
+      if (hidden) next.hidden = [...others, id]
+      else if (others.length) next.hidden = others
+      else delete next.hidden
       break
     }
     case 'trash.restore': {

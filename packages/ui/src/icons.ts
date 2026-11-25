@@ -29,6 +29,7 @@ export {
   ExternalLink,
   Eye,
   FileText,
+  GripVertical,
   EyeOff,
   Flame,
   Hourglass,
