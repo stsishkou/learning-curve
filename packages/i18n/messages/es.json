@@ -482,6 +482,8 @@
   "spent_under_plan": "{time} menos de lo previsto",
   "spent_ask": "¿Cuánto tiempo llevó?",
   "spent_done_without": "Hecho sin tiempo",
+  "spent_measured": "según el cronómetro, empezado a las {time}",
+  "spent_paused": "pausa {time}",
   "log_done_title": "Marcar {count} sesiones como hechas",
   "log_done_hint": "Elige cuánto llevó cada una. La que quede sin tiempo se marca hecha sin él, y el ritmo no la cuenta.",
   "log_done_unlogged": "{count} sin tiempo",

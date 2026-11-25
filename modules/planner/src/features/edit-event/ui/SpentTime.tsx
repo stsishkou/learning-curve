@@ -1,6 +1,6 @@
-import { fmtDuration } from '@lc/i18n/format'
+import { fmtDuration, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { parseLocal, type PlanEvent } from '@lc/plan-domain'
+import { hm, parseLocal, type PlanEvent } from '@lc/plan-domain'
 
 import { TimeChoices } from '../../../shared/ui'
 
@@ -29,6 +29,13 @@ interface Props {
  */
 export function SpentTime({ event, spent, asking = false, disabled, onLog }: Props) {
   const planned = Math.round((parseLocal(event.end) - parseLocal(event.start)) / MINUTE)
+  const { measured, began, paused } = event
+  const started =
+    began === undefined
+      ? null
+      : began.slice(0, 10) === event.start.slice(0, 10)
+        ? hm(parseLocal(began))
+        : `${fmtShort(parseLocal(began))} ${hm(parseLocal(began))}`
   return (
     <div className="mt-3.5 flex flex-col gap-2 text-[13px]" data-tip={m.spent_hint()}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -64,6 +71,14 @@ export function SpentTime({ event, spent, asking = false, disabled, onLog }: Pro
         )}
         <span className="text-muted">{m.spent_planned({ time: fmtDuration(planned * MINUTE) })}</span>
       </div>
+      {spent !== undefined && measured && started !== null && (
+        <span className="text-[12.5px] text-muted tabular-nums">
+          {[
+            m.spent_measured({ time: started }),
+            ...(paused ? [m.spent_paused({ time: fmtDuration(paused * MINUTE) })] : []),
+          ].join(' · ')}
+        </span>
+      )}
       {spent === undefined && <TimeChoices planned={planned} disabled={disabled} onChoose={onLog} />}
     </div>
   )

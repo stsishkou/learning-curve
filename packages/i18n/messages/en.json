@@ -482,6 +482,8 @@
   "spent_under_plan": "{time} less than planned",
   "spent_ask": "How long did it take?",
   "spent_done_without": "Done without time",
+  "spent_measured": "by the stopwatch, started {time}",
+  "spent_paused": "paused {time}",
   "log_done_title": "Mark {count} sessions done",
   "log_done_hint": "Choose how long each one took. A session left without a time is marked done without one, and the pace does not count it.",
   "log_done_unlogged": "{count} without a time",

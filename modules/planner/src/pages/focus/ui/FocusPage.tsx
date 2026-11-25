@@ -103,6 +103,8 @@ interface Logged {
   /** Planned minutes, and logged minutes per planned minute */
   planned: number
   ratio: number
+  /** Minutes the stopwatch stood paused; 0 for a time set by hand */
+  paused: number
   /** What sessions like it took, when enough of them are logged */
   typical: { ratio: number; count: number } | null
   unfinished: boolean
@@ -239,6 +241,7 @@ export function FocusPage(props: Props) {
         minutes,
         planned: plannedMinutes,
         ratio: minutes / plannedMinutes,
+        paused: change.type === 'session.finish' ? change.paused : 0,
         typical: alike && { ratio: alike.typical.ratio, count: alike.count },
         unfinished: false,
       })
@@ -270,7 +273,7 @@ export function FocusPage(props: Props) {
     setError('')
     try {
       await onChange({ type: 'event.patch', uid: finished.uid, patch: { actual: minutes } })
-      setLogged({ ...finished, minutes, ratio: minutes / finished.planned })
+      setLogged({ ...finished, minutes, ratio: minutes / finished.planned, paused: 0 })
       setAdjusting(false)
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
@@ -566,6 +569,11 @@ export function FocusPage(props: Props) {
             )}
             <p className="flex min-h-5 flex-wrap items-center gap-x-3 text-[13px] text-done-ink" role="status">
               {logged && m.focus_logged({ title: logged.title, time: fmtDuration(logged.minutes * MINUTE) })}
+              {logged && logged.paused > 0 && (
+                <span className="text-muted tabular-nums">
+                  {m.spent_paused({ time: fmtDuration(logged.paused * MINUTE) })}
+                </span>
+              )}
               {logged && <span className="text-muted tabular-nums">{fmtRatio(logged.ratio)}</span>}
               {logged?.typical && (
                 <span className="text-muted tabular-nums">

@@ -185,6 +185,29 @@ export const UndoFinish: Story = {
   },
 }
 
+/** After Finish the status line says how long the stopwatch stood paused, apart from the time worked. */
+export const FinishShowsPause: Story = {
+  beforeEach: () => {
+    clearFocus()
+    const began = Date.now() - 30 * MINUTE
+    localStorage.setItem(
+      'learning-curve:focus',
+      JSON.stringify({ uid: open.uid, banked: 20 * MINUTE, startedAt: null, began }),
+    )
+    return clearFocus
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: FINISH }))
+    // Past midnight Finish asks first; all of it was work here.
+    const all = bodyOf(canvasElement).queryByRole('button', {
+      name: m.focus_check_all({ time: fmtDuration(20 * MINUTE) }),
+    })
+    if (all) await userEvent.click(all)
+    await expect(await canvas.findByText(m.spent_paused({ time: fmtDuration(10 * MINUTE) }))).toBeVisible()
+  },
+}
+
 /** The fixture with every done study session logged at `ratio` times its plan. */
 const studyLoggedAt = (ratio: number): Plan => ({
   ...fixturePlan,

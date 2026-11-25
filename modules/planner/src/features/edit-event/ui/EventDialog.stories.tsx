@@ -106,6 +106,18 @@ export const DoneLogged: Story = {
   },
 }
 
+/** A time the stopwatch measured says so, with when it started and how long it stood paused. */
+export const DoneMeasured: Story = {
+  args: {
+    event: { ...finished, actual: 52, measured: true, began: `${finished.start.slice(0, 10)}T14:03`, paused: 8 },
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const record = `${m.spent_measured({ time: '14:03' })} · ${m.spent_paused({ time: fmtDuration(8 * MINUTE) })}`
+    await waitFor(() => expect(body.getByText(record)).toBeVisible())
+  },
+}
+
 /** A done session whose goal was not met says so: the rest of the module goes on in a later session. */
 export const Unfinished: Story = {
   args: { event: { ...finished, actual: 75 } },
