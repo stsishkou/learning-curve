@@ -493,7 +493,7 @@
   "spent_done_without": "Hecho sin tiempo",
   "spent_measured": "según el cronómetro, empezado a las {time}",
   "spent_paused": "pausa {time}",
-  "log_done_title": "Marcar {count} sesiones como hechas",
+  "log_done_title": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "Marcar {count} sesión como hecha", "countPlural=*": "Marcar {count} sesiones como hechas"}}],
   "log_done_hint": "Elige cuánto llevó cada una. La que quede sin tiempo se marca hecha sin él, y el ritmo no la cuenta.",
   "log_done_unlogged": "{count} sin tiempo",
   "log_fill_title": "Sesiones hechas sin tiempo: {count}",
@@ -671,7 +671,6 @@
   "focus_empty": "Todas las sesiones del plan están hechas.",
   "focus_start_this": "Empezar en enfoque",
   "focus_on": "Enfocar: {title}",
-  "today_also": "También hoy",
   "missed": "perdida",
   "reviews_offer": "El módulo «{title}» está hecho. ¿Planificar tres repasos cortos para que no se olvide?",
   "reviews_plan": "Planificar los repasos",
@@ -784,7 +783,7 @@
   "help_history_title": "Deshacer e historial",
   "help_history": "Cada cambio es un paso que se puede deshacer y rehacer: las flechas de aquí, Ctrl/⌘ Z y Ctrl/⌘ Mayús Z. La ventana Historial (tecla H) devuelve el plan a cualquier punto; se guardan los últimos 100 pasos.",
   "help_next_title": "Ahora y después",
-  "help_next": "La sesión en curso o la siguiente, con cuenta atrás. Empezar en enfoque abre una página con cronómetro: Terminar marca la sesión como hecha y anota el tiempo que llevó de verdad.",
+  "help_next": "La sesión en curso o la siguiente, con cuenta atrás. Empezar en enfoque abre una página con cronómetro: Terminar marca la sesión como hecha y anota el tiempo que llevó de verdad.\nHoy lista todos los eventos del día con su estado. Una sesión sin terminar tiene su propio botón de enfoque, y ⋮ la marca hecha (preguntando cuánto llevó), la omite o la mueve al próximo hueco libre. Una sesión omitida ya no es trabajo pendiente, pero cuenta como perdida.",
   "help_budget_title": "Semana: presupuesto y objetivos",
   "help_budget": "Las horas de estudio de esta semana frente al presupuesto del plan; el gimnasio y la reserva del sábado no cuentan. Debajo, los objetivos que salen del horario: se marcan solos al terminar las sesiones.\nResumen de la semana hace balance y propone cómo recuperar lo perdido.",
   "help_courses_title": "Cursos: progreso",
@@ -1106,5 +1105,16 @@
         "countPlural=*": "quedan {count} sesiones"
       }
     }
-  ]
+  ],
+  "today_title": "Hoy",
+  "skipped_mark": "omitida",
+  "skip_session": "Omitir",
+  "skip_session_hint": "No hacerla: sale del trabajo pendiente y cuenta como perdida",
+  "unskip_session": "No omitir",
+  "move_next_free": "Mover al próximo hueco libre",
+  "session_actions": "Más para «{title}»",
+  "history_session_skipped": "Omitida: {name}",
+  "now_short": "ahora",
+  "diff_session_skipped": "omitida",
+  "diff_session_unskipped": "ya no está omitida"
 }

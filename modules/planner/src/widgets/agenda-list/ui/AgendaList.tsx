@@ -145,11 +145,11 @@ export function AgendaList({ plan, items, now, onSelect, onChanges, onMarkDone }
             {o.allDay ? m.all_day() : `${hm(o.s)}–${hm(o.e)}`}
           </time>
           <span
-            className={`flex items-baseline gap-2 ${o.availability === 'free' || o.done ? 'text-muted' : ''} ${o.done ? 'line-through decoration-done' : ''}`}
+            className={`flex items-baseline gap-2 ${o.availability === 'free' || o.done ? 'text-muted' : ''} ${o.done ? `line-through ${o.skipped ? 'decoration-today' : 'decoration-done'}` : ''}`}
           >
             <Dot className="size-[9px] -translate-y-px" />
             {o.title}
-            {o.done && <DoneMark unlogged={doneWithoutTime(o)} fresh={justDone.has(eventKey(o))} />}
+            {o.done && <DoneMark unlogged={doneWithoutTime(o)} skipped={o.skipped} fresh={justDone.has(eventKey(o))} />}
             {real !== null && real !== o.e - o.s && (
               <small className="inline-block text-[12px] text-muted tabular-nums">
                 {m.grid_took({ time: fmtDuration(real) })} {fmtDirection(real / (o.e - o.s))}

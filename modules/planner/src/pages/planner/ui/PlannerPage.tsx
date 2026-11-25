@@ -7,6 +7,8 @@ import {
   isSession,
   mondayOf,
   moveOccurrence,
+  nextFreeSlot,
+  nowMinsk,
   occurrences,
   parseLocal,
   planFileName,
@@ -74,7 +76,7 @@ import { appName, eventKey, useModKey, useNow } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
 import { BudgetLine } from '../../../widgets/budget-panel'
 import { MonthGrid } from '../../../widgets/month-grid'
-import { NowNext } from '../../../widgets/now-next'
+import { NowNext, type TodayActions } from '../../../widgets/now-next'
 import { Runway } from '../../../widgets/runway'
 import { WeekGrid } from '../../../widgets/week-grid'
 import { YearGrid } from '../../../widgets/year-grid'
@@ -278,6 +280,31 @@ export function PlannerPage({
             .toSorted((a, b) => a.start.localeCompare(b.start)),
     [plan, now],
   )
+  const todayActions: TodayActions | undefined = canEdit
+    ? {
+        done: (uid) => setLogDone([uid]),
+        skip: (uid) => quiet.change({ type: 'event.patch', uid, patch: { done: true, skipped: true } }),
+        unskip: (uid) => quiet.change({ type: 'event.patch', uid, patch: { done: false } }),
+        move: (o) => {
+          // The whole plan: a hidden calendar's sessions still take their slots.
+          const slot = nextFreeSlot(wholePlan, {
+            from: nowMinsk(),
+            length: o.e - o.s,
+            preferHour: new Date(o.s).getUTCHours(),
+            except: { uid: o.uid, s: o.s, e: o.e, study: o.calendar !== 'personal' },
+            busy: taken.blocks,
+          })
+          if (!slot) return false
+          quiet.change({
+            type: 'event.patch',
+            uid: o.uid,
+            patch: { start: toLocalString(slot.s), end: toLocalString(slot.e) },
+          })
+          return true
+        },
+      }
+    : undefined
+
   // A missed session being dragged from the backlog onto the grid.
   const [carried, setCarried] = useState<PlanEvent | null>(null)
   const dropCarried = (start: number) => {
@@ -587,27 +614,38 @@ export function PlannerPage({
           )}
         </section>
         {!expanded && (
-          // The list is long: on one column the side panel goes above it instead of far below.
-          <aside className={`grid min-w-0 gap-4 print:hidden ${view === 'list' ? 'order-first lg:order-none' : ''}`}>
-            <NowNext plan={plan} upcoming={upcoming} now={now} onSelect={select} onFocus={onFocus} />
-            <InsightTabs
-              plan={plan}
-              weekItems={weekItems}
-              hidden={hidden}
-              now={now}
-              weekStart={weekStart}
-              shown={nav.grid}
-              onPickDay={nav.goTo}
-              onSelect={select}
-              onReview={() => dialogs.show('review')}
-              onPickWeek={(monday) =>
-                onSearchChange({
-                  week: ymd(monday),
-                  day: undefined,
-                  view: view === 'week' || view === 'month' ? view : 'week',
-                })
-              }
-            />
+          // On one column the day comes before the calendar; the list is long, so its insights go above it too.
+          <aside className="grid min-w-0 gap-4 max-lg:contents print:hidden">
+            <div className="min-w-0 max-lg:order-first print:hidden">
+              <NowNext
+                plan={plan}
+                upcoming={upcoming}
+                now={now}
+                onSelect={select}
+                onFocus={onFocus}
+                actions={todayActions}
+              />
+            </div>
+            <div className={`min-w-0 print:hidden ${view === 'list' ? 'max-lg:order-first' : ''}`}>
+              <InsightTabs
+                plan={plan}
+                weekItems={weekItems}
+                hidden={hidden}
+                now={now}
+                weekStart={weekStart}
+                shown={nav.grid}
+                onPickDay={nav.goTo}
+                onSelect={select}
+                onReview={() => dialogs.show('review')}
+                onPickWeek={(monday) =>
+                  onSearchChange({
+                    week: ymd(monday),
+                    day: undefined,
+                    view: view === 'week' || view === 'month' ? view : 'week',
+                  })
+                }
+              />
+            </div>
           </aside>
         )}
       </div>
@@ -628,6 +666,7 @@ export function PlannerPage({
         onDraftChange={drafting.show}
         busy={taken.blocks}
         anchor={dialogAnchor}
+        onFocus={onFocus}
       />
       <CalendarsDialog
         plan={wholePlan}

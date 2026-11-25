@@ -4,6 +4,7 @@ import {
   countsToBudget,
   DAY,
   durationHours,
+  isDone,
   mondayOf,
   occurrences,
   parseLocal,
@@ -53,7 +54,7 @@ export function PlanMap({ plan, hidden, now, weekStart, onPickWeek }: Props) {
       const day = days.get(startOfDay(o.s)) ?? { byCalendar: new Map<string, number>(), sessions: 0, done: 0 }
       day.byCalendar.set(o.calendar, (day.byCalendar.get(o.calendar) ?? 0) + durationHours(o))
       day.sessions += 1
-      if (o.done) day.done += 1
+      if (isDone(o)) day.done += 1
       days.set(startOfDay(o.s), day)
     }
     return Array.from({ length: Math.max(1, (last - first) / (7 * DAY) + 1) }, (_week, w) => {

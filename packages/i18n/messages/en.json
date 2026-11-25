@@ -493,7 +493,7 @@
   "spent_done_without": "Done without time",
   "spent_measured": "by the stopwatch, started {time}",
   "spent_paused": "paused {time}",
-  "log_done_title": "Mark {count} sessions done",
+  "log_done_title": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "Mark {count} session done", "countPlural=*": "Mark {count} sessions done"}}],
   "log_done_hint": "Choose how long each one took. A session left without a time is marked done without one, and the pace does not count it.",
   "log_done_unlogged": "{count} without a time",
   "log_fill_title": "Done sessions without a time: {count}",
@@ -671,7 +671,6 @@
   "focus_empty": "Every session of the plan is done.",
   "focus_start_this": "Start in focus",
   "focus_on": "Focus on: {title}",
-  "today_also": "Also today",
   "missed": "missed",
   "reviews_offer": "The module “{title}” is done. Plan three short reviews so it stays in memory?",
   "reviews_plan": "Plan the reviews",
@@ -784,7 +783,7 @@
   "help_history_title": "Undo and history",
   "help_history": "Every change is a step you can take back and redo: the arrows here, Ctrl/⌘ Z and Ctrl/⌘ Shift Z. The History window (key H) returns the plan to any point; the last 100 steps are kept.",
   "help_next_title": "Now and next",
-  "help_next": "The session going on now, or the next one with a countdown. Start in focus opens a page with a stopwatch: Finish marks the session done and logs the time it really took.",
+  "help_next": "The session going on now, or the next one with a countdown. Start in focus opens a page with a stopwatch: Finish marks the session done and logs the time it really took.\nToday lists every event of the day with its state. A session not done yet has its own focus button, and ⋮ marks it done (asking the time it took), skips it, or moves it to the next free slot. A skipped session is no longer open work but counts as missed.",
   "help_budget_title": "Week: budget and goals",
   "help_budget": "The hours of study planned for this week against the plan's budget; the gym and the Saturday buffer do not count. Below are the goals the schedule implies: they tick themselves as sessions are done.\nWeek review sums the week up and offers ways to catch up.",
   "help_courses_title": "Courses: progress",
@@ -1106,5 +1105,16 @@
         "countPlural=*": "{count} sessions left"
       }
     }
-  ]
+  ],
+  "today_title": "Today",
+  "skipped_mark": "skipped",
+  "skip_session": "Skip",
+  "skip_session_hint": "Not doing it: it leaves the open work and counts as missed",
+  "unskip_session": "Not skipped",
+  "move_next_free": "Move to the next free slot",
+  "session_actions": "More for {title}",
+  "history_session_skipped": "Skipped: {name}",
+  "now_short": "now",
+  "diff_session_skipped": "skipped",
+  "diff_session_unskipped": "no longer skipped"
 }

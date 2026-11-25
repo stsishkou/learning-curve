@@ -1,6 +1,16 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, HOUR, countdown, deadlineEvent, parseLocal, type Plan, type PlanEvent, startOfDay } from '@lc/plan-domain'
+import {
+  DAY,
+  HOUR,
+  countdown,
+  deadlineEvent,
+  isDone,
+  parseLocal,
+  type Plan,
+  type PlanEvent,
+  startOfDay,
+} from '@lc/plan-domain'
 import { Button, Hint, Pencil } from '@lc/ui'
 
 interface Props {
@@ -144,7 +154,7 @@ export function Runway({ plan, now, onSelect, onConfigure }: Props) {
               </small>
             </div>
             {g.labs.map((lab, j) => {
-              const done = lab.done === true
+              const done = isDone(lab)
               return (
                 <button
                   key={lab.uid}

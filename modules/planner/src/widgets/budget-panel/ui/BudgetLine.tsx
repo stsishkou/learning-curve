@@ -1,6 +1,6 @@
 import { fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { countsToBudget, durationHours, type Occurrence, type Plan } from '@lc/plan-domain'
+import { countsToBudget, durationHours, isDone, type Occurrence, type Plan } from '@lc/plan-domain'
 
 interface Props {
   /** Gives the weekly budget */
@@ -21,7 +21,7 @@ export function BudgetLine({ plan, weekItems }: Props) {
   for (const o of weekItems) {
     if (!countsToBudget(o)) continue
     total += durationHours(o)
-    if (o.done) done += durationHours(o)
+    if (isDone(o)) done += durationHours(o)
   }
   const budget = plan.meta.weeklyBudgetHours
   const scale = Math.max(budget, total)

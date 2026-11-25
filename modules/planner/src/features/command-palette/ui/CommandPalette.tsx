@@ -170,7 +170,9 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onQuickAdd
               {item.kind === 'event' ? (
                 <>
                   <Dot className="size-2.5" />
-                  <span className={`min-w-0 flex-1 truncate ${item.event.done ? 'text-muted line-through' : ''}`}>
+                  <span
+                    className={`min-w-0 flex-1 truncate ${item.event.done ? 'text-muted line-through' : ''} ${item.event.skipped ? 'decoration-today' : ''}`}
+                  >
                     {item.event.title}
                   </span>
                   <em className="flex-none text-[12.5px] text-muted not-italic tabular-nums">

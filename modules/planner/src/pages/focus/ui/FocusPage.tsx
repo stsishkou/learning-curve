@@ -64,6 +64,8 @@ const MINUTE = 60_000
 const HOUR = 60 * MINUTE
 /** How many sessions the queue lists */
 const QUEUE = 6
+/** How many of the queue's places sessions missed on earlier days may take, so today's still show */
+const MISSED = 3
 const URL_PATTERN = /https?:\/\/\S+/
 
 const two = (value: number) => String(value).padStart(2, '0')
@@ -149,13 +151,14 @@ export function FocusPage(props: Props) {
   const open = plan.events
     .filter((e) => isSession(e) && !e.done)
     .toSorted((a, b) => parseLocal(a.start) - parseLocal(b.start))
-  // What is left of today comes first, missed sessions included; then what follows.
   const today = now === null ? null : startOfDay(now)
   // A calendar hidden from the list stays out of the queue; a stopwatch already running on one keeps its session.
   const parked = hiddenCalendarIds(plan)
-  const queue = (today === null ? open : open.filter((e) => parseLocal(e.start) >= today))
-    .filter((e) => !parked.has(e.calendar))
-    .slice(0, QUEUE)
+  const shown = open.filter((e) => !parked.has(e.calendar))
+  // Sessions missed on earlier days first, the most recent of them, so the backlog is in sight; then today on.
+  const missed = today === null ? [] : shown.filter((e) => parseLocal(e.end) <= today).slice(-MISSED)
+  const ahead = today === null ? shown : shown.filter((e) => parseLocal(e.start) >= today)
+  const queue = [...missed, ...ahead].slice(0, QUEUE)
   const inProgress = now === null ? undefined : queue.find((e) => parseLocal(e.start) <= now && now < parseLocal(e.end))
   const upcoming = now === null ? undefined : queue.find((e) => parseLocal(e.end) > now)
   const byUid = (uid: string | null | undefined) => open.find((e) => e.uid === uid)

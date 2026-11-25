@@ -25,6 +25,7 @@ export function changeText(was: PlanEvent, now: PlanEvent): string {
   const fields = changedFields(was, now)
   if (fields.includes('start') || fields.includes('end')) return `${slotText(was)} → ${slotText(now)}`
   if (fields.includes('title')) return was.title
+  if (fields.includes('skipped')) return now.skipped ? m.diff_session_skipped() : m.diff_session_unskipped()
   if (fields.includes('done')) return now.done ? m.diff_done() : m.diff_not_done()
   if (fields.includes('unfinished') && now.unfinished) return m.diff_unfinished()
   if (fields.includes('actual') && now.actual !== undefined) {

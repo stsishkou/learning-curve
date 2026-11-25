@@ -74,6 +74,7 @@ export function describeStep({ change, subject }: HistoryStep): string {
   }
   const { patch } = change
   if (!patch) return m.history_reset({ name: subject })
+  if (patch.skipped) return m.history_session_skipped({ name: subject })
   if (patch.done !== undefined) {
     return patch.done ? m.history_done({ name: subject }) : m.history_not_done({ name: subject })
   }

@@ -32,6 +32,7 @@ import {
   META,
   Modal,
   Scissors,
+  Timer,
   TITLE,
   Trash2,
   X,
@@ -103,6 +104,8 @@ interface Props {
   busy?: BusyBlock[]
   /** Returns the element that shows the event on the page: the dialog opens beside it */
   anchor?: () => Element | null
+  /** Present when there is a focus page: called with the uid of a session not done, to time it there */
+  onFocus?: ((uid: string) => void) | undefined
 }
 
 /**
@@ -123,6 +126,7 @@ export function EventDialog({
   onDraftChange,
   busy: taken = NO_BUSY,
   anchor,
+  onFocus,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
@@ -273,7 +277,9 @@ export function EventDialog({
       {event && !editing && (
         <>
           <div className="flex items-start gap-3">
-            <h3 className={`${TITLE} min-w-0 flex-1 ${event.done ? 'text-muted line-through decoration-done' : ''}`}>
+            <h3
+              className={`${TITLE} min-w-0 flex-1 ${event.done ? `text-muted line-through ${event.skipped ? 'decoration-today' : 'decoration-done'}` : ''}`}
+            >
               {event.title}
             </h3>
             <button
@@ -459,6 +465,16 @@ export function EventDialog({
                   <Scissors size={16} aria-hidden />
                 </Button>
               )}
+              {onFocus && isSession(event) && !event.done && (
+                <Button
+                  className="grid place-items-center px-2.5 text-focus"
+                  aria-label={m.focus_start_this()}
+                  data-tip={m.focus_start_this()}
+                  onClick={() => onFocus(event.uid)}
+                >
+                  <Timer size={16} aria-hidden />
+                </Button>
+              )}
               {canEdit && isSession(event) && !event.done && (
                 <Button
                   className="grid place-items-center px-2.5"
@@ -514,12 +530,21 @@ export function EventDialog({
                 </a>
               )}
             </span>
+            {canEdit && isSession(event) && !event.done && !asking && (
+              <Button
+                disabled={busy}
+                data-tip={m.skip_session_hint()}
+                onClick={() => void run({ type: 'event.patch', uid: event.uid, patch: { done: true, skipped: true } })}
+              >
+                {m.skip_session()}
+              </Button>
+            )}
             {canEdit && isSession(event) && !asking && (
               <Button
                 className={`flex items-center gap-1.5 ${event.done ? '' : 'border-done text-done-ink'}`}
                 disabled={busy}
                 icon={event.done ? undefined : <Check size={15} aria-hidden />}
-                label={event.done ? m.mark_not_done() : m.mark_done()}
+                label={event.skipped ? m.unskip_session() : event.done ? m.mark_not_done() : m.mark_done()}
                 onClick={() =>
                   event.done
                     ? void run({ type: 'event.patch', uid: event.uid, patch: { done: false } })

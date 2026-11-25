@@ -144,7 +144,9 @@ export function MonthGrid({ plan, monthStart, gridStart, weeks, items, now, onSe
                   >
                     <Dot className={`size-[7px] ${o.done ? 'opacity-45' : ''}`} />
                     {!o.allDay && <span className="flex-none text-muted tabular-nums">{hm(o.s)}</span>}
-                    <span className={`min-w-0 truncate ${o.done ? 'line-through decoration-done' : ''}`}>
+                    <span
+                      className={`min-w-0 truncate ${o.done ? `line-through ${o.skipped ? 'decoration-today' : 'decoration-done'}` : ''}`}
+                    >
                       {o.title.replace(/^[^—]+— /, '')}
                     </span>
                   </button>

@@ -765,7 +765,7 @@ export function WeekGrid({
                     <button
                       key={keyOf(o)}
                       type="button"
-                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? EVENT_DONE : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : keyOf(o) === selectedKey ? 'z-3 ring-2 ring-focus' : ''}`}
+                      className={`${EVENT} ${TOUCH_QUIET} ${o.done ? `${EVENT_DONE} ${o.skipped ? 'opacity-60' : ''}` : o.availability === 'free' ? EVENT_FREE : EVENT_BUSY} ${o.kind === 'lab' && !o.done ? EVENT_LAB : ''} ${dragged ? 'z-3 cursor-grabbing opacity-85 ring-2 ring-focus' : keyOf(o) === selectedKey ? 'z-3 ring-2 ring-focus' : ''}`}
                       style={{
                         ...calendarColor(colorOf(o.calendar)),
                         top: ((s - startOfDay(s)) / HOUR - minH) * hourHeight + 1,
@@ -782,10 +782,13 @@ export function WeekGrid({
                       {justDone.has(keyOf(o)) && (
                         <span aria-hidden className="lc-done-glow pointer-events-none absolute inset-0 bg-done/35" />
                       )}
-                      <b className={`relative block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
+                      <b
+                        className={`relative block font-semibold ${o.done ? `line-through ${o.skipped ? 'decoration-today' : 'decoration-done'}` : ''}`}
+                      >
                         {o.done && (
                           <DoneMark
                             unlogged={doneWithoutTime(o)}
+                            skipped={o.skipped}
                             fresh={justDone.has(keyOf(o))}
                             className="mr-1 inline-block"
                           />
