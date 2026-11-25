@@ -225,6 +225,26 @@ export const PLAN_SCHEMA: Schema = {
       description: 'Every event, sorted by start.',
       items: EVENT,
     },
+    weekNotes: {
+      type: 'array',
+      description:
+        "The weeks the person reviewed, in date order: their note and the week's numbers when it was saved. Read them to see how past weeks went in the person's words.",
+      items: {
+        type: 'object',
+        required: ['week', 'note'],
+        properties: {
+          week: { ...DAY, description: 'Monday of the week.' },
+          note: { type: 'string' },
+          planned: { type: 'number', description: 'Study hours planned.' },
+          done: { type: 'number', description: 'Study hours done as planned.' },
+          spent: { type: 'number', description: 'Hours really spent on the done sessions.' },
+          missed: { type: 'integer', description: 'Sessions over and not done, the skipped ones included.' },
+          skipped: { type: 'integer', description: 'Sessions the person chose to skip.' },
+          goals: { type: 'integer', description: 'Module goals of the week.' },
+          goalsMet: { type: 'integer', description: 'Goals met.' },
+        },
+      },
+    },
   },
 }
 

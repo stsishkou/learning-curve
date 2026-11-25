@@ -81,6 +81,8 @@ function subjectOf(plan: Plan, change: PlanChange): string {
       return change.from
     case 'label.hide':
       return change.label
+    case 'week.review':
+      return change.week
     case 'calendars.order':
       return ''
     case 'events.shift':

@@ -74,10 +74,30 @@ export interface PlanMeta {
   countdown?: string
 }
 
+/** A week as the person reviewed it: their note, and the week's numbers when the review was saved. */
+export interface WeekNote {
+  /** Monday of the week, YYYY-MM-DD */
+  week: string
+  /** One line in the person's words; may be empty */
+  note: string
+  /** Study hours planned, done as planned, and really spent on the done sessions */
+  planned: number
+  done: number
+  spent: number
+  /** Sessions over and not done, the skipped ones included, and of those the skipped ones */
+  missed: number
+  skipped: number
+  /** Module goals of the week, and how many of them were met */
+  goals: number
+  goalsMet: number
+}
+
 export interface Plan {
   meta: PlanMeta
   calendars: PlanCalendar[]
   events: PlanEvent[]
+  /** The weeks reviewed so far, in date order */
+  weekNotes?: WeekNote[]
 }
 
 /** Shape check for a plan read from JSON: the bundled database or a file the user opens. */

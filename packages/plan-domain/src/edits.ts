@@ -1,7 +1,7 @@
-import { parseLocal } from './dates'
+import { parseLocal, weekday } from './dates'
 import { labelList } from './labels'
 import { WEEKLY_RULE } from './recurrence'
-import type { Plan, PlanCalendar, PlanEvent } from './types'
+import type { Plan, PlanCalendar, PlanEvent, WeekNote } from './types'
 
 /** Fields of an event that can be changed in the viewer. Times are Europe/Minsk wall-clock strings. */
 export type EventPatch = Partial<
@@ -83,6 +83,8 @@ export interface PlanEdits {
   hidden?: string[]
   /** Labels of the calendars, by calendar id; a calendar with none is not listed */
   labels?: Record<string, string[]>
+  /** The weeks reviewed in the viewer, in date order */
+  weekNotes?: WeekNote[]
 }
 
 export const emptyEdits = (): PlanEdits => ({
@@ -280,7 +282,57 @@ export function parseEdits(value: unknown): PlanEdits {
     )
     if (Object.keys(labels).length) edits.labels = labels
   }
+  if (Array.isArray(value.weekNotes)) {
+    const notes = value.weekNotes.flatMap((raw) => {
+      const note = parseWeekNote(raw)
+      return note ? [note] : []
+    })
+    if (notes.length) edits.weekNotes = notes.toSorted((a, b) => a.week.localeCompare(b.week))
+  }
   return edits
+}
+
+/** True for an event created in the viewer, not generated from the course content. */
+export const isCustomEvent = (event: PlanEvent) => event.uid.startsWith('custom-')
+
+/** Longest note kept with a reviewed week */
+export const NOTE_MAX = 280
+
+/** A Monday as `YYYY-MM-DD`, or null. */
+export function mondayDay(value: unknown): string | null {
+  if (typeof value !== 'string' || !DATE.test(value)) return null
+  const day = parseLocal(`${value}T00:00`)
+  return Number.isNaN(day) || weekday(day) !== 1 ? null : value
+}
+
+function parseWeekNote(raw: unknown): WeekNote | null {
+  if (!isRecord(raw) || typeof raw.note !== 'string') return null
+  const count = (key: string) => {
+    const n = raw[key]
+    return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : null
+  }
+  const week = mondayDay(raw.week)
+  const planned = count('planned')
+  const done = count('done')
+  const spent = count('spent')
+  const missed = count('missed')
+  const skipped = count('skipped')
+  const goals = count('goals')
+  const goalsMet = count('goalsMet')
+  if (
+    week === null ||
+    planned === null ||
+    done === null ||
+    spent === null ||
+    missed === null ||
+    skipped === null ||
+    goals === null ||
+    goalsMet === null
+  ) {
+    return null
+  }
+  const note = raw.note.trim().slice(0, NOTE_MAX)
+  return { week, note, planned, done, spent, missed, skipped, goals, goalsMet }
 }
 
 /** Why a patched event cannot be saved, or null when it is fine. */
@@ -353,7 +405,8 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
     title: edits.title ?? plan.meta.title,
     ...(edits.countdown ? { countdown: edits.countdown } : {}),
   }
-  return { plan: { ...plan, meta, calendars: shown, events }, orphans }
+  const weekNotes = edits.weekNotes?.length ? { weekNotes: edits.weekNotes } : {}
+  return { plan: { ...plan, meta, calendars: shown, events, ...weekNotes }, orphans }
 }
 
 /** Ids of the calendars hidden from the list in the viewer. */

@@ -1,4 +1,4 @@
-import { DAY, HOUR, parseLocal, startOfDay, toLocalString, weekday } from './dates'
+import { DAY, HOUR, parseLocal, startOfDay, toLocalString, toMinsk, weekday } from './dates'
 import {
   HEX_COLOR,
   LOCAL_TIME,
@@ -9,6 +9,8 @@ import {
   forgetFinish,
   forgetTime,
   isRecord,
+  mondayDay,
+  NOTE_MAX,
   parsePatch,
   patchProblem,
   without,
@@ -16,12 +18,13 @@ import {
   type EventPatch,
   type PlanEdits,
 } from './edits'
+import { weekReview } from './goals'
 import { cleanLabel, hasLabel, labelList, sameLabel } from './labels'
 import { isSession } from './progress'
 import { PLAIN_WEEKLY_RULE, weekdaysOf } from './recurrence'
 import type { SessionMove } from './replan'
 import { purgeTrash } from './trash'
-import type { Plan, PlanEvent } from './types'
+import type { Plan, PlanEvent, WeekNote } from './types'
 
 /** What a new event needs; the uid is assigned when the change is applied. */
 export interface NewEvent {
@@ -80,6 +83,8 @@ export type PlanChange =
   | { type: 'label.rename'; from: string; to: string | null }
   /** Hides every calendar that carries the label, or shows them all again, as one step */
   | { type: 'label.hide'; label: string; hidden: boolean }
+  /** Keeps the review of the week starting on Monday `week`: the note, with the week's numbers as they are now */
+  | { type: 'week.review'; week: string; note: string }
   /** Brings back the listed events and calendars, or the whole trash when neither is given */
   | { type: 'trash.restore'; events?: string[] | undefined; calendars?: string[] | undefined }
   /** Removes everything in the trash for good */
@@ -295,6 +300,11 @@ export function parseChange(input: unknown): PlanChange {
       return typeof input.hidden === 'boolean'
         ? { type: 'label.hide', label: cleanLabel(text('label')), hidden: input.hidden }
         : fail('hidden must be true or false')
+    case 'week.review': {
+      const week = mondayDay(input.week)
+      if (!week) return fail('week must be a Monday, YYYY-MM-DD')
+      return { type: 'week.review', week, note: typeof input.note === 'string' ? input.note : '' }
+    }
     case 'trash.restore': {
       const ids = (key: string) => {
         const value = input[key]
@@ -414,6 +424,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     ...(edits.order ? { order: [...edits.order] } : {}),
     ...(edits.hidden ? { hidden: [...edits.hidden] } : {}),
     ...(edits.labels ? { labels: { ...edits.labels } } : {}),
+    ...(edits.weekNotes ? { weekNotes: [...edits.weekNotes] } : {}),
   }
   const { removed } = next
   const removedAt = new Date(now).toISOString()
@@ -635,6 +646,25 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       hide(ids, change.hidden)
       break
     }
+    case 'week.review': {
+      const monday = parseLocal(`${change.week}T00:00`)
+      const review = weekReview(applyEdits(base, next).plan, monday, toMinsk(now))
+      const note: WeekNote = {
+        week: change.week,
+        note: change.note.trim().slice(0, NOTE_MAX),
+        planned: review.planned,
+        done: review.done,
+        spent: review.spent,
+        missed: review.missed,
+        skipped: review.skipped,
+        goals: review.goals.length,
+        goalsMet: review.goals.filter((goal) => goal.done === goal.sessions).length,
+      }
+      next.weekNotes = [...(next.weekNotes ?? []).filter((other) => other.week !== change.week), note].toSorted(
+        (a, b) => a.week.localeCompare(b.week),
+      )
+      break
+    }
     case 'trash.restore': {
       const everything = !change.events && !change.calendars
       // A `null` mark is past restoring: the trash no longer lists it.
@@ -753,9 +783,6 @@ export const shiftTargets = (
       e.start.slice(0, 10) >= change.from &&
       (!change.calendars || change.calendars.includes(e.calendar)),
   )
-
-/** True for an event created in the viewer, not generated from the course content. */
-export const isCustomEvent = (event: PlanEvent) => event.uid.startsWith('custom-')
 
 /** Uids that differ from `base` after `edits`: patched or created. */
 export const editedUids = (edits: PlanEdits): string[] => [

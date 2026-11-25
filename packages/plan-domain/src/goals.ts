@@ -1,6 +1,6 @@
 import { accuracyOf, type Accuracy } from './accuracy'
-import { isCustomEvent } from './changes'
-import { DAY, parseLocal, startOfDay } from './dates'
+import { DAY, mondayOf, parseLocal, startOfDay, ymd } from './dates'
+import { isCustomEvent } from './edits'
 import { isDone, isSession, plannedHours, spentHours } from './progress'
 import type { Plan, PlanEvent } from './types'
 
@@ -156,21 +156,20 @@ export function monthGoals(plan: Plan, from: number, to: number): CourseGoal[] {
 /** How the week starting on `monday` went, as far as `now` (both wall-clock ms). */
 export function weekReview(plan: Plan, monday: number, now: number): WeekReview {
   const end = monday + 7 * DAY
-  const week = plan.events.filter((e) => {
+  const week = sessionsBetween(plan, monday, end)
+  return { ...tally(week, now), goals: goalsBetween(plan, monday, end), accuracy: accuracyOf(week) }
+}
+
+type WeekTally = Omit<WeekReview, 'goals' | 'accuracy'>
+
+const sessionsBetween = (plan: Plan, from: number, to: number) =>
+  plan.events.filter((e) => {
     const start = parseLocal(e.start)
-    return isSession(e) && start >= monday && start < end
+    return isSession(e) && start >= from && start < to
   })
-  const review: WeekReview = {
-    planned: 0,
-    done: 0,
-    spent: 0,
-    sessions: 0,
-    doneSessions: 0,
-    missed: 0,
-    skipped: 0,
-    goals: goalsBetween(plan, monday, end),
-    accuracy: accuracyOf(week),
-  }
+
+function tally(week: PlanEvent[], now: number): WeekTally {
+  const review: WeekTally = { planned: 0, done: 0, spent: 0, sessions: 0, doneSessions: 0, missed: 0, skipped: 0 }
   for (const e of week) {
     review.sessions += 1
     review.planned += plannedHours(e)
@@ -186,4 +185,48 @@ export function weekReview(plan: Plan, monday: number, now: number): WeekReview 
     }
   }
   return review
+}
+
+export interface WeekOutcome {
+  /** Minsk wall-clock ms */
+  monday: number
+  /** Hours: planned, marked done (as planned) and really spent on the done sessions */
+  planned: number
+  done: number
+  spent: number
+  missed: number
+  skipped: number
+  /** The note of the week's review; its numbers are then the ones kept with it */
+  note: string | null
+}
+
+/**
+ * Every week from the first session to the one under way: what was planned and what happened. A reviewed week keeps
+ * the numbers of its review: a missed session moved on later would otherwise take its miss out of the week.
+ */
+export function weekOutcomes(plan: Plan, now: number): WeekOutcome[] {
+  const sessions = plan.events.filter(isSession)
+  if (!sessions.length) return []
+  const first = sessions.reduce((min, e) => (e.start < min ? e.start : min), '9999-12-31')
+  const kept = new Map((plan.weekNotes ?? []).map((note) => [note.week, note]))
+  const weeks: WeekOutcome[] = []
+  for (let monday = mondayOf(parseLocal(first)); monday <= now; monday += 7 * DAY) {
+    const review = kept.get(ymd(monday))
+    const numbers = review ?? tally(sessionsBetween(plan, monday, monday + 7 * DAY), now)
+    const { planned, done, spent, missed, skipped } = numbers
+    weeks.push({ monday, planned, done, spent, missed, skipped, note: review?.note ?? null })
+  }
+  return weeks
+}
+
+/** Per calendar, its sessions that are over and not done, and how many of those were skipped on purpose. */
+export function missedByCalendar(plan: Plan, now: number): Map<string, { missed: number; skipped: number }> {
+  const byCalendar = new Map<string, PlanEvent[]>()
+  for (const e of plan.events) if (isSession(e)) byCalendar.set(e.calendar, [...(byCalendar.get(e.calendar) ?? []), e])
+  return new Map(
+    [...byCalendar].map(([calendar, sessions]) => {
+      const { missed, skipped } = tally(sessions, now)
+      return [calendar, { missed, skipped }]
+    }),
+  )
 }

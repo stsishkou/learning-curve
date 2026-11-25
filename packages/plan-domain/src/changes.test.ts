@@ -2,11 +2,11 @@ import { Ajv2020 } from 'ajv/dist/2020.js'
 import { describe, expect, test } from 'vitest'
 
 import { applyChange, parseChange, splitInHalves, type NewEvent, type PlanChange } from './changes'
-import { parseLocal, toLocalString } from './dates'
+import { DAY, parseLocal, toLocalString, toMinsk } from './dates'
 import { deadlineOf } from './deadlines'
 import { applyEdits, emptyEdits, parseEdits, shownPlan, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
-import { weekReview } from './goals'
+import { weekOutcomes, weekReview } from './goals'
 import { emptyHistory, recordChange } from './history'
 import { countsTwice, groupByLabel, planLabels } from './labels'
 import { courseProgress, doneWithoutTime, isSession } from './progress'
@@ -91,6 +91,7 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   'calendar.labels': { type: 'calendar.labels', id: 'journey', labels: ['Partners', 'Certification'] },
   'label.rename': { type: 'label.rename', from: 'Partners', to: 'Google Partners' },
   'label.hide': { type: 'label.hide', label: 'Partners', hidden: true },
+  'week.review': { type: 'week.review', week: '2026-11-23', note: 'Two modules done, one missed' },
   'trash.restore': { type: 'trash.restore' },
   'trash.empty': { type: 'trash.empty' },
   'events.shift': { type: 'events.shift', calendars: ['certs', 'hfllm'], from: '2026-11-23', days: 1, hours: 0.5 },
@@ -620,6 +621,53 @@ describe('skipped', () => {
     const second = added(both).uid
     expect(offered(apply([skip(first), skip(second)], both))).toBe(false)
     expect(offered(apply([skip(first), { type: 'events.done', uids: [second], done: true }], both))).toBe(true)
+  })
+})
+
+/** The same time eight days on: past the end of the week */
+const later = (t: string) => toLocalString(parseLocal(t) + 8 * DAY)
+const REVIEW: PlanChange = { type: 'week.review', week: '2026-11-23', note: '  Two modules done, one missed ' }
+const notesOf = (edits: PlanEdits) => planOf(edits).weekNotes ?? []
+
+describe('week review', () => {
+  test("keeps the note with the week's numbers as they are now, and saving again replaces it", () => {
+    const done = apply([{ type: 'events.done', uids: [SESSION], done: true }])
+    const once = apply([REVIEW], done)
+    const [note] = notesOf(once)
+    expect(notesOf(once)).toHaveLength(1)
+    expect(note).toMatchObject({ week: '2026-11-23', note: 'Two modules done, one missed', missed: 0, skipped: 0 })
+    expect(note?.done).toBeGreaterThan(0)
+    expect(note?.planned).toBeGreaterThanOrEqual(note?.done ?? 0)
+    const again = apply([{ type: 'week.review', week: '2026-11-23', note: 'Better' }], once)
+    expect(notesOf(again).map((n) => n.note)).toEqual(['Better'])
+  })
+
+  test('the weeks stay in date order and survive the edits file', () => {
+    const edits = apply([{ type: 'week.review', week: '2026-11-30', note: 'Later' }, REVIEW])
+    expect(notesOf(edits).map((n) => n.week)).toEqual(['2026-11-23', '2026-11-30'])
+    const stored = JSON.stringify(edits)
+    expect(parseEdits(JSON.parse(stored))).toEqual(edits)
+  })
+
+  test('a reviewed week keeps the numbers of its review: a missed session moved on later stays missed there', () => {
+    const sunday = Date.parse('2026-11-29T18:00:00Z')
+    const missed = find(base, SESSION)
+    const move: PlanChange = {
+      type: 'event.patch',
+      uid: SESSION,
+      patch: { start: later(missed?.start ?? ''), end: later(missed?.end ?? '') },
+    }
+    const firstWeek = (edits: PlanEdits) => weekOutcomes(planOf(edits), toMinsk(sunday)).at(0)
+    const kept = firstWeek(apply([REVIEW, move], emptyEdits(), sunday))
+    const live = firstWeek(apply([move], emptyEdits(), sunday))
+    expect(kept).toMatchObject({ monday: parseLocal('2026-11-23T00:00'), note: 'Two modules done, one missed' })
+    expect(live).toMatchObject({ monday: parseLocal('2026-11-23T00:00'), note: null })
+    expect(kept?.missed).toBe((live?.missed ?? 0) + 1)
+  })
+
+  test('a week is named by its Monday, and an update cannot carry a review: it stays with the person', () => {
+    expect(() => parseChange({ type: 'week.review', week: '2026-11-24', note: '' })).toThrow(/Monday/)
+    expect(() => parseUpdate({ changes: [REVIEW] })).toThrow()
   })
 })
 
