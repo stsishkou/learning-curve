@@ -42,12 +42,33 @@ export const Logged: Story = {
     // The table under the chart repeats each label: the first is the chart's.
     const [label] = await canvas.findAllByText(/^n \d+ · .*×/)
     await expect(label).toBeVisible()
-    const mark = canvasElement.querySelector('[data-mark]')
+    // The marks are drawn once the row is measured, after its label.
+    const [row] = await canvas.findAllByRole('img')
+    const mark = row?.querySelector('[data-mark]')
     if (!mark) throw new Error('No mark to hover')
     const uid = mark.getAttribute('data-mark')
     const title = fixturePlan.events.find((e) => e.uid === uid)?.title ?? ''
     await userEvent.hover(mark)
     await waitFor(() => expect(canvas.getAllByText(title).length).toBeGreaterThan(1))
+  },
+}
+
+/** From the keyboard: Tab to a course's row, and the arrows, Home and End move from mark to mark, left to right. */
+export const Keyboard: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const marks = args.plan.events
+      .filter((e) => e.calendar === 'certs' && e.actual !== undefined)
+      .map((e) => ({ title: e.title, ratio: (e.actual ?? 0) / ((parseLocal(e.end) - parseLocal(e.start)) / 60_000) }))
+      .toSorted((a, b) => a.ratio - b.ratio)
+    const name = fixturePlan.calendars.find((c) => c.id === 'certs')?.name ?? ''
+    const row = await canvas.findByRole('img', { name: (label: string) => label.startsWith(`${name}: `) })
+    row.focus()
+    // The table under the chart lists every title once: the readout makes it twice.
+    const shown = (title: string) => expect(canvas.getAllByText(title)).toHaveLength(2)
+    await waitFor(() => shown(marks.at(0)?.title ?? ''))
+    await userEvent.keyboard('{End}')
+    await shown(marks.at(-1)?.title ?? '')
   },
 }
 

@@ -10,9 +10,9 @@ import {
   type TypicalAt,
 } from '@lc/plan-domain'
 import { calendarColor, Dot, Hint } from '@lc/ui'
-import { useRef, useState, type PointerEvent } from 'react'
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 
-import { logDomain, logScale, ratioTicks, useWidth } from '../../../shared/lib'
+import { logDomain, logScale, ratioTicks, stepIndex, useWidth } from '../../../shared/lib'
 import { Card, ChartTip, LegendKey, type Tip } from '../../../shared/ui'
 import { countTicks } from '../model/trend'
 
@@ -77,6 +77,17 @@ function TrendPanel({ panel, lo, hi, last }: PanelProps) {
     setHover(points[Math.max(0, Math.min(points.length - 1, count - MIN_LOGGED))] ?? null)
   }
 
+  function keyDown(e: KeyboardEvent<SVGSVGElement>) {
+    if (e.key === 'Escape') {
+      setHover(null)
+      return
+    }
+    const next = stepIndex(e.key, hover ? points.indexOf(hover) : points.length - 1, points.length)
+    if (next === null) return
+    e.preventDefault()
+    setHover(points[next] ?? null)
+  }
+
   const tip: Tip | null = hover && {
     x: x(hover.count),
     title: `${calendar.name} · n ${hover.count}`,
@@ -102,14 +113,20 @@ function TrendPanel({ panel, lo, hi, last }: PanelProps) {
           </p>
         ) : (
           width > 0 && (
+            // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the keys walk the readout along the line, as the pointer does
             <svg
               width={width}
               height={HEIGHT}
               role="img"
               aria-label={`${calendar.name}: ${text}`}
-              className="block touch-pan-y"
+              // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a chart read with the arrows has to take focus
+              tabIndex={0}
+              className="block touch-pan-y rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               onPointerMove={pointerMove}
               onPointerLeave={() => setHover(null)}
+              onFocus={() => setHover((shown) => shown ?? end)}
+              onBlur={() => setHover(null)}
+              onKeyDown={keyDown}
             >
               {ratioTicks(lo, hi).map((tick) => (
                 <g key={tick}>

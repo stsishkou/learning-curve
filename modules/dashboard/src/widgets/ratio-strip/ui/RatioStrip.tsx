@@ -12,9 +12,9 @@ import {
   type PlanEvent,
 } from '@lc/plan-domain'
 import { calendarColor, Dot, Hint } from '@lc/ui'
-import { Fragment, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
-import { logDomain, logScale, ratioTicks, useWidth } from '../../../shared/lib'
+import { logDomain, logScale, ratioTicks, stepIndex, useWidth } from '../../../shared/lib'
 import { Card, ChartTip, type Tip } from '../../../shared/ui'
 import { stackSlots } from '../model/strip'
 
@@ -39,6 +39,17 @@ interface Row {
   calendar: PlanCalendar
   marks: Mark[]
   accuracy: Accuracy
+}
+
+/** A place in a row with a readout: a mark or the typical session. */
+interface Stop {
+  /** The session's uid; absent on the typical session */
+  uid?: string | undefined
+  x: number
+  y: number
+  /** Radius of the hit target, wider than what it covers */
+  r: number
+  tip: Tip
 }
 
 type Shape = 'circle' | 'triangle' | 'square'
@@ -84,6 +95,49 @@ function rowsOf(plan: Plan): Row[] {
   })
 }
 
+/** What a row can show a readout for, left to right, so the pointer and the arrow keys walk the same places. */
+function stopsOf(row: Row, x: (ratio: number) => number, xs: number[], slots: number[], mid: number): Stop[] {
+  const { typical, logged } = row.accuracy
+  const marks = row.marks.map((mark, i): Stop => ({
+    uid: mark.event.uid,
+    x: xs[i] ?? 0,
+    y: mid + (slots[i] ?? 0) * STEP,
+    r: R + 4,
+    tip: {
+      x: xs[i] ?? 0,
+      title: mark.event.title,
+      rows: [
+        { label: fmtDay(parseLocal(mark.event.start)), value: fmtRatio(mark.ratio) },
+        {
+          label: m.dash_strip_of_planned({ time: fmtDuration(mark.planned * MINUTE) }),
+          value: fmtDuration(mark.actual * MINUTE),
+        },
+      ],
+    },
+  }))
+  const summary: Stop[] = typical
+    ? [
+        {
+          x: x(typical.ratio),
+          y: mid,
+          r: 9,
+          tip: {
+            x: x(typical.ratio),
+            title: `${row.calendar.name} · n ${logged}`,
+            rows: [
+              { label: m.dash_strip_typical_label(), value: fmtRatio(typical.ratio) },
+              {
+                label: m.dash_strip_interval_label(),
+                value: `${fmtFactor(typical.low)}–${fmtFactor(typical.high)}`,
+              },
+            ],
+          },
+        },
+      ]
+    : []
+  return [...marks, ...summary].toSorted((a, b) => a.x - b.x)
+}
+
 /**
  * Every logged session of every course as a mark on a log axis of real ÷ planned time, against the line of the plan.
  * From `MIN_LOGGED` logged sessions a course also shows its typical session with its 95% interval.
@@ -91,7 +145,7 @@ function rowsOf(plan: Plan): Row[] {
 export function RatioStrip({ plan }: { plan: Plan }) {
   const box = useRef<HTMLDivElement>(null)
   const width = useWidth(box)
-  const [hover, setHover] = useState<{ row: string; tip: Tip } | null>(null)
+  const [hover, setHover] = useState<{ row: string; index: number } | null>(null)
   const rows = rowsOf(plan)
   const { lo, hi } = logDomain(
     rows.flatMap((row) => [
@@ -103,8 +157,18 @@ export function RatioStrip({ plan }: { plan: Plan }) {
   const ticks = ratioTicks(lo, hi)
   const kinds = new Set(rows.flatMap((row) => row.marks.map((mark) => shapeOf(mark.event.kind))))
   const summarised = rows.some((row) => row.accuracy.typical)
-  const show = (row: string, tip: Tip) => setHover({ row, tip })
   const hide = (row: string) => setHover((shown) => (shown?.row === row ? null : shown))
+
+  function keyDown(e: KeyboardEvent<SVGSVGElement>, row: string, count: number) {
+    if (e.key === 'Escape') {
+      hide(row)
+      return
+    }
+    const next = stepIndex(e.key, hover?.row === row ? hover.index : 0, count)
+    if (next === null) return
+    e.preventDefault()
+    setHover({ row, index: next })
+  }
 
   return (
     <Card
@@ -159,6 +223,11 @@ export function RatioStrip({ plan }: { plan: Plan }) {
               const height = Math.max(ROW_MIN, (2 * reach + 1) * STEP + 2 * R + 8)
               const mid = height / 2
               const { typical, logged } = row.accuracy
+              const stops = stopsOf(row, x, xs, slots, mid)
+              const active = hover?.row === id ? stops[hover.index] : undefined
+              const said = typical
+                ? m.dash_strip_n_typical({ count: logged, ratio: fmtRatio(typical.ratio) })
+                : m.dash_strip_n_wait({ count: logged, min: MIN_LOGGED })
               return (
                 <Fragment key={id}>
                   <div className="min-w-0 self-center text-[13px]/[1.35]" style={calendarColor(row.calendar.color)}>
@@ -166,15 +235,23 @@ export function RatioStrip({ plan }: { plan: Plan }) {
                       <Dot className="size-2.5 flex-none -translate-y-px" />
                       <b className="truncate font-semibold">{row.calendar.name}</b>
                     </span>
-                    <span className="block text-[12px] text-muted tabular-nums">
-                      {typical
-                        ? m.dash_strip_n_typical({ count: logged, ratio: fmtRatio(typical.ratio) })
-                        : m.dash_strip_n_wait({ count: logged, min: MIN_LOGGED })}
-                    </span>
+                    <span className="block text-[12px] text-muted tabular-nums">{said}</span>
                   </div>
                   <div className="relative" style={{ height }}>
                     {width > 0 && (
-                      <svg width={width} height={height} className="block" aria-hidden>
+                      // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the keys walk the readout along the row, as the pointer does
+                      <svg
+                        width={width}
+                        height={height}
+                        role="img"
+                        aria-label={`${row.calendar.name}: ${said}`}
+                        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a chart read with the arrows has to take focus
+                        tabIndex={0}
+                        className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                        onFocus={() => setHover((shown) => (shown?.row === id ? shown : { row: id, index: 0 }))}
+                        onBlur={() => hide(id)}
+                        onKeyDown={(e) => keyDown(e, id, stops.length)}
+                      >
                         {ticks.map((tick) => (
                           <line
                             key={tick}
@@ -215,56 +292,34 @@ export function RatioStrip({ plan }: { plan: Plan }) {
                             strokeWidth={2}
                           />
                         )}
-                        {/* Hit targets wider than the marks, drawn last so they are on top. */}
-                        {row.marks.map((mark, i) => (
+                        {active && (
                           <circle
-                            key={mark.event.uid}
-                            data-mark={mark.event.uid}
-                            cx={xs[i] ?? 0}
-                            cy={mid + (slots[i] ?? 0) * STEP}
-                            r={R + 4}
-                            fill="transparent"
-                            onPointerEnter={() =>
-                              show(id, {
-                                x: xs[i] ?? 0,
-                                title: mark.event.title,
-                                rows: [
-                                  { label: fmtDay(parseLocal(mark.event.start)), value: fmtRatio(mark.ratio) },
-                                  {
-                                    label: m.dash_strip_of_planned({ time: fmtDuration(mark.planned * MINUTE) }),
-                                    value: fmtDuration(mark.actual * MINUTE),
-                                  },
-                                ],
-                              })
-                            }
-                            onPointerLeave={() => hide(id)}
-                          />
-                        ))}
-                        {typical && (
-                          <circle
-                            cx={x(typical.ratio)}
-                            cy={mid}
-                            r={9}
-                            fill="transparent"
-                            onPointerEnter={() =>
-                              show(id, {
-                                x: x(typical.ratio),
-                                title: `${row.calendar.name} · n ${logged}`,
-                                rows: [
-                                  { label: m.dash_strip_typical_label(), value: fmtRatio(typical.ratio) },
-                                  {
-                                    label: m.dash_strip_interval_label(),
-                                    value: `${fmtFactor(typical.low)}–${fmtFactor(typical.high)}`,
-                                  },
-                                ],
-                              })
-                            }
-                            onPointerLeave={() => hide(id)}
+                            cx={active.x}
+                            cy={active.y}
+                            r={active.uid === undefined ? 9 : R + 3}
+                            fill="none"
+                            stroke="var(--ink)"
+                            strokeWidth={1.5}
                           />
                         )}
+                        {/* Hit targets wider than the marks, drawn last so they are on top, the typical session's last of all. */}
+                        {stops
+                          .toSorted((a, b) => Number(a.uid === undefined) - Number(b.uid === undefined))
+                          .map((stop) => (
+                            <circle
+                              key={stop.uid ?? 'typical'}
+                              data-mark={stop.uid}
+                              cx={stop.x}
+                              cy={stop.y}
+                              r={stop.r}
+                              fill="transparent"
+                              onPointerEnter={() => setHover({ row: id, index: stops.indexOf(stop) })}
+                              onPointerLeave={() => hide(id)}
+                            />
+                          ))}
                       </svg>
                     )}
-                    <ChartTip tip={hover?.row === id ? hover.tip : null} width={width} />
+                    <ChartTip tip={active?.tip ?? null} width={width} />
                   </div>
                 </Fragment>
               )

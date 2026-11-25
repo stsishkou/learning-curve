@@ -2,7 +2,7 @@ import { m } from '@lc/i18n/messages'
 import { MIN_LOGGED, isSession, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fireEvent, waitFor, within } from 'storybook/test'
+import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test'
 
 import { BiasTrend } from './BiasTrend'
 
@@ -58,6 +58,22 @@ export const Settling: Story = {
     const { x, width } = chart.getBoundingClientRect()
     await fireEvent.pointerMove(chart, { clientX: x + width / 2 })
     await waitFor(() => expect(canvas.getByText((text) => text.startsWith(`${nameOf('certs')} · n `))).toBeVisible())
+  },
+}
+
+const certsAt = (count: number) => `${nameOf('certs')} · n ${count}`
+
+/** From the keyboard: Tab to a panel, and the arrows, Home and End move the readout along its line. */
+export const Keyboard: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const chart = await canvas.findByRole('img', chartOf('certs'))
+    chart.focus()
+    await waitFor(() => expect(canvas.getByText(certsAt(40))).toBeVisible())
+    await userEvent.keyboard('{ArrowLeft}')
+    await expect(canvas.getByText(certsAt(39))).toBeVisible()
+    await userEvent.keyboard('{Home}')
+    await expect(canvas.getByText(certsAt(MIN_LOGGED))).toBeVisible()
   },
 }
 
