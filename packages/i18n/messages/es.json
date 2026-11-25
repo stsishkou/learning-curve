@@ -1341,5 +1341,6 @@
       }
     }
   ],
-  "course_starts_late": "No cabe nada antes del {day}: hasta entonces cada semana llega al presupuesto semanal o los días elegidos están llenos."
+  "course_starts_late": "No cabe nada antes del {day}: hasta entonces cada semana llega al presupuesto semanal o los días elegidos están llenos.",
+  "label_add_named": "Etiqueta: añadir una a {name}"
 }

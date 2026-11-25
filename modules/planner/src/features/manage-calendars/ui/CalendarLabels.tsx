@@ -106,7 +106,8 @@ export function CalendarLabels({ calendar, known, adding, onAdding, onChange }: 
           <button
             type="button"
             className="inline-flex h-7 items-center gap-1 rounded-md border border-dashed border-line px-2 text-[12.5px] text-muted hover:text-ink focus-visible:text-ink"
-            aria-label={m.label_add_to({ name: calendar.name })}
+            // The name starts with the word on the button, so it can be said to a voice control to press it.
+            aria-label={m.label_add_named({ name: calendar.name })}
             data-tip={m.label_add_to({ name: calendar.name })}
             onClick={() => {
               closing.current = false
