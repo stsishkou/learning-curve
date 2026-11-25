@@ -106,6 +106,85 @@ export const FinishedUnfinished: Story = {
   },
 }
 
+/** A stopwatch left running: three times the plan. */
+const forgotten = () => {
+  clearFocus()
+  timing(3 * planned)
+  return clearFocus
+}
+const bodyOf = (canvasElement: HTMLElement) => within(canvasElement.ownerDocument.body)
+
+/**
+ * A run longer than twice the plan, or past midnight, is not logged at once: Focus asks whether all of it was work.
+ * A time chosen there is logged as recalled, without the stopwatch's record.
+ */
+export const LongRunAsks: Story = {
+  beforeEach: forgotten,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: FINISH }))
+    const body = bodyOf(canvasElement)
+    await waitFor(() => expect(body.getByText(m.focus_check_title())).toBeVisible())
+    await expect(args.onChange).not.toHaveBeenCalled()
+    await userEvent.click(body.getByRole('button', { name: m.spent_as_planned() }))
+    await userEvent.click(body.getByRole('button', { name: m.focus_log_time({ time: fmtDuration(planned) }) }))
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'event.patch',
+      uid: open.uid,
+      patch: { done: true, actual: planned / MINUTE },
+    })
+  },
+}
+
+/** Saying yes logs the whole run as the stopwatch measured it. */
+export const LongRunAllOfIt: Story = {
+  beforeEach: forgotten,
+  play: async ({ canvasElement, args }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: FINISH }))
+    const all = m.focus_check_all({ time: fmtDuration(3 * planned) })
+    await userEvent.click(await bodyOf(canvasElement).findByRole('button', { name: all }))
+    await expect(args.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'session.finish', uid: open.uid, actual: (3 * planned) / MINUTE }),
+    )
+  },
+}
+
+/** After Finish the logged time can be corrected; the new one is a time recalled, not measured. */
+export const AdjustAfterFinish: Story = {
+  beforeEach: fresh,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: START }))
+    await userEvent.click(canvas.getByRole('button', { name: PAUSE }))
+    await userEvent.click(canvas.getByRole('button', { name: FINISH }))
+    await userEvent.click(await canvas.findByRole('button', { name: m.focus_adjust() }))
+    const body = bodyOf(canvasElement)
+    await waitFor(() => expect(body.getByText(m.focus_adjust_title())).toBeVisible())
+    const field = body.getByRole('spinbutton', { name: m.focus_minutes_label() })
+    await userEvent.clear(field)
+    await userEvent.type(field, '50')
+    await userEvent.click(body.getByRole('button', { name: m.focus_log_time({ time: fmtDuration(50 * MINUTE) }) }))
+    await expect(args.onChange).toHaveBeenLastCalledWith({ type: 'event.patch', uid: open.uid, patch: { actual: 50 } })
+    const logged = m.focus_logged({ title: open.title, time: fmtDuration(50 * MINUTE) })
+    await expect(await canvas.findByText(logged)).toBeVisible()
+  },
+}
+
+/** Finish pressed by mistake: Undo opens the session again and gives the stopwatch its time back. */
+export const UndoFinish: Story = {
+  beforeEach: fresh,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: START }))
+    await userEvent.click(canvas.getByRole('button', { name: PAUSE }))
+    await userEvent.click(canvas.getByRole('button', { name: FINISH }))
+    await userEvent.click(await canvas.findByRole('button', { name: m.undo() }))
+    await expect(args.onChange).toHaveBeenLastCalledWith({ type: 'event.patch', uid: open.uid, patch: { done: false } })
+    await expect(await canvas.findByRole('button', { name: FINISH })).toBeEnabled()
+    await expect(stored('learning-curve:focus')).toMatchObject({ uid: open.uid, startedAt: null })
+  },
+}
+
 /** The fixture with every done study session logged at `ratio` times its plan. */
 const studyLoggedAt = (ratio: number): Plan => ({
   ...fixturePlan,

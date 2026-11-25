@@ -27,16 +27,17 @@ import {
   useFullscreen,
   useShortcuts,
 } from '@lc/ui'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { useFillHeight, useNow } from '../../../shared/lib'
 import { ScreenButtons } from '../../../shared/ui'
 import { Hourglass } from '../../../widgets/hourglass'
-import { finishRecord, likelyLength, loggedMinutes } from '../model/finish'
+import { finishRecord, likelyLength, longRun, loggedMinutes, type LongRun } from '../model/finish'
 import { useGlass } from '../model/use-glass'
-import { useStopwatch } from '../model/use-stopwatch'
+import { useStopwatch, type StopwatchState } from '../model/use-stopwatch'
 import { useTitleLead } from '../model/use-title-lead'
 import { GlassControls } from './GlassControls'
+import { LoggedTimeDialog, type TimeQuestion } from './LoggedTimeDialog'
 
 interface Props {
   plan: Plan
@@ -99,12 +100,24 @@ interface Logged {
   uid: string
   title: string
   minutes: number
-  /** Logged minutes per planned minute */
+  /** Planned minutes, and logged minutes per planned minute */
+  planned: number
   ratio: number
   /** What sessions like it took, when enough of them are logged */
   typical: { ratio: number; count: number } | null
   unfinished: boolean
 }
+
+/** A long run Finish asks about before it logs it, with the change that logs it as measured */
+interface Asking {
+  event: PlanEvent
+  measured: PlanChange
+  minutes: number
+  run: LongRun
+}
+
+/** How long Undo stays offered after Finish */
+const UNDO_MS = 10_000
 
 export function FocusPage(props: Props) {
   const { plan, canEdit, session: wanted, onPick, onChange, headerAside, now: fixed } = props
@@ -119,6 +132,16 @@ export function FocusPage(props: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [logged, setLogged] = useState<Logged | null>(null)
+  const [asking, setAsking] = useState<Asking | null>(null)
+  const [adjusting, setAdjusting] = useState(false)
+  // The stopwatch as Finish found it, while Undo can still give it back.
+  const [undo, setUndo] = useState<{ kept: StopwatchState | null } | null>(null)
+  const [note, setNote] = useState('')
+  useEffect(() => {
+    if (!undo) return undefined
+    const timer = setTimeout(() => setUndo(null), UNDO_MS)
+    return () => clearTimeout(timer)
+  }, [undo])
 
   const open = plan.events
     .filter((e) => isSession(e) && !e.done)
@@ -196,33 +219,94 @@ export function FocusPage(props: Props) {
   // In Expand the link goes up beside the screen buttons, to leave the height to the watch.
   const linkOnTop = wide && toggleExpanded !== undefined
 
-  async function finish(event: PlanEvent) {
-    const at = Date.now()
-    const record = finishRecord(elapsed, watch.began ?? at - elapsed, at)
-    const minutes = record.actual
+  /** Stores a change that finishes `event` with `minutes` and clears the stopwatch, which Undo can give back a while. */
+  async function log(event: PlanEvent, change: PlanChange, minutes: number) {
+    const kept = watch.snapshot()
     const plannedMinutes = (parseLocal(event.end) - parseLocal(event.start)) / MINUTE
     const alike = referenceClass(plan, event)
     setBusy(true)
     setError('')
     try {
-      await onChange({ type: 'session.finish', uid: event.uid, ...record })
+      await onChange(change)
       watch.reset()
       glass.reset()
       pick(undefined)
+      setAsking(null)
+      setNote('')
       setLogged({
         uid: event.uid,
         title: event.title,
         minutes,
+        planned: plannedMinutes,
         ratio: minutes / plannedMinutes,
         typical: alike && { ratio: alike.typical.ratio, count: alike.count },
         unfinished: false,
       })
+      setUndo({ kept })
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
     } finally {
       setBusy(false)
     }
   }
+
+  function finish(event: PlanEvent) {
+    const at = Date.now()
+    const began = watch.began ?? at - elapsed
+    const record = finishRecord(elapsed, began, at)
+    const measured: PlanChange = { type: 'session.finish', uid: event.uid, ...record }
+    const run = longRun(elapsed, parseLocal(event.end) - parseLocal(event.start), began, at)
+    if (run) {
+      watch.pause()
+      setAsking({ event, measured, minutes: record.actual, run })
+    } else {
+      void log(event, measured, record.actual)
+    }
+  }
+
+  /** The time Finish logged was wrong: it becomes a time recalled, not measured. */
+  async function adjust(finished: Logged, minutes: number) {
+    setBusy(true)
+    setError('')
+    try {
+      await onChange({ type: 'event.patch', uid: finished.uid, patch: { actual: minutes } })
+      setLogged({ ...finished, minutes, ratio: minutes / finished.planned })
+      setAdjusting(false)
+    } catch (err) {
+      setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Finish was pressed by mistake: the session is open again and the stopwatch holds its time, stopped. */
+  async function undoFinish(finished: Logged, kept: StopwatchState | null) {
+    setBusy(true)
+    setError('')
+    try {
+      await onChange({ type: 'event.patch', uid: finished.uid, patch: { done: false } })
+      if (kept) watch.restore(kept)
+      pick(finished.uid)
+      setLogged(null)
+      setUndo(null)
+      setNote(m.focus_undone({ time: fmtDuration(loggedMinutes(kept?.banked ?? 0) * MINUTE) }))
+    } catch (err) {
+      setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const question: TimeQuestion | null = asking
+    ? {
+        title: asking.event.title,
+        planned: (parseLocal(asking.event.end) - parseLocal(asking.event.start)) / MINUTE,
+        minutes: asking.minutes,
+        run: asking.run,
+      }
+    : adjusting && logged
+      ? { title: logged.title, planned: logged.planned, minutes: logged.minutes, run: null }
+      : null
 
   /** The session just finished ran out of time before its goal: the rest of the module goes on later. */
   async function markUnfinished(finished: Logged) {
@@ -239,6 +323,7 @@ export function FocusPage(props: Props) {
   }
 
   const start = (uid: string) => {
+    setNote('')
     glass.resume()
     watch.start(uid)
   }
@@ -448,7 +533,7 @@ export function FocusPage(props: Props) {
                       disabled={busy || !elapsed}
                       icon={<Check size={16} aria-hidden />}
                       label={m.focus_finish({ time: fmtDuration(loggedMinutes(elapsed) * MINUTE) })}
-                      onClick={() => void finish(session)}
+                      onClick={() => finish(session)}
                     />
                   )}
                   <Button
@@ -500,6 +585,27 @@ export function FocusPage(props: Props) {
                     {m.focus_unfinished()}
                   </button>
                 ))}
+              {logged && (
+                <button
+                  type="button"
+                  className="text-focus hover:underline disabled:opacity-40"
+                  disabled={busy}
+                  onClick={() => setAdjusting(true)}
+                >
+                  {m.focus_adjust()}
+                </button>
+              )}
+              {logged && undo && (
+                <button
+                  type="button"
+                  className="font-semibold text-focus hover:underline disabled:opacity-40"
+                  disabled={busy}
+                  onClick={() => void undoFinish(logged, undo.kept)}
+                >
+                  {m.undo()}
+                </button>
+              )}
+              {!logged && note && <span className="text-muted">{note}</span>}
             </p>
           </div>
         </section>
@@ -532,6 +638,26 @@ export function FocusPage(props: Props) {
           {!queue.length && <p className="mt-2 text-[13.5px] text-muted">{m.focus_empty()}</p>}
         </aside>
       </div>
+      <LoggedTimeDialog
+        question={question}
+        busy={busy}
+        error={error}
+        onLog={(minutes) => {
+          if (asking) {
+            const { event } = asking
+            void log(event, { type: 'event.patch', uid: event.uid, patch: { done: true, actual: minutes } }, minutes)
+          } else if (logged) {
+            void adjust(logged, minutes)
+          }
+        }}
+        onLogAll={() => {
+          if (asking) void log(asking.event, asking.measured, asking.minutes)
+        }}
+        onClose={() => {
+          setAsking(null)
+          setAdjusting(false)
+        }}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { finishRecord, likelyLength, loggedMinutes } from './finish'
+import { finishRecord, likelyLength, longRun, loggedMinutes } from './finish'
 
 const MINUTE = 60_000
 /** 2026-11-26 14:03:40 in Minsk */
@@ -32,4 +32,22 @@ it('expects the plan times what sessions like it took, to five minutes', () => {
   expect(likelyLength(60 * MINUTE, 1.25)).toBe(75 * MINUTE)
   expect(likelyLength(60 * MINUTE, 1.22)).toBe(75 * MINUTE)
   expect(likelyLength(120 * MINUTE, 0.83)).toBe(100 * MINUTE)
+})
+
+describe('longRun', () => {
+  const HOUR = 60 * MINUTE
+
+  it('lets a run up to twice the plan through without a question', () => {
+    expect(longRun(2 * HOUR, HOUR, BEGAN, BEGAN + 2 * HOUR)).toBeNull()
+  })
+
+  it('asks about a run longer than twice the plan: a stopwatch left running looks like this', () => {
+    expect(longRun(2 * HOUR + MINUTE, HOUR, BEGAN, BEGAN + 2 * HOUR + MINUTE)).toEqual({ overnight: false })
+  })
+
+  it('asks about a run that went past midnight in Minsk, however short', () => {
+    // 23:40 to 00:20 in Minsk
+    const late = Date.UTC(2026, 10, 26, 20, 40)
+    expect(longRun(40 * MINUTE, HOUR, late, late + 40 * MINUTE)).toEqual({ overnight: true })
+  })
 })

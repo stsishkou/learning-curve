@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 
 const FOCUS_KEY = 'learning-curve:focus'
 
-interface Saved {
+/** What the stopwatch holds: kept in the browser, and by Finish so an undo can give the time back */
+export interface StopwatchState {
   /** What is being timed */
   uid: string
   /** Epoch ms of the last start; null while paused */
@@ -13,7 +14,7 @@ interface Saved {
   began: number
 }
 
-function read(): Saved | null {
+function read(): StopwatchState | null {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(FOCUS_KEY) ?? 'null')
     if (typeof saved !== 'object' || saved === null) return null
@@ -29,7 +30,7 @@ function read(): Saved | null {
   }
 }
 
-function write(saved: Saved | null) {
+function write(saved: StopwatchState | null) {
   try {
     if (saved) localStorage.setItem(FOCUS_KEY, JSON.stringify(saved))
     else localStorage.removeItem(FOCUS_KEY)
@@ -46,14 +47,14 @@ export type Stopwatch = ReturnType<typeof useStopwatch>
  * the page's clock asks it for the time at a moment with `elapsedAt`.
  */
 export function useStopwatch() {
-  const [saved, setSaved] = useState<Saved | null>(null)
+  const [saved, setSaved] = useState<StopwatchState | null>(null)
   const [ready, setReady] = useState(false)
   useEffect(() => {
     setSaved(read())
     setReady(true)
   }, [])
 
-  const keep = (next: Saved | null) => {
+  const keep = (next: StopwatchState | null) => {
     write(next)
     setSaved(next)
   }
@@ -78,5 +79,9 @@ export function useStopwatch() {
       if (saved && saved.startedAt !== null) keep({ ...saved, banked: elapsedAt(Date.now()), startedAt: null })
     },
     reset: () => keep(null),
+    /** What it holds, stopped at this moment */
+    snapshot: (): StopwatchState | null => saved && { ...saved, banked: elapsedAt(Date.now()), startedAt: null },
+    /** Holds what `snapshot` gave again */
+    restore: (state: StopwatchState) => keep(state),
   }
 }
