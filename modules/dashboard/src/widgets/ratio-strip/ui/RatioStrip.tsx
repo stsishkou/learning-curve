@@ -14,9 +14,9 @@ import {
 import { calendarColor, Dot, Hint } from '@lc/ui'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
 
-import { useWidth } from '../../../shared/lib'
+import { logDomain, logScale, ratioTicks, useWidth } from '../../../shared/lib'
 import { Card, ChartTip, type Tip } from '../../../shared/ui'
-import { logDomain, logScale, ratioTicks, stackSlots } from '../model/strip'
+import { stackSlots } from '../model/strip'
 
 const MINUTE = 60_000
 /** Radius of a mark: 8px across, as the dots of every chart here */
