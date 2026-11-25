@@ -1,3 +1,4 @@
+import { accuracyOf, type Accuracy } from './accuracy'
 import { DAY, parseLocal, startOfDay } from './dates'
 import { isSession, plannedHours, spentHours } from './progress'
 import type { Plan, PlanEvent } from './types'
@@ -32,6 +33,8 @@ export interface WeekReview {
   /** Sessions of the week that are over and not done */
   missed: number
   goals: ModuleGoal[]
+  /** What the time logged this week says, with the counts it rests on */
+  accuracy: Accuracy
 }
 
 const COUNTER = / \(\d+\/\d+\)$/
@@ -84,6 +87,10 @@ export function monthGoals(plan: Plan, from: number, to: number): CourseGoal[] {
 /** How the week starting on `monday` went, as far as `now` (both wall-clock ms). */
 export function weekReview(plan: Plan, monday: number, now: number): WeekReview {
   const end = monday + 7 * DAY
+  const week = plan.events.filter((e) => {
+    const start = parseLocal(e.start)
+    return isSession(e) && start >= monday && start < end
+  })
   const review: WeekReview = {
     planned: 0,
     done: 0,
@@ -92,10 +99,9 @@ export function weekReview(plan: Plan, monday: number, now: number): WeekReview 
     doneSessions: 0,
     missed: 0,
     goals: goalsBetween(plan, monday, end),
+    accuracy: accuracyOf(week),
   }
-  for (const e of plan.events) {
-    const start = parseLocal(e.start)
-    if (!isSession(e) || start < monday || start >= end) continue
+  for (const e of week) {
     review.sessions += 1
     review.planned += plannedHours(e)
     if (e.done) {

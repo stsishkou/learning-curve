@@ -1,3 +1,4 @@
+import { accuracyOf, type Accuracy } from './accuracy'
 import { HOUR, parseLocal } from './dates'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
@@ -10,8 +11,10 @@ export interface CourseProgress {
   doneSessions: number
   /** Hours the done sessions really took: the logged time, or the planned time where none was logged */
   spentHours: number
-  /** Real hours per planned hour over the done sessions; 1 until a session is done */
+  /** Real hours per planned hour of the logged sessions; 1 until enough are logged to say (`MIN_LOGGED`) */
   pace: number
+  /** What the logged time says, with the counts it rests on */
+  accuracy: Accuracy
   /** The first session that is not done yet */
   next: PlanEvent | null
   /** Day of the last session, YYYY-MM-DD */
@@ -40,13 +43,15 @@ export function courseProgress(plan: Plan): CourseProgress[] {
     const done = sessions.filter((e) => e.done)
     const doneHours = done.reduce((sum, e) => sum + hoursOf(e), 0)
     const spent = done.reduce((sum, e) => sum + spentHours(e), 0)
+    const accuracy = accuracyOf(sessions)
     return [
       {
         calendar,
         hours: sessions.reduce((sum, e) => sum + hoursOf(e), 0),
         doneHours,
         spentHours: spent,
-        pace: doneHours ? spent / doneHours : 1,
+        pace: accuracy.pace ?? 1,
+        accuracy,
         sessions: sessions.length,
         doneSessions: done.length,
         next: sessions.find((e) => !e.done) ?? null,

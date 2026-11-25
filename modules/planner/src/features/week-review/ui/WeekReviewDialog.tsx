@@ -58,7 +58,14 @@ function Review({ plan, monday, now, onCatchUp, onNextWeek, onClose }: Props & {
   const review = weekReview(plan, monday, now)
   const next = goalsBetween(plan, monday + 7 * DAY, monday + 14 * DAY)
   const met = review.goals.filter((goal) => goal.done === goal.sessions).length
-  const pace = review.done ? review.spent / review.done : 1
+  const { accuracy } = review
+  // The week's pace once enough of it is logged; until then, how much of it is.
+  const paceNote =
+    accuracy.pace !== null
+      ? m.pace_note_logged({ pace: accuracy.pace.toFixed(2).replace(/0$/, ''), count: accuracy.logged })
+      : accuracy.done
+        ? m.dash_pace_logged({ logged: accuracy.logged, done: accuracy.done })
+        : ''
   const heading = 'mt-4 text-[12px] font-semibold tracking-wide text-muted uppercase'
 
   return (
@@ -71,7 +78,7 @@ function Review({ plan, monday, now, onCatchUp, onNextWeek, onClose }: Props & {
         <Tile label={m.review_hours()} note={m.dash_of({ total: fmtHours(review.planned) })}>
           {fmtHours(review.done)}
         </Tile>
-        <Tile label={m.review_spent()} note={m.pace_note({ pace: pace.toFixed(2).replace(/0$/, '') })}>
+        <Tile label={m.review_spent()} note={paceNote}>
           {fmtHours(review.spent)}
         </Tile>
         <Tile label={m.review_sessions()} note={m.dash_of({ total: review.sessions })}>

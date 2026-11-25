@@ -1,19 +1,22 @@
-import { isSession, parseLocal, type Plan } from '@lc/plan-domain'
+import { m } from '@lc/i18n/messages'
+import { MIN_LOGGED, isSession, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 
 import { PaceForecast } from './PaceForecast'
 
-/** The fixture with a time logged on every done session: `ratio` times its planned length. */
-const logged = (ratio: number): Plan => ({
-  ...fixturePlan,
-  events: fixturePlan.events.map((e) =>
-    e.done && isSession(e)
-      ? { ...e, actual: Math.round(((parseLocal(e.end) - parseLocal(e.start)) / 60_000) * ratio) }
-      : e,
-  ),
-})
+/** The fixture with a time logged on the first `count` done sessions (all by default): `ratio` times their plan. */
+const logged = (ratio: number, count = Infinity): Plan => {
+  let left = count
+  return {
+    ...fixturePlan,
+    events: fixturePlan.events.map((e) => {
+      if (!e.done || !isSession(e) || left-- <= 0) return e
+      return { ...e, actual: Math.round(((parseLocal(e.end) - parseLocal(e.start)) / 60_000) * ratio) }
+    }),
+  }
+}
 
 const meta = {
   title: 'Dashboard/Widgets/PaceForecast',
@@ -47,3 +50,17 @@ export const SlowerThanPlanned: Story = { args: { plan: logged(1.5) } }
 
 /** Sessions took three quarters of their slot: the work runs out before the last planned day. */
 export const FasterThanPlanned: Story = { args: { plan: logged(0.75) } }
+
+/**
+ * A few sessions logged, all slow: too few to judge, so the course shows no pace and the forecast keeps to the
+ * plan until six are logged.
+ */
+export const TooFewLogged: Story = {
+  args: { plan: logged(2, 3) },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText(m.dash_pace_wait({ count: MIN_LOGGED }))).toBeVisible()
+  },
+}
+
+/** Most sessions logged: the pace comes from them, and a second line shows what it would be if the rest took their plan. */
+export const PartlyLogged: Story = { args: { plan: logged(1.5, 8) } }

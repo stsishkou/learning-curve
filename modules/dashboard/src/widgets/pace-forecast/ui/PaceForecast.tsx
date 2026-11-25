@@ -1,6 +1,15 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, countdown, courseProgress, paceForecast, parseLocal, type Plan } from '@lc/plan-domain'
+import {
+  DAY,
+  MIN_LOGGED,
+  countdown,
+  courseProgress,
+  paceForecast,
+  parseLocal,
+  type Accuracy,
+  type Plan,
+} from '@lc/plan-domain'
 import { calendarColor, Dot, Hint } from '@lc/ui'
 
 import { Card } from '../../../shared/ui'
@@ -20,6 +29,25 @@ function Slip({ planned, finish }: { planned: number; finish: number }) {
   if (late > 0) return <span className="text-today-ink">▼ {m.forecast_late({ count: late })}</span>
   if (late < 0) return <span className="text-done-ink">▲ {m.forecast_early({ count: -late })}</span>
   return <span className="text-muted">✓ {m.forecast_on_time()}</span>
+}
+
+/** A course's pace with the logged sessions it rests on; no pace until there are enough of them. */
+function Pace({ accuracy }: { accuracy: Accuracy }) {
+  if (!accuracy.done) return '—'
+  const note = 'block text-[12px] text-muted'
+  return (
+    <>
+      {accuracy.pace === null ? '—' : fmtPace(accuracy.pace)}
+      <span className={note}>{m.dash_pace_logged({ logged: accuracy.logged, done: accuracy.done })}</span>
+      {accuracy.pace === null ? (
+        <span className={note}>{m.dash_pace_wait({ count: MIN_LOGGED })}</span>
+      ) : (
+        accuracy.ifPlanned !== null && (
+          <span className={note}>{m.dash_pace_if_planned({ pace: fmtPace(accuracy.ifPlanned) })}</span>
+        )
+      )}
+    </>
+  )
 }
 
 /**
@@ -43,7 +71,7 @@ export function PaceForecast({ plan, now }: Props) {
     <Card
       title={m.dash_forecast_title()}
       hint={m.dash_forecast_hint()}
-      help={<Hint title={m.help_forecast_title()} text={m.help_forecast()} />}
+      help={<Hint title={m.help_forecast_title()} text={m.help_forecast({ count: MIN_LOGGED })} />}
     >
       {!logged && <p className="mb-3 text-[13px] text-muted">{m.dash_forecast_none()}</p>}
       <div className="overflow-x-auto">
@@ -77,12 +105,7 @@ export function PaceForecast({ plan, now }: Props) {
                   </span>
                 </th>
                 <td className="py-2 pl-3">
-                  {course.doneSessions ? fmtPace(forecast.pace) : '—'}
-                  {course.doneSessions > 0 && (
-                    <span className="block text-[12px] text-muted">
-                      {m.dash_spent({ hours: fmtHours(course.spentHours) })}
-                    </span>
-                  )}
+                  <Pace accuracy={course.accuracy} />
                 </td>
                 <td className="py-2 pl-3">
                   {forecast.finish === null

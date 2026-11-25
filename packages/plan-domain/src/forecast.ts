@@ -1,9 +1,10 @@
+import { accuracyOf } from './accuracy'
 import { DAY, mondayOf, parseLocal, startOfDay } from './dates'
 import { courseProgress, isSession, plannedHours } from './progress'
 import type { Plan } from './types'
 
 export interface PaceForecast {
-  /** Real hours per planned hour over the done sessions; 1 until a session is done */
+  /** Real hours per planned hour of the logged sessions; 1 until enough are logged to say (`MIN_LOGGED`) */
   pace: number
   /** Done sessions with a logged time: the forecast is only as good as this number */
   logged: number
@@ -33,9 +34,8 @@ export function paceForecast(plan: Plan, now: number, calendar?: string): PaceFo
     .filter((e) => isSession(e) && paceOf.has(e.calendar))
     .toSorted((a, b) => a.start.localeCompare(b.start))
   const open = sessions.filter((e) => !e.done)
-  const doneHours = courses.reduce((sum, c) => sum + c.doneHours, 0)
   const forecast: PaceForecast = {
-    pace: doneHours ? courses.reduce((sum, c) => sum + c.spentHours, 0) / doneHours : 1,
+    pace: accuracyOf(sessions).pace ?? 1,
     logged: sessions.filter((e) => e.done && e.actual !== undefined).length,
     remaining: 0,
     needed: 0,
