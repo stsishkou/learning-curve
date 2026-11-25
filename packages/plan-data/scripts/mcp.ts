@@ -4,6 +4,7 @@
 import {
   PLAN_SCHEMA,
   UPDATE_SCHEMA,
+  accuracyReport,
   compactPlan,
   nowMinsk,
   parseUpdate,
@@ -62,6 +63,23 @@ const TOOLS = [
           description: 'Only events that start on this day or earlier, "YYYY-MM-DD".',
         },
         descriptions: { type: 'boolean', default: false, description: 'Include the `description` of every event.' },
+      },
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  },
+  {
+    name: 'get_accuracy',
+    title: 'Read how long sessions really take',
+    description:
+      'How the times logged on done sessions compare with their plan. Per course and per kind of session: the done, logged and unlogged counts, the pace (real ÷ planned hours, what a forecast multiplies by) and the typical session (geometric mean of real ÷ planned, with its 95% interval), both null below `minLogged` logged sessions. Per course also the hours left and the finish: as planned, at its pace, and the range by which half and nine in ten of simulated futures are done. Read it before resizing sessions to a pace or choosing the length of a new session, and quote the number of logged sessions with any ratio.',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        calendar: {
+          type: 'string',
+          description: 'Only the course of the calendar with this `id`; the kinds stay those of every course.',
+        },
       },
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
@@ -194,6 +212,8 @@ server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
         return text(planGuide(plan, nowMinsk()))
       case 'get_plan':
         return json(narrowed(plan, args))
+      case 'get_accuracy':
+        return json(accuracyReport(plan, nowMinsk(), typeof args.calendar === 'string' ? args.calendar : undefined))
       case 'preview_update': {
         const update = parseUpdate(args)
         return json(reportPreview(previewUpdate(plan, update.changes)))

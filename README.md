@@ -377,8 +377,9 @@ The plan is described so that a model can change it without guessing. Three docu
 | `Plan file` → `AI chat` | Copy the brief, paste the answer, preview, apply. No network: the clipboard only |
 | `GET /api/plan-guide` | The guide; `?brief=1` adds the plan, `&descriptions=1` keeps event notes |
 | `GET /api/plan-schema` | `{ plan, update }`: both JSON Schemas |
+| `GET /api/plan-accuracy` | How logged times compare with the plan, per course and kind, with each course's finish range; `?calendar=` keeps one course |
 | `POST /api/plan-update` | Takes an update as JSON or as the text of a chat answer; `?dry=1` only reports what it would do. 422 names the change at fault, 403 on a read-only host |
-| `pnpm run mcp` | An MCP server over stdio: tools `get_guide`, `get_plan`, `preview_update`, `apply_update`, `rebalance_calendar`; resources `plan://guide`, `plan://plan`, `plan://schema/plan`, `plan://schema/update`; prompt `change_plan` |
+| `pnpm run mcp` | An MCP server over stdio: tools `get_guide`, `get_plan`, `get_accuracy`, `preview_update`, `apply_update`, `rebalance_calendar`; resources `plan://guide`, `plan://plan`, `plan://schema/plan`, `plan://schema/update`; prompt `change_plan` |
 
 `rebalance_calendar` works out a re-balance of one calendar and changes nothing itself. It returns the moves as
 an update to pass to `preview_update` and `apply_update`, with the same report the dialog shows.

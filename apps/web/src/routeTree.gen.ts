@@ -15,6 +15,7 @@ import { Route as FocusRouteImport } from './routes/focus'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as ApiIcsZipRouteImport } from './routes/api/ics-zip'
 import { Route as ApiPlanRouteImport } from './routes/api/plan'
+import { Route as ApiPlanAccuracyRouteImport } from './routes/api/plan-accuracy'
 import { Route as ApiPlanGuideRouteImport } from './routes/api/plan-guide'
 import { Route as ApiPlanSchemaRouteImport } from './routes/api/plan-schema'
 import { Route as ApiPlanUpdateRouteImport } from './routes/api/plan-update'
@@ -50,6 +51,11 @@ const ApiIcsZipRoute = ApiIcsZipRouteImport.update({
 const ApiPlanRoute = ApiPlanRouteImport.update({
   id: '/api/plan',
   path: '/api/plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPlanAccuracyRoute = ApiPlanAccuracyRouteImport.update({
+  id: '/api/plan-accuracy',
+  path: '/api/plan-accuracy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPlanGuideRoute = ApiPlanGuideRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/timeline': typeof TimelineRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
+  '/api/plan-accuracy': typeof ApiPlanAccuracyRoute
   '/api/plan-guide': typeof ApiPlanGuideRoute
   '/api/plan-schema': typeof ApiPlanSchemaRoute
   '/api/plan-update': typeof ApiPlanUpdateRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/timeline': typeof TimelineRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
+  '/api/plan-accuracy': typeof ApiPlanAccuracyRoute
   '/api/plan-guide': typeof ApiPlanGuideRoute
   '/api/plan-schema': typeof ApiPlanSchemaRoute
   '/api/plan-update': typeof ApiPlanUpdateRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/timeline': typeof TimelineRoute
   '/api/ics-zip': typeof ApiIcsZipRoute
   '/api/plan': typeof ApiPlanRoute
+  '/api/plan-accuracy': typeof ApiPlanAccuracyRoute
   '/api/plan-guide': typeof ApiPlanGuideRoute
   '/api/plan-schema': typeof ApiPlanSchemaRoute
   '/api/plan-update': typeof ApiPlanUpdateRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/timeline'
     | '/api/ics-zip'
     | '/api/plan'
+    | '/api/plan-accuracy'
     | '/api/plan-guide'
     | '/api/plan-schema'
     | '/api/plan-update'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/timeline'
     | '/api/ics-zip'
     | '/api/plan'
+    | '/api/plan-accuracy'
     | '/api/plan-guide'
     | '/api/plan-schema'
     | '/api/plan-update'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/timeline'
     | '/api/ics-zip'
     | '/api/plan'
+    | '/api/plan-accuracy'
     | '/api/plan-guide'
     | '/api/plan-schema'
     | '/api/plan-update'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   TimelineRoute: typeof TimelineRoute
   ApiIcsZipRoute: typeof ApiIcsZipRoute
   ApiPlanRoute: typeof ApiPlanRoute
+  ApiPlanAccuracyRoute: typeof ApiPlanAccuracyRoute
   ApiPlanGuideRoute: typeof ApiPlanGuideRoute
   ApiPlanSchemaRoute: typeof ApiPlanSchemaRoute
   ApiPlanUpdateRoute: typeof ApiPlanUpdateRoute
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/api/plan'
       fullPath: '/api/plan'
       preLoaderRoute: typeof ApiPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/plan-accuracy': {
+      id: '/api/plan-accuracy'
+      path: '/api/plan-accuracy'
+      fullPath: '/api/plan-accuracy'
+      preLoaderRoute: typeof ApiPlanAccuracyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/plan-guide': {
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   TimelineRoute: TimelineRoute,
   ApiIcsZipRoute: ApiIcsZipRoute,
   ApiPlanRoute: ApiPlanRoute,
+  ApiPlanAccuracyRoute: ApiPlanAccuracyRoute,
   ApiPlanGuideRoute: ApiPlanGuideRoute,
   ApiPlanSchemaRoute: ApiPlanSchemaRoute,
   ApiPlanUpdateRoute: ApiPlanUpdateRoute,

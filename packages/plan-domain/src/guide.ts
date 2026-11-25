@@ -1,3 +1,5 @@
+import { MIN_LOGGED } from './accuracy'
+import { accuracyReport } from './accuracy-report'
 import { DAY, mondayOf, startOfDay, weekday, ymd } from './dates'
 import { isSession, plannedHours } from './progress'
 import { weeklyHours } from './schedule'
@@ -154,6 +156,11 @@ ${weekLines(plan, now).join('\n')}
 6. **Deadlines.** A \`milestone\` event is a deadline: sessions of its course must end before it. A calendar has one:
    set it with \`event.add\` (\`"kind": "milestone"\`, \`start\` and \`end\` both \`<day>T00:00\`, titled
    \`Дедлайн: <calendar name>\`), move it by patching its \`start\` and \`end\`, clear it with \`event.remove\`.
+7. **Lengths from logged time.** Before you resize sessions to a pace or choose the length of a new session, read
+   how long sessions really take: the \`get_accuracy\` tool, \`GET /api/plan-accuracy\`, or the \`<accuracy>\` part of
+   a brief. Judge a session by its kind in its course; while that has fewer than ${MIN_LOGGED} logged sessions, by its kind in
+   every course; with fewer there too, keep the lengths of rule 3. Round a length to the half hour, quote the ratio
+   with the number of logged sessions it rests on ("×1.3 over 12 logged sessions"), and say so in \`summary\`.
 
 ## How to name things
 
@@ -268,6 +275,7 @@ export function planBrief(
     planGuide(plan, now),
     // The tags keep the data apart from the instructions; the request comes last, after the long plan.
     `## The plan\n\n<plan>\n${JSON.stringify(compactPlan(plan, options.descriptions))}\n</plan>`,
+    `## How long sessions really take\n\n<accuracy>\n${JSON.stringify(accuracyReport(plan, now))}\n</accuracy>`,
     `## What I want\n\n<request>\n${request || 'Ask me what to change.'}\n</request>`,
     `## Before you answer\n\n${CONTRACT}`,
   ].join('\n\n')

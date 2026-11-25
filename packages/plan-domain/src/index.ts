@@ -1,4 +1,11 @@
 export { MIN_LOGGED, accuracyOf, runningTypical, type Accuracy, type RatioSummary, type TypicalAt } from './accuracy'
+export {
+  accuracyReport,
+  type AccuracyNumbers,
+  type AccuracyReport,
+  type CourseAccuracy,
+  type KindAccuracy,
+} from './accuracy-report'
 export type { BusyBlock } from './busy'
 export { countdown, deadlineChange, deadlineEvent, deadlineOf, nextDeadline, type Countdown } from './deadlines'
 export {
