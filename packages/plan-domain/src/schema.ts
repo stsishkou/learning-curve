@@ -98,6 +98,11 @@ const EVENT: Schema = {
       maximum: 1440,
       description: 'Minutes a done session really took, when that was logged. Without it the planned length counts.',
     },
+    unfinished: {
+      type: 'boolean',
+      description:
+        'true when a done session ran out of time before its goal was met: the rest goes on in a later session. Only on a done session.',
+    },
     measured: {
       const: true,
       description:
@@ -286,6 +291,11 @@ const CHANGES: Schema[] = [
             minimum: 5,
             maximum: 1440,
             description: 'Minutes a done session really took.',
+          },
+          unfinished: {
+            type: 'boolean',
+            description:
+              'true when the person says a done session ended before its goal was met; false takes that back. Kept only while the session is done.',
           },
           rrule: {
             ...RRULE,

@@ -43,8 +43,10 @@ export function ruleWarnings(after: Plan, diff: PlanDiff): RuleWarning[] {
   }
 
   for (const { before, after: event } of diff.changed) {
-    // Logging how long a finished session took is what finishing it asks for, not a change to it.
-    const timeLogged = event.done === true && changedFields(before, event).every((field) => field === 'actual')
+    // Logging how long a finished session took, and whether it met its goal, is what finishing it asks for, not a
+    // change to it.
+    const timeLogged =
+      event.done === true && changedFields(before, event).every((field) => field === 'actual' || field === 'unfinished')
     if (before.done && !timeLogged) warnings.push({ rule: 'done', event, removed: false })
   }
   for (const event of diff.removed) if (event.done) warnings.push({ rule: 'done', event, removed: true })

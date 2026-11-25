@@ -90,6 +90,21 @@ export const Default: Story = {
   },
 }
 
+/** After Finish the status line offers to mark the session not finished: the rest goes on next time. */
+export const FinishedUnfinished: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: START }))
+    await userEvent.click(canvas.getByRole('button', { name: PAUSE }))
+    await userEvent.click(canvas.getByRole('button', { name: FINISH }))
+    await userEvent.click(await canvas.findByRole('button', { name: m.focus_unfinished() }))
+    await expect(args.onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'event.patch', patch: { unfinished: true } }),
+    )
+    await expect(await canvas.findByText(m.focus_unfinished_done())).toBeVisible()
+  },
+}
+
 /** On a read-only host the time can be measured but not logged: there is no `Finish`. */
 export const ReadOnly: Story = { args: { canEdit: false } }
 

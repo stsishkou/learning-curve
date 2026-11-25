@@ -155,6 +155,37 @@ export function EventDialog({
     }
   }
 
+  /** Adds a session of the same module in the next free slot after this one, for the part it did not get to. */
+  function continueLater(session: PlanEvent) {
+    const s = parseLocal(session.start)
+    const e = parseLocal(session.end)
+    const slot = nextFreeSlot(plan, {
+      from: Math.max(nowMinsk(), e),
+      length: e - s,
+      preferHour: new Date(s).getUTCHours(),
+      busy: taken,
+    })
+    if (!slot) {
+      setError(m.free_slot_none())
+      return
+    }
+    void run(
+      {
+        type: 'event.add',
+        event: {
+          calendar: session.calendar,
+          title: session.title,
+          description: session.description,
+          availability: session.availability,
+          ...(session.kind === 'lab' ? { kind: 'lab' as const } : {}),
+          start: toLocalString(slot.s),
+          end: toLocalString(slot.e),
+        },
+      },
+      'close',
+    )
+  }
+
   async function copyLink(uid: string) {
     try {
       await navigator.clipboard.writeText(eventLink(uid))
@@ -287,12 +318,30 @@ export function EventDialog({
             />
           )}
           {canEdit && event.done && isSession(event) && (
-            <SpentTime
-              event={event}
-              spent={event.actual}
-              disabled={busy}
-              onLog={(actual) => void run({ type: 'event.patch', uid: event.uid, patch: { actual } })}
-            />
+            <>
+              <SpentTime
+                event={event}
+                spent={event.actual}
+                disabled={busy}
+                onLog={(actual) => void run({ type: 'event.patch', uid: event.uid, patch: { actual } })}
+              />
+              <label className="mt-2.5 flex items-center gap-2 text-[13px]">
+                <input
+                  type="checkbox"
+                  checked={Boolean(event.unfinished)}
+                  disabled={busy}
+                  onChange={(e) =>
+                    void run({ type: 'event.patch', uid: event.uid, patch: { unfinished: e.target.checked } })
+                  }
+                />
+                {m.unfinished_label()}
+              </label>
+              {event.unfinished && (
+                <Button className="mt-2 px-2.5 py-1 text-[13px]" disabled={busy} onClick={() => continueLater(event)}>
+                  {m.unfinished_add()}
+                </Button>
+              )}
+            </>
           )}
           {canEdit && asking && (
             <>

@@ -153,6 +153,48 @@ describe('event.patch', () => {
   })
 })
 
+describe('a session that is not finished', () => {
+  const done = { type: 'event.patch', uid: SESSION, patch: { done: true, actual: 60 } } as const
+  const mark = (unfinished: boolean): PlanChange => ({ type: 'event.patch', uid: SESSION, patch: { unfinished } })
+
+  test('a done session can say its goal was not met, and take that back', () => {
+    const marked = apply([done, mark(true)])
+    expect(find(planOf(marked), SESSION)).toMatchObject({ done: true, actual: 60, unfinished: true })
+    expect(find(planOf(apply([mark(false)], marked)), SESSION)).not.toHaveProperty('unfinished')
+  })
+
+  test('the mark goes when the session is no longer done, and a session not done cannot carry it', () => {
+    const marked = apply([done, mark(true)])
+    expect(
+      find(planOf(apply([{ type: 'events.done', uids: [SESSION], done: false }], marked)), SESSION),
+    ).not.toHaveProperty('unfinished')
+    expect(find(planOf(apply([mark(true)])), SESSION)).not.toHaveProperty('unfinished')
+  })
+
+  test('is read back from the edits file, for generated and added sessions', () => {
+    const extra = apply([EXAMPLES['event.add']])
+    const { uid } = added(extra)
+    const edits = apply(
+      [done, mark(true), { type: 'event.patch', uid, patch: { done: true, unfinished: true } }],
+      extra,
+    )
+    expect(added(edits)).toMatchObject({ done: true, unfinished: true })
+    expect(parseEdits(structuredClone(edits))).toEqual(edits)
+  })
+
+  test('refuses a mark that is not true or false', () => {
+    expect(() => parseChange({ type: 'event.patch', uid: SESSION, patch: { unfinished: 'yes' } })).toThrow()
+  })
+
+  test('an update may say so, as the person tells it, and the preview shows no warning for it', () => {
+    const update = parseUpdate({ changes: [{ ...done, patch: { ...done.patch, unfinished: true } }] })
+    const preview = previewUpdate(base, update.changes, NOW)
+    expect(preview.problem).toBeNull()
+    const marked = apply([done])
+    expect(previewUpdate(planOf(marked), [mark(true)], NOW).warnings).toEqual([])
+  })
+})
+
 describe('session.finish', () => {
   const finish = EXAMPLES['session.finish']
   const STOPWATCH = ['measured', 'began', 'paused']

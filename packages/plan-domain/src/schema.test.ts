@@ -46,6 +46,14 @@ test('an update is read out of a chat answer', () => {
   expect(previewUpdate(fixturePlan, update.changes).diff.changed).toHaveLength(1)
 })
 
+test('the schema takes a done session whose goal was not met, as the parser does', () => {
+  const update = {
+    changes: [{ type: 'event.patch', uid: 'certs-001@learning-curve', patch: { done: true, unfinished: true } }],
+  }
+  expect(validUpdate(update), JSON.stringify(validUpdate.errors)).toBe(true)
+  expect(parseUpdate(update).changes).toEqual(update.changes)
+})
+
 test('what the schema refuses the parser refuses too', () => {
   const bad: unknown[] = [
     { changes: [{ type: 'trash.empty' }] },

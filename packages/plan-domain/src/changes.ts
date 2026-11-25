@@ -5,7 +5,7 @@ import {
   STOPWATCH_FIELDS,
   TITLE_MAX,
   applyEdits,
-  forgetTime,
+  forgetFinish,
   isRecord,
   parsePatch,
   patchProblem,
@@ -387,8 +387,9 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
         if (!merged.skip?.length) delete merged.skip
         if (!merged.done) {
           delete merged.done
-          forgetTime(merged)
+          forgetFinish(merged)
         }
+        if (!merged.unfinished) delete merged.unfinished
         if (patchProblem(merged, {})) fail('The event must end after it starts')
         next.added[next.added.indexOf(current)] = merged
         return next
@@ -405,7 +406,8 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
         // oxlint-disable-next-line typescript/no-dynamic-delete -- the key is one of the six names above
         if (merged[key] === original[key]) delete merged[key]
       }
-      if (!(merged.done ?? original.done)) forgetTime(merged)
+      if (!(merged.done ?? original.done)) forgetFinish(merged)
+      if (!merged.unfinished) delete merged.unfinished
       if (!merged.done === !original.done) delete merged.done
       if (!merged.skip?.length || !original.rrule) delete merged.skip
       if (!original.rrule) delete merged.rrule

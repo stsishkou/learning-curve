@@ -42,6 +42,8 @@ export interface PlanEvent {
   began?: string
   /** Minutes the stopwatch stood paused between `began` and the finish; absent when it never stood */
   paused?: number
+  /** The done session's time ran out before its goal was met: the rest goes on in a later session */
+  unfinished?: boolean
 }
 
 export interface PlanMeta {

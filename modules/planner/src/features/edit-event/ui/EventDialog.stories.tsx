@@ -1,6 +1,6 @@
 import { fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { isSession, parseLocal, splitInHalves, type PlanEvent } from '@lc/plan-domain'
+import { isSession, parseLocal, splitInHalves, type PlanChange, type PlanEvent } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
@@ -28,7 +28,7 @@ const meta = {
     draft: null,
     edited: false,
     canEdit: true,
-    onChange: fn(async () => {}),
+    onChange: fn(async (_change: PlanChange) => {}),
     onClose: fn(),
     onDayChange: fn(),
   },
@@ -106,6 +106,34 @@ export const DoneLogged: Story = {
   },
 }
 
+/** A done session whose goal was not met says so: the rest of the module goes on in a later session. */
+export const Unfinished: Story = {
+  args: { event: { ...finished, actual: 75 } },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('checkbox', { name: m.unfinished_label() }))
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'event.patch',
+      uid: finished.uid,
+      patch: { unfinished: true },
+    })
+  },
+}
+
+/** Once a session is marked unfinished, the card offers a session of the same module in the next free slot. */
+export const UnfinishedAddsSession: Story = {
+  args: { event: { ...finished, actual: 75, unfinished: true } },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: m.unfinished_add() }))
+    const change = args.onChange.mock.lastCall?.[0]
+    await expect(change).toMatchObject({
+      type: 'event.add',
+      event: { calendar: finished.calendar, title: finished.title },
+    })
+  },
+}
+
 export const ReadOnly: Story = { args: { canEdit: false } }
 
 /** One repeat of a weekly event, opened on the day given in `day`. */
@@ -154,7 +182,9 @@ export const Overlapping: Story = {
 
 /** The host rejects every change: press any button that edits to see the reason in the dialog. */
 export const SaveFails: Story = {
-  args: { onChange: fn(async () => Promise.reject(new Error('The plan is read-only on this host'))) },
+  args: {
+    onChange: fn(async (_change: PlanChange) => Promise.reject(new Error('The plan is read-only on this host'))),
+  },
 }
 
 /**

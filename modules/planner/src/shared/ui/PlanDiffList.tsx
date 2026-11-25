@@ -26,6 +26,7 @@ export function changeText(was: PlanEvent, now: PlanEvent): string {
   if (fields.includes('start') || fields.includes('end')) return `${slotText(was)} → ${slotText(now)}`
   if (fields.includes('title')) return was.title
   if (fields.includes('done')) return now.done ? m.diff_done() : m.diff_not_done()
+  if (fields.includes('unfinished') && now.unfinished) return m.diff_unfinished()
   if (fields.includes('actual') && now.actual !== undefined)
     return m.grid_took({ time: fmtDuration((now.actual / 60) * HOUR) })
   const skipped = (now.skip ?? []).filter((day) => !(was.skip ?? []).includes(day))

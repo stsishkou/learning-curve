@@ -97,7 +97,9 @@ export function FocusPage(props: Props) {
   const pick = (uid: string | undefined) => (onPick ? onPick(uid) : setOwn(uid))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [logged, setLogged] = useState<{ title: string; minutes: number } | null>(null)
+  const [logged, setLogged] = useState<{ uid: string; title: string; minutes: number; unfinished: boolean } | null>(
+    null,
+  )
 
   const open = plan.events
     .filter((e) => isSession(e) && !e.done)
@@ -181,7 +183,21 @@ export function FocusPage(props: Props) {
       watch.reset()
       glass.reset()
       pick(undefined)
-      setLogged({ title: event.title, minutes })
+      setLogged({ uid: event.uid, title: event.title, minutes, unfinished: false })
+    } catch (err) {
+      setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** The session just finished ran out of time before its goal: the rest of the module goes on later. */
+  async function markUnfinished(finished: { uid: string; title: string; minutes: number }) {
+    setBusy(true)
+    setError('')
+    try {
+      await onChange({ type: 'event.patch', uid: finished.uid, patch: { unfinished: true } })
+      setLogged({ ...finished, unfinished: true })
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
     } finally {
@@ -411,8 +427,21 @@ export function FocusPage(props: Props) {
                 {error}
               </p>
             )}
-            <p className="min-h-5 text-[13px] text-done-ink" role="status">
+            <p className="flex min-h-5 flex-wrap items-center gap-x-3 text-[13px] text-done-ink" role="status">
               {logged && m.focus_logged({ title: logged.title, time: fmtDuration(logged.minutes * MINUTE) })}
+              {logged &&
+                (logged.unfinished ? (
+                  <span className="text-muted">{m.focus_unfinished_done()}</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-focus hover:underline disabled:opacity-40"
+                    disabled={busy}
+                    onClick={() => void markUnfinished(logged)}
+                  >
+                    {m.focus_unfinished()}
+                  </button>
+                ))}
             </p>
           </div>
         </section>
