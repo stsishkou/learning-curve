@@ -1,6 +1,6 @@
 import { fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, type PlanStats } from '@lc/plan-domain'
+import { DAY, type FinishRange, type PlanStats } from '@lc/plan-domain'
 import { Hint } from '@lc/ui'
 import { useRef, useState, type PointerEvent } from 'react'
 
@@ -10,6 +10,7 @@ import { Card, ChartTip, LegendKey, type Tip } from '../../../shared/ui'
 const HEIGHT = 260
 const PAD = { above: 16, right: 16, bottom: 26, left: 40 }
 const WEEK = 7 * DAY
+const BAND = 'color-mix(in oklab, var(--focus) 18%, transparent)'
 
 interface Props {
   /** `planStats(plan, now)`: the page computes it once for all its widgets */
@@ -18,10 +19,12 @@ interface Props {
   now: number | null
   /** The day the rest runs out at the real pace (`paceForecast`), wall-clock ms: drawn as a dashed line */
   forecast?: number | null
+  /** `finishRange` of the plan: a band from the day half of the simulated futures are done to nine in ten */
+  range?: FinishRange | null
 }
 
 /** Hours over time, added up: the plan as a line to the total, and what is done so far climbing toward it. */
-export function BurnUp({ stats, now, forecast = null }: Props) {
+export function BurnUp({ stats, now, forecast = null, range = null }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const width = useWidth(box)
   const [hover, setHover] = useState<number | null>(null)
@@ -44,8 +47,10 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
   const doneUntil = Math.min(weeks.length, Math.ceil(elapsed))
 
   // The forecast may end after the plan: the time axis then runs on to it.
-  const forecastAt = forecast === null || !weeks.length ? null : (forecast + DAY - start) / WEEK
-  const span = Math.max(weeks.length, Math.ceil(forecastAt ?? 0))
+  const weekOf = (day: number) => (day + DAY - start) / WEEK
+  const forecastAt = forecast === null || !weeks.length ? null : weekOf(forecast)
+  const band = range === null || !weeks.length ? null : { likely: weekOf(range.likely), late: weekOf(range.late) }
+  const span = Math.max(weeks.length, Math.ceil(Math.max(forecastAt ?? 0, band?.late ?? 0)))
   const ticks = niceTicks(stats.planned)
   const peak = ticks.at(-1) ?? 1
   const plotW = Math.max(0, width - PAD.left - PAD.right)
@@ -89,6 +94,7 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
           <LegendKey shape="line" color="var(--muted)" label={m.dash_planned()} />
           <LegendKey shape="line" color="var(--done)" label={m.dash_done()} />
           {forecastAt !== null && <LegendKey shape="line" color="var(--focus)" label={m.dash_forecast_real()} />}
+          {band !== null && <LegendKey color={BAND} label={m.dash_burnup_range()} />}
         </span>
       }
     >
@@ -150,6 +156,12 @@ export function BurnUp({ stats, now, forecast = null }: Props) {
                   strokeWidth={2}
                 />
               </>
+            )}
+            {band !== null && band.late > elapsed && stats.done < stats.planned && (
+              <path
+                d={`M${x(elapsed)},${y(stats.done)}L${x(Math.max(elapsed, band.likely))},${y(stats.planned)}L${x(band.late)},${y(stats.planned)}Z`}
+                fill={BAND}
+              />
             )}
             {forecastAt !== null && forecastAt > elapsed && stats.done < stats.planned && (
               <g>

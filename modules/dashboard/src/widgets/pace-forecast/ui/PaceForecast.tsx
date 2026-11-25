@@ -6,12 +6,15 @@ import {
   countdown,
   courseProgress,
   doneWithoutTime,
+  finishRange,
   paceForecast,
   parseLocal,
   type Accuracy,
+  type FinishRange,
   type Plan,
 } from '@lc/plan-domain'
 import { calendarColor, Dot, Hint } from '@lc/ui'
+import { useMemo } from 'react'
 
 import { Card } from '../../../shared/ui'
 
@@ -57,6 +60,15 @@ function Pace({ accuracy }: { accuracy: Accuracy }) {
  * sessions, and the day the rest will be finished at that pace.
  */
 export function PaceForecast({ plan, now, onFillTimes }: Props) {
+  const ranges = useMemo(
+    () =>
+      new Map<string, FinishRange | null>(
+        now === null
+          ? []
+          : courseProgress(plan).map((c) => [c.calendar.id, finishRange(plan, now, { calendar: c.calendar.id })]),
+      ),
+    [plan, now],
+  )
   if (now === null) return null
   const courses = courseProgress(plan)
   const rows = courses.map((course) => ({ course, forecast: paceForecast(plan, now, course.calendar.id) }))
@@ -105,46 +117,55 @@ export function PaceForecast({ plan, now, onFillTimes }: Props) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ course, forecast }) => (
-              <tr key={course.calendar.id} className="border-b border-line-soft align-top last:border-b-0">
-                <th
-                  scope="row"
-                  className="py-2 pr-3 text-left font-medium"
-                  style={calendarColor(course.calendar.color)}
-                >
-                  <span className="flex items-baseline gap-2">
-                    <Dot className="size-2.5 -translate-y-px" />
-                    {course.calendar.name}
-                  </span>
-                </th>
-                <td className="py-2 pl-3">
-                  <Pace accuracy={course.accuracy} />
-                </td>
-                <td className="py-2 pl-3">
-                  {forecast.finish === null
-                    ? m.dash_forecast_done()
-                    : Math.abs(forecast.needed - forecast.remaining) < 0.05
-                      ? fmtHours(forecast.remaining)
-                      : m.dash_forecast_left_value({
-                          planned: fmtHours(forecast.remaining),
-                          needed: fmtHours(forecast.needed),
-                        })}
-                </td>
-                <td className="py-2 pl-3">{forecast.planned === null ? '—' : fmtShort(forecast.planned)}</td>
-                <td className="py-2 pl-3">
-                  {forecast.finish === null || forecast.planned === null ? (
-                    '—'
-                  ) : (
-                    <>
-                      {fmtShort(forecast.finish)}
-                      <span className="block text-[12px]">
-                        <Slip planned={forecast.planned} finish={forecast.finish} />
-                      </span>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {rows.map(({ course, forecast }) => {
+              const range = ranges.get(course.calendar.id)
+              return (
+                <tr key={course.calendar.id} className="border-b border-line-soft align-top last:border-b-0">
+                  <th
+                    scope="row"
+                    className="py-2 pr-3 text-left font-medium"
+                    style={calendarColor(course.calendar.color)}
+                  >
+                    <span className="flex items-baseline gap-2">
+                      <Dot className="size-2.5 -translate-y-px" />
+                      {course.calendar.name}
+                    </span>
+                  </th>
+                  <td className="py-2 pl-3">
+                    <Pace accuracy={course.accuracy} />
+                  </td>
+                  <td className="py-2 pl-3">
+                    {forecast.finish === null
+                      ? m.dash_forecast_done()
+                      : Math.abs(forecast.needed - forecast.remaining) < 0.05
+                        ? fmtHours(forecast.remaining)
+                        : m.dash_forecast_left_value({
+                            planned: fmtHours(forecast.remaining),
+                            needed: fmtHours(forecast.needed),
+                          })}
+                  </td>
+                  <td className="py-2 pl-3">{forecast.planned === null ? '—' : fmtShort(forecast.planned)}</td>
+                  <td className="py-2 pl-3">
+                    {forecast.finish === null || forecast.planned === null ? (
+                      '—'
+                    ) : (
+                      <>
+                        {fmtShort(forecast.finish)}
+                        <span className="block text-[12px]">
+                          <Slip planned={forecast.planned} finish={forecast.finish} />
+                        </span>
+                        {range && (
+                          <span className="block text-[12px] text-muted">
+                            {m.dash_forecast_range({ likely: fmtShort(range.likely), late: fmtShort(range.late) })}
+                            {range.scope === 'all' && ` · ${m.dash_forecast_range_all()}`}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

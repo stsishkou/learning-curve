@@ -1,5 +1,6 @@
+import { fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { MIN_LOGGED, doneWithoutTime, isSession, parseLocal, type Plan } from '@lc/plan-domain'
+import { MIN_LOGGED, doneWithoutTime, finishRange, isSession, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
@@ -17,6 +18,22 @@ const logged = (ratio: number, count = Infinity): Plan => {
     }),
   }
 }
+
+/** The fixture with a time logged on every done session, its ratio to the plan taken from `ratios` in turn. */
+const loggedAt = (ratios: number[]): Plan => {
+  let i = 0
+  return {
+    ...fixturePlan,
+    events: fixturePlan.events.map((e) => {
+      if (!e.done || !isSession(e)) return e
+      const ratio = ratios[i++ % ratios.length] ?? 1
+      return { ...e, actual: Math.round(((parseLocal(e.end) - parseLocal(e.start)) / 60_000) * ratio) }
+    }),
+  }
+}
+
+/** Text as the page reads: Testing Library turns a no-break space into a plain one. */
+const asRead = (text: string) => text.replaceAll('\u00a0', ' ')
 
 const meta = {
   title: 'Dashboard/Widgets/PaceForecast',
@@ -79,3 +96,22 @@ export const TooFewLogged: Story = {
 
 /** Most sessions logged: the pace comes from them, and a second line shows what it would be if the rest took their plan. */
 export const PartlyLogged: Story = { args: { plan: logged(1.5, 8) } }
+
+/**
+ * Logged times that vary: under each forecast a range says by when half and nine in ten of the simulated futures
+ * are done. A course with too few logged sessions of its own draws from those of every course, and says so.
+ */
+export const WithRange: Story = {
+  args: { plan: loggedAt([1, 1.5, 0.75, 2, 1.25]) },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const lines = fixturePlan.calendars.flatMap((calendar) => {
+      const range = finishRange(args.plan, fixtureNow, { calendar: calendar.id })
+      if (!range) return []
+      const text = m.dash_forecast_range({ likely: fmtShort(range.likely), late: fmtShort(range.late) })
+      return [asRead(range.scope === 'all' ? `${text} · ${m.dash_forecast_range_all()}` : text)]
+    })
+    await expect(lines.length).toBeGreaterThan(1)
+    await Promise.all(lines.map((line) => expect(canvas.getByText(line)).toBeVisible()))
+  },
+}

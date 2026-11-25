@@ -1,6 +1,6 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
+import { DAY, finishRange, paceForecast, parseLocal, planStats, type Plan, type WeekStats } from '@lc/plan-domain'
 import { HelpToggle, IconsToggle, PageHeader, ScreenButtons, stickyTop, useFullscreen, useShortcuts } from '@lc/ui'
 import { useMemo, type ReactNode } from 'react'
 
@@ -57,6 +57,7 @@ export function DashboardPage({
   const now = fixed ?? clock
   const stats = useMemo(() => planStats(plan, now ?? 0), [plan, now])
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
+  const range = useMemo(() => (now === null ? null : finishRange(plan, now)), [plan, now])
   const fullscreen = useFullscreen()
   // The whole screen is for the charts: it is laid out as Expand lays it out.
   const wide = expanded || fullscreen.on
@@ -115,7 +116,7 @@ export function DashboardPage({
 
       <StatTiles plan={plan} stats={stats} now={now} />
       <StudyStreak plan={plan} now={now} />
-      <BurnUp stats={stats} now={now} forecast={now === null ? null : paceForecast(plan, now).finish} />
+      <BurnUp stats={stats} now={now} forecast={now === null ? null : paceForecast(plan, now).finish} range={range} />
       <PaceForecast plan={plan} now={now} onFillTimes={onFillTimes} />
       <RatioStrip plan={plan} />
       <BiasTrend plan={plan} />
