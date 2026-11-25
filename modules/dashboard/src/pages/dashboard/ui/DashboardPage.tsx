@@ -8,6 +8,7 @@ import { useNow } from '../../../shared/lib'
 import { BurnUp } from '../../../widgets/burn-up'
 import { CourseBars } from '../../../widgets/course-bars'
 import { PaceForecast } from '../../../widgets/pace-forecast'
+import { RatioStrip } from '../../../widgets/ratio-strip'
 import { StatTiles } from '../../../widgets/stat-tiles'
 import { StudyStreak } from '../../../widgets/study-streak'
 import { WeeklyLoad } from '../../../widgets/weekly-load'
@@ -114,6 +115,7 @@ export function DashboardPage({
       <StudyStreak plan={plan} now={now} />
       <BurnUp stats={stats} now={now} forecast={now === null ? null : paceForecast(plan, now).finish} />
       <PaceForecast plan={plan} now={now} onFillTimes={onFillTimes} />
+      <RatioStrip plan={plan} />
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <WeeklyLoad plan={plan} stats={stats} now={now} />
         <CourseBars plan={plan} />
