@@ -1,4 +1,4 @@
-import { fmtDay, fmtDuration } from '@lc/i18n/format'
+import { fmtDay, fmtDirection, fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { changedFields, hm, HOUR, parseLocal, type Plan, type PlanDiff, type PlanEvent } from '@lc/plan-domain'
 import { calendarColor, Dot } from '@lc/ui'
@@ -27,8 +27,10 @@ export function changeText(was: PlanEvent, now: PlanEvent): string {
   if (fields.includes('title')) return was.title
   if (fields.includes('done')) return now.done ? m.diff_done() : m.diff_not_done()
   if (fields.includes('unfinished') && now.unfinished) return m.diff_unfinished()
-  if (fields.includes('actual') && now.actual !== undefined)
-    return m.grid_took({ time: fmtDuration((now.actual / 60) * HOUR) })
+  if (fields.includes('actual') && now.actual !== undefined) {
+    const real = (now.actual / 60) * HOUR
+    return `${m.grid_took({ time: fmtDuration(real) })} ${fmtDirection(real / (parseLocal(now.end) - parseLocal(now.start)))}`.trim()
+  }
   const skipped = (now.skip ?? []).filter((day) => !(was.skip ?? []).includes(day))
   if (skipped.length) return m.diff_skipped({ days: skipped.map((day) => fmtDay(parseLocal(day))).join(', ') })
   return m.diff_details()

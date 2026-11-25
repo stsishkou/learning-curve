@@ -1,4 +1,4 @@
-import { dowShort, fmtDay, fmtDuration, fmtHours, fmtShift } from '@lc/i18n/format'
+import { dowShort, fmtDay, fmtDirection, fmtDuration, fmtHours, fmtRatio, fmtShift } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   countsToBudget,
@@ -797,8 +797,12 @@ export function WeekGrid({
                         {real !== null && real !== e - s && (
                           <span className="ml-1 inline-flex items-center gap-0.5">
                             <Timer aria-hidden size={10} />
-                            <span aria-hidden>{clock(real)}</span>
-                            <span className="sr-only">{m.grid_took({ time: fmtDuration(real) })}</span>
+                            <span aria-hidden>
+                              {clock(real)} {fmtDirection(real / (e - s))}
+                            </span>
+                            <span className="sr-only">
+                              {m.grid_took({ time: fmtDuration(real) })} · {fmtRatio(real / (e - s))}
+                            </span>
                           </span>
                         )}
                       </small>

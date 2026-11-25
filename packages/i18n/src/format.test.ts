@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest'
 
-import { fmtFactor, fmtRatio } from './format'
+import { fmtDirection, fmtFactor, fmtRatio } from './format'
 import { overwriteGetLocale } from './paraglide/runtime.js'
 
 describe('fmtRatio', () => {
@@ -23,5 +23,17 @@ describe('fmtRatio', () => {
   test('writes the numbers the way the language does', () => {
     overwriteGetLocale(() => 'ru')
     expect(fmtRatio(1.25)).toBe('×1,25 · на 25\u00a0% дольше')
+  })
+})
+
+describe('fmtDirection', () => {
+  test('points up for a time longer than its plan and down for a shorter one', () => {
+    expect(fmtDirection(1.25)).toBe('▲')
+    expect(fmtDirection(0.8)).toBe('▼')
+  })
+
+  test('shows nothing where the ratio reads as planned', () => {
+    expect(fmtDirection(1.004)).toBe('')
+    expect(fmtDirection(1)).toBe('')
   })
 })

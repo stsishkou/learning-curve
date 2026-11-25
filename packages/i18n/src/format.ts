@@ -80,6 +80,10 @@ export function fmtRatio(ratio: number): string {
   return `${fmtFactor(ratio)} · ${ratio > 1 ? m.ratio_longer({ percent }) : m.ratio_shorter({ percent })}`
 }
 
+/** ▲ for a time longer than its plan, ▼ for a shorter one, nothing where `fmtRatio` reads as planned. */
+export const fmtDirection = (ratio: number) =>
+  Math.round(Math.abs(ratio - 1) * 100) === 0 ? '' : ratio > 1 ? '▲' : '▼'
+
 /** The factor alone, `×1.25`, where the words of `fmtRatio` stand next to it already. */
 export const fmtFactor = (ratio: number) =>
   `×${new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 }).format(ratio)}`

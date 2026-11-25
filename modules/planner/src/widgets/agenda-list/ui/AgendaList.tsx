@@ -1,4 +1,4 @@
-import { fmtDay, fmtDuration, fmtHours } from '@lc/i18n/format'
+import { fmtDay, fmtDirection, fmtDuration, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   countsToBudget,
@@ -152,7 +152,7 @@ export function AgendaList({ plan, items, now, onSelect, onChanges, onMarkDone }
             {o.done && <DoneMark unlogged={doneWithoutTime(o)} fresh={justDone.has(eventKey(o))} />}
             {real !== null && real !== o.e - o.s && (
               <small className="inline-block text-[12px] text-muted tabular-nums">
-                {m.grid_took({ time: fmtDuration(real) })}
+                {m.grid_took({ time: fmtDuration(real) })} {fmtDirection(real / (o.e - o.s))}
               </small>
             )}
           </span>
