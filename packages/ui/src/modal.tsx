@@ -2,7 +2,11 @@ import { useEffect, useLayoutEffect, useRef, type MouseEvent, type ReactNode } f
 
 export const TITLE = 'mb-1 text-[18px]/[1.3] font-semibold'
 export const META = 'flex flex-wrap items-center gap-2 text-[13.5px] text-muted'
-export const FOOT = 'mt-[18px] flex flex-wrap justify-end gap-2'
+// The button row stays in view at the bottom of a dialog that scrolls. It reaches over the padding of the dialog's
+// body (22px across, 20px below), so it has to be the body's last element; its top fades in, so that what scrolls
+// under it fades out instead of being cut, and a dialog that does not scroll looks as it would without it.
+export const FOOT =
+  'sticky bottom-0 z-10 -mx-[22px] mt-1.5 -mb-5 flex flex-wrap justify-end gap-2 bg-[linear-gradient(to_bottom,transparent,var(--surface)_12px)] px-[22px] pt-3 pb-5'
 
 interface Props {
   /** The parent owns it: the dialog follows this value and never closes on its own account */

@@ -1,8 +1,9 @@
-import { parseLocal, weekday, ymd } from '../dates'
+import { DAY, parseLocal, startOfDay, weekday, ymd } from '../dates'
 import { deadlineOf } from '../deadlines'
 import { isRecord } from '../edits'
 import { isSession } from '../progress'
 import type { Plan, PlanEvent } from '../types'
+import { studyWeekdays } from './room'
 import { PACES, type RebalanceRequest, type RebalanceTarget } from './types'
 
 const DAY_TEXT = /^\d{4}-\d{2}-\d{2}$/
@@ -84,7 +85,7 @@ export function parseRebalanceRequest(value: unknown, plan: Plan): RebalanceRequ
  * The sessions a re-balance moves: the calendar's open sessions from the first day on, in their order. Reviews stay:
  * their spacing after a finished module must not follow the course.
  */
-export const movingSessions = (plan: Plan, request: RebalanceRequest): PlanEvent[] =>
+export const movingSessions = (plan: Plan, request: Pick<RebalanceRequest, 'calendar' | 'from'>): PlanEvent[] =>
   plan.events
     .filter(
       (e) =>
@@ -95,3 +96,28 @@ export const movingSessions = (plan: Plan, request: RebalanceRequest): PlanEvent
         e.start.slice(0, 10) >= request.from,
     )
     .toSorted((a, b) => a.start.localeCompare(b.start))
+
+/**
+ * How many of the calendar's open sessions it has per study day now, from its first open session on `from` or later
+ * to its last, counting study days as a re-balance does; null for fewer than two sessions.
+ */
+export function currentPace(plan: Plan, calendar: string, from: string): number | null {
+  const sessions = movingSessions(plan, { calendar, from })
+  const [first] = sessions
+  const last = sessions.at(-1)
+  if (!first || !last || sessions.length < 2) return null
+  const isStudyWeekday = studyWeekdays(sessions)
+  const holidays = new Set(plan.meta.holidays)
+  let days = 0
+  for (let d = startOfDay(parseLocal(first.start)); d <= parseLocal(last.start); d += DAY) {
+    if (!holidays.has(ymd(d)) && isStudyWeekday(weekday(d))) days++
+  }
+  return days ? sessions.length / days : null
+}
+
+/** The pace the dialog offers that is nearest to `perDay`, by ratio: twice as fast is as far as half as fast. */
+export const nearestPace = (perDay: number): (typeof PACES)[number] =>
+  PACES.reduce<(typeof PACES)[number]>(
+    (best, pace) => (Math.abs(Math.log(pace / perDay)) < Math.abs(Math.log(best / perDay)) ? pace : best),
+    1,
+  )

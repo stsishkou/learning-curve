@@ -1,5 +1,5 @@
 export type { BusyBlock } from './busy'
-export { deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
+export { countdown, deadlineChange, deadlineEvent, deadlineOf, nextDeadline, type Countdown } from './deadlines'
 export {
   calendarLanes,
   compareLanes,
@@ -48,6 +48,7 @@ export {
 } from './changes'
 export { changedFields, diffPlans, type ChangedField, type PlanDiff } from './diff'
 export {
+  canTrim,
   emptyHistory,
   historyEdits,
   historyView,
@@ -55,6 +56,7 @@ export {
   parseHistory,
   recordChange,
   travel,
+  trimHistory,
   type HistoryStep,
   type HistoryView,
   type PlanHistory,
@@ -213,7 +215,7 @@ export {
   type OrderedSolution,
   type Solve,
 } from './rebalance/lp'
-export { defaultStudyHours, parseRebalanceRequest } from './rebalance/request'
+export { currentPace, defaultStudyHours, nearestPace, parseRebalanceRequest } from './rebalance/request'
 export {
   PACES,
   type RebalanceReason,

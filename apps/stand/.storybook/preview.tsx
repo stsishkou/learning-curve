@@ -94,6 +94,7 @@ const preview: Preview = {
       storySort: {
         order: [
           'Introduction',
+          'Story',
           'Design tokens',
           'UI kit',
           'Planner',

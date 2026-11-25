@@ -46,6 +46,8 @@ export interface PlanMeta {
   weeklyBudgetHours: number
   holidays: string[]
   planEnd: string
+  /** The calendar whose deadline the countdown follows; without it, the nearest deadline */
+  countdown?: string
 }
 
 export interface Plan {

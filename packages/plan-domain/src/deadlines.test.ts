@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import { parseLocal } from './dates'
-import { deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
+import { countdown, deadlineChange, deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
 import { fixturePlan, itemAt } from './fixtures'
 import { planOutlook } from './replan'
 import type { Plan, PlanEvent } from './types'
@@ -60,6 +60,60 @@ describe('nextDeadline', () => {
 
   test('skips deadlines that are over and is null when none is ahead', () => {
     expect(nextDeadline(fixturePlan, parseLocal('2027-06-01T09:00'))).toBeNull()
+  })
+})
+
+const choosing = (plan: Plan, calendar: string): Plan => ({ ...plan, meta: { ...plan.meta, countdown: calendar } })
+
+describe('countdown', () => {
+  const now = parseLocal('2026-12-02T12:00')
+
+  test('follows the nearest deadline from today on while the plan names no calendar', () => {
+    const plan = withEvents([milestone('hfllm', '2026-12-10')])
+    expect(countdown(plan, now)).toEqual({ calendar: 'hfllm', day: '2026-12-10', chosen: false })
+  })
+
+  test('follows the calendar the plan names, though another deadline comes first', () => {
+    const plan = choosing(withEvents([milestone('hfllm', '2027-02-15')]), 'hfllm')
+    expect(countdown(plan, now)).toEqual({ calendar: 'hfllm', day: '2027-02-15', chosen: true })
+  })
+
+  test('keeps the named calendar without a day while it has no deadline, and after its deadline', () => {
+    expect(countdown(choosing(fixturePlan, 'hfllm'), now)).toEqual({ calendar: 'hfllm', day: null, chosen: true })
+    const later = parseLocal('2027-06-01T09:00')
+    expect(countdown(choosing(fixturePlan, 'certs'), later)).toEqual({ calendar: 'certs', day: certsDay, chosen: true })
+  })
+
+  test('goes back to the nearest deadline when the named calendar is gone, and is null when none is ahead', () => {
+    expect(countdown(choosing(fixturePlan, 'gone'), now)).toEqual({ calendar: 'certs', day: certsDay, chosen: false })
+    expect(countdown(fixturePlan, parseLocal('2027-06-01T09:00'))).toBeNull()
+  })
+})
+
+describe('deadlineChange', () => {
+  test('adds a milestone to a calendar without a deadline', () => {
+    expect(deadlineChange(fixturePlan, 'hfllm', '2027-02-15')).toMatchObject({
+      type: 'event.add',
+      event: { calendar: 'hfllm', kind: 'milestone', start: '2027-02-15T00:00', end: '2027-02-15T00:00' },
+    })
+  })
+
+  test('moves the milestone that is there, and is null for the day it already has', () => {
+    const uid = deadlineEvent(fixturePlan, 'certs')?.uid
+    expect(deadlineChange(fixturePlan, 'certs', '2027-01-10')).toEqual({
+      type: 'event.patch',
+      uid,
+      patch: { start: '2027-01-10T00:00', end: '2027-01-10T00:00' },
+    })
+    expect(deadlineChange(fixturePlan, 'certs', certsDay)).toBeNull()
+  })
+
+  test('sends the milestone to the trash for no day, and is null when there is none', () => {
+    expect(deadlineChange(fixturePlan, 'certs', null)).toEqual({
+      type: 'event.remove',
+      uid: deadlineEvent(fixturePlan, 'certs')?.uid,
+    })
+    expect(deadlineChange(fixturePlan, 'hfllm', null)).toBeNull()
   })
 })
 

@@ -1,0 +1,253 @@
+### The idea in one paragraph
+
+Module Federation lets one build (the **remote**) publish some of its modules so that another app (the **host**) can
+`import` them at run time, from a URL, as if they were part of its own bundle. The two builds know nothing about each
+other's files. They agree on three things only: a name (`lc_docs`), the modules on offer (`./help`) and the
+dependencies they will share instead of downloading twice (React). Everything else, such as chunk names, hashes and
+where the files live, is discovered at run time.
+
+<ChapterLink id="build-time-microfrontends" /> built walls between modules and composed them in the bundler. This
+chapter keeps the walls and moves the composition to the browser, for one part: this guide.
+
+### What happens on the first click
+
+When someone presses **How it's built** in the planner, this is the sequence, in the order the network panel shows it:
+
+1. The host imports its loader chunk with `import()`, which pulls in the federation runtime. Until now neither was on
+   the page.
+2. The runtime fetches `mf-manifest.json` from the guide's origin. The manifest names the remote entry file
+   (`remoteEntry-<hash>.js`), what the remote exposes and which shared dependencies it expects, with versions.
+3. The runtime imports the remote entry. The manifest declares it an ES module (`"type": "module"`), and a module
+   loaded from another origin is subject to CORS: the guide's host must answer with `Access-Control-Allow-Origin`.
+4. The entry initialises the **share scope**: the host has registered its React there, so the remote takes that copy
+   instead of downloading its own fallback.
+5. `get('./help')` loads the chunks of `src/remote/help.tsx` and returns a factory; calling it yields the module.
+6. The host checks the module's shape and contract version, and only then calls into it.
+
+Every step can fail (offline, CORS, a stale manifest, an incompatible version), so every step is wrapped. The code
+below is the whole of it.
+
+### The remote: one plugin, one exposed module
+
+The guide's site is built by TanStack Start. The remote is a second, plain Vite build of the same sources with the
+federation plugin added:
+
+<Walkthrough>
+
+```ts file=apps/docs/vite.remote.config.ts at=main
+
+```
+
+<WalkStep lines="1-3" title="A folder per major version">
+
+The remote is written to `remote/v1/`. A breaking change of the contract builds `remote/v2/` next to it, so a host
+built against version 1 keeps working until it is upgraded.
+
+</WalkStep>
+
+<WalkStep lines="14-15" title="One React range for both sides">
+
+The remote accepts any React `^19.3.0`. The host provides its own copy; the range only decides whether the remote may
+use it without a warning.
+
+</WalkStep>
+
+<WalkStep lines="18-20" title="No address baked in">
+
+`base: './'` plus `publicPath: 'auto'` (line 48) make every chunk URL relative to the manifest the host loaded. The
+same files work from `localhost:4310`, from GitHub Pages under `/learning-curve/` or from any other origin.
+
+</WalkStep>
+
+<WalkStep lines="21-24" title="Build-time addresses blanked">
+
+The site reads its own origin and the stand's address from `VITE_*` variables. Inside a host those would be wrong, so
+the remote build empties them: the drawer takes the site's address from the context the host passes (`siteUrl`).
+
+</WalkStep>
+
+<WalkStep lines="29" title="An HTML input">
+
+Vite builds from an HTML entry. `remote.html` is also a small page to try the drawer without a host. Hosts never load
+it: they go through the federation entry.
+
+</WalkStep>
+
+<WalkStep lines="36-40" title="Name, entry, exposes">
+
+`name` is the container's global identity (`lc_docs`). `exposes` maps a public name (`./help`) to a private file, which
+is the same idea as a package's `exports`. The entry file gets a content hash because GitHub Pages caches every file
+for ten minutes (<ChapterLink id="shipping" />).
+
+</WalkStep>
+
+<WalkStep lines="41-46" title="What is shared">
+
+React, ReactDOM and the two entry points the code really imports (`react/jsx-runtime` for compiled JSX,
+`react-dom/client` for `createRoot`) are singletons. The router is deliberately not shared: the drawer has its own
+memory router and must not depend on which router version the host runs.
+
+</WalkStep>
+
+<WalkStep lines="47-49" title="Manifest on, generated types off">
+
+The manifest is what the host loads. Generated type files are switched off because the types live in a contract
+package both sides import (<ChapterLink id="docs-remote" />).
+
+</WalkStep>
+
+</Walkthrough>
+
+### The host: the runtime, no plugin
+
+The planner's build is not touched. No federation plugin runs in it, and its server render does not know the remote
+exists. All of federation on the host side is one file, loaded on demand:
+
+<Walkthrough>
+
+```ts file=packages/docs-host/src/load.ts at=main
+
+```
+
+<WalkStep lines="1" title="Not in the first bundle">
+
+This module is only ever reached through `import('./load')`. The bundler puts it, with the runtime and its
+dependencies, in a chunk that downloads on the first click.
+
+</WalkStep>
+
+<WalkStep lines="10-14" title="The runtime API, and the host's own React">
+
+`createInstance` from `@module-federation/runtime` is a plain function. The four React imports are the host's copies,
+which it is about to offer to the remote.
+
+</WalkStep>
+
+<WalkStep lines="35-42" title="Offering a shared module">
+
+Each shared entry says which version the host has and how to get it (`lib`). `singleton` means one copy per page: two
+Reacts in one tree break hooks. The comment records what happens on a mismatch: a warning and still this copy.
+
+</WalkStep>
+
+<WalkStep lines="44-52" title="Cache-busting the one fixed name">
+
+The manifest is the only remote file without a hash in its name. A query that changes on every page load means the
+browser never answers it from its cache.
+
+</WalkStep>
+
+<WalkStep lines="54-60" title="A deadline">
+
+A remote that hangs would leave the button spinning forever. After eight seconds by default the load fails, and the
+host shows its fallback.
+
+</WalkStep>
+
+<WalkStep lines="63-73" title="Register the remote">
+
+The remote is registered by name with its manifest URL as the entry. An entry URL containing `.json` is what tells
+the runtime to read a manifest first; the cache-busting query does not get in the way.
+
+</WalkStep>
+
+<WalkStep lines="74-80" title="Load, and name the failure">
+
+`loadRemote('lc_docs/help')` performs steps 2 to 5 above. Any error becomes a `DocsLoadError` with a reason, so the UI
+can tell "timed out" from "unreachable".
+
+</WalkStep>
+
+<WalkStep lines="81-88" title="Trust, but verify">
+
+What came over the network is `unknown` until proven otherwise: first its shape, then its contract version. A remote
+that implements another major version is refused before any of its code runs in the host's tree.
+
+</WalkStep>
+
+</Walkthrough>
+
+### A React hook around it
+
+The planner and the test harness both use the same hook, so the loading rules are written once:
+
+<Walkthrough>
+
+```ts file=packages/docs-host/src/use-docs-host.ts at=main lines=47-121
+
+```
+
+<WalkStep lines="58-63" title="Latest values without re-creating">
+
+The drawer is created once. The hook keeps the latest context and event handlers in refs, so a host that passes a new
+object on every render does not cause a reload.
+
+</WalkStep>
+
+<WalkStep lines="65-69" title="Context changes become updates">
+
+When the locale, theme, feature or tokens change, the live drawer gets `update()`. The tokens object is compared by
+value through `JSON.stringify`.
+
+</WalkStep>
+
+<WalkStep lines="81-95" title="Load once, on demand">
+
+The first `open` starts the load and keeps the promise, so two quick clicks load the remote once. The dynamic
+`import('./load')` is the line that keeps federation out of the host's first bundle.
+
+</WalkStep>
+
+<WalkStep lines="97-116" title="Fail soft, retry later">
+
+On failure the stored promise is dropped and `open` resolves `false`: the host shows a link to the static site, and
+the next click tries again, because the remote may be back.
+
+</WalkStep>
+
+</Walkthrough>
+
+### One build, any environment
+
+Where the guide is deployed is a run-time value. The planner reads it on the server when a request comes in, not when
+it is built:
+
+```ts file=apps/web/src/server/docs.ts at=main
+
+```
+
+A staging planner and a production planner can run the same build and point at different guides, or at none: in a
+production build without `DOCS_REMOTE_URL` the button is not shown. In development it falls back to the local static
+server.
+
+### How to know it worked
+
+"It renders" is not proof that React was shared: a remote that downloaded its own React would render too, with a
+second copy on the page. The test harness checks the network instead:
+
+```ts file=apps/docs-harness/tests/remote.spec.ts at=main lines=25-37
+
+```
+
+Nothing is requested from the guide's origin before the click. After it, the first request is the manifest with its
+cache-busting query, then the hashed entry, and no file with `react` in its name.
+
+<Terminal
+  commands={[
+    'pnpm --filter @lc/docs build',
+    'pnpm --filter @lc/docs preview',
+    'curl -s http://localhost:4310/remote/v1/mf-manifest.json | head -40',
+    'pnpm docs:test',
+  ]}
+/>
+
+### What run time costs
+
+- **Version skew.** The host was built against contract 1.0.0; the remote deployed this morning may implement 1.3.0.
+  That is fine within a major, and refused across one. The contract package and its changelog exist for this.
+- **New ways to fail.** Network, CORS, caches and the remote's own bugs now happen inside the host's page. Each has a
+  fallback: a timeout, a link to the static site, an error boundary inside the drawer.
+- **Styles leak both ways** unless isolated on purpose. A remote renders into the host's document, where the host's
+  CSS can reach it and its CSS can reach the host. <ChapterLink id="docs-remote" /> solves that with a shadow root.
+- **No server render for the remote.** The drawer is client-only, and that is acceptable for help opened on a click.
+  A remote that must appear in server-rendered HTML needs federation on the server too, which is a much larger setup.

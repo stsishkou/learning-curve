@@ -1,0 +1,260 @@
+### La idea en un párrafo
+
+Module Federation permite que una build (el **remote**) publique algunos de sus módulos para que otra app (el **host**)
+pueda hacer `import` de ellos en tiempo de ejecución, desde una URL, como si fueran parte de su propio bundle. Ninguna de
+las dos builds sabe nada de los archivos de la otra. Solo se ponen de acuerdo en tres cosas: un nombre (`lc_docs`), los
+módulos que se ofrecen (`./help`) y las dependencias que compartirán en lugar de descargarlas dos veces (React). Todo lo
+demás, como los nombres de los chunks, los hashes y dónde viven los archivos, se descubre en tiempo de ejecución.
+
+El capítulo <ChapterLink id="build-time-microfrontends" /> levantó muros entre módulos y los compuso en el bundler. Este
+capítulo mantiene los muros y lleva la composición al navegador, para una sola parte: esta guía.
+
+### Qué pasa en el primer clic
+
+Cuando alguien pulsa **Cómo está hecho** en el planificador, esta es la secuencia, en el orden en que la muestra el panel de red:
+
+1. El host importa su chunk del cargador con `import()`, que trae consigo el runtime de federación. Hasta ese momento
+   ninguno de los dos estaba en la página.
+2. El runtime descarga `mf-manifest.json` desde el origen de la guía. El manifiesto nombra el archivo de entrada del
+   remote (`remoteEntry-<hash>.js`), lo que expone el remote y qué dependencias compartidas espera, con sus versiones.
+3. El runtime importa la entrada del remote. El manifiesto la declara módulo ES (`"type": "module"`), y un módulo
+   cargado desde otro origen está sujeto a CORS: el hosting de la guía debe responder con `Access-Control-Allow-Origin`.
+4. La entrada inicializa el **share scope** (el ámbito de dependencias compartidas): el host ha registrado ahí su React,
+   así que el remote toma esa copia en lugar de descargar su propio React de respaldo.
+5. `get('./help')` carga los chunks de `src/remote/help.tsx` y devuelve una factory; al llamarla se obtiene el módulo.
+6. El host comprueba la forma del módulo y la versión del contrato, y solo entonces ejecuta su código.
+
+Cada paso puede fallar (sin conexión, CORS, un manifiesto desactualizado, una versión incompatible), así que cada paso
+está protegido. El código de abajo es todo lo que hay.
+
+### El remote: un plugin, un módulo expuesto
+
+El sitio de la guía lo compila TanStack Start. El remote es una segunda build, de Vite a secas, de las mismas fuentes
+con el plugin de federación añadido:
+
+<Walkthrough>
+
+```ts file=apps/docs/vite.remote.config.ts at=main
+
+```
+
+<WalkStep lines="1-3" title="Una carpeta por versión mayor">
+
+El remote se escribe en `remote/v1/`. Un cambio incompatible del contrato compila `remote/v2/` a su lado, así que un
+host compilado contra la versión 1 sigue funcionando hasta que se actualice.
+
+</WalkStep>
+
+<WalkStep lines="14-15" title="Un rango de React para ambos lados">
+
+El remote acepta cualquier React `^19.3.0`. El host aporta su propia copia; el rango solo decide si el remote puede
+usarla sin una advertencia.
+
+</WalkStep>
+
+<WalkStep lines="18-20" title="Ninguna dirección incrustada">
+
+`base: './'` junto con `publicPath: 'auto'` (línea 48) hacen que la URL de cada chunk sea relativa al manifiesto que
+cargó el host. Los mismos archivos funcionan desde `localhost:4310`, desde GitHub Pages bajo `/learning-curve/` o desde
+cualquier otro origen.
+
+</WalkStep>
+
+<WalkStep lines="21-24" title="Direcciones de compilación vaciadas">
+
+El sitio lee su propio origen y la dirección del banco de componentes de variables `VITE_*`. Dentro de un host serían
+incorrectas, así que la build del remote las vacía: el panel lateral toma la dirección del sitio del contexto que le pasa
+el host (`siteUrl`).
+
+</WalkStep>
+
+<WalkStep lines="29" title="Una entrada HTML">
+
+Vite compila a partir de una entrada HTML. `remote.html` también es una pequeña página para probar el panel sin host.
+Los hosts nunca la cargan: pasan por la entrada de federación.
+
+</WalkStep>
+
+<WalkStep lines="36-40" title="Nombre, entrada, exposes">
+
+`name` es la identidad global del contenedor (`lc_docs`). `exposes` asocia un nombre público (`./help`) a un archivo
+privado, la misma idea que el `exports` de un paquete. El archivo de entrada lleva un hash de contenido porque GitHub
+Pages guarda en caché cada archivo durante diez minutos (<ChapterLink id="shipping" />).
+
+</WalkStep>
+
+<WalkStep lines="41-46" title="Qué se comparte">
+
+React, ReactDOM y los dos puntos de entrada que el código importa de verdad (`react/jsx-runtime` para el JSX compilado,
+`react-dom/client` para `createRoot`) son singletons. El router no se comparte, a propósito: el panel tiene su propio
+router en memoria y no debe depender de qué versión del router use el host.
+
+</WalkStep>
+
+<WalkStep lines="47-49" title="Manifiesto activado, tipos generados desactivados">
+
+El manifiesto es lo que carga el host. Los archivos de tipos generados están desactivados porque los tipos viven en un
+paquete de contrato que importan ambos lados (<ChapterLink id="docs-remote" />).
+
+</WalkStep>
+
+</Walkthrough>
+
+### El host: el runtime, sin plugin
+
+La build del planificador no se toca. En ella no corre ningún plugin de federación, y su renderizado en servidor no sabe
+que el remote existe. Toda la federación del lado del host es un archivo, cargado bajo demanda:
+
+<Walkthrough>
+
+```ts file=packages/docs-host/src/load.ts at=main
+
+```
+
+<WalkStep lines="1" title="Fuera del primer bundle">
+
+A este módulo solo se llega a través de `import('./load')`. El bundler lo coloca, con el runtime y sus dependencias, en
+un chunk que se descarga en el primer clic.
+
+</WalkStep>
+
+<WalkStep lines="10-14" title="La API del runtime y el React del propio host">
+
+`createInstance` de `@module-federation/runtime` es una función normal. Los cuatro imports de React son las copias del
+host, que está a punto de ofrecérselas al remote.
+
+</WalkStep>
+
+<WalkStep lines="35-42" title="Ofrecer un módulo compartido">
+
+Cada entrada compartida dice qué versión tiene el host y cómo obtenerla (`lib`). `singleton` significa una copia por
+página: dos Reacts en un mismo árbol rompen los hooks. El comentario deja constancia de lo que pasa si las versiones no
+coinciden: una advertencia, y se usa igualmente esta copia.
+
+</WalkStep>
+
+<WalkStep lines="44-52" title="Cache busting para el único nombre fijo">
+
+El manifiesto es el único archivo del remote sin hash en el nombre. Con una query que cambia en cada carga de página,
+el navegador nunca lo sirve desde su caché.
+
+</WalkStep>
+
+<WalkStep lines="54-60" title="Un plazo límite">
+
+Un remote que se cuelga dejaría el botón girando para siempre. Pasados ocho segundos (por defecto), la carga falla y el
+host muestra su alternativa.
+
+</WalkStep>
+
+<WalkStep lines="63-73" title="Registrar el remote">
+
+El remote se registra por nombre, con la URL de su manifiesto como entrada. Que la URL de entrada contenga `.json` es lo
+que le indica al runtime que lea primero un manifiesto; la query de cache busting no estorba.
+
+</WalkStep>
+
+<WalkStep lines="74-80" title="Cargar y ponerle nombre al fallo">
+
+`loadRemote('lc_docs/help')` ejecuta los pasos 2 a 5 de arriba. Cualquier error se convierte en un `DocsLoadError` con
+un motivo, para que la UI distinga «se agotó el tiempo» de «no se puede acceder».
+
+</WalkStep>
+
+<WalkStep lines="81-88" title="Confía, pero verifica">
+
+Lo que llega por la red es `unknown` mientras no se demuestre lo contrario: primero su forma, luego su versión de
+contrato. Un remote que implementa otra versión mayor se rechaza antes de que nada de su código se ejecute en el árbol
+del host.
+
+</WalkStep>
+
+</Walkthrough>
+
+### Un hook de React alrededor
+
+El planificador y el harness de pruebas usan el mismo hook, así que las reglas de carga se escriben una sola vez:
+
+<Walkthrough>
+
+```ts file=packages/docs-host/src/use-docs-host.ts at=main lines=47-121
+
+```
+
+<WalkStep lines="58-63" title="Los últimos valores sin recrear nada">
+
+El panel se crea una vez. El hook guarda el último contexto y los últimos handlers de eventos en refs, así que un host
+que pasa un objeto nuevo en cada render no provoca una recarga.
+
+</WalkStep>
+
+<WalkStep lines="65-69" title="Los cambios de contexto se convierten en actualizaciones">
+
+Cuando cambian el locale, el tema, la feature o los tokens, el panel abierto recibe `update()`. El objeto de tokens se
+compara por valor mediante `JSON.stringify`.
+
+</WalkStep>
+
+<WalkStep lines="81-95" title="Cargar una vez, bajo demanda">
+
+El primer `open` inicia la carga y guarda la promesa, así que dos clics rápidos cargan el remote una sola vez. El
+`import('./load')` dinámico es la línea que mantiene la federación fuera del primer bundle del host.
+
+</WalkStep>
+
+<WalkStep lines="97-116" title="Fallar con suavidad, reintentar después">
+
+Si falla, la promesa guardada se descarta y `open` se resuelve con `false`: el host muestra un enlace al sitio estático,
+y el siguiente clic lo vuelve a intentar, porque puede que el remote haya vuelto.
+
+</WalkStep>
+
+</Walkthrough>
+
+### Una build, cualquier entorno
+
+Dónde está desplegada la guía es un valor de tiempo de ejecución. El planificador lo lee en el servidor cuando llega una
+petición, no cuando se compila:
+
+```ts file=apps/web/src/server/docs.ts at=main
+
+```
+
+Un planificador de staging y uno de producción pueden ejecutar la misma build y apuntar a guías distintas, o a ninguna:
+en una build de producción sin `DOCS_REMOTE_URL` el botón no se muestra. En desarrollo recurre al servidor estático
+local.
+
+### Cómo saber que funcionó
+
+«Se renderiza» no prueba que React se compartiera: un remote que hubiera descargado su propio React también se
+renderizaría, con una segunda copia en la página. El harness de pruebas, en cambio, comprueba la red:
+
+```ts file=apps/docs-harness/tests/remote.spec.ts at=main lines=25-37
+
+```
+
+Antes del clic no se pide nada al origen de la guía. Después, la primera petición es el manifiesto con su query de cache
+busting, luego la entrada con hash, y ningún archivo con `react` en el nombre.
+
+<Terminal
+  commands={[
+    'pnpm --filter @lc/docs build',
+    'pnpm --filter @lc/docs preview',
+    'curl -s http://localhost:4310/remote/v1/mf-manifest.json | head -40',
+    'pnpm docs:test',
+  ]}
+/>
+
+### Lo que cuesta componer en tiempo de ejecución
+
+- **Desfase de versiones.** El host se compiló contra el contrato 1.0.0; el remote desplegado esta mañana puede
+  implementar el 1.3.0. Dentro de una misma versión mayor no pasa nada; entre mayores distintas, se rechaza. Para esto
+  existen el paquete de contrato y su changelog.
+- **Nuevas formas de fallar.** La red, CORS, las cachés y los propios bugs del remote ahora ocurren dentro de la página
+  del host. Cada uno tiene su alternativa: un timeout, un enlace al sitio estático, un error boundary dentro del panel.
+- **Los estilos se filtran en ambas direcciones** si no se aíslan a propósito. Un remote renderiza dentro del documento
+  del host, donde el CSS del host puede alcanzarlo y su CSS puede alcanzar al host. El capítulo <ChapterLink id="docs-remote" />
+  lo resuelve con un shadow root.
+- **Sin renderizado en servidor para el remote.** El panel es solo de cliente, y eso es aceptable para una ayuda que se
+  abre con un clic. Un remote que tenga que aparecer en HTML renderizado en servidor necesita federación también en el
+  servidor, y eso es una configuración mucho mayor.

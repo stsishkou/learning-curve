@@ -29,6 +29,8 @@ export interface PlanEdits {
   removed: { events: Record<string, string | null>; calendars: Record<string, string | null> }
   /** The plan's own name, when it was changed in the viewer */
   title?: string
+  /** The calendar whose deadline the countdown follows, when one was chosen in the viewer */
+  countdown?: string
 }
 
 export const emptyEdits = (): PlanEdits => ({
@@ -158,6 +160,7 @@ export function parseEdits(value: unknown): PlanEdits {
     }
   }
   if (typeof value.title === 'string' && value.title.trim()) edits.title = value.title.trim().slice(0, TITLE_MAX)
+  if (typeof value.countdown === 'string' && value.countdown) edits.countdown = value.countdown
   return edits
 }
 
@@ -210,6 +213,11 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
     plan.meta.planEnd,
   )
   const shown = calendars.filter((c) => !(c.id in gone.calendars))
-  const meta = { ...plan.meta, planEnd: lastDay, title: edits.title ?? plan.meta.title }
+  const meta = {
+    ...plan.meta,
+    planEnd: lastDay,
+    title: edits.title ?? plan.meta.title,
+    ...(edits.countdown ? { countdown: edits.countdown } : {}),
+  }
   return { plan: { ...plan, meta, calendars: shown, events }, orphans }
 }

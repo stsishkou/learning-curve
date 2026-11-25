@@ -1,12 +1,18 @@
 import { m } from '@lc/i18n/messages'
 import { getLocale, localizeHref } from '@lc/i18n/runtime'
 import { ICONS_ONLY_BOOT, Tooltips } from '@lc/ui'
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { type DocsConfig, getDocsConfig } from '#/server/docs'
+import { getPlanRevision } from '#/server/plan'
+import { FollowPlan } from '#/shell/FollowPlan'
 import { THEME_BOOT_SCRIPT } from '#/shell/theme'
 import { TodayIcon, todayIcon } from '#/shell/TodayIcon'
 
 import appCss from '../styles.css?url'
+
+let docsAddress: Promise<DocsConfig> | undefined
+const docsConfig = () => (docsAddress ??= getDocsConfig())
 
 export const Route = createRootRoute({
   head: () => ({
@@ -29,7 +35,14 @@ export const Route = createRootRoute({
     ],
     scripts: [{ children: THEME_BOOT_SCRIPT }, { children: ICONS_ONLY_BOOT }],
   }),
+  // Every page reads the plan again after a change of its own; this is the one it was loaded with, to notice the others.
+  // The docs address is fixed for the life of the server, so it is asked once rather than on every reload.
+  loader: async () => {
+    const [revision, docs] = await Promise.all([getPlanRevision(), docsConfig()])
+    return { revision, docs }
+  },
   shellComponent: RootDocument,
+  component: Root,
   notFoundComponent: () => (
     <div className="mx-auto max-w-[1240px] px-3 pt-3.5 pb-10 md:px-5 md:pt-5 md:pb-12">
       <p className="px-[18px] py-10 text-center text-muted">
@@ -41,6 +54,15 @@ export const Route = createRootRoute({
     </div>
   ),
 })
+
+function Root() {
+  return (
+    <>
+      <Outlet />
+      <FollowPlan revision={Route.useLoaderData({ select: (data) => data.revision })} />
+    </>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (

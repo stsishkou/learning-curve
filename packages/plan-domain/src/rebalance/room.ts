@@ -43,6 +43,16 @@ export interface Room {
 
 const minutesOf = (hhmm: string) => (Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))) * MINUTE
 
+/**
+ * Whether a weekday is a study day for these sessions: every weekday, and Saturday or Sunday only when they already
+ * use it; a course kept to weekends keeps to the weekend days it uses.
+ */
+export function studyWeekdays(sessions: PlanEvent[]): (day: number) => boolean {
+  const used = new Set(sessions.map((e) => weekday(parseLocal(e.start))))
+  const weekdays = !used.size || [...used].some((d) => d % 6 !== 0)
+  return (d) => (d % 6 === 0 ? used.has(d) : weekdays)
+}
+
 /** True when `count` slots of the list follow each other without a gap. */
 function hasRun(slots: number[], count: number): boolean {
   let run = 0
@@ -55,7 +65,8 @@ function hasRun(slots: number[], count: number): boolean {
 
 /**
  * Step 1 of a re-balance: the study days of the year from the first day and the free time on each, the room left in
- * each week's budget, and the current slot of each moving session. A year, whatever the pace: a course kept to a few
+ * each week's budget, and the current slot of each moving session. A course that starts after the first day is
+ * looked at from its first open session: a re-balance changes its rhythm and its end, never its start. A year, whatever the pace: a course kept to a few
  * weekend days, or squeezed by a full budget, needs far more calendar days than it has sessions.
  *
  * A study day is a weekday, or a weekend day of the kind the moving sessions already use; a calendar studied only at
@@ -72,14 +83,13 @@ export function roomOf(
 ): Room {
   const deadline = request.deadline ?? deadlineOf(plan, request.calendar)
   const moving = new Set(sessions.map((e) => e.uid))
-  const from = parseLocal(`${request.from}T00:00`)
+  const first = sessions[0]?.start.slice(0, 10) ?? request.from
+  const from = parseLocal(`${first > request.from ? first : request.from}T00:00`)
   const end = from + MAX_DAYS * DAY
   const open = minutesOf(request.hours.from)
   const close = minutesOf(request.hours.to)
 
-  const used = new Set(sessions.map((e) => weekday(parseLocal(e.start))))
-  const weekdays = !used.size || [...used].some((d) => d % 6 !== 0)
-  const isStudyWeekday = (d: number) => (d % 6 === 0 ? used.has(d) : weekdays)
+  const isStudyWeekday = studyWeekdays(sessions)
   const holidays = new Set(plan.meta.holidays)
   const away = new Set<string>()
   for (const block of busy) {

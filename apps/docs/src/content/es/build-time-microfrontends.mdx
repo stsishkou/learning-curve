@@ -1,0 +1,215 @@
+### Microfrontends sin red
+
+«Microfrontend» suele hacer pensar en varios despliegues que se unen en el navegador. Quita la red y lo útil sigue
+ahí: una parte del producto que es dueña de sus pantallas y de su estado, habla con el resto a través de una API
+estrecha y no puede saltársela. Cómo se juntan las partes, en el bundler o por la red, es una segunda decisión,
+independiente de la primera.
+
+learning-curve se quedó con la primera parte y aplazó la segunda. En el commit `cf289bd` la página del planificador
+pasó de `apps/web` a `modules/planner`, el diálogo de exportación se fue a `modules/calendar-export` y la app se
+convirtió en una carcasa. Nada cambió para quien la usa, y tampoco cambió nada del despliegue: Vite seguía generando
+un bundle de servidor y uno de cliente. Lo que cambió es quién puede importar qué.
+
+Todo el mecanismo son tres piezas: una carcasa que solo conecta, una página que declara lo que necesita en lugar de
+importarlo y unas reglas de lint que vigilan que ambas cumplan. Cada una se lee a continuación a partir del commit que
+la introdujo.
+
+### La carcasa: solo cableado
+
+Antes de la separación, `apps/web/src/routes/index.tsx` tenía 262 líneas: la carga, la cuadrícula, la agenda, el
+presupuesto, los diálogos. Justo después, la ruta tiene 31 líneas y no renderiza ninguna UI propia.
+
+<Walkthrough>
+
+```tsx file=apps/web/src/routes/index.tsx at=cf289bd
+
+```
+
+<WalkStep lines="1-2" title="Módulos por nombre de paquete">
+
+El planificador y el diálogo de exportación se importan como cualquier paquete de npm. pnpm enlaza `@lc/planner` y
+`@lc/calendar-export` desde `modules/*`, y su `exports` apunta a `src/index.ts`: código fuente TypeScript, sin paso de
+compilación y sin forma de llegar a un archivo que el módulo no exporte.
+
+</WalkStep>
+
+<WalkStep lines="5-6" title="Lo que solo sabe la app">
+
+Las funciones de servidor y el selector de idioma se quedan en la app. `#/` es el alias de ruta propio de la app. Los
+módulos no pueden usar uno: la app comprueba los tipos de su código con su propio `tsconfig`, donde el alias de un
+módulo no significaría nada.
+
+</WalkStep>
+
+<WalkStep lines="9-13" title="La ruta toma prestadas las reglas del módulo">
+
+El módulo es dueño de la forma de su URL (`parsePlannerSearch`), pero no del router; la app conecta el parser a
+`validateSearch`. La carga es una función de servidor, y un módulo no tiene permitido llamarla.
+
+</WalkStep>
+
+<WalkStep lines="15-22" title="Datos hacia abajo, intenciones hacia arriba">
+
+La página recibe sus datos (`state`, `search`) y un callback para lo que quiere: «cambia estas claves de la URL». La app
+decide que eso significa `navigate`. El módulo nunca llega a saber que existe un router.
+
+</WalkStep>
+
+<WalkStep lines="23-26" title="Guardar es cosa de la app">
+
+Una edición va al servidor y luego `router.invalidate()` vuelve a ejecutar el loader, así que la página recibe un
+`state` actualizado. La prop del módulo documenta exactamente esta promesa: se resuelve cuando `state` ya está
+actualizado.
+
+</WalkStep>
+
+<WalkStep lines="27-28" title="Un slot y una render prop">
+
+`headerAside` es un slot: un nodo que el módulo renderiza donde decide. `renderActions` es una render prop: el módulo la
+llama con el plan tal como se muestra, filtros incluidos. Así aparece el diálogo de exportación dentro de la página del
+planificador sin que ninguno de los dos módulos importe al otro.
+
+</WalkStep>
+
+</Walkthrough>
+
+### La página: un contrato en lugar de imports
+
+El otro lado de la misma frontera. El principio de `PlannerPage.tsx` enumera todo lo que usa la página, y cada una de
+esas líneas está permitida por una regla que verás más abajo.
+
+<Walkthrough>
+
+```tsx file=modules/planner/src/pages/planner/ui/PlannerPage.tsx at=cf289bd lines=1-58
+
+```
+
+<WalkStep lines="1-17" title="Qué puede importar un módulo">
+
+Traducciones, el dominio del plan, el kit de UI y React. Nada de `apps/*`, ningún otro módulo, nada de `@lc/plan-data`,
+nada de `node:*` y nada de TanStack Start. Por eso el módulo puede ejecutarse en un navegador, en una historia de
+Storybook o en un test unitario sin ningún servidor detrás.
+
+</WalkStep>
+
+<WalkStep lines="19-27" title="Capas por dentro">
+
+Feature-Sliced Design en la práctica. La página compone features (una acción del usuario cada una: editar un evento,
+filtrar calendarios, abrir un archivo), widgets (bloques autónomos: la cuadrícula semanal, la agenda) y `shared`. Cada
+uno entra por el `index.ts` de su slice; el segmento `model` de la propia página contiene el tipo de los parámetros de
+búsqueda de la URL.
+
+</WalkStep>
+
+<WalkStep lines="29-35" title="Los datos que debe aportar el host">
+
+`PlannerState` es lo que la app tiene que cargar. `canEdit` ya está aquí, así que un host sin disco escribible puede
+ocultar los controles de edición; el capítulo <ChapterLink id="shipping" /> usa exactamente eso.
+
+</WalkStep>
+
+<WalkStep lines="37-48" title="Las props son la API">
+
+Dos props de datos, dos callbacks con la semántica de su promesa por escrito, un slot y una render prop. Leída en
+conjunto, esta interfaz es el contrato del módulo con cualquier host: otra app podría renderizar el planificador
+pasándole estas seis props.
+
+</WalkStep>
+
+<WalkStep lines="58" title="No entra nada más">
+
+El componente recibe exactamente esas props. Todo lo demás que toca es su propio estado o un import que las reglas
+permiten.
+
+</WalkStep>
+
+</Walkthrough>
+
+El documento de arquitectura del proyecto enuncia la regla que sigue esta página: los módulos "do not know about each
+other, about the router, or about where data comes from. The app passes that in." (no saben nada unos de otros, ni del
+router, ni de dónde vienen los datos; eso lo pasa la app). Lo que se gana es testabilidad. Un módulo es una función de
+sus props, así que una historia o un test lo renderiza con un fixture, y el banco de componentes
+(<ChapterLink id="component-stand" />) hace exactamente eso.
+
+### Los muros
+
+Las convenciones se erosionan con el primer cambio hecho con prisa, así que las fronteras son errores de lint. La regla
+`no-restricted-imports` de Oxlint acepta patrones glob por carpeta. Este es el override para todo lo que hay bajo
+`modules/`, tal como está en el commit fijado:
+
+<Walkthrough>
+
+```json file=.oxlintrc.json lines=172-195
+
+```
+
+<WalkStep lines="172-173" title="Reglas por ruta">
+
+Un override se aplica a los archivos que nombra. El plugin de fronteras de Nx te dejaría escribir las mismas reglas por
+etiqueta de proyecto, pero carga typescript-eslint, que no puede ejecutarse sobre TypeScript 7 (lo dice el commit
+`60fdbe1`), así que las reglas se escriben por carpeta.
+
+</WalkStep>
+
+<WalkStep lines="179-182" title="Solo entradas públicas">
+
+Nada de meterse en el `src` de otro paquete, ni de rutas relativas que suban hasta `apps/`, `modules/` o `packages/`.
+Un paquete se usa a través de su nombre y su `exports`, o no se usa.
+
+</WalkStep>
+
+<WalkStep lines="183-186" title="Los módulos nunca se cruzan">
+
+Todo import de `@lc/*` es un error, salvo los paquetes compartidos listados con `!`: una lista de permitidos escrita
+dentro de un patrón de denegación. Un módulo nuevo queda cubierto sin tocar este archivo.
+
+</WalkStep>
+
+<WalkStep lines="187-190" title="Apto para el navegador y sin transporte">
+
+Nada de almacén de datos, nada de módulos integrados de Node, nada de TanStack Start. El mensaje dice por qué: el
+almacenamiento y las funciones de servidor son de la app, y es ella la que pasa los datos.
+
+</WalkStep>
+
+</Walkthrough>
+
+Oxlint ve los imports entre paquetes, pero no la dirección de los imports dentro de un módulo: que un widget importe una
+feature está bien; que una feature importe un widget, no. Steiger comprueba esas reglas de Feature-Sliced:
+
+```ts file=steiger.config.ts
+
+```
+
+La única regla desactivada es una decisión deliberada que queda registrada en el comentario: los slices que se usan una
+sola vez siguen separados, porque cada módulo está organizado para crecer.
+
+### Pruébalo
+
+Rompe un muro a propósito. En cualquier archivo de `modules/dashboard/src`, añade `import '@lc/planner'` y ejecuta el
+lint: falla con "A module never imports another module or the app" (un módulo nunca importa otro módulo ni la app).
+Luego comprueba las capas de un módulo y mira el grafo del proyecto, donde `@lc/web` depende de los módulos y ningún
+módulo depende de otro.
+
+<Terminal commands={['pnpm run lint', 'pnpm --filter @lc/planner run lint:fsd', 'pnpm exec nx graph']} />
+
+### Compilación ahora, ejecución después
+
+Todo lo anterior funciona sin red entre las partes. Esto es lo que cuesta y lo que ahorra la elección. La comparación
+es general, no específica de este repositorio:
+
+|                               | Compuesto en tiempo de compilación (este capítulo) | Compuesto en tiempo de ejecución (capítulo 23)                 |
+| ----------------------------- | -------------------------------------------------- | -------------------------------------------------------------- |
+| Tipos a través de la frontera | Los comprueba el compilador en cada build          | Un paquete de contrato y una comprobación de versión al cargar |
+| Publicar un cambio            | Recompilar y volver a desplegar la app             | Desplegar el remote; el host lo recoge                         |
+| Dependencias compartidas      | Una sola copia, resuelta por el bundler            | Negociadas en tiempo de ejecución (singletons, versiones)      |
+| Renderizado en servidor       | Funciona sin cambios                               | Requiere configuración extra por remote, o solo cliente        |
+| Nuevos modos de fallo         | Ninguno                                            | El remote está caído, lento, desactualizado o es incompatible  |
+
+Para una persona que publica una app, la columna de la izquierda gana en todas las filas que importan en el día a día.
+La de la derecha compensa cuando distintos equipos son dueños de las partes y las publican, o cuando una parte debe
+actualizarse sin que el host se recompile.
+
+El documento de arquitectura deja esa puerta abierta: la entrada pública de un módulo "is already the federation
+boundary" (ya es la frontera de federación). La guía que estás leyendo es la primera parte del proyecto que se compone
+en tiempo de ejecución. El capítulo <ChapterLink id="module-federation" /> recorre cómo se separa, se carga y se aísla.

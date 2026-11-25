@@ -1,0 +1,225 @@
+### Two kinds of software
+
+"Where do we deploy?" has no single answer here, because the repository builds two different kinds of software:
+
+- **The planner** (`apps/web`) renders pages on the server, answers `/api/*` requests, writes JSON files on every edit
+  and solves an integer program with a WebAssembly build of HiGHS. It needs a process that stays up and a disk it can
+  write.
+- **The guide, its federation remote and the component stand** are files: HTML, CSS, JavaScript, a search index. They
+  need a CDN, CORS on the remote's files and a sane cache policy, and nothing else.
+
+A host that is free and perfect for the second kind can be useless for the first. So the chapter starts from what the
+planner's code asks for, and only then looks at prices.
+
+### Three questions for any host
+
+**Can it run the server render?** TanStack Start builds the server as a Nitro output: `node .output/server/index.mjs`
+starts an HTTP server that renders pages, runs server functions and serves `/api/*`. Anything that runs a Node process,
+or one of Nitro's deployment presets, can serve it. A static host cannot: only a pre-rendered or client-only build fits
+there, which is why this guide is pre-rendered.
+
+**Can it run the API?** The planner's API routes at the pinned commit are calendar feeds (`ics.$calendarId`,
+`ics-zip`), OAuth for calendar sync (`$provider.connect`, `$provider.callback`) and the plan for tools and models
+(`plan`, `plan-guide`, `plan-schema`, `plan-update`). On a VM or a container they are ordinary code in the process. On a
+serverless platform each request may get a fresh, short-lived instance, which is fine for reading and wrong for "write
+this file and read it on the next request".
+
+**Can it keep a file?** That is the question that decides everything, and the answer is in one file.
+
+### What the store asks of a host
+
+Every write in the planner goes through `packages/plan-data/src/store.ts`, by design. Reading it as a deployer, not as
+a developer:
+
+<Walkthrough>
+
+```ts file=packages/plan-data/src/store.ts lines=29-134
+
+```
+
+<WalkStep lines="29-38" title="Where the data lives">
+
+In a checkout the store finds `packages/plan-data/data` by walking up from the working directory. A container has no
+checkout, so `PLAN_DATA_DIR` names the directory instead: mount a volume there, copy `plan.json` in once, and no code
+changes.
+
+</WalkStep>
+
+<WalkStep lines="40-48" title="What it writes">
+
+The plan and its edits, the history of changes, the state of calendar sync, and `local.json`, which holds secrets
+(calendar client secrets, a busy-time feed address). On a server all of them live on the volume. The secrets file must
+never be baked into an image.
+
+</WalkStep>
+
+<WalkStep lines="100-105" title="A fallback built in">
+
+When the plan file is missing, the store serves the plan bundled into the build. A host with no data directory at all
+still shows a plan: the `plan.json` the build was made from.
+
+</WalkStep>
+
+<WalkStep lines="117-123" title="Writes only where it can">
+
+Even serving a calendar feed may write (the version of each event). Here it is guarded: where nothing can be written,
+the feed is served from what is stored.
+
+</WalkStep>
+
+<WalkStep lines="125-134" title="The switch">
+
+`canWrite()` decides whether the planner shows its editing controls. It is false when `PLAN_READONLY=1` or when the
+plan file is not writable. The planner module already takes `canEdit` as a prop (<ChapterLink id="build-time-microfrontends" />),
+so a read-only deployment is a configuration, not a fork.
+
+</WalkStep>
+
+</Walkthrough>
+
+So the planner has two honest deployment modes. A **personal** deployment needs a writable, persistent disk. A
+**public showcase** can run read-only on anything that runs Node, with `PLAN_READONLY=1`. That the read-only mode works
+unchanged on a serverless host is our reading of this code; the project has not tried it.
+
+### The native dependency
+
+HiGHS finds `highs.wasm` next to its own JavaScript file, through `import.meta.url`. A bundler that inlines or moves the
+loader breaks that, and Nitro's file tracer cannot see a file found that way. The config handles both:
+
+<Walkthrough>
+
+```ts file=apps/web/vite.config.ts lines=8-30
+
+```
+
+<WalkStep lines="10-11" title="Keep it a package in the server build">
+
+`ssr.external` tells Vite not to bundle `highs` into the server code: it stays an `import` of a package on disk, where
+its loader can find the `.wasm` beside it.
+
+</WalkStep>
+
+<WalkStep lines="22-23" title="Copy the whole package into the output">
+
+`traceDeps: ['highs*']` makes Nitro copy the package into `.output/server/node_modules`, `.wasm` included. The
+same line also marks `@sentry/*` external, although nothing in the repository imports Sentry at the pinned commit. We
+read it as a leftover; it does no harm.
+
+</WalkStep>
+
+</Walkthrough>
+
+A host that cannot read files from its own deployment bundle (an edge worker with a virtual file system) would need
+HiGHS imported as a WebAssembly module instead: a code change, and one reason the edge is the most expensive option
+below.
+
+### The options, side by side
+
+Prices and limits were read from the providers' own pages on 2026-11-23/24 and will drift. The research document
+(`docs/deployment-research.md`) keeps the sources and marks what could not be verified.
+
+<HostingMatrix />
+
+How to read the planner table:
+
+- **SSR** is "Yes" everywhere it can run at all: server rendering is not the hard part.
+- **API** is "With changes" where functions run but cannot keep state between requests: reads work, writes need another
+  store.
+- **Disk** is the column that decides. Every "No" means `store.ts` becomes an interface with a second, database- or
+  blob-backed implementation, plus a migration.
+
+### The decision
+
+The cheapest host that runs the planner without a code change is **Fly.io**: a 512 MB machine and a 1 GB volume come to
+$3.84 a month, inside the $5 of monthly usage Fly gives an account with a card on file, so effectively $0. **Railway
+Hobby** costs $5 and is the better value when zero configuration matters more than that $5 (it is an official TanStack
+Start hosting partner). A **Hetzner** VM at €5.99 + VAT is the choice for full control and real cron, with the OS,
+TLS, backups and deploys as your job.
+
+The price of a single machine with a single volume is a short gap on every deploy and no failover: a volume belongs to
+one machine. Scaling to two instances would give each its own copy of the plan, which is exactly the bug a file store
+invites.
+
+The planner is **not deployed yet**. This is the recommendation of the research, not a recorded decision of the
+project, and the chapter's decision cards mark it as inferred.
+
+### The static half: GitHub Pages
+
+The guide, the remote and the stand are deployed, from one workflow. GitHub Pages won on cost and friction: no account
+beyond the repository, and it already sends `Access-Control-Allow-Origin: *`, which a host needs to `import()` the
+remote from another origin (checked live with `curl -I`).
+
+<Walkthrough>
+
+```yaml file=.github/workflows/docs.yml at=main
+
+```
+
+<WalkStep lines="5-9" title="When it runs">
+
+Every pull request and every push to `main` or `develop` builds and tests. Only a push to `main` publishes.
+
+</WalkStep>
+
+<WalkStep lines="21-24" title="A site under a sub-path">
+
+A project site lives at `https://<owner>.github.io/<repo>/`, so every absolute link in the static build needs that
+base. It comes from the repository name, not from a hard-coded string.
+
+</WalkStep>
+
+<WalkStep lines="26-29" title="Full history">
+
+The chapters read their code excerpts from git at the commits they cite, so a shallow clone would fail the build.
+
+</WalkStep>
+
+<WalkStep lines="36-48" title="Check before publishing">
+
+The contract and every file, line range and commit the chapters cite are checked; the guide and the remote are built;
+the stand is built and every story a chapter cites is checked to exist; and the remote is loaded in a test host with
+Playwright.
+
+</WalkStep>
+
+<WalkStep lines="55-60" title="One artifact">
+
+Pages serves one site per repository, so the stand is copied under `stand/` next to the guide, with the remote already
+under `remote/v1/`, and the whole folder is uploaded once.
+
+</WalkStep>
+
+<WalkStep lines="62-74" title="Deploy with the least permission">
+
+The deploy job alone gets `pages: write` and `id-token: write` (Pages verifies the workflow's identity with OIDC). The
+build job can only read the repository.
+
+</WalkStep>
+
+</Walkthrough>
+
+### Living with a ten-minute cache
+
+Pages sends `cache-control: max-age=600` on every file and lets nobody change it. For a site that is a nuisance; for a
+federation remote it is a real risk, because a host could combine a stale entry with fresh chunks. The build makes the
+fixed names harmless instead of fighting the header:
+
+- every chunk already has a content hash in its name;
+- the remote entry gets one too (`remoteEntry-[hash].js`), so the manifest always names the entry that matches its
+  chunks;
+- the manifest is the one fixed name a host asks for, and the host requests it with a query that changes on every load.
+
+One window remains: a page opened before a deploy that loads the remote after it may ask for chunks the deploy
+replaced. The planner treats any failure to load as "guide unavailable" and links to the static site instead. If that
+ever matters, Cloudflare's `_headers` file (`no-cache` on the manifest, `immutable` on hashed files) is the clean fix.
+
+<ChapterLink id="module-federation" /> shows the loader that does all of this.
+
+### What would change the decision
+
+- **More than one writer** (a second person, a second device editing at once): files with last-write-wins stop being
+  enough, and a database is the next step, which also opens up the serverless hosts.
+- **Previews per pull request** for the guide: Cloudflare Workers static assets give them for $0, at the cost of an
+  account and a token in CI.
+- **Scheduled work** (periodic calendar sync, purging the trash on a timer): a process that stays up, or a platform
+  cron (Vercel Hobby runs one once a day).

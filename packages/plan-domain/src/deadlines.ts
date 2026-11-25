@@ -1,3 +1,4 @@
+import type { PlanChange } from './changes'
 import { ymd } from './dates'
 import type { Plan, PlanEvent } from './types'
 
@@ -30,4 +31,51 @@ export function nextDeadline(plan: Plan, now: number): { calendar: string; day: 
         (order.get(a.calendar) ?? 0) - (order.get(b.calendar) ?? 0),
     )
   return first ? { calendar: first.calendar, day: first.start.slice(0, 10) } : null
+}
+
+/** The deadline a countdown counts to. `chosen`: the plan names the calendar; `day` is null while it has none. */
+export interface Countdown {
+  calendar: string
+  day: string | null
+  chosen: boolean
+}
+
+/**
+ * The deadline the countdown follows: of the calendar the plan names, even before it has one or after it is over;
+ * the nearest one from today on when the plan names none or its calendar is gone. Null when there is nothing to count to.
+ */
+export function countdown(plan: Plan, now: number): Countdown | null {
+  const named = plan.meta.countdown
+  if (named && plan.calendars.some((c) => c.id === named)) {
+    return { calendar: named, day: deadlineOf(plan, named), chosen: true }
+  }
+  const next = nextDeadline(plan, now)
+  return next && { ...next, chosen: false }
+}
+
+/**
+ * The change that makes `day` (`YYYY-MM-DD`) the calendar's deadline: its milestone is added, moved, or removed to
+ * the trash when `day` is null. null when the deadline stays as it is.
+ */
+export function deadlineChange(plan: Plan, calendar: string, day: string | null): PlanChange | null {
+  const current = deadlineEvent(plan, calendar)
+  if (day === null) return current ? { type: 'event.remove', uid: current.uid } : null
+  const midnight = `${day}T00:00`
+  if (!current) {
+    const name = plan.calendars.find((c) => c.id === calendar)?.name ?? calendar
+    return {
+      type: 'event.add',
+      event: {
+        calendar,
+        title: `Дедлайн: ${name}`,
+        start: midnight,
+        end: midnight,
+        description: '',
+        availability: 'free',
+        kind: 'milestone',
+      },
+    }
+  }
+  if (current.start.slice(0, 10) === day) return null
+  return { type: 'event.patch', uid: current.uid, patch: { start: midnight, end: midnight } }
 }

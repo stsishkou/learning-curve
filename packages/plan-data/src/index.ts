@@ -21,6 +21,7 @@ export { solveLp } from './solver'
 export { listPlanFiles, readPlanVersion, removePlanFile, renamePlanFile, savePlanVersion } from './library'
 export {
   canWrite,
+  planRevision,
   currentHistory,
   feedRevisions,
   readBusyFeed,

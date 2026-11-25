@@ -33,41 +33,42 @@ function write(saved: Saved | null) {
   }
 }
 
+export type Stopwatch = ReturnType<typeof useStopwatch>
+
 /**
  * A stopwatch for one thing at a time, named by `uid`. It keeps the moment it was started, not a count, so it is
- * right after a reload, a sleeping laptop or a tab left in the background. `timed` is the uid it holds time for.
+ * right after a reload, a sleeping laptop or a tab left in the background. `timed` is the uid it holds time for;
+ * the page's clock asks it for the time at a moment with `elapsedAt`.
  */
 export function useStopwatch() {
   const [saved, setSaved] = useState<Saved | null>(null)
-  const [clock, setClock] = useState(0)
+  const [ready, setReady] = useState(false)
   useEffect(() => {
     setSaved(read())
-    setClock(Date.now())
+    setReady(true)
   }, [])
-  const running = saved?.startedAt !== null && saved?.startedAt !== undefined
-  useEffect(() => {
-    if (!running) return undefined
-    const timer = window.setInterval(() => setClock(Date.now()), 1000)
-    return () => window.clearInterval(timer)
-  }, [running])
 
   const keep = (next: Saved | null) => {
     write(next)
     setSaved(next)
-    setClock(Date.now())
   }
-  const elapsed = saved ? saved.banked + (saved.startedAt === null ? 0 : Math.max(0, clock - saved.startedAt)) : 0
+  const elapsedAt = (at: number) =>
+    saved ? saved.banked + (saved.startedAt === null ? 0 : Math.max(0, at - saved.startedAt)) : 0
   return {
+    /** The stored state has been read: until then the stopwatch shows nothing */
+    ready,
     timed: saved?.uid ?? null,
-    elapsed,
-    running,
+    running: saved !== null && saved.startedAt !== null,
+    elapsedAt,
     /** Starts or resumes; time kept for another uid is dropped */
-    start: (uid: string) => keep({ uid, banked: saved?.uid === uid ? elapsed : 0, startedAt: Date.now() }),
+    start: (uid: string) => {
+      const now = Date.now()
+      keep({ uid, banked: saved?.uid === uid ? elapsedAt(now) : 0, startedAt: now })
+    },
     // Counted to this moment, not to the last tick of the display.
-    pause: () =>
-      saved?.startedAt !== null &&
-      saved?.startedAt !== undefined &&
-      keep({ ...saved, banked: saved.banked + Math.max(0, Date.now() - saved.startedAt), startedAt: null }),
+    pause: () => {
+      if (saved && saved.startedAt !== null) keep({ ...saved, banked: elapsedAt(Date.now()), startedAt: null })
+    },
     reset: () => keep(null),
   }
 }

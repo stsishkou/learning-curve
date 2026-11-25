@@ -1,0 +1,29 @@
+import { Meta, Unstyled } from '@storybook/addon-docs/blocks'
+
+import { GuideLink, StoryMap } from './story-map'
+
+<Meta title="Story" />
+
+# The story behind the components
+
+The stand shows what exists. <GuideLink>The guide</GuideLink> tells how it came to be: twenty-four chapters from an empty folder
+to the planner, each with the problem it solved, the options weighed, the decision taken and the files that
+implement it. The two point at each other.
+
+## From a component to its chapters
+
+Open any story and choose the **Story** tab in the panel below it. It shows the slice of the code the component
+belongs to (`planner/widgets/week-grid`, for instance), its file in the repository, and the chapters that built
+it with their commits. A component's **Docs** page lists the same chapters under its path.
+
+The slice is read from the story file's path, `modules/<module>/src/<layer>/<slice>/`, or the UI kit; the
+chapters come from the catalogue in `@lc/docs-contract`, the package the guide and its hosts share.
+
+## From a chapter to its components
+
+Every chapter, part by part, with the stories that show what it built. A chapter of the guide embeds the same
+stories, so a reader can try a component where the text explains it.
+
+<Unstyled>
+  <StoryMap />
+</Unstyled>

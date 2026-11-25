@@ -1,0 +1,47 @@
+{
+  "name": "@lc/docs-harness",
+  "private": true,
+  "description": "A minimal host that mimics the planner (React 19.3, the UI kit's tokens and shortcuts, runtime-only federation) to prove the docs remote end to end",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 4320",
+    "build": "vite build",
+    "preview": "vite preview --port 4320",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@lc/docs-contract": "workspace:*",
+    "@lc/docs-host": "workspace:*",
+    "@lc/ui": "workspace:*",
+    "@module-federation/runtime": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "tailwindcss": "catalog:",
+    "vite": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:docs"
+    ],
+    "targets": {
+      "test": {
+        "dependsOn": [
+          "@lc/docs:build",
+          "build"
+        ],
+        "cache": false
+      }
+    }
+  }
+}

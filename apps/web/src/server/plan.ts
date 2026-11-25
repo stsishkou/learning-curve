@@ -1,6 +1,7 @@
 import {
   canWrite,
   currentHistory,
+  planRevision,
   readEdits,
   readPlan,
   saveChanges,
@@ -16,6 +17,7 @@ import {
   parseChange,
   trashOf,
   travel,
+  trimHistory,
   type HistoryView,
   type Plan,
   type PlanTrash,
@@ -57,6 +59,9 @@ const mustWrite = () => {
 
 export const getPlanState = createServerFn({ method: 'GET' }).handler((): PlanState => state(readPlan()))
 
+/** Moves whenever the plan on disk changes, whoever changed it; null on a read-only host. */
+export const getPlanRevision = createServerFn({ method: 'GET' }).handler(() => planRevision())
+
 /** Applies one change to data/edits.json, regenerates data/plan.json and adds the change to the history. */
 export const savePlanChange = createServerFn({ method: 'POST' })
   .validator(parseChange)
@@ -89,3 +94,10 @@ export const travelPlanHistory = createServerFn({ method: 'POST' })
     writeHistory(history)
     return pushed(written.plan)
   })
+
+/** Keeps the ends of the history, the first change and the current one; the plan itself stays as it is. */
+export const trimPlanHistory = createServerFn({ method: 'POST' }).handler((): PlanState => {
+  mustWrite()
+  writeHistory(trimHistory(currentHistory()))
+  return state(readPlan())
+})

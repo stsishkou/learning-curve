@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@import '@lc/ui/theme.css';
+@import './content.css';
+
+/* Workspace packages are linked through node_modules, which Tailwind does not scan on its own. */
+@source '../../../../packages/ui/src';
+
+@layer base {
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+}

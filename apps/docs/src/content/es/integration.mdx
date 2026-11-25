@@ -1,0 +1,195 @@
+# Guía de integración
+
+Cómo mostrar esta guía dentro de una app de React, como lo hace el planificador: un botón que abre en un panel lateral
+los capítulos sobre la pantalla actual, en el idioma y el tema de la app, cargados desde dondequiera que esté
+desplegada la guía. Cada fragmento de abajo es código real de los dos hosts de este repositorio: el planificador
+(`apps/web`) y el harness de pruebas (`apps/docs-harness`).
+
+## Qué obtienes y qué le cuesta al host
+
+- **Nada antes del primer clic.** El runtime de federación, el manifiesto y el código de la guía se cargan la primera
+  vez que se abre el panel. El primer bundle del host no crece.
+- **Un solo React.** La guía usa el React del host; no descarga uno propio.
+- **Sin fugas.** El panel vive en un shadow root bajo un único elemento `<lc-docs>`: el CSS del host no entra, el CSS
+  de la guía no sale, las teclas que escribes en la guía no disparan los atajos del host y sus enlaces nunca cambian la
+  URL del host. `destroy()` lo quita todo.
+- **El host decide** el idioma, el tema y en qué pantalla está la persona. La guía le informa mediante eventos
+  tipados.
+- **Una alternativa.** Si la guía no se puede cargar, el host enlaza a la misma página del sitio estático.
+
+Requisitos: React dentro de `^19.3.0`, y una forma de darle al navegador una URL en tiempo de ejecución.
+
+## 1. Añade los dos paquetes
+
+`@lc/docs-contract` contiene los tipos y helpers que ambos lados acuerdan; `@lc/docs-host` contiene el hook de React
+que carga el remote. En este repositorio son paquetes del workspace:
+
+```json file=apps/web/package.json at=main lines=18-19
+
+```
+
+No están publicados en ningún registry. Por ahora, un host fuera de este repositorio tendría que copiarlos a su propio
+código (vendoring).
+
+## 2. Haz que la dirección sea un ajuste de tiempo de ejecución
+
+La dirección de la guía no debe quedar incrustada en la build del host; si no, cada vez que la guía se desplegara en
+otro sitio habría que recompilar el host. El planificador la lee en el servidor, en cada petición:
+
+```ts file=apps/web/src/server/docs.ts at=main
+
+```
+
+| Variable          | Significado                                                                                                    | Si no está definida                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `DOCS_REMOTE_URL` | El `mf-manifest.json` del remote, p. ej. `https://<owner>.github.io/learning-curve/remote/v1/mf-manifest.json` | Desarrollo: el servidor estático local en el puerto 4310. Producción: no hay botón de la guía.      |
+| `DOCS_SITE_URL`   | El sitio estático, para el enlace de respaldo y «abrir en una pestaña nueva»                                   | Dos niveles por encima del manifiesto, que es donde está el sitio cuando ambos se despliegan juntos |
+
+El harness hace lo mismo con parámetros de query (`?remote=`, `?site=`, `?timeout=`), así que una misma build suya
+puede apuntar a cualquier despliegue.
+
+## 3. Renderiza un botón
+
+`useDocsHost` devuelve un estado, el motivo del último fallo y `open` / `close`. Este es el botón del planificador:
+
+<Walkthrough>
+
+```tsx file=apps/web/src/shell/DocsButton.tsx at=main
+
+```
+
+<WalkStep lines="9-15" title="Asocia pantallas a features">
+
+Un id de feature nombra una parte del código (`planner/pages/timeline`). El catálogo de la guía sabe qué capítulos
+construyeron cada una, así que abrir en una feature muestra «capítulos sobre esta pantalla».
+
+</WalkStep>
+
+<WalkStep lines="28-31" title="La pantalla y el idioma actuales">
+
+La ruta decide la feature. Se pasa el idioma del host si la guía lo tiene, y ruso en caso contrario.
+
+</WalkStep>
+
+<WalkStep lines="33-36" title="El hook">
+
+`theme: 'inherit'` hace que el panel siga el esquema de color y los tokens de diseño del host. El contexto puede cambiar
+en cualquier momento; el hook pasa los cambios al panel abierto.
+
+</WalkStep>
+
+<WalkStep lines="39-51" title="La alternativa">
+
+Si la carga falló, el botón se convierte en un enlace al mismo destino en el sitio estático, construido con
+`docsPageUrl`, y sigue siéndolo hasta que se recarga la página.
+
+</WalkStep>
+
+<WalkStep lines="52-61" title="Abrir al hacer clic">
+
+`open` lo carga todo en el primer uso. `aria-busy` indica a las tecnologías de asistencia que el botón está trabajando
+mientras carga.
+
+</WalkStep>
+
+</Walkthrough>
+
+## 4. El contexto
+
+| Campo       | Tipo                                 | Qué hace                                                                                                                                   |
+| ----------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `locale`    | `'ru' \| 'en' \| 'es'`               | El idioma del panel. Al cambiarlo, el panel abierto pasa a la misma página en el nuevo idioma.                                             |
+| `theme`     | `'inherit' \| 'light' \| 'dark'`     | `inherit` sigue el `color-scheme` y las propiedades personalizadas de CSS del host; `light` y `dark` lo fijan.                             |
+| `tokens`    | `Partial<Record<DocsToken, string>>` | Valores CSS opcionales para `bg`, `surface`, `surface-2`, `ink`, `muted`, `line`, `focus`, para un host cuyos tokens tienen otros nombres. |
+| `featureId` | `FeatureId`                          | El slice que está en pantalla. La página de inicio del panel lista los capítulos que lo construyeron.                                      |
+| `siteUrl`   | `string`                             | El sitio estático, para «abrir en una pestaña nueva» y la alternativa de error dentro del panel.                                           |
+
+Un destino para `open` es `{ chapterId }` para un capítulo o `{ topicId }` para los capítulos sobre una feature. Los ids
+están tipados por el contrato, así que una errata no compila.
+
+## 5. Eventos
+
+Seis eventos, cada uno con un payload tipado. El harness los escribe todos en un log:
+
+```tsx file=apps/docs-harness/src/App.tsx at=main lines=45-62
+
+```
+
+| Evento                  | Payload                        | Cuándo                                                                     |
+| ----------------------- | ------------------------------ | -------------------------------------------------------------------------- |
+| `docs:ready`            | `{ version }`                  | Se creó el panel; la versión del contrato que implementa el remote         |
+| `docs:open`             | un destino                     | El host abrió el panel                                                     |
+| `docs:navigate`         | un destino                     | La persona pasó a otra página dentro del panel                             |
+| `docs:close`            | `{ reason: 'user' \| 'host' }` | El panel se cerró: `Escape` o el botón de cerrar, o el `close()` del host  |
+| `docs:language-changed` | `{ locale }`                   | El host cambió `locale`                                                    |
+| `docs:error`            | `{ feature, message }`         | Una página de la guía no se pudo renderizar; el panel muestra un reintento |
+
+Los handlers se leen cuando se dispara un evento, así que pasar un objeto nuevo en cada render no es problema.
+
+## 6. Versiones
+
+El contrato sigue semver, y su changelog está en `packages/docs-contract/CHANGELOG.md`.
+
+- Las versiones **menores y de parche** de la guía las recoge cada host en su siguiente carga. No hay nada que hacer.
+- Una versión **mayor** se despliega en una carpeta nueva (`remote/v2/`) junto a la antigua. Un host sigue cargando
+  `v1` hasta que se actualiza: sube la versión del paquete de contrato, corrige lo que señale el compilador y apunta
+  `DOCS_REMOTE_URL` a `v2`.
+
+El hook rechaza un remote de otra versión mayor antes de ejecutar nada de su código, e informa del motivo en `failure`:
+
+| `failure`     | Significado                                                | Qué comprobar                                                                                                           |
+| ------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `timeout`     | Sin respuesta en `timeoutMs` (8 s por defecto)             | Que el hosting de la guía esté en marcha; la red                                                                        |
+| `unavailable` | El manifiesto, la entrada o un chunk no se pudieron cargar | La URL; CORS en el hosting de la guía; un despliegue que reemplazó archivos mientras la página estaba abierta (recarga) |
+| `shape`       | El módulo no exportó `createDocsHost`                      | La URL apunta a otro remote                                                                                             |
+| `version`     | El remote implementa otra versión mayor                    | Apunta el host al `remote/vN/` correspondiente, o actualiza el host                                                     |
+
+El hook descarta una carga fallida, así que llamar de nuevo a `open` lo vuelve a intentar. El harness mantiene su botón
+para eso; el planificador, en cambio, cambia al enlace.
+
+## 7. Despliega la guía
+
+La guía son archivos estáticos: el sitio en la raíz, el remote en `remote/v1/` y el banco de componentes en `stand/`.
+Cualquier hosting estático sirve si:
+
+- envía `Access-Control-Allow-Origin` para los archivos del remote (el host los importa desde otro origen);
+- no guarda `mf-manifest.json` en caché mucho tiempo, o deja que el host se salte la caché. El hook añade una query
+  cambiante a la URL del manifiesto. Todos los demás archivos llevan un hash de contenido en el nombre y pueden quedarse
+  en caché para siempre.
+
+El repositorio despliega en GitHub Pages, que envía `Access-Control-Allow-Origin: *` y `max-age=600` en cada archivo.
+La build lee dos variables:
+
+| Variable      | Para qué se usa                                                       | Ejemplo                     |
+| ------------- | --------------------------------------------------------------------- | --------------------------- |
+| `DOCS_BASE`   | La ruta bajo la que se sirve el sitio                                 | `/learning-curve/`          |
+| `DOCS_ORIGIN` | URL absolutas en `hreflang`, en los enlaces canónicos y en el sitemap | `https://<owner>.github.io` |
+
+El remote en sí no necesita ninguna: las URL de sus chunks se resuelven a partir de dondequiera que se cargara su
+manifiesto.
+
+Si el host envía una Content-Security-Policy, debe permitir el origen de la guía en `script-src` (la entrada y los
+chunks son scripts) y en `connect-src` (el manifiesto se descarga con fetch), además de Google Fonts
+(`style-src https://fonts.googleapis.com`, `font-src https://fonts.gstatic.com`) salvo que el host ya cargue las
+fuentes de la guía. Ninguno de los dos hosts de este repositorio envía una política: la lista se deduce de lo que carga
+el panel y no se ha probado.
+
+## 8. Pruébalo
+
+`apps/docs-harness` es un host mínimo con CSS global hostil, atajos registrados en la ventana y un selector de idioma y
+de tema. Sus pruebas de Playwright cargan la build de producción de la guía y comprueban lo que le importa a un host:
+no se carga nada antes del clic, React no se descarga dos veces, el idioma y el tema siguen al host, los enlaces solo
+mueven el panel, los estilos y las teclas se quedan en su lado, y la alternativa aparece cuando no se puede acceder al
+remote.
+
+<Terminal commands={['pnpm docs:test', 'DOCS_BASE=/learning-curve/ pnpm docs:test']} />
+
+## Resolución de problemas
+
+| Síntoma                                                   | Causa probable                                                                                                                                                        |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| El botón se convierte en un enlace enseguida              | La carga falló: lee `failure` en el hook y luego el panel de red del navegador                                                                                        |
+| Un error de CORS en `mf-manifest.json`                    | El hosting de la guía no envía `Access-Control-Allow-Origin`                                                                                                          |
+| Una advertencia de React sobre la versión compartida      | El React del host está fuera de `^19.3.0`; el remote sigue usando la copia del host                                                                                   |
+| Un atajo del host se dispara mientras escribes en la guía | El host escucha en la fase de captura (`addEventListener(…, true)`), que se ejecuta antes de que el evento llegue al shadow root de la guía y no se puede detener ahí |
+| Capítulos antiguos justo después de un despliegue         | La caché del hosting estático (diez minutos en GitHub Pages); al recargar pasado ese tiempo se ve la versión nueva                                                    |

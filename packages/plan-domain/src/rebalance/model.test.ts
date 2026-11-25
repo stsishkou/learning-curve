@@ -121,10 +121,12 @@ describe('targetDays', () => {
     expect(targetDays(due, hours(4), request())).toEqual([1, 3, 5, 7])
   })
 
-  test('towards a deadline the rhythm starts at the first day when that lets it run slower', () => {
-    // From the course's own start on day 5, four sessions would need two a day; from day 1, one every other day fits.
+  test('towards a deadline the rhythm starts at the first session of the course too, even when tighter', () => {
+    // From the course's own start on day 5, four sessions need two on one day; from day 1 they would not.
     const due: Room = { ...plainRoom(10), deadline: '2027-01-11' }
-    expect(targetDays(due, hours(4, '2027-01-08'), request())).toEqual([1, 3, 5, 7])
+    const days = targetDays(due, hours(4, '2027-01-08'), request())
+    expect(days[0]).toBe(5)
+    expect(days.every((d) => d !== null && d >= 5 && d < 8)).toBe(true)
   })
 
   test('towards a deadline the budget holds whenever that still ends in time, even where going over is allowed', () => {

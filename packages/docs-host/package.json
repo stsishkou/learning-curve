@@ -1,0 +1,33 @@
+{
+  "name": "@lc/docs-host",
+  "private": true,
+  "description": "What a React host needs to show the docs remote: a hook that loads lc_docs/help with the federation runtime on first use, shares the host's React, checks the contract version and reports failure for a fallback",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json"
+  },
+  "dependencies": {
+    "@lc/docs-contract": "workspace:*",
+    "@module-federation/runtime": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:shared",
+      "scope:docs"
+    ]
+  }
+}

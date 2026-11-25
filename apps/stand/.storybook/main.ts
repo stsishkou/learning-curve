@@ -13,6 +13,13 @@ const config: StorybookConfig = {
     disableTelemetry: true,
     disableWhatsNewNotifications: true,
   },
+  // Where the "Story" panel links: the guide's dev server while developing; next to the stand when both are
+  // published, unless STORYBOOK_DOCS_URL says otherwise.
+  env: (variables, { configType }) => ({
+    ...variables,
+    STORYBOOK_DOCS_URL:
+      process.env.STORYBOOK_DOCS_URL ?? (configType === 'DEVELOPMENT' ? 'http://localhost:3100/' : '../'),
+  }),
   // The page background comes from the theme tokens, switched in the toolbar.
   features: { backgrounds: false },
   typescript: {

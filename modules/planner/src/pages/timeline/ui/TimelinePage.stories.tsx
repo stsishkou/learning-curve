@@ -5,6 +5,7 @@ import {
   applyEdits,
   calendarLanes,
   DAY,
+  deadlineChange,
   deadlineOf,
   emptyHistory,
   historyEdits,
@@ -31,7 +32,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
 
-import { deadlineChange } from '../../../features/reschedule'
 import { TimelinePage } from './TimelinePage'
 
 // The page follows the real clock: the fixture is moved by whole weeks to the week the stand is opened in.
@@ -232,7 +232,7 @@ export const ApplyStoresTheDraft: Story = {
     await userEvent.click(apply)
     await waitFor(() => expect(args.onChangeAll).toHaveBeenCalledTimes(1))
     await expect(args.onChangeAll).toHaveBeenCalledWith([
-      { type: 'events.shift', calendar: 'hfllm', from: today, days: 7 },
+      { type: 'events.shift', calendars: ['hfllm'], from: today, days: 7 },
     ])
     await expect(await within(canvasElement).findByText(m.timeline_applied({ count: 1 }))).toBeVisible()
     await expect(draftBar(canvasElement)).toBeNull()
@@ -338,7 +338,7 @@ export const TwoCoursesInOrder: Story = {
     const moved = deadlineChange(plan, 'certs', deadline)
     const expected: PlanChange[] = [
       ...(moved ? [moved] : []),
-      { type: 'events.shift', calendar: 'hfllm', from: today, days: 7 },
+      { type: 'events.shift', calendars: ['hfllm'], from: today, days: 7 },
     ]
     const bar = await findDraftBar(canvasElement)
     await waitFor(() =>

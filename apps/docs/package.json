@@ -1,0 +1,60 @@
+{
+  "name": "@lc/docs",
+  "private": true,
+  "description": "The story of how learning-curve was built: a pre-rendered static site, and the same chapters as a Module Federation remote the planner loads at runtime",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 3100",
+    "dev:remote": "vite build -c vite.remote.config.ts --watch",
+    "build": "vite build && vite build -c vite.remote.config.ts && pagefind --site dist/client --output-subdir pagefind",
+    "preview": "node scripts/serve.ts 4310",
+    "test": "tsx scripts/check-syllabus.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
+    "check:i18n": "inlang check --project ./project.inlang --source $(find src -type f \\( -name '*.tsx' -o -name '*.ts' \\) ! -path '*/paraglide/*' ! -name '*.gen.ts')",
+    "coverage": "tsx scripts/coverage.ts"
+  },
+  "dependencies": {
+    "@inlang/paraglide-js": "catalog:",
+    "@lc/docs-contract": "workspace:*",
+    "@lc/ui": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-start": "1.169.7",
+    "motion": "14.14.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "devDependencies": {
+    "@inlang/cli": "3.6.0",
+    "@mdx-js/rollup": "3.1.1",
+    "@module-federation/vite": "1.24.1",
+    "@shikijs/rehype": "4.6.0",
+    "@shikijs/transformers": "4.6.0",
+    "@types/hast": "3.0.5",
+    "@types/mdast": "4.0.4",
+    "@types/mdx": "2.0.14",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "pagefind": "1.6.0",
+    "shiki": "4.6.0",
+    "tsx": "catalog:",
+    "unist-util-visit": "5.2.0",
+    "vite": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:docs"
+    ],
+    "targets": {
+      "build": {
+        "cache": false
+      }
+    }
+  }
+}

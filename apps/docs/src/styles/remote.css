@@ -1,0 +1,17 @@
+/* The remote's stylesheet, adopted by its shadow root. Nothing here reaches the host page, and nothing of the host's
+   reaches in except inherited custom properties (the theme) and what the shadow root lets inherit. */
+@import 'tailwindcss';
+@import '@lc/ui/theme.css';
+@import './content.css';
+
+@source '../../../../packages/ui/src';
+
+:host {
+  /* Every property starts over, the inherited ones (font, colour, line height…) included: a host's body styles stay
+     outside. `all` leaves custom properties alone, so the host's tokens still come through, and `direction`, which
+     keeps following the host page. */
+  all: initial;
+  color-scheme: inherit;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+}

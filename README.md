@@ -77,10 +77,13 @@ a Husky `commit-msg` hook checks them with commitlint.
 - **Reminders**: `⋮` → `Reminders` shows a system notification ten minutes before each start, while the planner
   is open in a tab.
 - **Focus**: `/focus` (the `Focus` tab) is one session and a stopwatch. `Finish` marks the session done and logs
-  the time it really took, in quarter-hour steps; the stopwatch survives a reload. Breaks of 25 + 5 or
-  50 + 10 minutes are optional: a chime says one is due, and taking it pauses the stopwatch and counts the rest down.
-  `Expand` (`E`) gives the stopwatch the whole window and `Full screen` (`Shift F`) the whole screen, with the
-  queue still beside it.
+  the time it really took, in quarter-hour steps; the stopwatch survives a reload. A pixel hourglass beside the
+  digits counts down the planned session, or work blocks of 25 + 5, 50 + 10 or your own minutes, in the course's
+  colour. When the sand runs out it chimes once; taking the break pauses the stopwatch and pours the rest through
+  the glass, `Later` turns it for another block, and both survive a reload. The tab title shows the minutes left.
+  The glass can be hidden or kept still (it also keeps still when the system asks for reduced motion). `Expand`
+  (`E`) and `Full screen` (`Shift F`) make the glass and the digits the centre of the screen, as large as it allows,
+  with the queue still beside them. How the glass was chosen: `docs/focus-hourglass-research.md`.
 - **The plan's name**: click the title to rename the plan (Enter saves, Escape cancels). It is one history step,
   and the plan's own download (`<Title>.json`) and the combined `.ics` are named after it.
 - **Your own calendars and events**: `＋ Calendars` renames and recolors any calendar and adds new ones;
@@ -155,18 +158,25 @@ a Husky `commit-msg` hook checks them with commitlint.
   that time (its length stays), or click it to pick a time in its dialog. An event can be duplicated to the next
   day from its dialog.
 - **Reschedule**: `⋮` → `Reschedule` has two modes.
-  - `Move` shifts every session that is not done, from a chosen day, in every calendar or in one. It shifts by
-    days and by hours; `+1 h`, `−1 h`, `+1 day`, `+1 week` and `−1 week` fill both in.
-  - `Re-balance` spreads one calendar's open sessions over the study days ahead instead. It keeps a pace, from one
-    session every three study days to three a day, or finishes by a chosen day as evenly as it can: `Finish by`
-    starts at the day before the calendar's deadline, and another day there leaves the deadline as it is.
+  - `Move` shifts every session that is not done, from a chosen day, in every calendar or in the ones picked. It
+    shifts by days and by hours; `+1 h`, `−1 h`, `+1 day`, `+1 week` and `−1 week` fill both in.
+  - `Re-balance` spreads one calendar's open sessions over the study days ahead instead, from the course's first
+    open session: it changes the rhythm and the end, never the start. It aims at one of two things. `Pace` keeps
+    a pace, from one session every three study days to three a day; it starts at the course's own pace, which the
+    dialog names. `Finish by` spreads the sessions evenly up to a day, which starts at the day before the
+    calendar's deadline, or at the course's last session; another day there leaves the deadline as it is.
     The study hours, and whether a week may go over the budget, are part of the request.
 
   While the inputs change, the dialog shows when the course ends, its heaviest week and how many sessions move.
   When it cannot do better, it says why ("the weeks of 11 Jan – 7 Feb are full"). Apply stores the result as one
   history step. Each calendar can have its own deadline, set, moved or cleared in the same dialog and kept as the
-  calendar's milestone. The runway, the goals, the forecast and Catch up use the nearest one. How the re-balance
-  chooses, with a worked example: [docs/rebalancing.md](docs/rebalancing.md).
+  calendar's milestone. Catch up uses the nearest one. How the re-balance chooses, with a worked example:
+  [docs/rebalancing.md](docs/rebalancing.md).
+- **Countdown**: the bar above the calendar counts the days to one course's deadline and names the course and the
+  day under the number. `Set up` on it chooses what to count to: the nearest deadline of any course, or a course of
+  your choice, and sets, moves or clears that course's deadline day. The choice is kept in the plan (an undoable
+  step of the history), so the goals, the days-left tile and the forecast on Progress count to the same deadline.
+  With nothing to count to, the bar offers to set a deadline instead of disappearing.
 - **Timeline**: `/timeline` (the `Timeline` tab) is a lane per course, in its colour: its sessions from the first
   to the last (done, open, missed), the spare days before its deadline (◆) or the late ones after it, and today.
   The whole plan fits the width; `Month` and `Week` zoom in and scroll (the mouse wheel, Shift + wheel or a swipe,
@@ -376,6 +386,10 @@ an update to pass to `preview_update` and `apply_update`, with the same report t
 `.mcp.json` registers the MCP server for Claude Code in this repository. For another client, run
 `pnpm --silent run mcp` from the repository root (`--silent` keeps stdout for the protocol). `pnpm run test`
 checks that the schemas, the examples of the guide and the parser agree.
+
+Every open page follows the plan on disk: a change made in another tab or window, the AI chat, the MCP server, a
+calendar sync or `pnpm run plan` shows on the planner, the timeline, Focus and Progress within two seconds, without
+a reload. A page out of sight checks again when it comes back.
 
 ## Structure
 

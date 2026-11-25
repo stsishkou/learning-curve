@@ -240,6 +240,86 @@
           }
         ]
       }
+    },
+    {
+      "files": ["packages/docs-contract/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "react-dom/**", "node:*"],
+                "message": "The docs contract is types and pure helpers: importing it puts no code of the guide in a host."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/docs-host/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": ["@lc/*", "!@lc/docs-contract", "node:*"],
+                "message": "The docs host depends on the contract only, so any React host can use it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["apps/docs/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": ["@lc/*", "!@lc/docs-contract", "!@lc/ui", "!@lc/ui/*"],
+                "message": "The guide reads the planner from git and never imports it: it depends on the contract and the UI kit only."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["apps/docs-harness/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": ["@lc/*", "!@lc/docs-contract", "!@lc/docs-host", "!@lc/ui", "!@lc/ui/*"],
+                "message": "The harness loads the guide through federation, as a host does: it never imports @lc/docs."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

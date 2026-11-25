@@ -1,0 +1,74 @@
+name: Docs
+
+# Builds the guide (pre-rendered pages, search index and the federation remote under remote/v1/) and the component
+# stand, tests the remote in the harness, and publishes both as one GitHub Pages site from main.
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # A project site lives at https://<owner>.github.io/<repo>/
+      DOCS_BASE: /${{ github.event.repository.name }}/
+      DOCS_ORIGIN: https://${{ github.repository_owner }}.github.io
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # chapters read their code excerpts from git at the commits they cite
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the contract and every reference in the chapters
+        run: pnpm exec nx run-many -t test -p @lc/docs-contract @lc/docs --output-style=stream
+      - name: Build the guide and its remote
+        run: pnpm --filter @lc/docs run build
+      - name: Build the component stand and check the stories the chapters cite
+        run: |
+          pnpm --filter @lc/stand run build
+          pnpm --filter @lc/docs exec tsx scripts/check-stories.ts
+      - name: Test the remote in a host
+        run: |
+          pnpm --filter @lc/docs-harness exec playwright install --with-deps chromium
+          pnpm --filter @lc/docs-harness run build
+          pnpm --filter @lc/docs-harness run test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: harness-traces
+          path: apps/docs-harness/test-results
+          retention-days: 7
+      - name: Put the stand next to the guide
+        run: cp -r apps/stand/dist apps/docs/dist/client/stand
+      - uses: actions/upload-pages-artifact@v5
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          path: apps/docs/dist/client
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

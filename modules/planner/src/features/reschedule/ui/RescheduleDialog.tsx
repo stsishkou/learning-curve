@@ -2,8 +2,12 @@ import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   addDays,
+  currentPace,
+  deadlineChange,
   deadlineOf,
   defaultStudyHours,
+  movingSessions,
+  nearestPace,
   parseLocal,
   previewUpdate,
   rebalanceChange,
@@ -18,9 +22,9 @@ import { Button, FIELD, FOOT, INPUT, META, Modal, Segmented, TITLE } from '@lc/u
 import { useId, useMemo, useState, type SubmitEvent } from 'react'
 
 import { RuleWarningList } from '../../../shared/ui'
-import { deadlineChange } from '../model/deadline-change'
 import { finishByRequest } from '../model/finish-by-request'
 import { useRebalance, type Rebalance } from '../model/use-rebalance'
+import { CalendarPicker } from './CalendarPicker'
 
 interface Props {
   plan: Plan
@@ -41,6 +45,8 @@ export type ReschedulePreset =
   | { calendar: string; mode: 'rebalance'; finishBy?: string | undefined }
 
 type Mode = 'move' | 'rebalance'
+/** What a re-balance follows: a pace, or a day to finish by */
+type Aim = 'pace' | 'finish'
 
 const PACE_OPTIONS = [
   { key: '1/3', perDay: 1 / 3, label: () => m.reschedule_pace_1_3() },
@@ -53,11 +59,20 @@ const PACE_OPTIONS = [
 type Pace = (typeof PACE_OPTIONS)[number]['key']
 
 const dayOf = (ymd: string) => parseLocal(`${ymd}T00:00`)
+
+/** The offered pace nearest to how fast the course goes now, `1` when that is not known */
+function paceNow(plan: Plan, calendar: string | undefined, from: string): Pace {
+  const now = calendar ? currentPace(plan, calendar, from) : null
+  const nearest = now === null ? 1 : nearestPace(now)
+  return PACE_OPTIONS.find((p) => p.perDay === nearest)?.key ?? '1'
+}
 const CHECK = 'flex items-center gap-2 text-[13.5px] text-ink'
+const HINT = 'text-[12.5px] text-muted'
 
 /**
- * Reschedules the open sessions from a day on: moves them by days and hours, or re-balances one calendar at a pace or
- * towards its deadline, with the result worked out on the host and shown before anything is stored.
+ * Reschedules the open sessions from a day on: moves them by days and hours, in every calendar or in those picked, or
+ * re-balances one calendar at a pace or towards its deadline, with the result worked out on the host and shown
+ * before anything is stored.
  */
 export function RescheduleDialog({ plan, from, onApply, rebalance, preset, onClose }: Props) {
   return (
@@ -79,37 +94,40 @@ export function RescheduleDialog({ plan, from, onApply, rebalance, preset, onClo
 
 function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClose }: Props & { from: string }) {
   const ids = useId()
-  const [calendar, setCalendar] = useState(preset?.calendar ?? '')
+  const [calendars, setCalendars] = useState<string[]>(preset ? [preset.calendar] : [])
   const [from, setFrom] = useState(initial)
   const [deadline, setDeadline] = useState(() => (preset ? (deadlineOf(plan, preset.calendar) ?? '') : ''))
   const [mode, setMode] = useState<Mode>(preset?.mode === 'rebalance' && rebalance ? 'rebalance' : 'move')
   const [days, setDays] = useState(preset?.mode === 'move' ? (preset.days ?? 7) : 7)
   const [hours, setHours] = useState(0)
-  const [pace, setPace] = useState<Pace>('1')
-  // null follows the Deadline field: the day before it.
+  // From the course's own pace, so that each other choice reads as faster or slower than now.
+  const [pace, setPace] = useState<Pace>(() => paceNow(plan, preset?.calendar, initial))
+  // null follows the Deadline field, the day before it, or else the course's last session.
   const [finishBy, setFinishBy] = useState(preset?.mode === 'rebalance' ? (preset.finishBy ?? null) : null)
-  const [fit, setFit] = useState(preset?.mode === 'rebalance' && preset.finishBy !== undefined)
+  const [aim, setAim] = useState<Aim>(preset?.mode === 'rebalance' && preset.finishBy !== undefined ? 'finish' : 'pace')
   const [study, setStudy] = useState(() => defaultStudyHours(plan))
   const [overBudget, setOverBudget] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   const rebalancing = mode === 'rebalance' && rebalance !== undefined
+  // A deadline and a re-balance belong to one course.
+  const [calendar = ''] = calendars.length === 1 ? calendars : []
   // A deadline on or before the first day cannot be aimed at: it is kept, but not sent.
-  const aim = deadline > from ? deadline : ''
-  const finish = finishBy ?? (deadline ? addDays(deadline, -1) : '')
+  const due = deadline > from ? deadline : ''
+  const lastDay = calendar ? (movingSessions(plan, { calendar, from }).at(-1)?.start.slice(0, 10) ?? '') : ''
+  const finish = finishBy ?? (deadline ? addDays(deadline, -1) : lastDay)
   const finishable = finish !== '' && finish >= from
-  const fitting = fit && finishable
   const perDay = PACE_OPTIONS.find((p) => p.key === pace)?.perDay ?? 1
-  const request = useMemo<RebalanceRequest | null>(
-    () =>
-      rebalancing && calendar && from && study.from < study.to
-        ? fitting
-          ? finishByRequest(plan, { calendar, from, finishBy: finish, overBudget, hours: study })
-          : { calendar, from, deadline: aim || undefined, target: { mode: 'pace', perDay }, overBudget, hours: study }
-        : null,
-    [plan, rebalancing, calendar, from, aim, finish, fitting, perDay, overBudget, study],
-  )
+  const known = calendar !== '' && currentPace(plan, calendar, from) !== null
+  const nowLabel = known ? (PACE_OPTIONS.find((p) => p.key === paceNow(plan, calendar, from))?.label() ?? null) : null
+  const request = useMemo<RebalanceRequest | null>(() => {
+    if (!rebalancing || !calendar || !from || study.from >= study.to) return null
+    if (aim === 'pace') {
+      return { calendar, from, deadline: due || undefined, target: { mode: 'pace', perDay }, overBudget, hours: study }
+    }
+    return finishable ? finishByRequest(plan, { calendar, from, finishBy: finish, overBudget, hours: study }) : null
+  }, [plan, rebalancing, calendar, from, due, aim, finish, finishable, perDay, overBudget, study])
   const outcome = useRebalance(rebalance, plan, request)
   const { result } = outcome
   const moves = useMemo<PlanChange | null>(
@@ -117,17 +135,17 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
     [result, calendar],
   )
 
-  const count = shiftTargets(plan, { calendar: calendar || undefined, from }).length
+  const count = shiftTargets(plan, { calendars: calendars.length ? calendars : undefined, from }).length
   const deadlineStep = calendar ? deadlineChange(plan, calendar, deadline || null) : null
   const shift = useMemo<PlanChange>(
     () => ({
       type: 'events.shift',
-      calendar: calendar || undefined,
+      ...(calendars.length ? { calendars } : {}),
       from,
       ...(days ? { days } : {}),
       ...(hours ? { hours } : {}),
     }),
-    [calendar, from, days, hours],
+    [calendars, from, days, hours],
   )
   const shifting = count > 0 && (days !== 0 || hours !== 0)
   const step = rebalancing ? moves : shifting ? shift : null
@@ -136,11 +154,12 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
     ? request !== null && !outcome.working && result?.report.unplaced === 0 && (moves !== null || deadlineStep !== null)
     : shifting || deadlineStep !== null
 
-  function chooseCalendar(id: string) {
-    setCalendar(id)
-    setDeadline(id ? (deadlineOf(plan, id) ?? '') : '')
+  function chooseCalendars(next: string[]) {
+    const [only] = next.length === 1 ? next : []
+    setCalendars(next)
+    setDeadline(only ? (deadlineOf(plan, only) ?? '') : '')
+    setPace(paceNow(plan, only, from))
     setFinishBy(null)
-    setFit(false)
   }
 
   function fill(byDays: number, byHours: number) {
@@ -166,41 +185,7 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
     <form className="grid gap-3" onSubmit={(e) => void submit(e)}>
       <h3 className={TITLE}>{m.reschedule()}</h3>
       <div className={META}>{m.reschedule_hint()}</div>
-      <div className="sm:grid-cols-2 grid gap-3">
-        <label className={FIELD}>
-          {m.field_calendar()}
-          <select className={INPUT} value={calendar} onChange={(e) => chooseCalendar(e.target.value)}>
-            <option value="">{m.shift_all()}</option>
-            {plan.calendars.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={FIELD}>
-          {m.shift_from()}
-          <input className={INPUT} type="date" value={from} required onChange={(e) => setFrom(e.target.value)} />
-        </label>
-      </div>
-      {calendar && (
-        <div className="grid gap-1">
-          <label className={FIELD}>
-            {m.reschedule_deadline()}
-            <input
-              className={INPUT}
-              type="date"
-              value={deadline}
-              min={from}
-              aria-describedby={`${ids}-deadline`}
-              onChange={(e) => setDeadline(e.target.value)}
-            />
-          </label>
-          <p id={`${ids}-deadline`} className="text-[12.5px] text-muted">
-            {m.reschedule_deadline_hint()}
-          </p>
-        </div>
-      )}
+      {/* Above the calendars: a re-balance takes one of them, a move takes several. */}
       {rebalance && (
         <div>
           <Segmented
@@ -214,45 +199,79 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
           />
         </div>
       )}
+      <CalendarPicker calendars={plan.calendars} value={calendars} single={rebalancing} onChange={chooseCalendars} />
+      <div className="grid items-start gap-3 md:grid-cols-2">
+        <label className={FIELD}>
+          {m.shift_from()}
+          <input className={INPUT} type="date" value={from} required onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        {calendar && (
+          <div className="grid gap-1">
+            <label className={FIELD}>
+              {m.reschedule_deadline()}
+              <input
+                className={INPUT}
+                type="date"
+                value={deadline}
+                min={from}
+                aria-describedby={`${ids}-deadline`}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+            </label>
+            <p id={`${ids}-deadline`} className={HINT}>
+              {m.reschedule_deadline_hint()}
+            </p>
+          </div>
+        )}
+      </div>
       {rebalancing ? (
         calendar ? (
           <>
-            <div className="grid gap-1 text-[13px] text-muted">
-              <span aria-hidden>{m.reschedule_pace()}</span>
-              {/* On a narrow screen the paces scroll sideways rather than squeeze their labels onto several lines. */}
-              <div className="-mx-1 overflow-x-auto px-1 pb-1">
-                <div className="w-max">
-                  <Segmented
-                    label={m.reschedule_pace()}
-                    value={pace}
-                    options={PACE_OPTIONS.map((p) => ({ value: p.key, label: p.label() }))}
-                    onChange={setPace}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className={CHECK}>
-                <input
-                  type="checkbox"
-                  checked={fitting}
-                  disabled={!finishable}
-                  onChange={(e) => setFit(e.target.checked)}
-                />
-                {m.reschedule_finish_by()}
-              </label>
-              <input
-                className={`${INPUT} w-auto`}
-                type="date"
-                value={finish}
-                min={from}
-                aria-label={m.reschedule_finish_by()}
-                onChange={(e) => {
-                  setFinishBy(e.target.value || null)
-                  setFit(e.target.value !== '')
-                }}
+            <div>
+              <Segmented
+                label={m.reschedule_aim()}
+                value={aim}
+                options={[
+                  { value: 'pace', label: m.reschedule_pace() },
+                  { value: 'finish', label: m.reschedule_finish_by() },
+                ]}
+                onChange={setAim}
               />
             </div>
+            {aim === 'pace' ? (
+              <div className="grid gap-1 text-[13px] text-muted">
+                {nowLabel && <span>{m.reschedule_pace_now({ pace: nowLabel })}</span>}
+                {/* On a narrow screen the paces scroll sideways rather than squeeze their labels onto several lines. */}
+                <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                  <div className="w-max">
+                    <Segmented
+                      label={m.reschedule_pace()}
+                      value={pace}
+                      options={PACE_OPTIONS.map((p) => ({ value: p.key, label: p.label() }))}
+                      onChange={setPace}
+                    />
+                  </div>
+                </div>
+                <p className={HINT}>{m.reschedule_pace_hint()}</p>
+              </div>
+            ) : (
+              <div className="grid gap-1">
+                <label className={FIELD}>
+                  {m.reschedule_finish_by()}
+                  <input
+                    className={`${INPUT} w-auto justify-self-start`}
+                    type="date"
+                    value={finish}
+                    min={from}
+                    aria-describedby={`${ids}-finish`}
+                    onChange={(e) => setFinishBy(e.target.value || null)}
+                  />
+                </label>
+                <p id={`${ids}-finish`} className={HINT}>
+                  {m.reschedule_finish_hint()}
+                </p>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <div className="flex items-center gap-2 text-[13px] text-muted">
                 <span className="whitespace-nowrap">{m.reschedule_study_hours()}</span>
@@ -281,7 +300,7 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
                 {m.reschedule_over_budget({ hours: plan.meta.weeklyBudgetHours })}
               </label>
             </div>
-            <Summary {...outcome} />
+            {request && <Summary {...outcome} />}
             <RuleWarningList warnings={warnings} />
           </>
         ) : (

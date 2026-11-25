@@ -203,6 +203,28 @@ describe('planRebalance on generated plans', { timeout: 20_000 }, () => {
 })
 
 describe('planRebalance in particular cases', () => {
+  test('a course that starts later keeps its start, however far the deadline', async () => {
+    const start = MONDAY + 28 * DAY
+    const sessions = course(10, random(7), start)
+    const plan = planOf(sessions)
+    for (const deadline of ['2027-01-29', '2027-03-31']) {
+      const request: RebalanceRequest = {
+        calendar: 'c0',
+        from: '2026-12-07',
+        deadline,
+        target: { mode: 'deadline' },
+        overBudget: false,
+        hours: { from: '11:00', to: '14:00' },
+      }
+      // oxlint-disable-next-line no-await-in-loop -- two deadlines, one after the other
+      const result = await rebalance(plan, request)
+      const first = withMoves(plan, result.moves)
+        .events.map((e) => e.start)
+        .toSorted()[0]
+      expect(first?.slice(0, 10), deadline).toBe(ymd(start))
+    }
+  })
+
   test('never on another busy event, a holiday, a day away or a weekend the course does not use', async () => {
     const next = random(42)
     const sessions = course(12, next)

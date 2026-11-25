@@ -95,7 +95,9 @@ do not stretch it. A plan with no open weekday sessions falls back to 10:00–18
 ## Step 1: room
 
 `roomOf` gives the study days of the year from the first day, the room on each day and in each week, and the
-current slot of each moving session.
+current slot of each moving session. A course that starts after the first day is looked at from its first open
+session: a re-balance changes a course's rhythm and where it ends, never where it starts. A deadline it cannot meet
+from there shows as late; starting the course sooner is a move, made on its own.
 
 **Study days** are the weekdays. Saturday or Sunday counts only if the moving sessions already use that day. A
 course studied only at weekends keeps to the weekend days it uses and never spills into weekdays. Holidays are
@@ -174,9 +176,9 @@ placements that are valid.
   again today, by the restart rule.
 - **Towards a deadline**, the **slowest** rhythm that still has every session before the deadline: the gentlest
   even rhythm that finishes in time. It is found by halving the gap 40 times between 0 and the number of study days
-  before the deadline, far finer than a day. The rhythm starts at the course's first session, or at the first day
-  when that lets it run slower. It keeps to the budget whenever that still finishes in time, even when going over
-  is allowed, since going over serves only to be in time. When even the earliest placement cannot finish in time,
+  before the deadline, far finer than a day. The rhythm starts at the course's first session here too. It keeps
+  to the budget whenever that still finishes in time, even when going over is allowed, since going over serves only
+  to be in time. When even the earliest placement cannot finish in time,
   the targets are that placement, as nothing finishes sooner.
 
 A session the rhythm cannot place has no target, and the rhythm costs nothing for it.
@@ -343,7 +345,7 @@ The reasons, and when each one appears:
 | `nothing-to-move` | no open sessions from the first day | "The calendar has no open sessions from this day on." |
 | `full-weeks` | the budget is hard and weeks up to the finish have no room left, as runs of weeks | "The weeks of … are full: widen the study hours or allow going over the budget to finish sooner." |
 | `days-off` | days taken whole by the person's calendar, up to the finish | "No free study hours on …" |
-| `late` | sessions land on or after the deadline | "Fits … of … sessions before …: a later deadline, wider study hours or going over the budget would help." |
+| `late` | sessions land on or after the deadline | "Fits … of … sessions before …: a later deadline, wider study hours, going over the budget or starting the course sooner with Move would help." |
 | `no-lab-block` | a lab is left out and no study day has two free hours in a row | "“…” needs two free hours in a row, and the study hours have none." |
 | `limit` | other sessions find no room within the year | "Some sessions find no room within a year: widen the study hours or allow going over the budget." |
 | `not-proven` | a level stopped at its time limit | "The search stopped at its time limit, so a better placement may exist." |
