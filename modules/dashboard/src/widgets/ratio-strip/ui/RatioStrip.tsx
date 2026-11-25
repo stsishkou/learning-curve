@@ -214,7 +214,7 @@ export function RatioStrip({ plan }: { plan: Plan }) {
         <p className="text-[13px] text-muted">{m.dash_strip_none()}</p>
       ) : (
         <>
-          <div className="grid gap-y-1 md:grid-cols-[minmax(0,200px)_minmax(0,1fr)] md:gap-x-4">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-y-1 md:grid-cols-[minmax(0,200px)_minmax(0,1fr)] md:gap-x-4">
             {rows.map((row) => {
               const id = row.calendar.id
               const xs = row.marks.map((mark) => x(mark.ratio))
