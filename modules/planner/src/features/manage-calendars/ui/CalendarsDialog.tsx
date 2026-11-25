@@ -1,23 +1,12 @@
 import { m } from '@lc/i18n/messages'
 import { planLabels, type Plan, type PlanCalendar, type PlanChange } from '@lc/plan-domain'
-import { Button, Eye, EyeOff, FOOT, GripVertical, INPUT, META, Modal, TITLE, Trash2 } from '@lc/ui'
+import { Button, Eye, EyeOff, FOOT, GraduationCap, GripVertical, INPUT, META, Modal, TITLE, Trash2 } from '@lc/ui'
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 
+import { freeColor } from '../model/palette'
 import { useReorder, type HandleProps } from '../model/use-reorder'
 import { CalendarLabels } from './CalendarLabels'
 import { LabelsSection } from './LabelsSection'
-
-/** Offered for a new calendar: the first one no calendar uses yet. */
-const PALETTE: readonly [string, ...string[]] = [
-  '#0f8fc4',
-  '#5b8c2a',
-  '#d8473b',
-  '#b0562b',
-  '#3f51b5',
-  '#00897b',
-  '#9c27b0',
-  '#6b7280',
-]
 
 /** A screen reader speaks over a focus that comes back after a move; the position waits for it. */
 const SAY_AFTER_MS = 500
@@ -34,6 +23,8 @@ interface Props {
   /** How many things wait in the trash, and the way to open it */
   trashCount: number
   onOpenTrash: () => void
+  /** Opens the form that adds a whole course with its sessions */
+  onNewCourse?: (() => void) | undefined
   onClose: () => void
 }
 
@@ -42,7 +33,7 @@ interface Props {
  * goes to the trash. A hidden calendar stays here, dimmed, to be shown again. Under the calendars, every label with
  * its own rename, remove and hide.
  */
-export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpenTrash, onClose }: Props) {
+export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpenTrash, onNewCourse, onClose }: Props) {
   const [error, setError] = useState('')
   const [said, setSaid] = useState('')
   const [labelling, setLabelling] = useState<string | null>(null)
@@ -51,8 +42,6 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
   const saying = useRef<ReturnType<typeof setTimeout>>(undefined)
   const counts = new Map<string, number>()
   for (const e of plan.events) counts.set(e.calendar, (counts.get(e.calendar) ?? 0) + 1)
-  const used = new Set(plan.calendars.map((c) => c.color.toLowerCase()))
-  const freeColor = PALETTE.find((color) => !used.has(color)) ?? PALETTE[0]
   const ids = plan.calendars.map((c) => c.id)
   const shownCount = plan.calendars.filter((c) => !c.hidden).length
   const known = planLabels(plan).map((label) => label.name)
@@ -156,10 +145,20 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
         {said}
       </p>
       <LabelsSection plan={plan} onChange={run} />
-      <h4 className="mt-4 mb-1.5 text-[13px] font-semibold text-muted">{m.new_calendar()}</h4>
+      <div className="mt-4 mb-1.5 flex flex-wrap items-center justify-between gap-2">
+        <h4 className="text-[13px] font-semibold text-muted">{m.new_calendar()}</h4>
+        {onNewCourse && (
+          <Button
+            className="inline-flex items-center gap-1.5"
+            icon={<GraduationCap size={15} aria-hidden />}
+            label={m.new_course()}
+            onClick={onNewCourse}
+          />
+        )}
+      </div>
       <CalendarRow
         key={`new|${plan.calendars.length}`}
-        calendar={{ id: '', name: '', color: freeColor, isNew: true }}
+        calendar={{ id: '', name: '', color: freeColor(plan), isNew: true }}
         events={null}
         onSave={(name, color) => run({ type: 'calendar.save', name, color })}
       />

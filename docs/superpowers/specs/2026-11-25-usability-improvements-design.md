@@ -87,8 +87,9 @@ Google/Outlook; a single group cannot say "Partner" and "Certification" at once.
 
 ## 7. New course form
 
-- "New course" (toolbar menu, palette, Calendars dialog): name, color, labels, the module list pasted as text,
-  first day, weekdays, start time, sessions a day, optional deadline. The list understands a Google Skills path
+- "New course" (toolbar menu, palette, Calendars dialog): name, color, labels, the short name used in session
+  titles, an optional course link written into the descriptions, the module list pasted as text, first day,
+  weekdays, start time, sessions a day, optional deadline. The list understands a Google Skills path
   copied from the page (title lines, duration lines such as "2 hours 30 minutes", "Skill badge" marks a lab) and
   one module per line ("Title — 2h 30m").
 - A pure `planCourse` in `plan-domain` turns the input into sessions by the guide's rules: one-hour sessions,

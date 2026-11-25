@@ -1229,5 +1229,131 @@
   "history_day_limit": "Предел дня: {hours}",
   "history_day_limit_off": "Предел дня снят",
   "ai_warn_day": "{title}: в {day} выходит {hours} учёбы, больше вашего предела {limit}",
-  "day_over_limit": "Учёба в этот день, больше вашего предела {limit}"
+  "day_over_limit": "Учёба в этот день, больше вашего предела {limit}",
+  "new_course": "Новый курс",
+  "course_hint": "Вставьте модули: занятия встанут в свободное время, в пределах недельного бюджета и лимита дня. Ничего не добавится, пока вы не подтвердите.",
+  "course_name": "Название курса",
+  "course_short": "Короткое имя в заголовках",
+  "course_short_hint": "Занятия называются «{short} — модуль».",
+  "course_link": "Ссылка на курс",
+  "course_link_hint": "Необязательно: попадёт в описание каждого занятия.",
+  "course_modules": "Модули",
+  "course_modules_hint": "Вставьте путь Google Skills, скопированный со страницы, или по модулю в строке: «Название — 2h 30m». «Skill badge» или «Lab:» делает модуль двухчасовой лабой.",
+  "course_modules_placeholder": "Введение в агентов — 2h 30m\nLab: Развернуть агента — 1h 30m",
+  "course_modules_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} модуль",
+        "countPlural=few": "{count} модуля",
+        "countPlural=many": "{count} модулей",
+        "countPlural=*": "{count} модуля"
+      }
+    }
+  ],
+  "course_labs": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} лаба",
+        "countPlural=few": "{count} лабы",
+        "countPlural=many": "{count} лаб",
+        "countPlural=*": "{count} лабы"
+      }
+    }
+  ],
+  "course_unknown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} без длительности считается за 1 ч",
+        "countPlural=few": "{count} без длительности считаются по 1 ч",
+        "countPlural=many": "{count} без длительности считаются по 1 ч",
+        "countPlural=*": "{count} без длительности считаются по 1 ч"
+      }
+    }
+  ],
+  "course_first_day": "Первый день",
+  "course_days": "Дни",
+  "course_no_days": "Выберите хотя бы один день.",
+  "course_start": "Начало",
+  "course_per_day": "Занятий в день",
+  "course_deadline": "Дедлайн",
+  "course_deadline_hint": "Необязательно. Занятие после него будет отмечено.",
+  "course_new_label": "Другая метка",
+  "course_preview": "Что добавится",
+  "course_sessions": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} занятие",
+        "countPlural=few": "{count} занятия",
+        "countPlural=many": "{count} занятий",
+        "countPlural=*": "{count} занятия"
+      }
+    }
+  ],
+  "course_unplaced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} занятию не нашлось свободного времени за год от первого дня: оно не добавится",
+        "countPlural=few": "{count} занятиям не нашлось свободного времени за год от первого дня: они не добавятся",
+        "countPlural=many": "{count} занятиям не нашлось свободного времени за год от первого дня: они не добавятся",
+        "countPlural=*": "{count} занятиям не нашлось свободного времени за год от первого дня: они не добавятся"
+      }
+    }
+  ],
+  "course_empty": "Назовите курс и вставьте модули, чтобы увидеть занятия.",
+  "course_add": "Добавить курс",
+  "course_lab": "Лаба",
+  "course_name_taken": "Календарь с таким названием уже есть.",
+  "course_after_deadline": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} занятие заканчивается после дедлайна, {day}",
+        "countPlural=few": "{count} занятия заканчиваются после дедлайна, {day}",
+        "countPlural=many": "{count} занятий заканчиваются после дедлайна, {day}",
+        "countPlural=*": "{count} занятия заканчиваются после дедлайна, {day}"
+      }
+    }
+  ],
+  "course_starts_late": "До {day} ничего не помещается: до этого каждая неделя упирается в недельный бюджет или выбранные дни заняты."
 }

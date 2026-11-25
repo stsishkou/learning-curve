@@ -10,6 +10,7 @@ import {
   CalendarSync,
   Clock,
   Globe,
+  GraduationCap,
   History,
   Keyboard,
   Maximize,
@@ -43,6 +44,7 @@ export type DialogName =
   | 'export'
   | 'countdown'
   | 'settings'
+  | 'course'
 
 interface Context {
   nav: PlannerViewState
@@ -146,6 +148,14 @@ export function buildActions(ctx: Context): PlannerAction[] {
       icon: <Calendar {...ICON} />,
       menu: 'always',
       run: () => ctx.open('calendars'),
+    },
+    {
+      id: 'new-course',
+      group: plan,
+      label: m.new_course(),
+      icon: <GraduationCap {...ICON} />,
+      menu: 'always',
+      run: () => ctx.open('course'),
     },
   ]
 

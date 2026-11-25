@@ -8,6 +8,14 @@ export {
 } from './accuracy-report'
 export type { BusyBlock } from './busy'
 export {
+  moduleHours,
+  parseModules,
+  planCourse,
+  type CourseInput,
+  type CourseModule,
+  type CoursePlan,
+} from './course-plan'
+export {
   countdown,
   deadlineChange,
   deadlineEvent,

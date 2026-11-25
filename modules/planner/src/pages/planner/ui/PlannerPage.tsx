@@ -65,7 +65,7 @@ import { CalendarFilter, LabelFilter, useHiddenCalendars } from '../../../featur
 import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog } from '../../../features/keyboard-shortcuts'
 import { LogDoneDialog, ResizedDoneDialog, UnloggedBar, type ResizedDone } from '../../../features/log-done'
-import { CalendarsDialog } from '../../../features/manage-calendars'
+import { CalendarsDialog, NewCourseDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
 import { CountdownDialog, SettingsDialog } from '../../../features/plan-settings'
@@ -729,7 +729,19 @@ export function PlannerPage({
           dialogs.hide('calendars')
           dialogs.show('trash')
         }}
+        onNewCourse={() => {
+          dialogs.hide('calendars')
+          dialogs.show('course')
+        }}
         onClose={() => dialogs.hide('calendars')}
+      />
+      <NewCourseDialog
+        plan={wholePlan}
+        now={now}
+        open={canEdit && dialogs.isOpen('course')}
+        onApply={session.changeAll}
+        onAdded={(start) => nav.goTo(parseLocal(start))}
+        onClose={() => dialogs.hide('course')}
       />
       <CountdownDialog
         plan={plan}

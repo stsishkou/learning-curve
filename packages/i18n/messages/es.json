@@ -1227,5 +1227,119 @@
   "history_day_limit": "Límite diario: {hours}",
   "history_day_limit_off": "Límite diario quitado",
   "ai_warn_day": "{title}: deja el {day} con {hours} de estudio, más que tu límite de {limit}",
-  "day_over_limit": "Estudio ese día, más que tu límite de {limit}"
+  "day_over_limit": "Estudio ese día, más que tu límite de {limit}",
+  "new_course": "Nuevo curso",
+  "course_hint": "Pega los módulos: las sesiones van al tiempo libre, dentro del presupuesto semanal y del límite diario. No se añade nada hasta que confirmes.",
+  "course_name": "Nombre del curso",
+  "course_short": "Nombre corto en los títulos",
+  "course_short_hint": "Las sesiones se titulan «{short} — módulo».",
+  "course_link": "Enlace del curso",
+  "course_link_hint": "Opcional: se escribe en la descripción de cada sesión.",
+  "course_modules": "Módulos",
+  "course_modules_hint": "Pega una ruta de Google Skills copiada de su página, o un módulo por línea: «Título — 2h 30m». «Skill badge» o «Lab:» lo convierte en un laboratorio de dos horas.",
+  "course_modules_placeholder": "Introducción a los agentes — 2h 30m\nLab: Desplegar un agente — 1h 30m",
+  "course_modules_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} módulo",
+        "countPlural=*": "{count} módulos"
+      }
+    }
+  ],
+  "course_labs": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} laboratorio",
+        "countPlural=*": "{count} laboratorios"
+      }
+    }
+  ],
+  "course_unknown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sin duración cuenta como 1 h",
+        "countPlural=*": "{count} sin duración cuentan como 1 h cada uno"
+      }
+    }
+  ],
+  "course_first_day": "Primer día",
+  "course_days": "Días",
+  "course_no_days": "Elige al menos un día.",
+  "course_start": "Empieza a las",
+  "course_per_day": "Sesiones al día",
+  "course_deadline": "Fecha límite",
+  "course_deadline_hint": "Opcional. Una sesión posterior se marca.",
+  "course_new_label": "Otra etiqueta",
+  "course_preview": "Lo que se añadirá",
+  "course_sessions": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sesión",
+        "countPlural=*": "{count} sesiones"
+      }
+    }
+  ],
+  "course_unplaced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sesión no encuentra tiempo libre en el año siguiente al primer día y se queda fuera",
+        "countPlural=*": "{count} sesiones no encuentran tiempo libre en el año siguiente al primer día y se quedan fuera"
+      }
+    }
+  ],
+  "course_empty": "Pon nombre al curso y pega sus módulos para ver las sesiones.",
+  "course_add": "Añadir curso",
+  "course_lab": "Laboratorio",
+  "course_name_taken": "Ya existe un calendario con este nombre.",
+  "course_after_deadline": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sesión termina después de la fecha límite, {day}",
+        "countPlural=*": "{count} sesiones terminan después de la fecha límite, {day}"
+      }
+    }
+  ],
+  "course_starts_late": "No cabe nada antes del {day}: hasta entonces cada semana llega al presupuesto semanal o los días elegidos están llenos."
 }

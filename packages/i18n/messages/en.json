@@ -1227,5 +1227,119 @@
   "history_day_limit": "Day limit: {hours}",
   "history_day_limit_off": "Day limit removed",
   "ai_warn_day": "{title}: makes {day} a day of {hours} of study, past your limit of {limit}",
-  "day_over_limit": "Study that day, more than your limit of {limit}"
+  "day_over_limit": "Study that day, more than your limit of {limit}",
+  "new_course": "New course",
+  "course_hint": "Paste the modules: the sessions go into free time, within the weekly budget and the day limit. Nothing is added until you confirm.",
+  "course_name": "Course name",
+  "course_short": "Short name in titles",
+  "course_short_hint": "Sessions are titled “{short} — module”.",
+  "course_link": "Course link",
+  "course_link_hint": "Optional: written into every session's description.",
+  "course_modules": "Modules",
+  "course_modules_hint": "Paste a Google Skills path copied from its page, or one module a line: “Title — 2h 30m”. “Skill badge” or “Lab:” makes a two-hour lab.",
+  "course_modules_placeholder": "Intro to agents — 2h 30m\nLab: Deploy an agent — 1h 30m",
+  "course_modules_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} module",
+        "countPlural=*": "{count} modules"
+      }
+    }
+  ],
+  "course_labs": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} lab",
+        "countPlural=*": "{count} labs"
+      }
+    }
+  ],
+  "course_unknown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} without a length counts as 1 h",
+        "countPlural=*": "{count} without a length count as 1 h each"
+      }
+    }
+  ],
+  "course_first_day": "First day",
+  "course_days": "Days",
+  "course_no_days": "Choose at least one day.",
+  "course_start": "Starts at",
+  "course_per_day": "Sessions a day",
+  "course_deadline": "Deadline",
+  "course_deadline_hint": "Optional. A session after it is flagged.",
+  "course_new_label": "Another label",
+  "course_preview": "What will be added",
+  "course_sessions": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} session",
+        "countPlural=*": "{count} sessions"
+      }
+    }
+  ],
+  "course_unplaced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} session finds no free time in the year after the first day and is left out",
+        "countPlural=*": "{count} sessions find no free time in the year after the first day and are left out"
+      }
+    }
+  ],
+  "course_empty": "Name the course and paste its modules to see the sessions.",
+  "course_add": "Add course",
+  "course_lab": "Lab",
+  "course_name_taken": "A calendar with this name already exists.",
+  "course_after_deadline": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} session ends after the deadline, {day}",
+        "countPlural=*": "{count} sessions end after the deadline, {day}"
+      }
+    }
+  ],
+  "course_starts_late": "Nothing fits before {day}: until then every week is at the weekly budget, or the chosen days are full."
 }
