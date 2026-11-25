@@ -131,7 +131,7 @@ export const RebalanceTakesOneCalendar: Story = {
     await pick(canvasElement, 'hfllm')
     await pick(canvasElement, 'pypy')
     await userEvent.click(body.getByRole('button', { name: m.reschedule_rebalance() }))
-    await expect(body.getByText(m.reschedule_need_calendar())).toBeVisible()
+    await waitFor(() => expect(body.getByText(m.reschedule_need_calendar())).toBeVisible())
     await expect(body.queryByRole('radio', { checked: true })).toBeNull()
     await userEvent.click(body.getByRole('radio', { name: nameOf('pypy') }))
     await expect(body.queryByText(m.reschedule_need_calendar())).toBeNull()
