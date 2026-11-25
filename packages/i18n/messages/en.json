@@ -732,7 +732,7 @@
   "help_weekly_title": "Load by week",
   "help_weekly": "A bar is the hours of one week and its colors are the courses. The line is the weekly budget: anything above it is overload. Hover a bar for the numbers; the same data is in the table under the chart.",
   "help_focus_title": "How focus works",
-  "help_focus": "One session and a stopwatch. Start runs the time and pause holds it; the stopwatch survives a reload. Finish marks the session done and logs the time spent in quarter-hour steps, which feeds your pace on the Progress page. The hourglass beside the digits counts down the planned session, or work blocks of 25 + 5, 50 + 10 or your own rhythm: when the sand runs out it chimes, and a break pours through the glass too. The tab title shows the minutes left.",
+  "help_focus": "One session and a stopwatch. Start runs the time and pause holds it; the stopwatch survives a reload. Finish marks the session done and logs the minutes it took, with when it began and how long it stood paused, which feeds your pace on the Progress page. The hourglass beside the digits counts down the planned session, or work blocks of 25 + 5, 50 + 10 or your own rhythm: when the sand runs out it chimes, and a break pours through the glass too. The tab title shows the minutes left.",
   "ai_templates": "Ready requests",
   "ai_tpl_course": "A new course",
   "ai_tpl_course_text": "Add the course <name and link>. Modules: <list with hours>. Sessions on Tuesdays and Thursdays at 19:00, starting on <date>, inside the weekly budget.",

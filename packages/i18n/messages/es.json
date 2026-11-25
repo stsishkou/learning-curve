@@ -732,7 +732,7 @@
   "help_weekly_title": "Carga por semana",
   "help_weekly": "Una barra son las horas de una semana y sus colores, los cursos. La línea es el presupuesto semanal: lo que queda por encima es sobrecarga. Pasa el cursor por una barra para ver las cifras; los mismos datos están en la tabla bajo el gráfico.",
   "help_focus_title": "Cómo funciona el enfoque",
-  "help_focus": "Una sesión y un cronómetro. Empezar pone el tiempo en marcha y la pausa lo detiene; el cronómetro sobrevive a una recarga. Terminar marca la sesión como hecha y anota el tiempo empleado en pasos de 15 minutos, que alimenta tu ritmo en la página Progreso. El reloj de arena junto a las cifras cuenta hacia atrás la sesión prevista o bloques de trabajo de 25 + 5, 50 + 10 o de tu propio ritmo: cuando se acaba la arena suena un aviso, y el descanso también cae por el reloj. El título de la pestaña muestra los minutos que quedan.",
+  "help_focus": "Una sesión y un cronómetro. Empezar pone el tiempo en marcha y la pausa lo detiene; el cronómetro sobrevive a una recarga. Terminar marca la sesión como hecha y anota los minutos que llevó, cuándo empezó y cuánto estuvo en pausa, que alimentan tu ritmo en la página Progreso. El reloj de arena junto a las cifras cuenta hacia atrás la sesión prevista o bloques de trabajo de 25 + 5, 50 + 10 o de tu propio ritmo: cuando se acaba la arena suena un aviso, y el descanso también cae por el reloj. El título de la pestaña muestra los minutos que quedan.",
   "ai_templates": "Peticiones listas",
   "ai_tpl_course": "Un curso nuevo",
   "ai_tpl_course_text": "Añade el curso <nombre y enlace>. Módulos: <lista con horas>. Sesiones los martes y jueves a las 19:00, desde <fecha>, dentro del presupuesto semanal.",
