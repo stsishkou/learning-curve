@@ -128,11 +128,14 @@ export function EventDialog({
   const [busy, setBusy] = useState(false)
   const [free, setFree] = useState<{ uid: string; slot: { s: number; e: number } | null } | null>(null)
   const [linked, setLinked] = useState(false)
+  /** The session whose Mark done asks for its time */
+  const [finishing, setFinishing] = useState<string | null>(null)
   const close = () => {
     setEditing(false)
     setError('')
     setFree(null)
     setLinked(false)
+    setFinishing(null)
     onClose()
   }
 
@@ -143,6 +146,7 @@ export function EventDialog({
       await onChange(change)
       setEditing(false)
       setFree(null)
+      setFinishing(null)
       if (then === 'close') close()
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
@@ -162,6 +166,7 @@ export function EventDialog({
 
   // An offer made for another event is not shown on this one.
   const offer = free && free.uid === event?.uid ? free : null
+  const asking = event !== null && !event.done && isSession(event) && finishing === event.uid
   const calendar = plan.calendars.find((c) => c.id === event?.calendar)
   let when = ''
   if (event) {
@@ -288,6 +293,29 @@ export function EventDialog({
               disabled={busy}
               onLog={(actual) => void run({ type: 'event.patch', uid: event.uid, patch: { actual } })}
             />
+          )}
+          {canEdit && asking && (
+            <>
+              <SpentTime
+                event={event}
+                spent={undefined}
+                asking
+                disabled={busy}
+                onLog={(actual) => void run({ type: 'event.patch', uid: event.uid, patch: { done: true, actual } })}
+              />
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <Button
+                  className="px-2.5 py-1 text-[13px]"
+                  disabled={busy}
+                  onClick={() => void run({ type: 'event.patch', uid: event.uid, patch: { done: true } })}
+                >
+                  {m.spent_done_without()}
+                </Button>
+                <Button className="px-2.5 py-1 text-[13px]" disabled={busy} onClick={() => setFinishing(null)}>
+                  {m.cancel()}
+                </Button>
+              </div>
+            </>
           )}
           {offer && (
             <p className="mt-3 flex flex-wrap items-center gap-2 text-[13.5px]" role="status">
@@ -434,13 +462,17 @@ export function EventDialog({
                 </a>
               )}
             </span>
-            {canEdit && isSession(event) && (
+            {canEdit && isSession(event) && !asking && (
               <Button
                 className={`flex items-center gap-1.5 ${event.done ? '' : 'border-done text-done-ink'}`}
                 disabled={busy}
                 icon={event.done ? undefined : <Check size={15} aria-hidden />}
                 label={event.done ? m.mark_not_done() : m.mark_done()}
-                onClick={() => void run({ type: 'event.patch', uid: event.uid, patch: { done: !event.done } })}
+                onClick={() =>
+                  event.done
+                    ? void run({ type: 'event.patch', uid: event.uid, patch: { done: false } })
+                    : setFinishing(event.uid)
+                }
               />
             )}
             {canEdit && (

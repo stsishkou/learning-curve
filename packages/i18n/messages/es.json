@@ -480,6 +480,8 @@
   "spent_as_planned": "Lo previsto",
   "spent_over_plan": "{time} más de lo previsto",
   "spent_under_plan": "{time} menos de lo previsto",
+  "spent_ask": "¿Cuánto tiempo llevó?",
+  "spent_done_without": "Hecho sin tiempo",
   "pace_note": "ritmo ×{pace}",
   "forecast_late": "{count} d más tarde de lo previsto",
   "forecast_early": "{count} d antes de lo previsto",

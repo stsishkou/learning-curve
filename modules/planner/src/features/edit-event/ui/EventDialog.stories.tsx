@@ -41,6 +41,31 @@ type Story = StoryObj<typeof meta>
 /** A study session that has not started yet. */
 export const Session: Story = {}
 
+/** Mark done asks how long the session took: one choice marks it done with that time. */
+export const MarkDone: Story = {
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: m.mark_done() }))
+    await expect(args.onChange).not.toHaveBeenCalled()
+    await userEvent.click(body.getByRole('button', { name: m.spent_over_plan({ time: fmtDuration(15 * MINUTE) }) }))
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'event.patch',
+      uid: upcoming.uid,
+      patch: { done: true, actual: plannedOf(upcoming) + 15 },
+    })
+  },
+}
+
+/** A session can still be marked done without a time, but only as a choice of its own. */
+export const MarkDoneWithoutTime: Story = {
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: m.mark_done() }))
+    await userEvent.click(body.getByRole('button', { name: m.spent_done_without() }))
+    await expect(args.onChange).toHaveBeenCalledWith({ type: 'event.patch', uid: upcoming.uid, patch: { done: true } })
+  },
+}
+
 /** Marked done and changed by hand: the dialog offers to take both back. */
 export const DoneAndEdited: Story = { args: { event: pick((e) => Boolean(e.done)), edited: true } }
 

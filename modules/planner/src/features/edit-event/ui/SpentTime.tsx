@@ -17,6 +17,8 @@ interface Props {
   event: PlanEvent
   /** The minutes logged; undefined while none are */
   spent: number | undefined
+  /** The session is being marked done: the field asks for its time */
+  asking?: boolean
   disabled: boolean
   /** Called with the minutes the session really took */
   onLog: (minutes: number) => void
@@ -35,14 +37,14 @@ function offsetLabel(offset: number) {
  * so and offers choices around the plan, rather than show the plan as the time spent; a logged time steps by a quarter
  * hour.
  */
-export function SpentTime({ event, spent, disabled, onLog }: Props) {
+export function SpentTime({ event, spent, asking = false, disabled, onLog }: Props) {
   const planned = Math.round((parseLocal(event.end) - parseLocal(event.start)) / MINUTE)
   const choices = OFFSETS.filter((offset) => planned + offset >= STEP && planned + offset <= MOST)
   return (
     <div className="mt-3.5 flex flex-col gap-2 text-[13px]" data-tip={m.spent_hint()}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <span className="text-muted">{m.spent_label()}</span>
-        {spent === undefined ? (
+        <span className={asking ? 'font-semibold' : 'text-muted'}>{asking ? m.spent_ask() : m.spent_label()}</span>
+        {asking ? null : spent === undefined ? (
           <span className="font-semibold text-muted">{m.spent_not_logged()}</span>
         ) : (
           <span className="flex items-center gap-1.5">
