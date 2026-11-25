@@ -6,7 +6,7 @@ import { TriangleAlert } from '@lc/ui'
 const dayText = (start: string) => fmtDay(parseLocal(start))
 
 /** A rule a change breaks, in the person's language. */
-function warningLabel(warning: RuleWarning): string {
+export function warningLabel(warning: RuleWarning): string {
   const { title, start } = warning.event
   switch (warning.rule) {
     case 'holiday':

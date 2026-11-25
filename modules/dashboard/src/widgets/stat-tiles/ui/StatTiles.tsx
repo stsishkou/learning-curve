@@ -12,10 +12,12 @@ interface Props {
   now: number | null
   /** The day the rest runs out at the real pace (`paceForecast`), the date the burn-up draws; null when unknown */
   forecast: number | null
+  /** Present when the host can open Catch up: offered while the plan is behind */
+  onCatchUp?: (() => void) | undefined
 }
 
 /** The headline numbers: how much is done, how far ahead of the plan's schedule that is, and how much time is left. */
-export function StatTiles({ plan, stats, now, forecast }: Props) {
+export function StatTiles({ plan, stats, now, forecast, onCatchUp }: Props) {
   const share = stats.planned ? stats.done / stats.planned : 0
   const lead = stats.done - stats.plannedByNow
   const target = now === null ? null : countdown(plan, now)
@@ -47,6 +49,14 @@ export function StatTiles({ plan, stats, now, forecast }: Props) {
               ? m.dash_ahead({ hours: fmtHours(stats.plannedByNow) })
               : m.dash_behind({ hours: fmtHours(stats.plannedByNow) })
         }
+        action={
+          lead <= -0.25 &&
+          onCatchUp && (
+            <button type="button" className="font-semibold text-focus hover:underline" onClick={onCatchUp}>
+              {m.catchup()}
+            </button>
+          )
+        }
       >
         {/* The arrow and the sign carry the meaning; the color only repeats it. */}
         <span className={Math.abs(lead) < 0.25 ? '' : lead > 0 ? 'text-done-ink' : 'text-today-ink'}>
@@ -73,11 +83,14 @@ export function StatTiles({ plan, stats, now, forecast }: Props) {
 function Tile({
   label,
   note,
+  action,
   className = '',
   children,
 }: {
   label: string
   note?: ReactNode
+  /** A way to act on the number, under the note */
+  action?: ReactNode
   className?: string
   children: ReactNode
 }) {
@@ -86,6 +99,7 @@ function Tile({
       <div className="text-[12.5px] text-muted">{label}</div>
       <div className="mt-1 font-display text-[22px]/[1.2] font-semibold tabular-nums">{children}</div>
       {note && <div className="mt-1 truncate text-[12.5px] text-muted">{note}</div>}
+      {action && <div className="mt-1.5 text-[13px]">{action}</div>}
     </div>
   )
 }

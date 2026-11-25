@@ -493,7 +493,21 @@
   "spent_done_without": "Done without time",
   "spent_measured": "by the stopwatch, started {time}",
   "spent_paused": "paused {time}",
-  "log_done_title": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "Mark {count} session done", "countPlural=*": "Mark {count} sessions done"}}],
+  "log_done_title": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Mark {count} session done",
+        "countPlural=*": "Mark {count} sessions done"
+      }
+    }
+  ],
   "log_done_hint": "Choose how long each one took. A session left without a time is marked done without one, and the pace does not count it.",
   "log_done_unlogged": "{count} without a time",
   "log_fill_title": "Done sessions without a time: {count}",
@@ -612,7 +626,7 @@
   "catchup_peak": "Heaviest week",
   "catchup_over": "weeks over budget: {count}",
   "catchup_moved": "Sessions that move",
-  "catchup_unplaced": "No room was found for {count} sessions",
+  "catchup_unplaced": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "No room was found for {count} session", "countPlural=*": "No room was found for {count} sessions"}}],
   "catchup_manual": "Shift by days by hand…",
   "catchup_apply": "Apply",
   "history_replanned": "Plan rearranged: {count} sessions",
@@ -1116,5 +1130,41 @@
   "history_session_skipped": "Skipped: {name}",
   "now_short": "now",
   "diff_session_skipped": "skipped",
-  "diff_session_unskipped": "no longer skipped"
+  "diff_session_unskipped": "no longer skipped",
+  "reschedule_list": "What moves: {count}",
+  "budget_over": "{hours} over the budget",
+  "runway_open_after": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} session is still open",
+        "countPlural=*": "{count} sessions are still open"
+      }
+    }
+  ],
+  "runway_late": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} session falls after the deadline",
+        "countPlural=*": "{count} sessions fall after the deadline"
+      }
+    }
+  ],
+  "reschedule_course": "Reschedule “{name}”",
+  "reschedule_week": "Reschedule the week {week}",
+  "dash_over_weeks": "Weeks ahead over the budget:",
+  "dash_course_late": "past its deadline, {date}"
 }

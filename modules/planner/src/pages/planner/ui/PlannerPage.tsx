@@ -2,6 +2,8 @@ import { m } from '@lc/i18n/messages'
 import {
   DAY,
   HOUR,
+  addDays,
+  deadlineOf,
   doneWithoutTime,
   hiddenCalendarIds,
   isSession,
@@ -68,7 +70,7 @@ import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
 import { useReminders } from '../../../features/reminders'
-import { RescheduleDialog } from '../../../features/reschedule'
+import { RescheduleDialog, type ReschedulePreset } from '../../../features/reschedule'
 import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
 import { TrashDialog } from '../../../features/trash'
 import { WeekReviewDialog } from '../../../features/week-review'
@@ -183,7 +185,10 @@ export function PlannerPage({
   const expanded = nav.expanded || fullscreen.on
   const quiet = useQuietChange(session)
   // A sign-in to a calendar app comes back to the page with its outcome: that app's dialog shows how it went.
-  const dialogs = useDialogFlags<DialogName>(search.link ? ['sync'] : [])
+  const dialogs = useDialogFlags<DialogName>([
+    ...(search.link ? (['sync'] as const) : []),
+    ...(search.open === 'catchUp' ? (['catchUp'] as const) : []),
+  ])
   const [shownApp, setShownApp] = useState<CalendarProvider | null>(search.link ?? null)
   const apps = useCalendarSync(sync ?? NO_APPS)
   const shownSource = sync?.find((source) => source.status.provider === shownApp)
@@ -208,8 +213,17 @@ export function PlannerPage({
   // A calendar that is connected but cannot be changed here has nothing to open.
   const busyAction = busy && (busy.save || busy.host) ? { host: busy.host } : undefined
 
-  // The day Reschedule opens from; null while it is closed.
-  const [reschedule, setReschedule] = useState<string | null>(null)
+  // The day Reschedule opens from, and the calendar it opens with; null while it is closed.
+  /** Re-balances one calendar from a day: to finish before its deadline while that is still ahead. */
+  const rebalanceFrom = (from: string, calendar: string): ReschedulePreset => {
+    const deadline = deadlineOf(wholePlan, calendar)
+    return { calendar, mode: 'rebalance', finishBy: deadline && deadline > from ? addDays(deadline, -1) : undefined }
+  }
+  const [reschedule, setReschedule] = useState<{ from: string; preset?: ReschedulePreset | undefined } | null>(() => {
+    if (!search.reschedule) return null
+    const linked = wholePlan.calendars.find((c) => c.id === search.calendar)
+    return { from: search.reschedule, preset: linked ? rebalanceFrom(search.reschedule, linked.id) : undefined }
+  })
   const [overdueHidden, setOverdueHidden] = useState(false)
   const [unloggedHidden, setUnloggedHidden] = useState(false)
   // Done sessions without a time, in date order: the pace cannot count them until their time is filled in.
@@ -341,7 +355,7 @@ export function PlannerPage({
 
   const allIds = plan.calendars.map((c) => c.id)
   const only = (id: string) => solo([id], allIds)
-  const shift = () => setReschedule(ymd(today ?? weekStart))
+  const shift = () => setReschedule({ from: ymd(today ?? weekStart) })
 
   const { cursor, steps } = session.history
   const actions = buildActions({
@@ -454,6 +468,14 @@ export function PlannerPage({
             now={now}
             onSelect={select}
             onConfigure={canEdit ? () => dialogs.show('countdown') : undefined}
+            onReschedule={
+              canEdit
+                ? (calendar) => {
+                    const from = ymd(today ?? weekStart)
+                    setReschedule({ from, preset: rebalanceFrom(from, calendar) })
+                  }
+                : undefined
+            }
           />
         </>
       )}
@@ -546,6 +568,7 @@ export function PlannerPage({
         quiet.lastStep && (
           <UndoBar
             label={quiet.lastStep.label}
+            warnings={quiet.lastStep.warnings}
             onUndo={quiet.undo}
             onHistory={() => dialogs.show('history')}
             onDismiss={session.dismissLastStep}
@@ -637,6 +660,11 @@ export function PlannerPage({
                 onPickDay={nav.goTo}
                 onSelect={select}
                 onReview={() => dialogs.show('review')}
+                onReschedule={
+                  canEdit && weekStart + 7 * DAY > (today ?? weekStart)
+                    ? () => setReschedule({ from: ymd(Math.max(weekStart, today ?? weekStart)) })
+                    : undefined
+                }
                 onPickWeek={(monday) =>
                   onSearchChange({
                     week: ymd(monday),
@@ -689,10 +717,14 @@ export function PlannerPage({
       />
       <RescheduleDialog
         plan={wholePlan}
-        from={reschedule}
+        from={reschedule?.from ?? null}
+        preset={reschedule?.preset}
         onApply={session.changeAll}
         rebalance={rebalance}
-        onClose={() => setReschedule(null)}
+        onClose={() => {
+          setReschedule(null)
+          if (search.reschedule) onSearchChange({ reschedule: undefined, calendar: undefined })
+        }}
       />
       <WeekReviewDialog
         plan={plan}
@@ -717,8 +749,11 @@ export function PlannerPage({
         open={dialogs.isOpen('catchUp')}
         now={now}
         onChange={session.change}
-        onShift={() => setReschedule((overdue[0]?.start ?? ymd(today ?? weekStart)).slice(0, 10))}
-        onClose={() => dialogs.hide('catchUp')}
+        onShift={() => setReschedule({ from: (overdue[0]?.start ?? ymd(today ?? weekStart)).slice(0, 10) })}
+        onClose={() => {
+          dialogs.hide('catchUp')
+          if (search.open) onSearchChange({ open: undefined })
+        }}
       />
       <TrashDialog
         plan={wholePlan}

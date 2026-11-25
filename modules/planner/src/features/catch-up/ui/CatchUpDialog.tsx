@@ -28,6 +28,9 @@ interface Props {
 type Choice = CatchUpScenario['id'] | 'keep'
 type Option = Omit<CatchUpScenario, 'id'> & { id: Choice; outlook: PlanOutlook }
 
+/** How many of the sessions without room are named; the rest are counted */
+const NAMED = 3
+
 const TEXT: Record<Choice, { title: () => string; hint: () => string }> = {
   keep: { title: m.catchup_keep, hint: m.catchup_keep_hint },
   push: { title: m.catchup_push, hint: m.catchup_push_hint },
@@ -51,7 +54,7 @@ export function CatchUpDialog({ plan, open, now, onChange, onShift, onClose }: P
 
 function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open' | 'now'> & { now: number }) {
   const { keep, options } = useMemo(() => {
-    const asIs: Option = { id: 'keep', moves: [], unplaced: 0, outlook: planOutlook(plan, now) }
+    const asIs: Option = { id: 'keep', moves: [], unplaced: [], outlook: planOutlook(plan, now) }
     const scenarios = catchUpScenarios(plan, now).map((scenario): Option => ({
       ...scenario,
       outlook: planOutlook(withMoves(plan, scenario.moves), now),
@@ -103,9 +106,10 @@ function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open'
               <b className="block text-[14.5px] font-semibold">{TEXT[option.id].title()}</b>
               <span className="block text-[13px] text-muted">{TEXT[option.id].hint()}</span>
               <Numbers outlook={option.outlook} budget={budget} moved={option.moves.length} />
-              {option.unplaced > 0 && (
+              {option.unplaced.length > 0 && (
                 <span className="mt-1 block text-[12.5px] text-today-ink">
-                  {m.catchup_unplaced({ count: option.unplaced })}
+                  {m.catchup_unplaced({ count: option.unplaced.length })}
+                  <span className="block text-muted">{namesOf(plan, option.unplaced)}</span>
                 </span>
               )}
             </span>
@@ -134,6 +138,12 @@ function Scenarios({ plan, now, onChange, onShift, onClose }: Omit<Props, 'open'
       </div>
     </>
   )
+}
+
+/** The titles of the first few sessions, and how many more there are. */
+function namesOf(plan: Plan, uids: string[]): string {
+  const titles = uids.slice(0, NAMED).map((uid) => plan.events.find((e) => e.uid === uid)?.title ?? uid)
+  return [...titles, ...(uids.length > NAMED ? [m.and_more({ count: uids.length - NAMED })] : [])].join(' · ')
 }
 
 function Numbers({ outlook, budget, moved }: { outlook: PlanOutlook; budget: number; moved: number }) {

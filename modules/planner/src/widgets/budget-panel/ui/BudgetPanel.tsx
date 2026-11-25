@@ -19,10 +19,12 @@ interface Props {
   weekItems: Occurrence[]
   /** Shown between the numbers and the closing note */
   children?: ReactNode
+  /** Present where the plan can be changed: a week over the budget offers to reschedule it */
+  onReschedule?: (() => void) | undefined
 }
 
 /** Study hours in the visible week against the weekly budget, by calendar and, once calendars have labels, by label. */
-export function BudgetPanel({ plan, weekItems, children }: Props) {
+export function BudgetPanel({ plan, weekItems, children, onReschedule }: Props) {
   const perCalendar: Record<string, number> = {}
   let total = 0
   for (const o of weekItems) {
@@ -60,6 +62,16 @@ export function BudgetPanel({ plan, weekItems, children }: Props) {
             />
           ))}
         </div>
+        {total > budget && (
+          <p className="mt-2 flex flex-wrap items-baseline gap-x-3 text-[13px] text-today-ink">
+            <span>{m.budget_over({ hours: fmtHours(total - budget) })}</span>
+            {onReschedule && (
+              <button type="button" className="font-semibold text-focus hover:underline" onClick={onReschedule}>
+                {m.reschedule()}
+              </button>
+            )}
+          </p>
+        )}
       </div>
       <ul className="mt-3.5 grid gap-1.5 text-[13px]">
         {rows.length ? (

@@ -37,6 +37,7 @@ export function useQuietChange(session: PlanSession) {
     /** The step a bar offers to take back right after it was made */
     lastStep: session.lastStep && {
       label: describeStep(session.lastStep),
+      warnings: session.lastWarnings,
       run: () => session.travel(cursor - 1),
     },
   }

@@ -1140,5 +1140,45 @@
   "history_session_skipped": "Пропущено: {name}",
   "now_short": "сейчас",
   "diff_session_skipped": "пропущено",
-  "diff_session_unskipped": "больше не пропущено"
+  "diff_session_unskipped": "больше не пропущено",
+  "reschedule_list": "Что сдвинется: {count}",
+  "budget_over": "{hours} сверх бюджета",
+  "runway_open_after": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Открыто ещё {count} занятие",
+        "countPlural=few": "Открыто ещё {count} занятия",
+        "countPlural=many": "Открыто ещё {count} занятий",
+        "countPlural=*": "Открыто ещё {count} занятия"
+      }
+    }
+  ],
+  "runway_late": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} занятие после дедлайна",
+        "countPlural=few": "{count} занятия после дедлайна",
+        "countPlural=many": "{count} занятий после дедлайна",
+        "countPlural=*": "{count} занятия после дедлайна"
+      }
+    }
+  ],
+  "reschedule_course": "Перепланировать «{name}»",
+  "reschedule_week": "Перепланировать неделю {week}",
+  "dash_over_weeks": "Недели впереди сверх бюджета:",
+  "dash_course_late": "позже дедлайна, {date}"
 }

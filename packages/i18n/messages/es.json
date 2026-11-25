@@ -493,7 +493,21 @@
   "spent_done_without": "Hecho sin tiempo",
   "spent_measured": "según el cronómetro, empezado a las {time}",
   "spent_paused": "pausa {time}",
-  "log_done_title": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "Marcar {count} sesión como hecha", "countPlural=*": "Marcar {count} sesiones como hechas"}}],
+  "log_done_title": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Marcar {count} sesión como hecha",
+        "countPlural=*": "Marcar {count} sesiones como hechas"
+      }
+    }
+  ],
   "log_done_hint": "Elige cuánto llevó cada una. La que quede sin tiempo se marca hecha sin él, y el ritmo no la cuenta.",
   "log_done_unlogged": "{count} sin tiempo",
   "log_fill_title": "Sesiones hechas sin tiempo: {count}",
@@ -612,7 +626,7 @@
   "catchup_peak": "Semana más cargada",
   "catchup_over": "semanas sobre el presupuesto: {count}",
   "catchup_moved": "Sesiones que se mueven",
-  "catchup_unplaced": "No hubo sitio para {count} sesiones",
+  "catchup_unplaced": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "No hubo sitio para {count} sesión", "countPlural=*": "No hubo sitio para {count} sesiones"}}],
   "catchup_manual": "Desplazar por días a mano…",
   "catchup_apply": "Aplicar",
   "history_replanned": "Plan reorganizado: {count} sesiones",
@@ -1116,5 +1130,41 @@
   "history_session_skipped": "Omitida: {name}",
   "now_short": "ahora",
   "diff_session_skipped": "omitida",
-  "diff_session_unskipped": "ya no está omitida"
+  "diff_session_unskipped": "ya no está omitida",
+  "reschedule_list": "Lo que se mueve: {count}",
+  "budget_over": "{hours} por encima del presupuesto",
+  "runway_open_after": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Queda {count} sesión abierta",
+        "countPlural=*": "Quedan {count} sesiones abiertas"
+      }
+    }
+  ],
+  "runway_late": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sesión cae después de la fecha límite",
+        "countPlural=*": "{count} sesiones caen después de la fecha límite"
+      }
+    }
+  ],
+  "reschedule_course": "Reprogramar «{name}»",
+  "reschedule_week": "Reprogramar la semana {week}",
+  "dash_over_weeks": "Semanas por delante sobre el presupuesto:",
+  "dash_course_late": "después de su fecha límite, {date}"
 }

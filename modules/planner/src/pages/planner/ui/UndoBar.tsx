@@ -1,16 +1,22 @@
 import { m } from '@lc/i18n/messages'
-import { X } from '@lc/ui'
+import type { RuleWarning } from '@lc/plan-domain'
+import { TriangleAlert, X } from '@lc/ui'
+
+import { warningLabel } from '../../../shared/ui'
 
 interface Props {
   /** What was just changed */
   label: string
+  /** Rules of the plan the change broke: said, not stopped */
+  warnings?: RuleWarning[] | undefined
   onUndo: () => void
   onHistory: () => void
   onDismiss: () => void
 }
 
 /** Offers to take back the change that was just made. */
-export function UndoBar({ label, onUndo, onHistory, onDismiss }: Props) {
+export function UndoBar({ label, warnings, onUndo, onHistory, onDismiss }: Props) {
+  const [first] = warnings ?? []
   return (
     // Floats over the page: a bar in the flow would push the calendar down right after every drag.
     <div
@@ -32,6 +38,15 @@ export function UndoBar({ label, onUndo, onHistory, onDismiss }: Props) {
       >
         <X size={16} aria-hidden />
       </button>
+      {first && (
+        <p className="flex basis-full items-start gap-2 text-[13px]/[1.4] text-today-ink">
+          <TriangleAlert size={15} aria-hidden className="mt-px flex-none" />
+          <span className="min-w-0">
+            {warningLabel(first)}
+            {warnings && warnings.length > 1 && ` · ${m.and_more({ count: warnings.length - 1 })}`}
+          </span>
+        </p>
+      )}
     </div>
   )
 }

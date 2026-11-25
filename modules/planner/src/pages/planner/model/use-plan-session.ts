@@ -8,6 +8,7 @@ import {
   historyEdits,
   historyView,
   planFileName,
+  previewUpdate,
   recordChange,
   trashOf,
   travel,
@@ -18,6 +19,7 @@ import {
   type PlanEdits,
   type PlanHistory,
   type PlanTrash,
+  type RuleWarning,
 } from '@lc/plan-domain'
 import { useCallback, useMemo, useState } from 'react'
 
@@ -68,6 +70,8 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
   const [pending, setPending] = useState<PlanChange[]>([])
   // True after a change, until the person dismisses the bar that offers to take it back.
   const [justChanged, setJustChanged] = useState(false)
+  // The rules the last change broke, for that bar. A done session changed is not one: the person did it on purpose.
+  const [warnings, setWarnings] = useState<RuleWarning[]>([])
 
   const plan = useMemo(() => {
     if (file) return applyEdits(file.base, file.edits).plan
@@ -85,22 +89,25 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
 
   const change = useCallback(
     async (next: PlanChange) => {
+      const broken = previewUpdate(plan, [next]).warnings.filter((warning) => warning.rule !== 'done')
       if (file) {
         const edits = applyChange(file.base, file.edits, next)
         const history = recordChange(file.history, applyEdits(file.base, file.edits).plan, next, edits)
         setFile({ ...file, edits, trash: trashOf(file.base, edits), history })
+        setWarnings(broken)
         setJustChanged(true)
         return
       }
       setPending((prev) => [...prev, next])
       try {
         await onChange(next)
+        setWarnings(broken)
         setJustChanged(true)
       } finally {
         setPending((prev) => prev.filter((other) => other !== next))
       }
     },
-    [file, onChange],
+    [file, onChange, plan],
   )
 
   /** Applies the changes of an update in order, each as a step of the history. */
@@ -120,6 +127,8 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
         // oxlint-disable-next-line no-await-in-loop -- each change is stored on top of the one before
         for (const next of list) await onChange(next)
       }
+      // The dialogs that send several changes showed their warnings before they were applied.
+      setWarnings([])
       setJustChanged(true)
     },
     [file, onChange, onChangeAll],
@@ -159,6 +168,8 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
     trimHistory: trim,
     /** The step a bar offers to take back right after it was made */
     lastStep: justChanged && history.cursor > 0 ? (history.steps[history.cursor - 1] ?? null) : null,
+    /** The rules of the plan that step broke; they stopped nothing */
+    lastWarnings: warnings,
     dismissLastStep: () => setJustChanged(false),
     file: file
       ? { name: file.name, origin: file.origin, changes: edited.size + Object.keys(file.edits.calendars).length }

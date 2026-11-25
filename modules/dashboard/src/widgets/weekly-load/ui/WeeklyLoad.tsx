@@ -21,7 +21,14 @@ interface Props {
   now: number | null
   /** Splits the bars by label instead of by calendar */
   byLabel?: boolean | undefined
+  /** Present when the host can open Reschedule: called with the Monday of a week ahead that is over the budget */
+  onReschedule?: ((monday: number) => void) | undefined
 }
+
+/** How many weeks over the budget are named under the chart; the rest are counted */
+const NAMED = 6
+
+const span = (monday: number) => `${fmtShort(monday)} – ${fmtShort(monday + 6 * DAY)}`
 
 /** One part of a bar: a calendar, or every calendar whose first label is the same */
 interface Series {
@@ -52,7 +59,7 @@ const hoursOf = (byCalendar: Record<string, number>, ids: string[]) =>
   ids.reduce((sum, id) => sum + (byCalendar[id] ?? 0), 0)
 
 /** Planned hours of every week, split by calendar or by label, against the weekly budget. */
-export function WeeklyLoad({ plan, stats, now, byLabel = false }: Props) {
+export function WeeklyLoad({ plan, stats, now, byLabel = false, onReschedule }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const width = useWidth(box)
   const [hover, setHover] = useState<number | null>(null)
@@ -73,6 +80,8 @@ export function WeeklyLoad({ plan, stats, now, byLabel = false }: Props) {
   const y = (hours: number) => PAD.above + plotH - (hours / peak) * plotH
   const center = (i: number) => PAD.left + band * (i + 0.5)
   const every = Math.max(1, Math.ceil(weeks.length / Math.max(1, Math.floor(plotW / 64))))
+
+  const over = weeks.filter((week) => week.planned > budget && (now === null || week.monday + 7 * DAY > now))
 
   const hovered = hover === null ? null : weeks[hover]
   const tip: Tip | null =
@@ -174,6 +183,30 @@ export function WeeklyLoad({ plan, stats, now, byLabel = false }: Props) {
         )}
         <ChartTip tip={tip} width={width} />
       </div>
+      {over.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px]">
+          <span className="text-today-ink">{m.dash_over_weeks()}</span>
+          {over.slice(0, NAMED).map((week) =>
+            onReschedule ? (
+              <button
+                key={week.monday}
+                type="button"
+                className="rounded-md border border-line px-2 py-0.5 tabular-nums hover:bg-surface-2"
+                aria-label={m.reschedule_week({ week: span(week.monday) })}
+                data-tip={m.reschedule_week({ week: span(week.monday) })}
+                onClick={() => onReschedule(week.monday)}
+              >
+                {span(week.monday)} · {fmtHours(week.planned)}
+              </button>
+            ) : (
+              <span key={week.monday} className="tabular-nums">
+                {span(week.monday)} · {fmtHours(week.planned)}
+              </span>
+            ),
+          )}
+          {over.length > NAMED && <span className="text-muted">{m.and_more({ count: over.length - NAMED })}</span>}
+        </div>
+      )}
     </Card>
   )
 }

@@ -21,8 +21,8 @@ export interface CatchUpScenario {
   moves: SessionMove[]
   /** The moves set real lengths: the sessions are marked so that the pace is not applied to them twice */
   paced?: boolean
-  /** Missed sessions the scenario found no room for */
-  unplaced: number
+  /** uids of the missed sessions the scenario found no room for, in date order */
+  unplaced: string[]
 }
 
 /** What a plan promises from `now` on: the numbers the scenarios are compared by. */
@@ -121,7 +121,7 @@ function push(plan: Plan, now: number): CatchUpScenario {
     const start = parseLocal(e.start)
     moves.push(moveTo(e, parseLocal(`${to}T00:00`) + (start - startOfDay(start))))
   }
-  return { id: 'push', moves, unplaced: 0 }
+  return { id: 'push', moves, unplaced: [] }
 }
 
 /** The missed sessions go into the free time of the coming days: the Saturday buffers, and one more hour after a day's sessions. */
@@ -156,7 +156,7 @@ function squeeze(plan: Plan, now: number): CatchUpScenario {
       }
     }
   }
-  return { id: 'squeeze', moves, unplaced: missed.length - next }
+  return { id: 'squeeze', moves, unplaced: missed.slice(next).map((e) => e.uid) }
 }
 
 const QUARTER = HOUR / 4
@@ -182,7 +182,7 @@ function atPace(plan: Plan, now: number): CatchUpScenario {
       moves.push({ uid: e.uid, start: toLocalString(from), end: toLocalString(to) })
     }
   }
-  return { id: 'pace', moves, paced: true, unplaced: 0 }
+  return { id: 'pace', moves, paced: true, unplaced: [] }
 }
 
 /**

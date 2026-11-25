@@ -5,6 +5,7 @@ import {
   MIN_LOGGED,
   countdown,
   courseProgress,
+  deadlineOf,
   doneWithoutTime,
   finishRange,
   paceForecast,
@@ -24,6 +25,8 @@ interface Props {
   now: number | null
   /** Present when the host can open the done sessions without a time to fill them in */
   onFillTimes?: (() => void) | undefined
+  /** Present when the host can open Reschedule: offered for a course whose forecast passes its deadline */
+  onReschedule?: ((calendar: string) => void) | undefined
 }
 
 const days = (ms: number) => Math.round(ms / DAY)
@@ -59,7 +62,7 @@ function Pace({ accuracy }: { accuracy: Accuracy }) {
  * The plan corrected by reality: how long a planned hour takes in each course, judged by the time logged on done
  * sessions, and the day the rest will be finished at that pace.
  */
-export function PaceForecast({ plan, now, onFillTimes }: Props) {
+export function PaceForecast({ plan, now, onFillTimes, onReschedule }: Props) {
   const ranges = useMemo(
     () =>
       new Map<string, FinishRange | null>(
@@ -119,6 +122,9 @@ export function PaceForecast({ plan, now, onFillTimes }: Props) {
           <tbody>
             {rows.map(({ course, forecast }) => {
               const range = ranges.get(course.calendar.id)
+              const due = deadlineOf(plan, course.calendar.id)
+              const dueDay = due === null ? null : parseLocal(`${due}T00:00`)
+              const late = dueDay !== null && forecast.finish !== null && forecast.finish > dueDay
               return (
                 <tr key={course.calendar.id} className="border-b border-line-soft align-top last:border-b-0">
                   <th
@@ -158,6 +164,21 @@ export function PaceForecast({ plan, now, onFillTimes }: Props) {
                           <span className="block text-[12px] text-muted">
                             {m.dash_forecast_range({ likely: fmtShort(range.likely), late: fmtShort(range.late) })}
                             {range.scope === 'all' && ` · ${m.dash_forecast_range_all()}`}
+                          </span>
+                        )}
+                        {late && (
+                          <span className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-today-ink">
+                            {m.dash_course_late({ date: fmtShort(dueDay) })}
+                            {onReschedule && (
+                              <button
+                                type="button"
+                                className="font-semibold text-focus hover:underline"
+                                aria-label={m.reschedule_course({ name: course.calendar.name })}
+                                onClick={() => onReschedule(course.calendar.id)}
+                              >
+                                {m.reschedule()}
+                              </button>
+                            )}
                           </span>
                         )}
                       </>

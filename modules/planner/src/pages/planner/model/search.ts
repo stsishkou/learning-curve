@@ -30,6 +30,12 @@ export interface PlannerSearch {
   link?: CalendarProvider | undefined
   /** How that sign-in went */
   signin?: SignInEnd | undefined
+  /** A dialog to open on arrival: another page links here to fix what it shows */
+  open?: 'catchUp' | undefined
+  /** Reschedule opens from this day, YYYY-MM-DD */
+  reschedule?: string | undefined
+  /** With `reschedule`: the calendar to re-balance */
+  calendar?: string | undefined
 }
 
 const VIEWS: readonly unknown[] = ['day', 'week', 'month', 'year', 'list'] satisfies PlannerView[]
@@ -51,4 +57,7 @@ export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSear
   fill: search.fill === true ? true : undefined,
   link: isCalendarProvider(search.link) ? search.link : undefined,
   signin: isSignInEnd(search.signin) ? search.signin : undefined,
+  open: search.open === 'catchUp' ? 'catchUp' : undefined,
+  reschedule: typeof search.reschedule === 'string' && DATE.test(search.reschedule) ? search.reschedule : undefined,
+  calendar: typeof search.calendar === 'string' && search.calendar ? search.calendar : undefined,
 })

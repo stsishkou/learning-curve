@@ -6,6 +6,7 @@ import {
   countdown,
   deadlineEvent,
   isDone,
+  isSession,
   parseLocal,
   type Plan,
   type PlanEvent,
@@ -21,6 +22,8 @@ interface Props {
   onSelect: (e: PlanEvent) => void
   /** Present where the plan can be changed: opens the settings of the countdown */
   onConfigure?: (() => void) | undefined
+  /** Present where the plan can be changed: re-balances the course when its sessions run past the deadline */
+  onReschedule?: ((calendar: string) => void) | undefined
 }
 
 interface Group {
@@ -40,7 +43,7 @@ const LAB_DONE =
  * names for the countdown, or the one with the nearest deadline. Before the clock is known (on the server) it shows
  * the earliest deadline of the plan.
  */
-export function Runway({ plan, now, onSelect, onConfigure }: Props) {
+export function Runway({ plan, now, onSelect, onConfigure, onReschedule }: Props) {
   const target = countdown(plan, now ?? 0)
   const calendar = target && plan.calendars.find((c) => c.id === target.calendar)
   if (!target || !calendar || target.day === null) {
@@ -83,6 +86,9 @@ export function Runway({ plan, now, onSelect, onConfigure }: Props) {
   }
   const lastEnd = groups.length ? Math.max(...groups.map((g) => startOfDay(g.end) + DAY)) : start
   const days = now === null ? null : Math.ceil((deadline - startOfDay(now)) / DAY)
+  const open = certs.filter((e) => isSession(e) && !e.done)
+  const passed = days !== null && days < 0 && open.length > 0
+  const late = open.filter((e) => parseLocal(e.end) > end).length
 
   return (
     <section
@@ -124,6 +130,21 @@ export function Runway({ plan, now, onSelect, onConfigure }: Props) {
             />
           )}
         </div>
+        {(passed || late > 0) && (
+          <p className="flex flex-wrap items-baseline gap-x-3 text-[13px] text-today-ink">
+            <span>{passed ? m.runway_open_after({ count: open.length }) : m.runway_late({ count: late })}</span>
+            {onReschedule && (
+              <button
+                type="button"
+                className="font-semibold text-focus hover:underline"
+                aria-label={m.reschedule_course({ name: calendar.name })}
+                onClick={() => onReschedule(calendar.id)}
+              >
+                {m.reschedule()}
+              </button>
+            )}
+          </p>
+        )}
       </div>
       <div className="relative h-[92px]">
         <div className="absolute inset-x-0 top-10 h-3 overflow-hidden rounded-md bg-line-soft">

@@ -31,6 +31,8 @@ interface Props {
   onPickWeek: (monday: number) => void
   onPickDay: (day: number) => void
   onReview: () => void
+  /** Present where the plan can be changed and the week is not over: opens Reschedule for it */
+  onReschedule?: (() => void) | undefined
 }
 
 /**
@@ -48,6 +50,7 @@ export function InsightTabs({
   onPickWeek,
   onPickDay,
   onReview,
+  onReschedule,
 }: Props) {
   const [tab, setTab] = useState<Tab>('week')
   const body = useRef<HTMLDivElement>(null)
@@ -73,7 +76,7 @@ export function InsightTabs({
       {/* Capped on a wide screen so a long course list scrolls inside the card instead of stretching the page. */}
       <div ref={body} className="lg:overflow-y-auto lg:pr-3" style={{ maxHeight }}>
         {tab === 'week' && (
-          <BudgetPanel plan={plan} weekItems={weekItems}>
+          <BudgetPanel plan={plan} weekItems={weekItems} onReschedule={onReschedule}>
             <GoalLadder plan={plan} weekStart={weekStart} onReview={onReview} />
           </BudgetPanel>
         )}

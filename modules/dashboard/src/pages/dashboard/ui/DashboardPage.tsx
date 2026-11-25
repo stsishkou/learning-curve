@@ -7,6 +7,8 @@ import {
   parseLocal,
   planStats,
   shownPlan,
+  startOfDay,
+  ymd,
   type Plan,
   type WeekStats,
 } from '@lc/plan-domain'
@@ -46,6 +48,10 @@ interface Props {
   onExpandedChange?: ((expanded: boolean) => void) | undefined
   /** Present when the host can open the done sessions without a time, to fill them in */
   onFillTimes?: (() => void) | undefined
+  /** Present when the host can open Catch up for the missed sessions */
+  onCatchUp?: (() => void) | undefined
+  /** Present when the host can open Reschedule from a day, `YYYY-MM-DD`, with the calendar to re-balance */
+  onReschedule?: ((target: { from: string; calendar?: string | undefined }) => void) | undefined
 }
 
 // The negative margins take the bar to the edges of the page padding, as the page header does.
@@ -71,6 +77,8 @@ export function DashboardPage({
   expanded = false,
   onExpandedChange,
   onFillTimes,
+  onCatchUp,
+  onReschedule,
 }: Props) {
   const clock = useNow()
   const now = fixed ?? clock
@@ -151,14 +159,31 @@ export function DashboardPage({
         )}
       </div>
 
-      <StatTiles plan={plan} stats={stats} now={now} forecast={finish} />
+      <StatTiles plan={plan} stats={stats} now={now} forecast={finish} onCatchUp={onCatchUp} />
       <StudyStreak plan={plan} now={now} />
       <BurnUp stats={stats} now={now} forecast={finish} range={range} />
-      <PaceForecast plan={plan} now={now} onFillTimes={onFillTimes} />
+      <PaceForecast
+        plan={plan}
+        now={now}
+        onFillTimes={onFillTimes}
+        onReschedule={
+          onReschedule && now !== null ? (calendar) => onReschedule({ from: ymd(now), calendar }) : undefined
+        }
+      />
       <RatioStrip plan={plan} />
       <BiasTrend plan={plan} />
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <WeeklyLoad plan={plan} stats={stats} now={now} byLabel={labelled && byLabel} />
+        <WeeklyLoad
+          plan={plan}
+          stats={stats}
+          now={now}
+          byLabel={labelled && byLabel}
+          onReschedule={
+            onReschedule && now !== null
+              ? (monday) => onReschedule({ from: ymd(Math.max(monday, startOfDay(now))) })
+              : undefined
+          }
+        />
         <CourseBars plan={plan} byLabel={labelled && byLabel} />
       </div>
 

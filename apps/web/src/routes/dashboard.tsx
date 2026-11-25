@@ -1,4 +1,5 @@
 import { DashboardPage, parseDashboardSearch } from '@lc/dashboard'
+import { mondayOf, parseLocal, ymd } from '@lc/plan-domain'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { getPlanState } from '#/server/plan'
@@ -19,6 +20,14 @@ function DashboardRoute() {
       expanded={Route.useSearch().expanded === true}
       onExpandedChange={(next) => void navigate({ search: { expanded: next || undefined }, resetScroll: false })}
       onFillTimes={() => void navigate({ to: '/', search: { fill: true } })}
+      onCatchUp={() => void navigate({ to: '/', search: { open: 'catchUp' } })}
+      // The planner opens on the week Reschedule starts in.
+      onReschedule={({ from, calendar }) =>
+        void navigate({
+          to: '/',
+          search: { reschedule: from, calendar, week: ymd(mondayOf(parseLocal(`${from}T00:00`))) },
+        })
+      }
       headerAside={<ShellAside />}
     />
   )

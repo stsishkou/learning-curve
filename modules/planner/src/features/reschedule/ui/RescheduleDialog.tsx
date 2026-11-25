@@ -21,7 +21,7 @@ import {
 import { Button, FIELD, FOOT, INPUT, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useId, useMemo, useState, type SubmitEvent } from 'react'
 
-import { RuleWarningList } from '../../../shared/ui'
+import { PlanDiffList, RuleWarningList } from '../../../shared/ui'
 import { finishByRequest } from '../model/finish-by-request'
 import { useRebalance, type Rebalance } from '../model/use-rebalance'
 import { CalendarPicker } from './CalendarPicker'
@@ -65,6 +65,11 @@ function paceNow(plan: Plan, calendar: string | undefined, from: string): Pace {
   const now = calendar ? currentPace(plan, calendar, from) : null
   const nearest = now === null ? 1 : nearestPace(now)
   return PACE_OPTIONS.find((p) => p.perDay === nearest)?.key ?? '1'
+}
+const LABELS = {
+  added: (count: number) => m.ai_added({ count }),
+  removed: (count: number) => m.ai_removed({ count }),
+  changed: (count: number) => m.reschedule_list({ count }),
 }
 const CHECK = 'flex items-center gap-2 text-[13.5px] text-ink'
 const HINT = 'text-[12.5px] text-muted'
@@ -149,7 +154,11 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
   )
   const shifting = count > 0 && (days !== 0 || hours !== 0)
   const step = rebalancing ? moves : shifting ? shift : null
-  const warnings = useMemo(() => (step ? previewUpdate(plan, [step]).warnings : []), [plan, step])
+  const preview = useMemo(() => (step ? previewUpdate(plan, [step]) : null), [plan, step])
+  const warnings = preview?.warnings ?? []
+  const moved = preview && preview.diff.changed.length > 0 && (
+    <PlanDiffList diff={preview.diff} after={preview.after} before={plan} labels={LABELS} />
+  )
   const ready = rebalancing
     ? request !== null && !outcome.working && result?.report.unplaced === 0 && (moves !== null || deadlineStep !== null)
     : shifting || deadlineStep !== null
@@ -301,6 +310,7 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
               </label>
             </div>
             {request && <Summary {...outcome} />}
+            {moved}
             <RuleWarningList warnings={warnings} />
           </>
         ) : (
@@ -348,6 +358,7 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
           <p className="text-[13.5px] text-muted" role="status">
             {m.shift_count({ count })}
           </p>
+          {moved}
           <RuleWarningList warnings={warnings} />
         </>
       )}
