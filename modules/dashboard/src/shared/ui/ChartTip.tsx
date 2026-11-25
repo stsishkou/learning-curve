@@ -16,9 +16,10 @@ export function ChartTip({ tip, width }: { tip: Tip | null; width: number }) {
     >
       <div className="mb-1 font-semibold">{tip.title}</div>
       {tip.rows.map((row) => (
-        <div key={row.label} className="flex items-center gap-2">
+        // In a narrow chart the label goes under its value rather than splitting it.
+        <div key={row.label} className="flex flex-wrap items-center gap-x-2">
           {row.color && <span aria-hidden className="h-0.5 w-3 rounded-full" style={{ background: row.color }} />}
-          <b className="font-semibold tabular-nums">{row.value}</b>
+          <b className="font-semibold whitespace-nowrap tabular-nums">{row.value}</b>
           <span className="text-muted">{row.label}</span>
         </div>
       ))}

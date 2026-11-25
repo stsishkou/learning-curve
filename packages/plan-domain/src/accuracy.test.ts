@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { MIN_LOGGED, accuracyOf } from './accuracy'
+import { MIN_LOGGED, accuracyOf, runningTypical } from './accuracy'
 import { mondayOf, parseLocal } from './dates'
 import { applyEdits, emptyEdits } from './edits'
 import { itemAt } from './fixtures'
@@ -118,5 +118,38 @@ describe('referenceClass', () => {
     const like = referenceClass(plan, ahead)
     expect(like?.count).toBe(MIN_LOGGED)
     expect(like?.typical.ratio).toBeCloseTo(1)
+  })
+})
+
+const sessionsAt = (actuals: number[]) => sessionsOf(finished(actuals))
+
+describe('runningTypical', () => {
+  test(`starts at the ${MIN_LOGGED}th logged session`, () => {
+    expect(runningTypical(sessionsAt([75, 75, 75, 75, 75]))).toEqual([])
+    expect(runningTypical(sessionsAt([75, 75, 75, 75, 75, 75, 75, 75])).map((point) => point.count)).toEqual([6, 7, 8])
+  })
+
+  test('gives the typical session after each one, which settles as they agree', () => {
+    const points = runningTypical(sessionsAt([60, 90, 60, 90, 60, 90, 60, 90, 60, 90, 60, 90]))
+    const [first] = points
+    const last = points.at(-1)
+    if (!first || !last) throw new Error('No points')
+    expect(last.typical.ratio).toBeCloseTo(Math.sqrt(1.5))
+    expect(last.typical.high - last.typical.low).toBeLessThan(first.typical.high - first.typical.low)
+  })
+
+  test('orders the sessions by when they were really done, not by their plan', () => {
+    const plan = finished([60, 60, 60, 60, 60, 60, 120])
+    const [early] = certs
+    if (!early) throw new Error('No session')
+    // The first planned session was done last, on its own, after the others.
+    const late = {
+      ...plan,
+      events: plan.events.map((e) => (e.uid === early.uid ? { ...e, began: '2027-01-01T10:00' } : e)),
+    }
+    const before = runningTypical(sessionsOf(plan)).map((point) => point.count)
+    expect(before).toEqual([6, 7])
+    const [sixth] = runningTypical(sessionsOf(late))
+    expect(sixth?.typical.ratio).toBeCloseTo(2 ** (1 / 6))
   })
 })

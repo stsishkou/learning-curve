@@ -62,6 +62,28 @@ function geometric(ratios: number[]): RatioSummary {
 
 const hoursOf = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.start)) / HOUR
 
+/** The typical session once `count` sessions were logged. */
+export interface TypicalAt {
+  count: number
+  typical: RatioSummary
+}
+
+/**
+ * The typical session after each logged session, from the `MIN_LOGGED`th on, in the order they were really done:
+ * the stopwatch's start where there is one, the planned start otherwise. A band that narrows is the estimate
+ * settling; a line that leaves ×1 is a drift (docs/estimate-accuracy-research.md, view 4).
+ */
+export function runningTypical(sessions: readonly PlanEvent[]): TypicalAt[] {
+  const ratios = sessions
+    .filter((e) => e.done && e.actual !== undefined && hoursOf(e) > 0)
+    .toSorted((a, b) => (a.began ?? a.start).localeCompare(b.began ?? b.start))
+    .map((e) => (e.actual ?? 0) / 60 / hoursOf(e))
+  return ratios.slice(MIN_LOGGED - 1).map((_, i) => ({
+    count: MIN_LOGGED + i,
+    typical: geometric(ratios.slice(0, MIN_LOGGED + i)),
+  }))
+}
+
 /** What the logged time of `sessions` says about their planned lengths. Only the done ones count. */
 export function accuracyOf(sessions: readonly PlanEvent[]): Accuracy {
   const done = sessions.filter((e) => e.done)

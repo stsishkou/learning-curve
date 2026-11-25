@@ -5,6 +5,7 @@ import { HelpToggle, IconsToggle, PageHeader, ScreenButtons, stickyTop, useFulls
 import { useMemo, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
+import { BiasTrend } from '../../../widgets/bias-trend'
 import { BurnUp } from '../../../widgets/burn-up'
 import { CourseBars } from '../../../widgets/course-bars'
 import { PaceForecast } from '../../../widgets/pace-forecast'
@@ -116,6 +117,7 @@ export function DashboardPage({
       <BurnUp stats={stats} now={now} forecast={now === null ? null : paceForecast(plan, now).finish} />
       <PaceForecast plan={plan} now={now} onFillTimes={onFillTimes} />
       <RatioStrip plan={plan} />
+      <BiasTrend plan={plan} />
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <WeeklyLoad plan={plan} stats={stats} now={now} />
         <CourseBars plan={plan} />
