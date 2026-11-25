@@ -10,7 +10,7 @@
     "stand": "nx run @lc/stand:dev",
     "stand:build": "nx run @lc/stand:build --output-style=stream",
     "stand:test": "nx run @lc/stand:test --output-style=stream",
-    "test": "nx run-many -t test -p @lc/plan-domain @lc/plan-data @lc/planner @lc/docs-contract @lc/docs --output-style=stream",
+    "test": "nx run-many -t test -p @lc/plan-domain @lc/plan-data @lc/planner @lc/i18n @lc/docs-contract @lc/docs --output-style=stream",
     "docs": "nx run @lc/docs:dev",
     "docs:build": "nx run @lc/docs:build --output-style=stream",
     "docs:test": "nx run @lc/docs-harness:test --output-style=stream",
