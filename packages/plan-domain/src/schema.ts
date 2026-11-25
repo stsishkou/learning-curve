@@ -411,7 +411,16 @@ const CHANGES: Schema[] = [
   change(
     'events.done',
     'Marks several sessions finished or not finished, as one step. Only for sessions the person named.',
-    { uids: { type: 'array', minItems: 1, items: UID }, done: { type: 'boolean' } },
+    {
+      uids: { type: 'array', minItems: 1, items: UID },
+      done: { type: 'boolean' },
+      actual: {
+        type: 'object',
+        additionalProperties: { type: 'integer', minimum: 5, maximum: 1440 },
+        description:
+          'Minutes each finished session really took, by its `uid`, for the ones the person told. Only with `"done": true`.',
+      },
+    },
     ['uids', 'done'],
   ),
   change(

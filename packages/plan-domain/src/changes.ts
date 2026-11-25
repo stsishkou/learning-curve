@@ -92,8 +92,8 @@ export type PlanChange =
       reason?: 'rebalance' | undefined
       calendar?: string | undefined
     }
-  /** Marks several sessions done or not done as one step */
-  | { type: 'events.done'; uids: string[]; done: boolean }
+  /** Marks several sessions done or not done as one step; `actual` logs the minutes some of them took, by uid */
+  | { type: 'events.done'; uids: string[]; done: boolean; actual?: Record<string, number> | undefined }
   /**
    * Finishes a session timed by the Focus page's stopwatch: done, with the minutes worked, the moment the stopwatch
    * first started (Minsk wall-clock) and the minutes it stood paused. Only the app sends it, never an update
@@ -324,7 +324,20 @@ export function parseChange(input: unknown): PlanChange {
       if (!Array.isArray(uids) || !uids.every((uid) => typeof uid === 'string') || typeof done !== 'boolean') {
         return fail('uids must be a list of ids and done a boolean')
       }
-      return { type: 'events.done', uids, done }
+      if (input.actual === undefined) return { type: 'events.done', uids, done }
+      const times = input.actual
+      if (!done || !isRecord(times) || Array.isArray(times)) {
+        return fail('actual gives minutes by uid, only for sessions marked done')
+      }
+      const actual: Record<string, number> = {}
+      for (const [uid, minutes] of Object.entries(times)) {
+        const logged = parsePatch({ actual: minutes })?.actual
+        if (!uids.includes(uid) || logged === undefined) {
+          return fail(`actual of "${uid}" must be 5 to 1440 whole minutes, for a session in uids`)
+        }
+        actual[uid] = logged
+      }
+      return { type: 'events.done', uids, done, actual }
     }
     case 'session.finish': {
       const { actual, began, paused } =
@@ -573,10 +586,11 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       const known = new Set(applyEdits(base, next).plan.events.map((e) => e.uid))
       return change.uids
         .filter((uid) => known.has(uid))
-        .reduce(
-          (sofar, uid) => applyChange(base, sofar, { type: 'event.patch', uid, patch: { done: change.done } }, now),
-          next,
-        )
+        .reduce((sofar, uid) => {
+          const actual = change.done ? change.actual?.[uid] : undefined
+          const patch: EventPatch = actual === undefined ? { done: change.done } : { done: true, actual }
+          return applyChange(base, sofar, { type: 'event.patch', uid, patch }, now)
+        }, next)
     }
     case 'session.finish': {
       const { uid, actual, began, paused } = change

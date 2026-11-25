@@ -91,7 +91,7 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
     reason: 'rebalance',
     calendar: 'certs',
   },
-  'events.done': { type: 'events.done', uids: [SESSION], done: true },
+  'events.done': { type: 'events.done', uids: [SESSION, NEXT], done: true, actual: { [SESSION]: 70 } },
   'session.finish': { type: 'session.finish', uid: SESSION, actual: 68, began: '2026-11-23T12:04', paused: 7 },
   'plan.rename': { type: 'plan.rename', title: 'Another plan' },
   'plan.countdown': { type: 'plan.countdown', calendar: 'hfllm' },
@@ -150,6 +150,28 @@ describe('event.patch', () => {
     expect(find(planOf(done), SESSION)).toMatchObject({ done: true, actual: 75 })
     const undone = apply([{ type: 'event.patch', uid: SESSION, patch: { done: false } }], done)
     expect(find(planOf(undone), SESSION)?.actual).toBeUndefined()
+  })
+})
+
+describe('events.done', () => {
+  test('logs the minutes given for each session it marks done; the others stay without a time', () => {
+    const plan = planOf(apply([EXAMPLES['events.done']]))
+    expect(find(plan, SESSION)).toMatchObject({ done: true, actual: 70 })
+    expect(find(plan, NEXT)).toMatchObject({ done: true })
+    expect(find(plan, NEXT)).not.toHaveProperty('actual')
+  })
+
+  test('refuses times out of range, for a session it does not name, or when it marks sessions not done', () => {
+    const bad = [
+      { actual: { [SESSION]: 4 } },
+      { actual: { [SESSION]: 61.5 } },
+      { actual: { [GYM]: 60 } },
+      { actual: [60] },
+      { done: false, actual: { [SESSION]: 60 } },
+    ]
+    for (const fields of bad) {
+      expect(() => parseChange({ ...EXAMPLES['events.done'], ...fields }), JSON.stringify(fields)).toThrow()
+    }
   })
 })
 

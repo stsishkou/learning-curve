@@ -60,10 +60,10 @@ export function planGuide(plan: Plan, now: number): string {
   const courseStart = mondayOf(now) + 28 * DAY
   const example = {
     format: UPDATE_FORMAT,
-    summary: 'Moved one session to Thursday evening and marked another done.',
+    summary: 'Moved one session to Thursday evening and marked it done with the 75 minutes it took.',
     changes: [
       { type: 'event.patch', uid, patch: { start: `${thursday}T19:00`, end: `${thursday}T20:00` } },
-      { type: 'events.done', uids: [uid], done: true },
+      { type: 'events.done', uids: [uid], done: true, actual: { [uid]: 75 } },
     ],
   }
   const course = {
@@ -235,8 +235,8 @@ ${code(habit)}
 
 ## How to give other updates
 
-- **Finished sessions**: \`events.done\` with their uids. Time spent, when the person says it: \`event.patch\` with
-  \`actual\` in minutes. \`measured\`, \`began\` and \`paused\` are written by the stopwatch of the Focus page: read
+- **Finished sessions**: \`events.done\` with their uids, and the minutes each took in \`actual\` (by uid) when the
+  person says them. Time spent on one session: \`event.patch\` with \`actual\` in minutes. \`measured\`, \`began\` and \`paused\` are written by the stopwatch of the Focus page: read
   them, never send them. A time you send replaces them, as the person recalled it. When the person says a session
   ended before its goal was met, add \`unfinished: true\` to the same patch: the rest of the module goes on later.
 - **Moving a few sessions**: one \`events.move\` with all of them, so it is one step to undo.
