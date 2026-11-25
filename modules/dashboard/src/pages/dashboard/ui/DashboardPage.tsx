@@ -67,6 +67,7 @@ export function DashboardPage({
   // Calendars hidden from the list in the planner are out of the charts too.
   const plan = useMemo(() => shownPlan(wholePlan), [wholePlan])
   const stats = useMemo(() => planStats(plan, now ?? 0), [plan, now])
+  const finish = useMemo<number | null>(() => (now === null ? null : paceForecast(plan, now).finish), [plan, now])
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   const range = useMemo(() => (now === null ? null : finishRange(plan, now)), [plan, now])
   const fullscreen = useFullscreen()
@@ -125,9 +126,9 @@ export function DashboardPage({
         )}
       </div>
 
-      <StatTiles plan={plan} stats={stats} now={now} />
+      <StatTiles plan={plan} stats={stats} now={now} forecast={finish} />
       <StudyStreak plan={plan} now={now} />
-      <BurnUp stats={stats} now={now} forecast={now === null ? null : paceForecast(plan, now).finish} range={range} />
+      <BurnUp stats={stats} now={now} forecast={finish} range={range} />
       <PaceForecast plan={plan} now={now} onFillTimes={onFillTimes} />
       <RatioStrip plan={plan} />
       <BiasTrend plan={plan} />

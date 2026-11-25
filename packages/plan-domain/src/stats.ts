@@ -21,8 +21,6 @@ export interface PlanStats {
   doneSessions: number
   /** Hours of the sessions that should be over by now */
   plannedByNow: number
-  /** The day the remaining hours run out at the pace so far, wall-clock ms; null before anything is done */
-  forecast: number | null
 }
 
 /** Numbers behind the progress dashboard. `now` is wall-clock ms. */
@@ -35,7 +33,6 @@ export function planStats(plan: Plan, now: number): PlanStats {
     sessions: sessions.length,
     doneSessions: 0,
     plannedByNow: 0,
-    forecast: null,
   }
   if (!sessions.length) return stats
 
@@ -60,10 +57,6 @@ export function planStats(plan: Plan, now: number): PlanStats {
       stats.done += hours
       stats.doneSessions += 1
     }
-  }
-  const elapsed = now - first
-  if (stats.done > 0 && elapsed > 0) {
-    stats.forecast = now + ((stats.planned - stats.done) / stats.done) * elapsed
   }
   return stats
 }

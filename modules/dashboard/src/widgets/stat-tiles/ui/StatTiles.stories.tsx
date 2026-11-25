@@ -1,5 +1,5 @@
 import { m } from '@lc/i18n/messages'
-import { planStats, type Plan } from '@lc/plan-domain'
+import { paceForecast, planStats, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
@@ -11,7 +11,7 @@ const stats = planStats(fixturePlan, fixtureNow)
 const meta = {
   title: 'Dashboard/Widgets/StatTiles',
   component: StatTiles,
-  args: { plan: fixturePlan, stats, now: fixtureNow },
+  args: { plan: fixturePlan, stats, now: fixtureNow, forecast: paceForecast(fixturePlan, fixtureNow).finish },
   argTypes: { plan: { control: false }, stats: { control: false } },
 } satisfies Meta<typeof StatTiles>
 

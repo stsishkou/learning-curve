@@ -144,7 +144,7 @@ export function Runway({ plan, now, onSelect, onConfigure }: Props) {
               </small>
             </div>
             {g.labs.map((lab, j) => {
-              const done = now !== null && parseLocal(lab.end) <= now
+              const done = lab.done === true
               return (
                 <button
                   key={lab.uid}

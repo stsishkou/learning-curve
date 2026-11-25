@@ -10,10 +10,12 @@ interface Props {
   stats: PlanStats
   /** Wall-clock ms; null before the clock is known */
   now: number | null
+  /** The day the rest runs out at the real pace (`paceForecast`), the date the burn-up draws; null when unknown */
+  forecast: number | null
 }
 
 /** The headline numbers: how much is done, how far ahead of the plan's schedule that is, and how much time is left. */
-export function StatTiles({ plan, stats, now }: Props) {
+export function StatTiles({ plan, stats, now, forecast }: Props) {
   const share = stats.planned ? stats.done / stats.planned : 0
   const lead = stats.done - stats.plannedByNow
   const target = now === null ? null : countdown(plan, now)
@@ -55,8 +57,8 @@ export function StatTiles({ plan, stats, now }: Props) {
       <Tile
         label={m.dash_deadline()}
         note={
-          stats.forecast !== null
-            ? m.dash_forecast({ date: fmtDay(stats.forecast) })
+          forecast !== null
+            ? m.dash_forecast({ date: fmtDay(forecast) })
             : deadline !== null
               ? fmtDay(deadline)
               : undefined
