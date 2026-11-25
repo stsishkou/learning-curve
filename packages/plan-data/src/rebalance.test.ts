@@ -2,7 +2,7 @@ import {
   DAY,
   DEFAULT_CONFIG,
   HOUR,
-  PACES,
+  RHYTHMS,
   buildPlan,
   defaultStudyHours,
   mondayOf,
@@ -109,12 +109,12 @@ function generated(seed: number): { plan: Plan; request: RebalanceRequest } {
   }
   const holidays = Array.from({ length: Math.floor(next() * 3) }, () => ymd(MONDAY + Math.floor(next() * 40) * DAY))
   const deadlineMode = next() < 0.5
-  const perDay = itemAt(PACES, Math.floor(next() * PACES.length))
+  const perDay = itemAt(RHYTHMS, Math.floor(next() * RHYTHMS.length))
   const request: RebalanceRequest = {
     calendar: 'c0',
     from: '2026-12-07',
     deadline: deadlineMode ? ymd(MONDAY + Math.ceil(sessions.length * 1.2) * DAY) : undefined,
-    target: deadlineMode ? { mode: 'deadline' } : { mode: 'pace', perDay },
+    target: deadlineMode ? { mode: 'deadline' } : { mode: 'rhythm', perDay },
     overBudget: next() < 0.3,
     hours: next() < 0.5 ? { from: '11:00', to: '14:00' } : { from: '10:00', to: '15:00' },
   }
@@ -237,7 +237,7 @@ describe('planRebalance in particular cases', () => {
     const request: RebalanceRequest = {
       calendar: 'c0',
       from: '2026-12-07',
-      target: { mode: 'pace', perDay: 2 },
+      target: { mode: 'rhythm', perDay: 2 },
       overBudget: false,
       hours: { from: '11:00', to: '14:00' },
     }
@@ -252,7 +252,7 @@ describe('planRebalance in particular cases', () => {
     const request: RebalanceRequest = {
       calendar: 'c0',
       from: '2026-12-07',
-      target: { mode: 'pace', perDay: 1 / 2 },
+      target: { mode: 'rhythm', perDay: 1 / 2 },
       overBudget: false,
       hours: { from: '11:00', to: '14:00' },
     }
@@ -271,7 +271,7 @@ describe('planRebalance in particular cases', () => {
     const request: RebalanceRequest = {
       calendar: 'c0',
       from: '2026-12-07',
-      target: { mode: 'pace', perDay: 1 },
+      target: { mode: 'rhythm', perDay: 1 },
       overBudget: false,
       hours: { from: '11:00', to: '14:00' },
     }
@@ -285,7 +285,7 @@ describe('planRebalance in particular cases', () => {
     const request: RebalanceRequest = {
       calendar: 'c0',
       from: '2026-12-07',
-      target: { mode: 'pace', perDay: 1 },
+      target: { mode: 'rhythm', perDay: 1 },
       overBudget: false,
       hours: { from: '11:00', to: '14:00' },
     }
@@ -300,7 +300,7 @@ describe('planRebalance in particular cases', () => {
     const request: RebalanceRequest = {
       calendar: 'c0',
       from: '2026-12-07',
-      target: { mode: 'pace', perDay: 1 },
+      target: { mode: 'rhythm', perDay: 1 },
       overBudget: false,
       hours: { from: '11:00', to: '14:00' },
     }
@@ -315,7 +315,7 @@ describe('planRebalance in particular cases', () => {
     const request: RebalanceRequest = {
       calendar: 'c0',
       from: '2026-12-07',
-      target: { mode: 'pace', perDay: 3 },
+      target: { mode: 'rhythm', perDay: 3 },
       overBudget: false,
       hours: { from: '11:00', to: '14:00' },
     }
@@ -402,10 +402,10 @@ const crowd = (plan: Plan, request: RebalanceRequest, result: RebalanceResult) =
   return Math.max(0, ...count.values())
 }
 
-const paceRequest = (calendar: string, from: string, perDay: number): RebalanceRequest => ({
+const rhythmRequest = (calendar: string, from: string, perDay: number): RebalanceRequest => ({
   calendar,
   from,
-  target: { mode: 'pace', perDay },
+  target: { mode: 'rhythm', perDay },
   overBudget: false,
   hours: { from: '11:00', to: '14:00' },
 })
@@ -415,7 +415,7 @@ describe('a re-balance never makes up for lost days with a crunch', () => {
     // One a weekday from Monday 7 December; it is now Wednesday 16 December, so seven of them were missed.
     const plan = planOf(course(15, () => 0.5))
     const now = parseLocal('2026-12-16T08:00')
-    const request = paceRequest('c0', '2026-12-07', 1)
+    const request = rhythmRequest('c0', '2026-12-07', 1)
     const result = await rebalance(plan, request, now)
     expect(crowd(plan, request, result)).toBe(1)
     expect(daysAfter(plan, request, result)[0]).toBe('2026-12-16')
@@ -429,7 +429,7 @@ describe('a re-balance never makes up for lost days with a crunch', () => {
       event('c1', `c1-${k}`, parseLocal('2026-12-07T17:00') + k * DAY, 2 * HOUR),
     )
     const plan = planOf([...sessions, ...evenings])
-    const request = paceRequest('c0', '2026-12-07', 1)
+    const request = rhythmRequest('c0', '2026-12-07', 1)
     const result = await rebalance(plan, request)
     expect(crowd(plan, request, result)).toBe(1)
     expect(result.moves).toEqual([])
@@ -442,9 +442,9 @@ describe('a re-balance never makes up for lost days with a crunch', () => {
     )
     const plan = planOf(sessions)
     const now = parseLocal('2026-12-12T08:00')
-    const weekly = await rebalance(plan, paceRequest('c0', '2026-12-12', 1), now)
+    const weekly = await rebalance(plan, rhythmRequest('c0', '2026-12-12', 1), now)
     expect(weekly.moves).toEqual([])
-    const request = paceRequest('c0', '2026-12-12', 1 / 2)
+    const request = rhythmRequest('c0', '2026-12-12', 1 / 2)
     const fortnightly = await rebalance(plan, request, now)
     const days = daysAfter(plan, request, fortnightly).map((day) => parseLocal(`${day}T00:00`))
     expect(days.slice(1).map((d, i) => (d - (days[i] ?? 0)) / DAY)).toEqual(Array.from({ length: 9 }, () => 14))
@@ -454,12 +454,12 @@ describe('a re-balance never makes up for lost days with a crunch', () => {
 describe('on the generated schedule of this repository', () => {
   const START = parseLocal('2027-01-04T08:00')
 
-  // Each pace solves a real course of some 35 sessions; a level may take its two seconds.
-  test.each(PACES.map((perDay) => [perDay]))(
-    'HF LLM at %d a day finds room for every session and never crowds a day beyond the pace',
+  // Each rhythm solves a real course of some 35 sessions; a level may take its two seconds.
+  test.each(RHYTHMS.map((perDay) => [perDay]))(
+    'HF LLM at %d a day finds room for every session and never crowds a day beyond the rhythm',
     async (perDay) => {
       const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
-      const request = paceRequest('hfllm', '2027-01-04', perDay)
+      const request = rhythmRequest('hfllm', '2027-01-04', perDay)
       const result = await rebalance(plan, request, START)
       expect(result.report.unplaced).toBe(0)
       expect(crowd(plan, request, result)).toBeLessThanOrEqual(Math.ceil(perDay))
@@ -470,8 +470,8 @@ describe('on the generated schedule of this repository', () => {
 
   test('HF LLM at one every three days moves the course and ends later than at one a day', async () => {
     const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
-    const slow = await rebalance(plan, paceRequest('hfllm', '2027-01-04', 1 / 3), START)
-    const daily = await rebalance(plan, paceRequest('hfllm', '2027-01-04', 1), START)
+    const slow = await rebalance(plan, rhythmRequest('hfllm', '2027-01-04', 1 / 3), START)
+    const daily = await rebalance(plan, rhythmRequest('hfllm', '2027-01-04', 1), START)
     expect(slow.moves.length).toBeGreaterThan(0)
     expect((slow.report.finish ?? '') > (daily.report.finish ?? '')).toBe(true)
   }, 30_000)
@@ -481,7 +481,7 @@ describe('on the generated schedule of this repository', () => {
     async (deadline) => {
       const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
       const request: RebalanceRequest = {
-        ...paceRequest('hfllm', '2027-01-04', 1),
+        ...rhythmRequest('hfllm', '2027-01-04', 1),
         deadline,
         target: { mode: 'deadline' },
       }
@@ -514,11 +514,11 @@ describe('on the generated schedule of this repository', () => {
 describe('requestFromTool', () => {
   test('the MCP arguments map to a request', () => {
     const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
-    expect(requestFromTool({ calendar: 'hfllm', from: '2027-01-04', mode: 'pace', perDay: 0.5 }, plan)).toEqual({
+    expect(requestFromTool({ calendar: 'hfllm', from: '2027-01-04', mode: 'rhythm', perDay: 0.5 }, plan)).toEqual({
       calendar: 'hfllm',
       from: '2027-01-04',
       deadline: undefined,
-      target: { mode: 'pace', perDay: 0.5 },
+      target: { mode: 'rhythm', perDay: 0.5 },
       overBudget: false,
       hours: defaultStudyHours(plan),
     })

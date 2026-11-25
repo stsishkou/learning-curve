@@ -4,7 +4,7 @@ import { isRecord } from '../edits'
 import { isSession } from '../progress'
 import type { Plan, PlanEvent } from '../types'
 import { studyWeekdays } from './room'
-import { PACES, type RebalanceRequest, type RebalanceTarget } from './types'
+import { RHYTHMS, type RebalanceRequest, type RebalanceTarget } from './types'
 
 const DAY_TEXT = /^\d{4}-\d{2}-\d{2}$/
 const HOUR_TEXT = /^(?:[01]\d|2[0-3]):[03]0$|^24:00$/
@@ -42,12 +42,12 @@ const sameNumber = (a: number, b: number) => Math.abs(a - b) < 1e-9
 
 function target(value: unknown): RebalanceTarget {
   if (isRecord(value) && value.mode === 'deadline') return { mode: 'deadline' }
-  if (isRecord(value) && value.mode === 'pace' && typeof value.perDay === 'number') {
+  if (isRecord(value) && value.mode === 'rhythm' && typeof value.perDay === 'number') {
     const { perDay } = value
-    const pace = PACES.find((p) => sameNumber(p, perDay))
-    if (pace !== undefined) return { mode: 'pace', perDay: pace }
+    const rhythm = RHYTHMS.find((p) => sameNumber(p, perDay))
+    if (rhythm !== undefined) return { mode: 'rhythm', perDay: rhythm }
   }
-  throw new Error('The pace must be one of 1/3, 1/2, 1, 3/2, 2, 3 sessions a day')
+  throw new Error('The rhythm must be one of 1/3, 1/2, 1, 3/2, 2, 3 sessions a day')
 }
 
 /** A re-balance request as it comes from the dialog or a tool, checked against the plan it is for. */
@@ -101,7 +101,7 @@ export const movingSessions = (plan: Plan, request: Pick<RebalanceRequest, 'cale
  * How many of the calendar's open sessions it has per study day now, from its first open session on `from` or later
  * to its last, counting study days as a re-balance does; null for fewer than two sessions.
  */
-export function currentPace(plan: Plan, calendar: string, from: string): number | null {
+export function currentRhythm(plan: Plan, calendar: string, from: string): number | null {
   const sessions = movingSessions(plan, { calendar, from })
   const [first] = sessions
   const last = sessions.at(-1)
@@ -115,9 +115,9 @@ export function currentPace(plan: Plan, calendar: string, from: string): number 
   return days ? sessions.length / days : null
 }
 
-/** The pace the dialog offers that is nearest to `perDay`, by ratio: twice as fast is as far as half as fast. */
-export const nearestPace = (perDay: number): (typeof PACES)[number] =>
-  PACES.reduce<(typeof PACES)[number]>(
-    (best, pace) => (Math.abs(Math.log(pace / perDay)) < Math.abs(Math.log(best / perDay)) ? pace : best),
+/** The rhythm the dialog offers that is nearest to `perDay`, by ratio: twice as fast is as far as half as fast. */
+export const nearestRhythm = (perDay: number): (typeof RHYTHMS)[number] =>
+  RHYTHMS.reduce<(typeof RHYTHMS)[number]>(
+    (best, rhythm) => (Math.abs(Math.log(rhythm / perDay)) < Math.abs(Math.log(best / perDay)) ? rhythm : best),
     1,
   )

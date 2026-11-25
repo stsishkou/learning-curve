@@ -71,8 +71,9 @@ Google/Outlook; a single group cannot say "Partner" and "Certification" at once.
 
 ## 5. One forecast, every deadline
 
-- `paceForecast` drives every "at this pace" date (step 0). Reschedule's "pace" (sessions a day) is renamed so
-  "pace" means real time against planned time everywhere.
+- `paceForecast` drives every "at this pace" date (step 0). Reschedule's "pace" (sessions a day) is renamed
+  "rhythm" (`mode: 'rhythm'` in the re-balance request and the MCP tool) so "pace" means real time against
+  planned time everywhere.
 - The runway's stretch after the last session is "spare days" (the timeline's word), and it lists the other
   deadlines ahead under the bar: name, day, days left.
 

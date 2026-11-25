@@ -2,9 +2,9 @@ import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   DAY,
-  currentPace,
+  currentRhythm,
   isSession,
-  nearestPace,
+  nearestRhythm,
   parseLocal,
   toLocalString,
   type Plan,
@@ -59,7 +59,7 @@ async function pick(canvasElement: HTMLElement, id: string) {
   await userEvent.click(await body.findByRole('checkbox', { name: nameOf(id) }))
 }
 
-/** One calendar, then the Re-balance mode: the dialog asks for an answer at the default pace. */
+/** One calendar, then the Re-balance mode: the dialog asks for an answer at the default rhythm. */
 async function rebalanceLlm(canvasElement: HTMLElement) {
   const body = within(canvasElement.ownerDocument.body)
   await pick(canvasElement, 'hfllm')
@@ -168,64 +168,64 @@ export const MoveOntoAnotherEvent: Story = {
   },
 }
 
-const PACE_LABELS = new Map<number, () => string>([
-  [1 / 3, m.reschedule_pace_1_3],
-  [1 / 2, m.reschedule_pace_1_2],
-  [1, m.reschedule_pace_1],
-  [3 / 2, m.reschedule_pace_3_2],
-  [2, m.reschedule_pace_2],
-  [3, m.reschedule_pace_3],
+const RHYTHM_LABELS = new Map<number, () => string>([
+  [1 / 3, m.reschedule_rhythm_1_3],
+  [1 / 2, m.reschedule_rhythm_1_2],
+  [1, m.reschedule_rhythm_1],
+  [3 / 2, m.reschedule_rhythm_3_2],
+  [2, m.reschedule_rhythm_2],
+  [3, m.reschedule_rhythm_3],
 ])
 
 /**
- * The pace says how fast the course goes now, so a choice reads as faster or slower than that; picking Finish by
- * puts a day in the place of the paces, as the one aim the re-balance follows.
+ * The rhythm says how fast the course goes now, so a choice reads as faster or slower than that; picking Finish by
+ * puts a day in the place of the rhythms, as the one aim the re-balance follows.
  */
-export const PaceAgainstTheCurrentOne: Story = {
+export const RhythmAgainstTheCurrentOne: Story = {
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     await rebalanceLlm(canvasElement)
-    const now = currentPace(fixturePlan, 'hfllm', FROM)
-    const label = PACE_LABELS.get(nearestPace(now ?? 1))?.() ?? ''
-    await waitFor(() => expect(body.getByText(m.reschedule_pace_now({ pace: label }))).toBeVisible())
-    await expect(body.getByText(m.reschedule_pace_hint())).toBeVisible()
+    const now = currentRhythm(fixturePlan, 'hfllm', FROM)
+    const label = RHYTHM_LABELS.get(nearestRhythm(now ?? 1))?.() ?? ''
+    await waitFor(() => expect(body.getByText(m.reschedule_rhythm_now({ rhythm: label }))).toBeVisible())
+    await expect(body.getByText(m.reschedule_rhythm_hint())).toBeVisible()
     await userEvent.click(body.getByRole('button', { name: m.reschedule_finish_by() }))
-    await expect(body.queryByRole('button', { name: m.reschedule_pace_1_2() })).toBeNull()
+    await expect(body.queryByRole('button', { name: m.reschedule_rhythm_1_2() })).toBeNull()
     await expect(body.getByText(m.reschedule_finish_hint())).toBeVisible()
   },
 }
 
-/** The pace the LLM course has now, as the dialog offers it */
-const usual = nearestPace(currentPace(fixturePlan, 'hfllm', FROM) ?? 1)
-/** A pace other than the usual one */
+/** The rhythm the LLM course has now, as the dialog offers it */
+const usual = nearestRhythm(currentRhythm(fixturePlan, 'hfllm', FROM) ?? 1)
+/** A rhythm other than the usual one */
 const other = usual === 1 / 2 ? 2 : 1 / 2
 
-/** The pace starts at the course's own, so the first answer keeps its rhythm and only evens it out. */
-export const PaceStartsAtTheCurrentOne: Story = {
+/** The rhythm starts at the course's own, so the first answer keeps its rhythm and only evens it out. */
+export const RhythmStartsAtTheCurrentOne: Story = {
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     await rebalanceLlm(canvasElement)
     await waitFor(() =>
       expect(args.rebalance).toHaveBeenLastCalledWith(
         fixturePlan,
-        expect.objectContaining({ calendar: 'hfllm', target: { mode: 'pace', perDay: usual } }),
+        expect.objectContaining({ calendar: 'hfllm', target: { mode: 'rhythm', perDay: usual } }),
       ),
     )
-    const label = PACE_LABELS.get(usual)?.() ?? ''
+    const label = RHYTHM_LABELS.get(usual)?.() ?? ''
     await expect(body.getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'true')
   },
 }
 
-/** One every two days: the dialog asks for that pace and shows when the course ends then. */
-export const RebalanceByPace: Story = {
+/** One every two days: the dialog asks for that rhythm and shows when the course ends then. */
+export const RebalanceByRhythm: Story = {
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     await rebalanceLlm(canvasElement)
-    await userEvent.click(body.getByRole('button', { name: m.reschedule_pace_1_2() }))
+    await userEvent.click(body.getByRole('button', { name: m.reschedule_rhythm_1_2() }))
     await waitFor(() =>
       expect(args.rebalance).toHaveBeenLastCalledWith(
         fixturePlan,
-        expect.objectContaining({ calendar: 'hfllm', from: FROM, target: { mode: 'pace', perDay: 0.5 } }),
+        expect.objectContaining({ calendar: 'hfllm', from: FROM, target: { mode: 'rhythm', perDay: 0.5 } }),
       ),
     )
     await expect(await body.findByText(ends('2027-02-15'))).toBeVisible()
@@ -365,7 +365,7 @@ export const Shortfall: Story = {
 export const OlderAnswerNeverWins: Story = {
   args: {
     rebalance: fn(async (_plan: Plan, request: RebalanceRequest) => {
-      const older = request.target.mode === 'pace' && request.target.perDay === usual
+      const older = request.target.mode === 'rhythm' && request.target.perDay === usual
       await pause(older ? 1200 : 50)
       return result({ finish: older ? '2027-03-10' : '2027-02-20' })
     }),
@@ -374,7 +374,7 @@ export const OlderAnswerNeverWins: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await rebalanceLlm(canvasElement)
     await waitFor(() => expect(args.rebalance).toHaveBeenCalledTimes(1))
-    await userEvent.click(body.getByRole('button', { name: PACE_LABELS.get(other)?.() ?? '' }))
+    await userEvent.click(body.getByRole('button', { name: RHYTHM_LABELS.get(other)?.() ?? '' }))
     await expect(await body.findByText(ends('2027-02-20'), {}, { timeout: 2000 })).toBeVisible()
     await pause(1400)
     await expect(body.getByText(ends('2027-02-20'))).toBeVisible()

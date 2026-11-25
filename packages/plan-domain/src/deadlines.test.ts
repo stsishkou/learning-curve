@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import { parseLocal } from './dates'
-import { countdown, deadlineChange, deadlineEvent, deadlineOf, nextDeadline } from './deadlines'
+import { countdown, deadlineChange, deadlineEvent, deadlineOf, deadlinesAhead, nextDeadline } from './deadlines'
 import { fixturePlan, itemAt } from './fixtures'
 import { planOutlook } from './replan'
 import type { Plan, PlanEvent } from './types'
@@ -60,6 +60,21 @@ describe('nextDeadline', () => {
 
   test('skips deadlines that are over and is null when none is ahead', () => {
     expect(nextDeadline(fixturePlan, parseLocal('2027-06-01T09:00'))).toBeNull()
+  })
+})
+
+describe('deadlinesAhead', () => {
+  test("lists each calendar's deadline from today on, nearest first, once per calendar", () => {
+    const plan = withEvents([milestone('hfllm', '2027-03-01'), milestone('hfllm', '2026-12-10')])
+    const expected = [
+      { calendar: 'hfllm', day: '2026-12-10' },
+      { calendar: 'certs', day: certsDay },
+    ].toSorted((a, b) => a.day.localeCompare(b.day))
+    expect(deadlinesAhead(plan, parseLocal('2026-12-02T12:00'))).toEqual(expected)
+  })
+
+  test('leaves out a deadline that is over', () => {
+    expect(deadlinesAhead(fixturePlan, parseLocal('2027-06-01T09:00'))).toEqual([])
   })
 })
 

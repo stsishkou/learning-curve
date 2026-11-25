@@ -33,6 +33,19 @@ export function nextDeadline(plan: Plan, now: number): { calendar: string; day: 
   return first ? { calendar: first.calendar, day: first.start.slice(0, 10) } : null
 }
 
+/** Each calendar's deadline from today on, nearest first; on a tie, the calendar listed first. */
+export function deadlinesAhead(plan: Plan, now: number): { calendar: string; day: string }[] {
+  const today = ymd(now)
+  const first = new Map<string, string>()
+  for (const e of milestones(plan)) if (!first.has(e.calendar)) first.set(e.calendar, e.start.slice(0, 10))
+  return plan.calendars
+    .flatMap((c) => {
+      const day = first.get(c.id)
+      return day !== undefined && day >= today ? [{ calendar: c.id, day }] : []
+    })
+    .toSorted((a, b) => a.day.localeCompare(b.day))
+}
+
 /** The deadline a countdown counts to. `chosen`: the plan names the calendar; `day` is null while it has none. */
 export interface Countdown {
   calendar: string

@@ -110,9 +110,9 @@ describe('rhythmDays', () => {
 })
 
 describe('targetDays', () => {
-  test('at a pace the rhythm starts at the first session of the course, not at the first day', () => {
-    const pace = request({ target: { mode: 'pace', perDay: 1 } })
-    expect(targetDays(plainRoom(8), hours(3, '2027-01-06'), pace)).toEqual([3, 4, 5])
+  test('at a rhythm the rhythm starts at the first session of the course, not at the first day', () => {
+    const rhythm = request({ target: { mode: 'rhythm', perDay: 1 } })
+    expect(targetDays(plainRoom(8), hours(3, '2027-01-06'), rhythm)).toEqual([3, 4, 5])
   })
 
   test('towards a deadline it is the slowest rhythm that still ends before it', () => {
@@ -158,8 +158,8 @@ describe('reachOf', () => {
   test('otherwise keeps ten study days after the furthest day a session aims at', () => {
     const tight: Room = { ...room, days: room.days.map((d) => (d.index === 1 ? { ...d, cap: 2 } : d)) }
     expect(reachOf(tight, sessions, request()).days).toHaveLength(4)
-    const pace = request({ target: { mode: 'pace', perDay: 1 } })
-    expect(reachOf(plainRoom(40), hours(5), pace).days.at(-1)?.index).toBe(15)
+    const rhythm = request({ target: { mode: 'rhythm', perDay: 1 } })
+    expect(reachOf(plainRoom(40), hours(5), rhythm).days.at(-1)?.index).toBe(15)
   })
 })
 
@@ -182,7 +182,7 @@ describe('buildModel', () => {
 
   test('starts from the days the sessions aim at, or the earliest when those leave one out, meeting every row', () => {
     for (const overBudget of [false, true]) {
-      for (const target of [{ mode: 'deadline' }, { mode: 'pace', perDay: 1 }] as const) {
+      for (const target of [{ mode: 'deadline' }, { mode: 'rhythm', perDay: 1 }] as const) {
         const { model, start } = buildModel(room, sessions, request({ overBudget, target }))
         expect(Object.keys(start).toSorted()).toEqual(names(model).toSorted())
         for (const { name, terms, op, rhs } of model.constraints) {
@@ -273,9 +273,9 @@ describe('buildModel', () => {
     ])
   })
 
-  test('at a pace the target is the rhythm asked for, and a session it cannot place has none', () => {
+  test('at a rhythm the target is the rhythm asked for, and a session it cannot place has none', () => {
     // One every two days: day 1, then the lab waits for day 4, and nothing fits after it.
-    const { levels } = buildModel(room, sessions, request({ target: { mode: 'pace', perDay: 1 / 2 } }))
+    const { levels } = buildModel(room, sessions, request({ target: { mode: 'rhythm', perDay: 1 / 2 } }))
     expect(levels[1]).toEqual([
       { v: 'y_0_3', c: 2 },
       { v: 'y_0_4', c: 3 },
@@ -300,8 +300,8 @@ describe('buildModel', () => {
     expect(levels.at(-1)).toEqual(sum('t_0', 't_1', 't_2'))
   })
 
-  test('at a pace: nothing unplaced, then the rhythm, and a level without terms is left out', () => {
-    const { levels } = buildModel(room, sessions, request({ target: { mode: 'pace', perDay: 1 } }))
+  test('at a rhythm: nothing unplaced, then the rhythm, and a level without terms is left out', () => {
+    const { levels } = buildModel(room, sessions, request({ target: { mode: 'rhythm', perDay: 1 } }))
     expect(levels[1]?.every(({ v }) => v.startsWith('y_'))).toBe(true)
     expect(levels[2]).toEqual(sum('Pw'))
   })

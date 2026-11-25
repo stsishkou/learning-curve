@@ -5,6 +5,7 @@ import {
   HOUR,
   countdown,
   deadlineEvent,
+  deadlinesAhead,
   isDone,
   isSession,
   parseLocal,
@@ -12,7 +13,7 @@ import {
   type PlanEvent,
   startOfDay,
 } from '@lc/plan-domain'
-import { Button, Hint, Pencil } from '@lc/ui'
+import { Button, calendarColor, Dot, Hint, Pencil } from '@lc/ui'
 
 interface Props {
   plan: Plan
@@ -89,10 +90,12 @@ export function Runway({ plan, now, onSelect, onConfigure, onReschedule }: Props
   const open = certs.filter((e) => isSession(e) && !e.done)
   const passed = days !== null && days < 0 && open.length > 0
   const late = open.filter((e) => parseLocal(e.end) > end).length
+  const today = now === null ? null : startOfDay(now)
+  const ahead = today === null ? [] : deadlinesAhead(plan, today).filter((d) => d.calendar !== calendar.id)
 
   return (
     <section
-      className="relative mt-5 mb-4 grid items-center gap-x-7 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:grid-cols-[auto_1fr] md:px-5 md:pt-[18px] md:pb-4 print:hidden"
+      className="relative mt-5 mb-4 grid grid-cols-[minmax(0,1fr)] items-center gap-x-7 gap-y-2 rounded-2xl border border-line bg-surface p-3.5 md:grid-cols-[auto_1fr] md:px-5 md:pt-[18px] md:pb-4 print:hidden"
       aria-label={m.runway_label({ name: calendar.name })}
     >
       <Hint title={m.help_runway_title()} text={m.help_runway()} className="absolute top-2 right-2" />
@@ -218,6 +221,29 @@ export function Runway({ plan, now, onSelect, onConfigure, onReschedule }: Props
           <span>{m.deadline_on({ date: fmtDay(deadline) })}</span>
         </div>
       </div>
+      {today !== null && ahead.length > 0 && (
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-line-soft pt-2.5 text-[12.5px] md:col-span-2">
+          <h3 className="font-semibold text-muted">{m.runway_ahead()}</h3>
+          <ul className="flex min-w-0 flex-wrap gap-x-4 gap-y-1">
+            {ahead.map(({ calendar: id, day }) => {
+              const other = plan.calendars.find((c) => c.id === id)
+              const at = parseLocal(`${day}T00:00`)
+              const left = Math.round((at - today) / DAY)
+              return (
+                <li key={id} className="flex min-w-0 items-center gap-1.5" style={calendarColor(other?.color)}>
+                  <Dot className="size-2 flex-none" />
+                  <span className="max-w-[28ch] truncate" data-tip={other?.name}>
+                    {other?.name}
+                  </span>
+                  <span className="whitespace-nowrap text-muted tabular-nums">
+                    {fmtDay(at)} · {left ? m.runway_in_days({ count: left }) : m.today()}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </section>
   )
 }

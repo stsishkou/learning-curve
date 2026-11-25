@@ -3,7 +3,7 @@
 Re-balancing moves the open sessions of **one calendar**, from a chosen day on, onto the study days ahead, and
 keeps them in order. It can work in two ways:
 
-- **at a pace**: one session every three study days, every two, one a day, three in two days, two a day or three a
+- **at a rhythm**: one session every three study days, every two, one a day, three in two days, two a day or three a
   day. The result shows when the course ends.
 - **towards a deadline**: the gentlest even rhythm that still finishes before the day given.
 
@@ -83,7 +83,7 @@ The request (`RebalanceRequest`) carries:
 
 - the calendar;
 - the first day;
-- the target (`{ mode: 'pace', perDay }` with `perDay` one of `1/3, 1/2, 1, 3/2, 2, 3`, or `{ mode: 'deadline' }`);
+- the target (`{ mode: 'rhythm', perDay }` with `perDay` one of `1/3, 1/2, 1, 3/2, 2, 3`, or `{ mode: 'deadline' }`);
 - optionally a deadline typed in the dialog (otherwise the calendar's own milestone, if any);
 - whether weeks may go over the budget;
 - the study hours.
@@ -104,7 +104,7 @@ course studied only at weekends keeps to the weekend days it uses and never spil
 not study days. A day that the person's own calendar takes whole (an all-day busy block) is a day off: it is not a
 study day, and the report names it.
 
-**A year.** The room covers the 366 days from the first day, at any pace and towards any deadline. A course kept
+**A year.** The room covers the 366 days from the first day, at any rhythm and towards any deadline. A course kept
 to a few weekend days, or squeezed by full weeks, needs far more calendar days than it has sessions, and a
 deadline months ahead must be reachable. The program does not use all of it: step 2 keeps only
 [the days it needs](#the-days-the-program-needs).
@@ -171,7 +171,7 @@ placements that are valid.
 
 `targetDays` gives each session the day it aims at, `τ_i`:
 
-- **At a pace**, the rhythm with a gap of `1 / perDay` study days, starting at the course's first session. A
+- **At a rhythm**, the rhythm with a gap of `1 / perDay` study days, starting at the course's first session. A
   re-balance changes the rhythm, not where the course starts. A first session that has already passed starts
   again today, by the restart rule.
 - **Towards a deadline**, the **slowest** rhythm that still has every session before the deadline: the gentlest
@@ -255,7 +255,7 @@ example one more late session for a lighter week. Instead the aims are **levels*
 (`solveInOrder`). Each level is solved with every level before it held at its best value. A lower aim therefore
 never buys anything at the cost of a higher one, and there are no weights to tune.
 
-| Level | Towards a deadline | At a pace |
+| Level | Towards a deadline | At a rhythm |
 |---|---|---|
 | 1 | fewest left out, `Σ u_i` | fewest left out, `Σ u_i` |
 | 2 | fewest late, `Σ late_i` | closest to the rhythm, `Σ len_i · ∣d − τ_i∣ · y_i_d` |
@@ -270,9 +270,9 @@ What the order means:
 
 - **Towards a deadline**, the course first finishes in time as far as the room allows. Then it follows the
   slowest even rhythm that does so. The heaviest week and day only settle what the rhythm leaves open.
-- **At a pace**, the rhythm asked for comes first. The load is then as light as that rhythm allows.
+- **At a rhythm**, the rhythm asked for comes first. The load is then as light as that rhythm allows.
 - **Going over the budget**, when allowed, serves only what was asked. Towards a deadline, it is used only as far
-  as it saves sessions from being late. At a pace, it is used only as far as it keeps the rhythm. It ranks right
+  as it saves sessions from being late. At a rhythm, it is used only as far as it keeps the rhythm. It ranks right
   after those aims, so it is never used for anything else.
 - **Staying put** comes after every aim of the result. A session that is already in a good place keeps its day,
   and step 3 then keeps its time.
@@ -336,7 +336,7 @@ A session **moves** when its slot changes, in day or in time. `moves` lists only
 | `provenBest` | false when a level stopped at its time limit, or a later level failed |
 | `reasons` | the facts that bound the result |
 
-At a pace, the deadline is not an aim, but `late` still counts the sessions that land after it.
+At a rhythm, the deadline is not an aim, but `late` still counts the sessions that land after it.
 
 The reasons, and when each one appears:
 
@@ -366,7 +366,7 @@ Every guarantee below holds whenever the result is proven best. The last column 
 | **Budget**: no week over the budget unless allowed. When allowed, going over is used only as far as it serves the aim | `week_w`, and level 3 right after the aim it serves | generated plans, `model.test.ts` |
 | **Deadline**: every session before it whenever the room allows | level 2 towards a deadline, right after the left-out count | "towards a deadline, against every possible placement" |
 | **Gentlest rhythm**: towards a deadline, the slowest even rhythm that finishes in time, so no day holds more sessions than every placement that finishes in time needs | the targets, and level 4 | the brute force over every placement on small cases, "HF LLM towards a far deadline …" |
-| **Rhythm**: at a pace, each session on the day the rhythm gives it whenever the room allows, at most `⌈perDay⌉` sessions on a day | the targets, and level 2 | "at half a session a day the sessions are two study days apart", "HF LLM at … a day …" |
+| **Rhythm**: at a rhythm, each session on the day the rhythm gives it whenever the room allows, at most `⌈perDay⌉` sessions on a day | the targets, and level 2 | "at half a session a day the sessions are two study days apart", "HF LLM at … a day …" |
 | **No crunch to catch up**: after a stretch without room (a full week, days that have passed), the course goes on at its rhythm instead of making up for the days | the rhythm starting again where a session lands | "a re-balance never makes up for lost days with a crunch" |
 | **Stability**: asking the same again moves nothing; sessions already in a good place keep their day and time | the rhythm starting where the course does, so the same question gives the same targets; and step 3 keeping a slot whose day stays | "asking again moves nothing", the worked example |
 | **Determinism**: the same question gives the same answer | the earliest-days level, and HiGHS being deterministic on the same model | "the same answer comes twice" |
@@ -377,7 +377,7 @@ Every guarantee below holds whenever the result is proven best. The last column 
   another course, re-balance that course too.
 - **Lengths never change.** Sessions are not split or merged. Catch up's options work with lengths.
 - **Reviews and finished sessions stay**, and so do sessions before the first day.
-- **2 seconds a level.** On this repository's plan, HF LLM (35 sessions) is proven best at every pace and towards
+- **2 seconds a level.** On this repository's plan, HF LLM (35 sessions) is proven best at every rhythm and towards
   every deadline tried, from 16 February to 31 May, each in 1.5 s or less in all. A larger or more crowded course
   can still stop a level at its limit: the result is valid and the dialog says it may not be the best.
 - **The heaviest week is not the first aim.** Towards a deadline the rhythm ranks above it, so a week can be
@@ -529,9 +529,9 @@ Re-balancing either result with the same request moves nothing.
 
 - **A priority.** The levels are the two arrays at the end of `buildModel` (`model.ts`). Move a level, and
   update the table in [The order of aims](#the-order-of-aims). `model.test.ts` pins the first levels of each mode
-  ("towards a deadline: nothing unplaced, nothing late, the least over the budget, then the rhythm", "at a pace:
+  ("towards a deadline: nothing unplaced, nothing late, the least over the budget, then the rhythm", "at a rhythm:
   nothing unplaced, then the rhythm, …"). The worked example pins the rest: putting the heaviest week ahead of the
-  rhythm in pace mode fails it. Towards a deadline, the brute-force test and "HF LLM towards a far deadline …"
+  rhythm in rhythm mode fails it. Towards a deadline, the brute-force test and "HF LLM towards a far deadline …"
   fail when the week goes ahead of the rhythm.
 - **The rhythm.** `rhythmDays` and `targetDays` decide what each session aims at; their tests in `model.test.ts`
   give the rules by example. The tests under "a re-balance never makes up for lost days with a crunch" fail when a
@@ -546,5 +546,5 @@ Re-balancing either result with the same request moves nothing.
 - **A placement preference.** Change the candidate order in `placeDay` and `placement.test.ts`. Keep the check
   that the rest of the day still fits, or a re-balance stops being stable ("asking again moves nothing").
 - **Always** run `pnpm run test`. The real-plan tests ("on the generated schedule of this repository": every
-  pace, far deadlines, and 16 February) show whether a change still solves within its time. If the worked example's numbers
+  rhythm, far deadlines, and 16 February) show whether a change still solves within its time. If the worked example's numbers
   change, change this document in the same commit and say why in the message.

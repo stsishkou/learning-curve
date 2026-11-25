@@ -80,7 +80,7 @@ const withMoves = (on: Plan, moves: SessionMove[]): Plan => {
 
 describe('the worked example of docs/rebalancing.md', () => {
   test('the room: Tuesdays lose their noon and their lab block, and each of the first two weeks has 5 h left', () => {
-    const request = ask({ mode: 'pace', perDay: 0.5 })
+    const request = ask({ mode: 'rhythm', perDay: 0.5 })
     const room = roomOf(plan, request, movingSessions(plan, request), NOW, [])
     expect(room.days.slice(0, 9).map(({ day, index, cap, lab }) => ({ day, index, cap, lab }))).toEqual([
       { day: '2027-01-04', index: 1, cap: 3, lab: true },
@@ -124,7 +124,7 @@ describe('the worked example of docs/rebalancing.md', () => {
   })
 
   test('at one session every two study days the crunch spreads out and the course ends a day sooner', async () => {
-    const { moves, report } = await rebalance(plan, ask({ mode: 'pace', perDay: 0.5 }))
+    const { moves, report } = await rebalance(plan, ask({ mode: 'rhythm', perDay: 0.5 }))
     expect(moves).toEqual([
       { uid: 's2', ...at('2027-01-06', '11:00', '12:00') },
       { uid: 's3', ...at('2027-01-11', '11:00', '12:00') },
@@ -137,7 +137,7 @@ describe('the worked example of docs/rebalancing.md', () => {
   })
 
   test('asking the same again moves nothing', async () => {
-    for (const request of [ask({ mode: 'deadline' }, '2027-01-15'), ask({ mode: 'pace', perDay: 0.5 })]) {
+    for (const request of [ask({ mode: 'deadline' }, '2027-01-15'), ask({ mode: 'rhythm', perDay: 0.5 })]) {
       // oxlint-disable-next-line no-await-in-loop -- the second ask needs the first answer
       const { moves } = await rebalance(plan, request)
       // oxlint-disable-next-line no-await-in-loop -- one request at a time, as the server runs them

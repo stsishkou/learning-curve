@@ -85,7 +85,7 @@ export const earliestDays = (room: Room, sessions: PlanEvent[], request: Rebalan
 /**
  * The study day each session aims at (its index), null for a session the rhythm cannot place.
  *
- * - At a pace: the rhythm asked for, from the course's first session: one every `1 / perDay` study days. A
+ * - At a rhythm: the rhythm asked for, from the course's first session: one every `1 / perDay` study days. A
  *   re-balance changes the rhythm, not where the course starts; a first session already past starts again today.
  * - Towards a deadline: the slowest such rhythm that still has every session before the deadline, found by halving
  *   the gap. It starts at the course's first session too. It keeps to the budget whenever that still finishes in
@@ -98,7 +98,7 @@ export function targetDays(room: Room, sessions: PlanEvent[], request: Rebalance
     0,
     room.days.findIndex((d) => d.day >= first),
   )
-  if (request.target.mode === 'pace') return rhythmDays(room, sessions, request, 1 / request.target.perDay, anchor)
+  if (request.target.mode === 'rhythm') return rhythmDays(room, sessions, request, 1 / request.target.perDay, anchor)
 
   const { deadline } = room
   if (deadline === null) return earliestDays(room, sessions, request)

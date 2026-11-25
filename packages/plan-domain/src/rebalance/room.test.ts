@@ -45,7 +45,7 @@ const plan = (events: PlanEvent[], holidays: string[] = []): Plan => ({
 const request = (overrides: Partial<RebalanceRequest> = {}): RebalanceRequest => ({
   calendar: 'c',
   from: '2026-12-07',
-  target: { mode: 'pace', perDay: 1 },
+  target: { mode: 'rhythm', perDay: 1 },
   overBudget: false,
   hours: { from: '11:00', to: '14:00' },
   ...overrides,
@@ -157,7 +157,7 @@ describe('roomOf', () => {
     expect(r.weeks.get('2026-12-07')).toEqual({ left: 12, fixed: 0 })
   })
 
-  test('the room is the year from the first day, at any pace and towards any deadline', () => {
+  test('the room is the year from the first day, at any rhythm and towards any deadline', () => {
     // A course on a few weekend days, or a tight budget, can need many weeks: the model cuts what it does not use.
     expect(room(busyTuesday).days.at(-1)?.day).toBe('2027-12-07')
     const towards = room(busyTuesday, { target: { mode: 'deadline' }, deadline: '2027-02-01' })

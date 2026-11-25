@@ -1,10 +1,10 @@
 import type { SessionMove } from '../replan'
 
 /** Sessions per study day the dialog offers */
-export const PACES = [1 / 3, 1 / 2, 1, 3 / 2, 2, 3] as const
+export const RHYTHMS = [1 / 3, 1 / 2, 1, 3 / 2, 2, 3] as const
 
-/** `pace`: sessions per study day, one of `PACES`; `deadline`: finish before the calendar's deadline */
-export type RebalanceTarget = { mode: 'pace'; perDay: number } | { mode: 'deadline' }
+/** `rhythm`: sessions per study day, one of `RHYTHMS`; `deadline`: finish before the calendar's deadline */
+export type RebalanceTarget = { mode: 'rhythm'; perDay: number } | { mode: 'deadline' }
 
 export interface RebalanceRequest {
   calendar: string

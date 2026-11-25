@@ -2,12 +2,12 @@ import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   addDays,
-  currentPace,
+  currentRhythm,
   deadlineChange,
   deadlineOf,
   defaultStudyHours,
   movingSessions,
-  nearestPace,
+  nearestRhythm,
   parseLocal,
   previewUpdate,
   rebalanceChange,
@@ -45,26 +45,26 @@ export type ReschedulePreset =
   | { calendar: string; mode: 'rebalance'; finishBy?: string | undefined }
 
 type Mode = 'move' | 'rebalance'
-/** What a re-balance follows: a pace, or a day to finish by */
-type Aim = 'pace' | 'finish'
+/** What a re-balance follows: a rhythm, or a day to finish by */
+type Aim = 'rhythm' | 'finish'
 
-const PACE_OPTIONS = [
-  { key: '1/3', perDay: 1 / 3, label: () => m.reschedule_pace_1_3() },
-  { key: '1/2', perDay: 1 / 2, label: () => m.reschedule_pace_1_2() },
-  { key: '1', perDay: 1, label: () => m.reschedule_pace_1() },
-  { key: '3/2', perDay: 3 / 2, label: () => m.reschedule_pace_3_2() },
-  { key: '2', perDay: 2, label: () => m.reschedule_pace_2() },
-  { key: '3', perDay: 3, label: () => m.reschedule_pace_3() },
+const RHYTHM_OPTIONS = [
+  { key: '1/3', perDay: 1 / 3, label: () => m.reschedule_rhythm_1_3() },
+  { key: '1/2', perDay: 1 / 2, label: () => m.reschedule_rhythm_1_2() },
+  { key: '1', perDay: 1, label: () => m.reschedule_rhythm_1() },
+  { key: '3/2', perDay: 3 / 2, label: () => m.reschedule_rhythm_3_2() },
+  { key: '2', perDay: 2, label: () => m.reschedule_rhythm_2() },
+  { key: '3', perDay: 3, label: () => m.reschedule_rhythm_3() },
 ] as const
-type Pace = (typeof PACE_OPTIONS)[number]['key']
+type Rhythm = (typeof RHYTHM_OPTIONS)[number]['key']
 
 const dayOf = (ymd: string) => parseLocal(`${ymd}T00:00`)
 
-/** The offered pace nearest to how fast the course goes now, `1` when that is not known */
-function paceNow(plan: Plan, calendar: string | undefined, from: string): Pace {
-  const now = calendar ? currentPace(plan, calendar, from) : null
-  const nearest = now === null ? 1 : nearestPace(now)
-  return PACE_OPTIONS.find((p) => p.perDay === nearest)?.key ?? '1'
+/** The offered rhythm nearest to how fast the course goes now, `1` when that is not known */
+function rhythmNow(plan: Plan, calendar: string | undefined, from: string): Rhythm {
+  const now = calendar ? currentRhythm(plan, calendar, from) : null
+  const nearest = now === null ? 1 : nearestRhythm(now)
+  return RHYTHM_OPTIONS.find((p) => p.perDay === nearest)?.key ?? '1'
 }
 const LABELS = {
   added: (count: number) => m.ai_added({ count }),
@@ -76,7 +76,7 @@ const HINT = 'text-[12.5px] text-muted'
 
 /**
  * Reschedules the open sessions from a day on: moves them by days and hours, in every calendar or in those picked, or
- * re-balances one calendar at a pace or towards its deadline, with the result worked out on the host and shown
+ * re-balances one calendar at a rhythm or towards its deadline, with the result worked out on the host and shown
  * before anything is stored.
  */
 export function RescheduleDialog({ plan, from, onApply, rebalance, preset, onClose }: Props) {
@@ -105,11 +105,13 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
   const [mode, setMode] = useState<Mode>(preset?.mode === 'rebalance' && rebalance ? 'rebalance' : 'move')
   const [days, setDays] = useState(preset?.mode === 'move' ? (preset.days ?? 7) : 7)
   const [hours, setHours] = useState(0)
-  // From the course's own pace, so that each other choice reads as faster or slower than now.
-  const [pace, setPace] = useState<Pace>(() => paceNow(plan, preset?.calendar, initial))
+  // From the course's own rhythm, so that each other choice reads as faster or slower than now.
+  const [rhythm, setRhythm] = useState<Rhythm>(() => rhythmNow(plan, preset?.calendar, initial))
   // null follows the Deadline field, the day before it, or else the course's last session.
   const [finishBy, setFinishBy] = useState(preset?.mode === 'rebalance' ? (preset.finishBy ?? null) : null)
-  const [aim, setAim] = useState<Aim>(preset?.mode === 'rebalance' && preset.finishBy !== undefined ? 'finish' : 'pace')
+  const [aim, setAim] = useState<Aim>(
+    preset?.mode === 'rebalance' && preset.finishBy !== undefined ? 'finish' : 'rhythm',
+  )
   const [study, setStudy] = useState(() => defaultStudyHours(plan))
   const [overBudget, setOverBudget] = useState(false)
   const [error, setError] = useState('')
@@ -123,13 +125,22 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
   const lastDay = calendar ? (movingSessions(plan, { calendar, from }).at(-1)?.start.slice(0, 10) ?? '') : ''
   const finish = finishBy ?? (deadline ? addDays(deadline, -1) : lastDay)
   const finishable = finish !== '' && finish >= from
-  const perDay = PACE_OPTIONS.find((p) => p.key === pace)?.perDay ?? 1
-  const known = calendar !== '' && currentPace(plan, calendar, from) !== null
-  const nowLabel = known ? (PACE_OPTIONS.find((p) => p.key === paceNow(plan, calendar, from))?.label() ?? null) : null
+  const perDay = RHYTHM_OPTIONS.find((p) => p.key === rhythm)?.perDay ?? 1
+  const known = calendar !== '' && currentRhythm(plan, calendar, from) !== null
+  const nowLabel = known
+    ? (RHYTHM_OPTIONS.find((p) => p.key === rhythmNow(plan, calendar, from))?.label() ?? null)
+    : null
   const request = useMemo<RebalanceRequest | null>(() => {
     if (!rebalancing || !calendar || !from || study.from >= study.to) return null
-    if (aim === 'pace') {
-      return { calendar, from, deadline: due || undefined, target: { mode: 'pace', perDay }, overBudget, hours: study }
+    if (aim === 'rhythm') {
+      return {
+        calendar,
+        from,
+        deadline: due || undefined,
+        target: { mode: 'rhythm', perDay },
+        overBudget,
+        hours: study,
+      }
     }
     return finishable ? finishByRequest(plan, { calendar, from, finishBy: finish, overBudget, hours: study }) : null
   }, [plan, rebalancing, calendar, from, due, aim, finish, finishable, perDay, overBudget, study])
@@ -167,7 +178,7 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
     const [only] = next.length === 1 ? next : []
     setCalendars(next)
     setDeadline(only ? (deadlineOf(plan, only) ?? '') : '')
-    setPace(paceNow(plan, only, from))
+    setRhythm(rhythmNow(plan, only, from))
     setFinishBy(null)
   }
 
@@ -241,27 +252,27 @@ function RescheduleForm({ plan, from: initial, onApply, rebalance, preset, onClo
                 label={m.reschedule_aim()}
                 value={aim}
                 options={[
-                  { value: 'pace', label: m.reschedule_pace() },
+                  { value: 'rhythm', label: m.reschedule_rhythm() },
                   { value: 'finish', label: m.reschedule_finish_by() },
                 ]}
                 onChange={setAim}
               />
             </div>
-            {aim === 'pace' ? (
+            {aim === 'rhythm' ? (
               <div className="grid gap-1 text-[13px] text-muted">
-                {nowLabel && <span>{m.reschedule_pace_now({ pace: nowLabel })}</span>}
-                {/* On a narrow screen the paces scroll sideways rather than squeeze their labels onto several lines. */}
+                {nowLabel && <span>{m.reschedule_rhythm_now({ rhythm: nowLabel })}</span>}
+                {/* On a narrow screen the rhythms scroll sideways rather than squeeze their labels onto several lines. */}
                 <div className="-mx-1 overflow-x-auto px-1 pb-1">
                   <div className="w-max">
                     <Segmented
-                      label={m.reschedule_pace()}
-                      value={pace}
-                      options={PACE_OPTIONS.map((p) => ({ value: p.key, label: p.label() }))}
-                      onChange={setPace}
+                      label={m.reschedule_rhythm()}
+                      value={rhythm}
+                      options={RHYTHM_OPTIONS.map((p) => ({ value: p.key, label: p.label() }))}
+                      onChange={setRhythm}
                     />
                   </div>
                 </div>
-                <p className={HINT}>{m.reschedule_pace_hint()}</p>
+                <p className={HINT}>{m.reschedule_rhythm_hint()}</p>
               </div>
             ) : (
               <div className="grid gap-1">

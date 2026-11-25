@@ -7,7 +7,15 @@ export {
   type KindAccuracy,
 } from './accuracy-report'
 export type { BusyBlock } from './busy'
-export { countdown, deadlineChange, deadlineEvent, deadlineOf, nextDeadline, type Countdown } from './deadlines'
+export {
+  countdown,
+  deadlineChange,
+  deadlineEvent,
+  deadlineOf,
+  deadlinesAhead,
+  nextDeadline,
+  type Countdown,
+} from './deadlines'
 export {
   calendarLanes,
   compareLanes,
@@ -257,9 +265,9 @@ export {
   type OrderedSolution,
   type Solve,
 } from './rebalance/lp'
-export { currentPace, defaultStudyHours, nearestPace, parseRebalanceRequest } from './rebalance/request'
+export { currentRhythm, defaultStudyHours, nearestRhythm, parseRebalanceRequest } from './rebalance/request'
 export {
-  PACES,
+  RHYTHMS,
   type RebalanceReason,
   type RebalanceReport,
   type RebalanceRequest,

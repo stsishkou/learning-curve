@@ -104,7 +104,7 @@ const TOOLS = [
     name: 'rebalance_calendar',
     title: 'Re-balance a calendar',
     description:
-      'Works out new days and times for the sessions of one calendar from a day on, keeping the order of the course: evenly at a pace (sessions a study day), or towards a deadline (the calendar\'s milestone unless one is given), inside the study hours and the weekly budget, around holidays, other events and the person\'s busy time. Nothing is stored. The answer is an `update` (an events.move with reason "rebalance"; null when nothing moves, or while a session finds no room, as the rest would move around it) to check with preview_update and store with apply_update once the person agrees, and a `report`: the finish, the heaviest week and day, weeks over the budget, late and unplaced sessions, and the reasons nothing better exists. It can take several seconds.',
+      'Works out new days and times for the sessions of one calendar from a day on, keeping the order of the course: evenly at a rhythm (sessions a study day), or towards a deadline (the calendar\'s milestone unless one is given), inside the study hours and the weekly budget, around holidays, other events and the person\'s busy time. Nothing is stored. The answer is an `update` (an events.move with reason "rebalance"; null when nothing moves, or while a session finds no room, as the rest would move around it) to check with preview_update and store with apply_update once the person agrees, and a `report`: the finish, the heaviest week and day, weeks over the budget, late and unplaced sessions, and the reasons nothing better exists. It can take several seconds.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -114,13 +114,14 @@ const TOOLS = [
         from: { type: 'string', pattern: DAY, description: 'Its sessions from this day on move, "YYYY-MM-DD".' },
         mode: {
           type: 'string',
-          enum: ['pace', 'deadline'],
-          description: '`pace`: a steady number of sessions a study day. `deadline`: done before the deadline, evenly.',
+          enum: ['rhythm', 'deadline'],
+          description:
+            '`rhythm`: a steady number of sessions a study day. `deadline`: done before the deadline, evenly.',
         },
         perDay: {
           type: 'number',
           exclusiveMinimum: 0,
-          description: 'Sessions a study day, for `pace`: 1/3, 1/2, 1, 3/2, 2 or 3 (0.5 is one every two days).',
+          description: 'Sessions a study day, for `rhythm`: 1/3, 1/2, 1, 3/2, 2 or 3 (0.5 is one every two days).',
         },
         deadline: {
           type: 'string',

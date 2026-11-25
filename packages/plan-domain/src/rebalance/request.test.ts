@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import { fixturePlan } from '../fixtures'
 import type { Plan, PlanEvent } from '../types'
-import { currentPace, defaultStudyHours, movingSessions, nearestPace, parseRebalanceRequest } from './request'
+import { currentRhythm, defaultStudyHours, movingSessions, nearestRhythm, parseRebalanceRequest } from './request'
 
 const event = (calendar: string, start: string, end: string, extra: Partial<PlanEvent> = {}): PlanEvent => ({
   uid: `${calendar}-${start}`,
@@ -36,7 +36,7 @@ const plan = (events: PlanEvent[], holidays: string[] = []): Plan => ({
 const valid = {
   calendar: 'c',
   from: '2026-12-07',
-  target: { mode: 'pace', perDay: 1 },
+  target: { mode: 'rhythm', perDay: 1 },
   overBudget: false,
   hours: { from: '11:00', to: '14:00' },
 }
@@ -78,9 +78,9 @@ describe('parseRebalanceRequest', () => {
   })
 
   test('takes a third of a session a day as it comes back from JSON', () => {
-    const target: unknown = JSON.parse('{"mode":"pace","perDay":0.3333333333333333}')
+    const target: unknown = JSON.parse('{"mode":"rhythm","perDay":0.3333333333333333}')
     const third = { ...valid, target }
-    expect(parseRebalanceRequest(third, plan([])).target).toEqual({ mode: 'pace', perDay: 1 / 3 })
+    expect(parseRebalanceRequest(third, plan([])).target).toEqual({ mode: 'rhythm', perDay: 1 / 3 })
   })
 
   test('refuses an unknown calendar', () => {
@@ -92,9 +92,9 @@ describe('parseRebalanceRequest', () => {
     expect(refuse({ deadline: '15 Jan' })).toThrow('deadline must look like 2026-11-23')
   })
 
-  test('refuses a pace that is not offered', () => {
-    expect(refuse({ target: { mode: 'pace', perDay: 0.7 } })).toThrow(
-      'The pace must be one of 1/3, 1/2, 1, 3/2, 2, 3 sessions a day',
+  test('refuses a rhythm that is not offered', () => {
+    expect(refuse({ target: { mode: 'rhythm', perDay: 0.7 } })).toThrow(
+      'The rhythm must be one of 1/3, 1/2, 1, 3/2, 2, 3 sessions a day',
     )
   })
 
@@ -141,7 +141,7 @@ describe('movingSessions', () => {
 const at = (day: string, hour: string, extra: Partial<PlanEvent> = {}) =>
   event('c', `${day}T${hour}`, `${day}T${hour.slice(0, 2)}:45`, extra)
 
-describe('currentPace', () => {
+describe('currentRhythm', () => {
   // Monday 7 to Friday 11 December, the Wednesday a holiday: six open sessions on four study days.
   const week = [
     at('2026-12-07', '11:00'),
@@ -153,19 +153,19 @@ describe('currentPace', () => {
   ]
 
   test('the open sessions per study day from the first to the last; holidays and weekends it does not use are not', () => {
-    expect(currentPace(plan([...week, at('2026-12-04', '11:00')], ['2026-12-09']), 'c', '2026-12-07')).toBe(1.5)
+    expect(currentRhythm(plan([...week, at('2026-12-04', '11:00')], ['2026-12-09']), 'c', '2026-12-07')).toBe(1.5)
   })
 
   test('done sessions and reviews do not count, and nothing is known of fewer than two sessions', () => {
     const done = week.map((e, i) => (i > 0 ? { ...e, done: true } : e))
-    expect(currentPace(plan(done), 'c', '2026-12-07')).toBeNull()
-    expect(currentPace(plan([...week, at('2026-12-11', '13:00', { kind: 'review' })]), 'c', '2026-12-07')).toBe(1.2)
+    expect(currentRhythm(plan(done), 'c', '2026-12-07')).toBeNull()
+    expect(currentRhythm(plan([...week, at('2026-12-11', '13:00', { kind: 'review' })]), 'c', '2026-12-07')).toBe(1.2)
   })
 
-  test('the pace the dialog offers that comes nearest, by ratio', () => {
-    expect(nearestPace(1.36)).toBe(1.5)
-    expect(nearestPace(0.7)).toBe(0.5)
-    expect(nearestPace(0.75)).toBe(1)
-    expect(nearestPace(9)).toBe(3)
+  test('the rhythm the dialog offers that comes nearest, by ratio', () => {
+    expect(nearestRhythm(1.36)).toBe(1.5)
+    expect(nearestRhythm(0.7)).toBe(0.5)
+    expect(nearestRhythm(0.75)).toBe(1)
+    expect(nearestRhythm(9)).toBe(3)
   })
 })
