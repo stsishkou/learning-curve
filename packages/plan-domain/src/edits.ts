@@ -85,6 +85,10 @@ export interface PlanEdits {
   labels?: Record<string, string[]>
   /** The weeks reviewed in the viewer, in date order */
   weekNotes?: WeekNote[]
+  /** Hours of study a week, when changed in the viewer */
+  budget?: number
+  /** The most hours of study in one day, when set in the viewer */
+  dayLimit?: number
 }
 
 export const emptyEdits = (): PlanEdits => ({
@@ -97,6 +101,16 @@ export const emptyEdits = (): PlanEdits => ({
 
 /** Longest plan title that is kept */
 export const TITLE_MAX = 80
+/** The weekly study budget and the day limit a person may set, hours */
+export const BUDGET_RANGE = { min: 1, max: 80 } as const
+export const DAY_LIMIT_RANGE = { min: 0.5, max: 16 } as const
+
+/** `value` as hours to the half hour, inside `range`; null when it is not a number there. */
+export function halfHours(value: unknown, range: { min: number; max: number }): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  const hours = Math.round(value * 2) / 2
+  return hours >= range.min && hours <= range.max ? hours : null
+}
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 export const LOCAL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
 export const HEX_COLOR = /^#[0-9a-f]{6}$/i
@@ -270,6 +284,10 @@ export function parseEdits(value: unknown): PlanEdits {
   }
   if (typeof value.title === 'string' && value.title.trim()) edits.title = value.title.trim().slice(0, TITLE_MAX)
   if (typeof value.countdown === 'string' && value.countdown) edits.countdown = value.countdown
+  const budget = halfHours(value.budget, BUDGET_RANGE)
+  if (budget !== null) edits.budget = budget
+  const dayLimit = halfHours(value.dayLimit, DAY_LIMIT_RANGE)
+  if (dayLimit !== null) edits.dayLimit = dayLimit
   const order = idList(value.order)
   if (order.length) edits.order = order
   const hidden = idList(value.hidden)
@@ -403,7 +421,9 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
     ...plan.meta,
     planEnd: lastDay,
     title: edits.title ?? plan.meta.title,
+    weeklyBudgetHours: edits.budget ?? plan.meta.weeklyBudgetHours,
     ...(edits.countdown ? { countdown: edits.countdown } : {}),
+    ...(edits.dayLimit ? { dayLimit: edits.dayLimit } : {}),
   }
   const weekNotes = edits.weekNotes?.length ? { weekNotes: edits.weekNotes } : {}
   return { plan: { ...plan, meta, calendars: shown, events, ...weekNotes }, orphans }

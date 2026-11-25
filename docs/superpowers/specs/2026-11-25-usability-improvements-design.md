@@ -81,8 +81,9 @@ Google/Outlook; a single group cannot say "Partner" and "Certification" at once.
 
 - A Settings dialog (⋮ menu and palette): weekly study budget (`plan.budget`, stored in `edits.json`, applied to
   `meta.weeklyBudgetHours`), the most study hours in one day (`plan.dayLimit`: the rule check warns about a
-  longer day, the week grid marks it, and it is the starting value of a re-balance), and how many minutes before
-  a session a reminder comes (per browser, like the reminder switch). Budget and day limit are UI-only changes.
+  longer day, the week grid marks it, and it is the starting value of a re-balance: its default study hours are
+  no longer than the limit), and how many minutes before a session a reminder comes (per browser, like the
+  reminder switch). Budget and day limit are UI-only changes.
 
 ## 7. New course form
 

@@ -61,6 +61,10 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return m.history_done({ name: subject })
     case 'plan.rename':
       return m.history_renamed({ name: subject })
+    case 'plan.budget':
+      return m.history_budget({ hours: fmtHours(change.hours) })
+    case 'plan.dayLimit':
+      return change.hours === null ? m.history_day_limit_off() : m.history_day_limit({ hours: fmtHours(change.hours) })
     case 'plan.countdown':
       return subject ? m.history_countdown({ name: subject }) : m.history_countdown_nearest()
     case 'reviews.plan':

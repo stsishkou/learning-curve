@@ -678,7 +678,21 @@
   "second_zone": "Second time zone",
   "second_zone_hint": "Every event of the plan is written in Minsk time. Choose a second zone here: its clock goes into the hour column, left of the Minsk one, so each hour also reads as the time there.",
   "second_zone_none": "Remove the second zone",
-  "reminders": "Remind 10 minutes before a start",
+  "reminders": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Remind {count} minute before a start",
+        "countPlural=*": "Remind {count} minutes before a start"
+      }
+    }
+  ],
   "reminders_short": "Reminders",
   "reminder_body": "Starts at {time}",
   "reminders_blocked": "The browser does not allow notifications for this site. Allow them in the site settings and switch the reminders on again.",
@@ -807,7 +821,7 @@
   "help_grid_title": "Moving events",
   "help_grid": "Drag an event to another time or day; drag an edge to change its length. One repeat of a repeating event moves alone, the others stay.\nWith the keyboard: Alt + arrows move, Alt Shift ↑ ↓ change the length, Delete sends it to the trash. The number next to a weekday is the hours of study that day.",
   "help_more_title": "More actions",
-  "help_more": "In the ⋮ menu: the history of changes, the trash (keeps what was removed for 30 days), shifting the plan by some days, Catch up, a second time zone, your real calendar in grey behind the plan, reminders 10 minutes before a start, and the list of keys.",
+  "help_more": "In the ⋮ menu: the history of changes, the trash (keeps what was removed for 30 days), shifting the plan by some days, Catch up, a second time zone, your real calendar in grey behind the plan, reminders before a start, Settings (the weekly budget, the day limit, how early a reminder comes) and the list of keys.",
   "help_history_title": "Undo and history",
   "help_history": "Every change is a step you can take back and redo: the arrows here, Ctrl/⌘ Z and Ctrl/⌘ Shift Z. The History window (key H) returns the plan to any point; the last 100 steps are kept.",
   "help_next_title": "Now and next",
@@ -1199,5 +1213,19 @@
   "dash_note": "Note",
   "dash_course_missed": "missed: {count}",
   "runway_ahead": "Other deadlines",
-  "runway_in_days": "in {count} d"
+  "runway_in_days": "in {count} d",
+  "settings": "Settings",
+  "settings_hint": "The limits the plan keeps to, and how early a reminder comes.",
+  "settings_budget": "Study hours a week",
+  "settings_budget_hint": "From {min} to {max} h. A week past it is marked, and a re-balance stays inside it.",
+  "settings_day_limit": "Most study hours in one day",
+  "settings_day_limit_hint": "From {min} to {max} h; empty for no limit. A longer day is marked in the week and warned about when the plan changes, and a re-balance starts from study hours this long.",
+  "settings_reminder": "Remind before a start",
+  "settings_reminder_hint": "In this browser. Reminders are switched on in the ⋮ menu.",
+  "settings_minutes": "{count} min",
+  "history_budget": "Weekly budget: {hours}",
+  "history_day_limit": "Day limit: {hours}",
+  "history_day_limit_off": "Day limit removed",
+  "ai_warn_day": "{title}: makes {day} a day of {hours} of study, past your limit of {limit}",
+  "day_over_limit": "Study that day, more than your limit of {limit}"
 }

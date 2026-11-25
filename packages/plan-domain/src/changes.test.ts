@@ -105,6 +105,8 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   'session.finish': { type: 'session.finish', uid: SESSION, actual: 68, began: '2026-11-23T12:04', paused: 7 },
   'plan.rename': { type: 'plan.rename', title: 'Another plan' },
   'plan.countdown': { type: 'plan.countdown', calendar: 'hfllm' },
+  'plan.budget': { type: 'plan.budget', hours: 10 },
+  'plan.dayLimit': { type: 'plan.dayLimit', hours: 3 },
   'reviews.plan': { type: 'reviews.plan', reviews: [session({ title: 'Review' })] },
   'course.add': { type: 'course.add', name: 'New course', color: '#0A7F5A', sessions: [courseSession] },
   'events.add': { type: 'events.add', events: [session(), session({ title: 'Extra 2' })] },
@@ -668,6 +670,33 @@ describe('week review', () => {
   test('a week is named by its Monday, and an update cannot carry a review: it stays with the person', () => {
     expect(() => parseChange({ type: 'week.review', week: '2026-11-24', note: '' })).toThrow(/Monday/)
     expect(() => parseUpdate({ changes: [REVIEW] })).toThrow()
+  })
+})
+
+describe('settings', () => {
+  test('the weekly budget and the day limit go into the meta, and back out', () => {
+    const set = apply([
+      { type: 'plan.budget', hours: 10 },
+      { type: 'plan.dayLimit', hours: 3 },
+    ])
+    expect(planOf(set).meta).toMatchObject({ weeklyBudgetHours: 10, dayLimit: 3 })
+    const back = apply(
+      [
+        { type: 'plan.budget', hours: base.meta.weeklyBudgetHours },
+        { type: 'plan.dayLimit', hours: null },
+      ],
+      set,
+    )
+    expect(back.budget).toBeUndefined()
+    expect(planOf(back).meta.dayLimit).toBeUndefined()
+    expect(parseEdits(structuredClone(set))).toEqual(set)
+  })
+
+  test('hours are kept to the half hour inside their range, and an update cannot carry them', () => {
+    expect(parseChange({ type: 'plan.dayLimit', hours: 2.3 })).toEqual({ type: 'plan.dayLimit', hours: 2.5 })
+    expect(() => parseChange({ type: 'plan.budget', hours: 0 })).toThrow(/hours/)
+    expect(() => parseChange({ type: 'plan.dayLimit', hours: 20 })).toThrow(/hours/)
+    expect(() => parseUpdate({ changes: [{ type: 'plan.budget', hours: 10 }] })).toThrow()
   })
 })
 

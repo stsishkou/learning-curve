@@ -1,6 +1,6 @@
-import { parseLocal, weekday } from './dates'
+import { DAY, parseLocal, weekday } from './dates'
 import { changedFields, type PlanDiff } from './diff'
-import { overlapping } from './occurrences'
+import { countsToBudget, durationHours, occurrences, overlapping } from './occurrences'
 import { isSession } from './progress'
 import type { Plan, PlanEvent } from './types'
 
@@ -13,10 +13,21 @@ export type RuleWarning =
   | { rule: 'overlap'; event: PlanEvent; other: PlanEvent }
   | { rule: 'deadline'; event: PlanEvent; deadline: PlanEvent }
   | { rule: 'done'; event: PlanEvent; removed: boolean }
+  /** The event's day holds more study than the plan's day limit */
+  | { rule: 'day'; event: PlanEvent; hours: number; limit: number }
 
 const dayOf = (e: PlanEvent) => e.start.slice(0, 10)
 const onWeekend = (e: PlanEvent) => weekday(parseLocal(e.start)) % 6 === 0
 const sameSlot = (a: PlanEvent, b: PlanEvent) => a.start === b.start && a.end === b.end && a.calendar === b.calendar
+const NO_CALENDARS: ReadonlySet<string> = new Set()
+
+/** Hours of study on a day, `YYYY-MM-DD`, counted as the weekly budget counts them. */
+export function studyHoursOn(plan: Plan, day: string): number {
+  const start = parseLocal(`${day}T00:00`)
+  return occurrences(plan, start, start + DAY, NO_CALENDARS)
+    .filter(countsToBudget)
+    .reduce((sum, o) => sum + durationHours(o), 0)
+}
 
 /** The rules `diff` breaks in `after`, the plan it led to. Only what the change touched is checked. */
 export function ruleWarnings(after: Plan, diff: PlanDiff): RuleWarning[] {
@@ -25,6 +36,8 @@ export function ruleWarnings(after: Plan, diff: PlanDiff): RuleWarning[] {
   const previous = new Map(diff.changed.map((c) => [c.after.uid, c.before]))
   const warnings: RuleWarning[] = []
   const pairs = new Set<string>()
+  const limit = after.meta.dayLimit
+  const longDays = new Set<string>()
 
   for (const event of [...diff.added, ...diff.changed.map((c) => c.after)]) {
     const was = previous.get(event.uid)
@@ -40,6 +53,14 @@ export function ruleWarnings(after: Plan, diff: PlanDiff): RuleWarning[] {
     }
     const deadline = deadlines.find((d) => d.calendar === event.calendar && event.end > d.start)
     if (deadline) warnings.push({ rule: 'deadline', event, deadline })
+    const day = dayOf(event)
+    if (limit && !longDays.has(day)) {
+      const hours = studyHoursOn(after, day)
+      if (hours > limit) {
+        longDays.add(day)
+        warnings.push({ rule: 'day', event, hours, limit })
+      }
+    }
   }
 
   for (const { before, after: event } of diff.changed) {
@@ -68,6 +89,8 @@ export function warningText(warning: RuleWarning): string {
       return `${named} ends after the deadline of its course, ${dayOf(warning.deadline)}`
     case 'done':
       return `${named} is already done and the update ${warning.removed ? 'removes' : 'changes'} it`
+    case 'day':
+      return `${named} makes ${dayOf(warning.event)} a day of ${warning.hours} h of study, past the limit of ${warning.limit} h`
     default:
       return warning satisfies never
   }

@@ -68,6 +68,9 @@ function subjectOf(plan: Plan, change: PlanChange): string {
     }
     case 'plan.rename':
       return change.title
+    case 'plan.budget':
+    case 'plan.dayLimit':
+      return change.hours === null ? '' : String(change.hours)
     case 'plan.countdown':
       return change.calendar === null ? '' : (plan.calendars.find((c) => c.id === change.calendar)?.name ?? '')
     case 'reviews.plan':

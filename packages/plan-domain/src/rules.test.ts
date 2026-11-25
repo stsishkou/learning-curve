@@ -78,3 +78,14 @@ test('a change that only marks a session done, logs its time or skips a repeat i
   ])
   expect(diff.changed.map((c) => c.after.uid).toSorted()).toEqual([first.uid, finished.uid, repeat.uid].toSorted())
 })
+
+test('a day past the limit is flagged once, with its hours', () => {
+  const limited = { ...fixturePlan, meta: { ...fixturePlan.meta, dayLimit: 0.5 } }
+  const warnings = previewUpdate(limited, [
+    move(first.uid, '2026-12-03T19:00', '2026-12-03T20:00'),
+    move(second.uid, '2026-12-03T20:00', '2026-12-03T21:00'),
+  ]).warnings.filter((w) => w.rule === 'day')
+  expect(warnings).toHaveLength(1)
+  expect(warnings[0]).toMatchObject({ rule: 'day', limit: 0.5 })
+  expect(rules([move(first.uid, '2026-12-03T20:00', '2026-12-03T21:00')])).not.toContain('day')
+})

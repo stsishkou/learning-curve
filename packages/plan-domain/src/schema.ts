@@ -192,6 +192,11 @@ export const PLAN_SCHEMA: Schema = {
           description:
             'The `id` of the calendar whose deadline the person counts down to. Without it, the nearest deadline. A calendar\'s deadline is its earliest event of kind "milestone".',
         },
+        dayLimit: {
+          type: 'number',
+          description:
+            'Most hours of study one day may hold, counted as for the weekly budget. Without it, no limit. Do not make a day longer unless the person asked for that.',
+        },
       },
     },
     calendars: {

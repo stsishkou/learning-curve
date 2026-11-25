@@ -1,4 +1,4 @@
-import { fmtDay } from '@lc/i18n/format'
+import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { parseLocal, type RuleWarning } from '@lc/plan-domain'
 import { TriangleAlert } from '@lc/ui'
@@ -19,6 +19,13 @@ export function warningLabel(warning: RuleWarning): string {
       return m.ai_warn_deadline({ title, day: dayText(warning.deadline.start) })
     case 'done':
       return warning.removed ? m.ai_warn_done_removed({ title }) : m.ai_warn_done({ title })
+    case 'day':
+      return m.ai_warn_day({
+        title,
+        day: dayText(start),
+        hours: fmtHours(warning.hours),
+        limit: fmtHours(warning.limit),
+      })
     default:
       return warning satisfies never
   }

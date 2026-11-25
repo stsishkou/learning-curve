@@ -18,6 +18,7 @@ import {
   MoveHorizontal,
   Redo2,
   Search,
+  Settings,
   Trash2,
   Type,
   Undo2,
@@ -41,6 +42,7 @@ export type DialogName =
   | 'syncReview'
   | 'export'
   | 'countdown'
+  | 'settings'
 
 interface Context {
   nav: PlannerViewState
@@ -53,8 +55,8 @@ interface Context {
   secondZone?: string | undefined
   /** The calendar integrations: `waiting` edits made in calendar apps wait for the person */
   integrations: { waiting: number }
-  /** Present where the browser can show notifications */
-  reminders?: { on: boolean; toggle: () => void } | undefined
+  /** Present where the browser can show notifications: `lead` is how many minutes before a start they come */
+  reminders?: { on: boolean; lead: number; toggle: () => void } | undefined
   /** Present where the browser can fill the whole screen */
   fullscreen?: { on: boolean; toggle: () => void } | undefined
   /** The help marks next to the main features */
@@ -258,7 +260,7 @@ export function buildActions(ctx: Context): PlannerAction[] {
           {
             id: 'reminders',
             group: plan,
-            label: m.reminders(),
+            label: m.reminders({ count: ctx.reminders.lead }),
             menuLabel: m.reminders_short(),
             icon: <Bell {...ICON} />,
             checked: ctx.reminders.on,
@@ -286,6 +288,14 @@ export function buildActions(ctx: Context): PlannerAction[] {
       checked: ctx.iconsOnly.on,
       menu: 'always',
       run: ctx.iconsOnly.toggle,
+    },
+    {
+      id: 'settings',
+      group: plan,
+      label: m.settings(),
+      icon: <Settings {...ICON} />,
+      menu: 'always',
+      run: () => ctx.open('settings'),
     },
     {
       id: 'shortcuts',

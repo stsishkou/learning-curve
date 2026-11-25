@@ -72,6 +72,8 @@ export interface PlanMeta {
   planEnd: string
   /** The calendar whose deadline the countdown follows; without it, the nearest deadline */
   countdown?: string
+  /** The most hours of study in one day; without it, no limit */
+  dayLimit?: number
 }
 
 /** A week as the person reviewed it: their note, and the week's numbers when the review was saved. */

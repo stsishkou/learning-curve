@@ -60,7 +60,6 @@ import {
 } from '../../../features/calendar-sync'
 import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
-import { CountdownDialog } from '../../../features/countdown-settings'
 import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, LabelFilter, useHiddenCalendars } from '../../../features/filter-calendars'
 import { describeStep, HistoryDialog } from '../../../features/history'
@@ -69,6 +68,7 @@ import { LogDoneDialog, ResizedDoneDialog, UnloggedBar, type ResizedDone } from 
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
+import { CountdownDialog, SettingsDialog } from '../../../features/plan-settings'
 import { useReminders } from '../../../features/reminders'
 import { RescheduleDialog, type ReschedulePreset } from '../../../features/reschedule'
 import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
@@ -737,6 +737,13 @@ export function PlannerPage({
         open={dialogs.isOpen('countdown')}
         onApply={session.changeAll}
         onClose={() => dialogs.hide('countdown')}
+      />
+      <SettingsDialog
+        plan={wholePlan}
+        open={dialogs.isOpen('settings')}
+        onApply={canEdit ? session.changeAll : undefined}
+        reminder={reminders.supported ? reminders : undefined}
+        onClose={() => dialogs.hide('settings')}
       />
       <RescheduleDialog
         plan={wholePlan}

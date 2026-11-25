@@ -678,7 +678,21 @@
   "second_zone": "Segunda zona horaria",
   "second_zone_hint": "Todos los eventos del plan están en la hora de Minsk. Elige aquí una segunda zona: su reloj se pone en la columna de horas, a la izquierda del de Minsk, y cada hora se lee también como la hora de allí.",
   "second_zone_none": "Quitar la segunda zona",
-  "reminders": "Avisar 10 minutos antes de empezar",
+  "reminders": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Avisar {count} minuto antes de empezar",
+        "countPlural=*": "Avisar {count} minutos antes de empezar"
+      }
+    }
+  ],
   "reminders_short": "Avisos",
   "reminder_body": "Empieza a las {time}",
   "reminders_blocked": "El navegador no permite notificaciones para este sitio. Permítelas en los ajustes del sitio y activa los avisos de nuevo.",
@@ -807,7 +821,7 @@
   "help_grid_title": "Mover eventos",
   "help_grid": "Arrastra un evento a otra hora o día; arrastra un borde para cambiar su duración. De un evento repetido se mueve una sola repetición, las demás se quedan.\nCon el teclado: Alt + flechas mueven, Alt Mayús ↑ ↓ cambian la duración, Supr lo envía a la papelera. El número junto al día es las horas de estudio de ese día.",
   "help_more_title": "Más acciones",
-  "help_more": "En el menú ⋮: el historial de cambios, la papelera (guarda lo eliminado 30 días), desplazar el plan unos días, Ponerse al día, una segunda zona horaria, tu calendario real en gris detrás del plan, recordatorios 10 minutos antes y la lista de teclas.",
+  "help_more": "En el menú ⋮: el historial de cambios, la papelera (guarda lo eliminado 30 días), desplazar el plan unos días, Ponerse al día, una segunda zona horaria, tu calendario real en gris detrás del plan, recordatorios antes de empezar, Ajustes (presupuesto semanal, límite diario, con cuánta antelación avisar) y la lista de teclas.",
   "help_history_title": "Deshacer e historial",
   "help_history": "Cada cambio es un paso que se puede deshacer y rehacer: las flechas de aquí, Ctrl/⌘ Z y Ctrl/⌘ Mayús Z. La ventana Historial (tecla H) devuelve el plan a cualquier punto; se guardan los últimos 100 pasos.",
   "help_next_title": "Ahora y después",
@@ -1199,5 +1213,19 @@
   "dash_note": "Nota",
   "dash_course_missed": "perdidas: {count}",
   "runway_ahead": "Otras fechas límite",
-  "runway_in_days": "en {count} d"
+  "runway_in_days": "en {count} d",
+  "settings": "Ajustes",
+  "settings_hint": "Los límites que sigue el plan y con cuánta antelación llega un aviso.",
+  "settings_budget": "Horas de estudio por semana",
+  "settings_budget_hint": "De {min} a {max} h. Una semana que lo pasa se marca, y un reequilibrio se queda dentro.",
+  "settings_day_limit": "Máximo de horas de estudio en un día",
+  "settings_day_limit_hint": "De {min} a {max} h; vacío para no tener límite. Un día más largo se marca en la semana y avisa cuando cambia el plan, y un reequilibrio empieza con un horario de estudio así de largo.",
+  "settings_reminder": "Avisar antes de empezar",
+  "settings_reminder_hint": "En este navegador. Los avisos se activan en el menú ⋮.",
+  "settings_minutes": "{count} min",
+  "history_budget": "Presupuesto semanal: {hours}",
+  "history_day_limit": "Límite diario: {hours}",
+  "history_day_limit_off": "Límite diario quitado",
+  "ai_warn_day": "{title}: deja el {day} con {hours} de estudio, más que tu límite de {limit}",
+  "day_over_limit": "Estudio ese día, más que tu límite de {limit}"
 }

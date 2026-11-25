@@ -19,9 +19,18 @@ const clock = (total: number) =>
 /**
  * The smallest window of the day that holds the start and the end of at least nine in ten open weekday sessions:
  * the hours the person keeps for study, not stretched by the odd session put in the evening by hand. Its edges are
- * on the half-hour grid.
+ * on the half-hour grid. A day limit set in the plan caps its length: the window starts where it would and ends
+ * once it holds that many hours.
  */
 export function defaultStudyHours(plan: Plan): { from: string; to: string } {
+  const window = usualHours(plan)
+  const limit = plan.meta.dayLimit
+  if (!limit) return window
+  const from = minutes(window.from)
+  return { from: window.from, to: clock(Math.min(minutes(window.to), from + Math.ceil(limit * 2) * 30)) }
+}
+
+function usualHours(plan: Plan): { from: string; to: string } {
   const spans = plan.events
     .filter((e) => isSession(e) && !e.done && weekday(parseLocal(e.start)) % 6 !== 0)
     .map((e) => ({ s: minutes(e.start.slice(11)), e: minutes(e.end.slice(11)) || 24 * 60 }))

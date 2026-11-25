@@ -114,6 +114,8 @@ export {
   type TrashedEvent,
 } from './trash'
 export {
+  BUDGET_RANGE,
+  DAY_LIMIT_RANGE,
   TITLE_MAX,
   applyEdits,
   emptyEdits,

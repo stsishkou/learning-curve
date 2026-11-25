@@ -47,9 +47,16 @@ const refuse =
   () =>
     parseRebalanceRequest({ ...valid, ...overrides }, on)
 
+const limited = (dayLimit: number) => ({ ...fixturePlan, meta: { ...fixturePlan.meta, dayLimit } })
+
 describe('defaultStudyHours', () => {
   test('is the smallest window that holds nine of ten open weekday sessions', () => {
     expect(defaultStudyHours(fixturePlan)).toEqual({ from: '11:00', to: '14:00' })
+  })
+
+  test('ends once it holds the day limit, and a limit longer than the window leaves it', () => {
+    expect(defaultStudyHours(limited(2))).toEqual({ from: '11:00', to: '13:00' })
+    expect(defaultStudyHours(limited(5))).toEqual({ from: '11:00', to: '14:00' })
   })
 
   test('is not stretched by a couple of sessions put late in the evening by hand', () => {

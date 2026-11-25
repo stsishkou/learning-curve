@@ -144,7 +144,7 @@ ${weekLines(plan, now).join('\n')}
 
 1. **Budget.** A week holds at most ${meta.weeklyBudgetHours} h of study. Busy, timed events that do not repeat count; \`free\`
    events and repeats (the gym) do not. Do not fill a week past the budget unless the person asks for it, and say
-   so in \`summary\` when you do.
+   so in \`summary\` when you do.${meta.dayLimit ? ` A day holds at most ${meta.dayLimit} h of study, counted the same way (\`meta.dayLimit\`); a longer day comes back as a \`day\` warning.` : ''}
 2. **Days off.** No sessions on \`meta.holidays\`${meta.holidays.length ? ` (${meta.holidays.join(', ')})` : ''}. Weekends are free unless the person studies on them
    already or asks for it.
 3. **Sessions.** A session is 1 hour, or 2 hours for a lab. It starts and ends on the same day, on the hour or the

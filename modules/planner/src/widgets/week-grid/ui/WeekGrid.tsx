@@ -18,7 +18,7 @@ import {
   toLocalString,
   ymd,
 } from '@lc/plan-domain'
-import { calendarColor, GraduationCap, Repeat, Timer } from '@lc/ui'
+import { calendarColor, GraduationCap, Repeat, Timer, TriangleAlert } from '@lc/ui'
 import {
   useEffect,
   useLayoutEffect,
@@ -262,6 +262,10 @@ export function WeekGrid({
   const colorOf = (id: string) => plan.calendars.find((c) => c.id === id)?.color ?? '#888'
   const studyHours = (day: number) =>
     timed.reduce((sum, o) => (startOfDay(o.s) === day && countsToBudget(o) ? sum + durationHours(o) : sum), 0)
+  const { dayLimit } = plan.meta
+  // Past the day limit the plan sets: the count turns into a warning, with a sign as well as a color.
+  const long = (day: number) => dayLimit !== undefined && studyHours(day) > dayLimit
+  const dayOverLimit = dayLimit === undefined ? '' : m.day_over_limit({ limit: fmtHours(dayLimit) })
 
   // On a narrow screen only some days fit: start at today when it is in this week.
   const scroller = useRef<HTMLDivElement>(null)
@@ -606,11 +610,11 @@ export function WeekGrid({
                   {dowShort(d)}
                   {studyHours(d) > 0 && (
                     <small
-                      className="flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-px text-[11px] font-medium whitespace-nowrap tabular-nums"
-                      data-tip={m.study_that_day()}
+                      className={`flex items-center gap-1 rounded-full px-1.5 py-px text-[11px] font-medium whitespace-nowrap tabular-nums ${long(d) ? 'bg-[color-mix(in_srgb,var(--today)_14%,var(--surface))] text-today-ink' : 'bg-surface-2'}`}
+                      data-tip={long(d) ? dayOverLimit : m.study_that_day()}
                     >
-                      <GraduationCap size={11} aria-hidden />
-                      <span className="sr-only">{m.study_that_day()}: </span>
+                      {long(d) ? <TriangleAlert size={11} aria-hidden /> : <GraduationCap size={11} aria-hidden />}
+                      <span className="sr-only">{long(d) ? dayOverLimit : m.study_that_day()}: </span>
                       {fmtHours(studyHours(d))}
                     </small>
                   )}

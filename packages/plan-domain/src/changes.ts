@@ -1,5 +1,7 @@
 import { DAY, HOUR, parseLocal, startOfDay, toLocalString, toMinsk, weekday } from './dates'
 import {
+  BUDGET_RANGE,
+  DAY_LIMIT_RANGE,
   HEX_COLOR,
   LOCAL_TIME,
   ORIGIN_FIELDS,
@@ -8,6 +10,7 @@ import {
   applyEdits,
   forgetFinish,
   forgetTime,
+  halfHours,
   isRecord,
   mondayDay,
   NOTE_MAX,
@@ -120,6 +123,10 @@ export type PlanChange =
   | { type: 'plan.rename'; title: string }
   /** Names the calendar whose deadline the countdown follows; null: the nearest deadline, whichever calendar's it is */
   | { type: 'plan.countdown'; calendar: string | null }
+  /** Hours of study a week may hold */
+  | { type: 'plan.budget'; hours: number }
+  /** The most hours of study in one day; null: no limit */
+  | { type: 'plan.dayLimit'; hours: number | null }
   /** Adds the review sessions of one finished module, as one step */
   | { type: 'reviews.plan'; reviews: NewEvent[] }
   /** Adds a course as one step: a new calendar with that name and color, and its sessions in it */
@@ -237,6 +244,17 @@ export function parseChange(input: unknown): PlanChange {
       return { type: 'plan.rename', title: text('title').slice(0, TITLE_MAX) }
     case 'plan.countdown':
       return { type: 'plan.countdown', calendar: input.calendar === null ? null : text('calendar') }
+    case 'plan.budget': {
+      const hours = halfHours(input.hours, BUDGET_RANGE)
+      if (hours === null) return fail(`hours must be ${BUDGET_RANGE.min} to ${BUDGET_RANGE.max}`)
+      return { type: 'plan.budget', hours }
+    }
+    case 'plan.dayLimit': {
+      if (input.hours === null) return { type: 'plan.dayLimit', hours: null }
+      const hours = halfHours(input.hours, DAY_LIMIT_RANGE)
+      if (hours === null) return fail(`hours must be ${DAY_LIMIT_RANGE.min} to ${DAY_LIMIT_RANGE.max}, or null`)
+      return { type: 'plan.dayLimit', hours }
+    }
     case 'calendar.save': {
       const color = text('color')
       if (!HEX_COLOR.test(color)) return fail('color must look like #1a2b3c')
@@ -425,6 +443,8 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     ...(edits.hidden ? { hidden: [...edits.hidden] } : {}),
     ...(edits.labels ? { labels: { ...edits.labels } } : {}),
     ...(edits.weekNotes ? { weekNotes: [...edits.weekNotes] } : {}),
+    ...(edits.budget ? { budget: edits.budget } : {}),
+    ...(edits.dayLimit ? { dayLimit: edits.dayLimit } : {}),
   }
   const { removed } = next
   const removedAt = new Date(now).toISOString()
@@ -687,6 +707,15 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       if (change.calendar === null) delete next.countdown
       else if (calendarExists(change.calendar)) next.countdown = change.calendar
       else fail(`Unknown calendar "${change.calendar}"`)
+      break
+    case 'plan.budget':
+      // The generated budget again is no edit at all.
+      if (change.hours === base.meta.weeklyBudgetHours) delete next.budget
+      else next.budget = change.hours
+      break
+    case 'plan.dayLimit':
+      if (change.hours === null) delete next.dayLimit
+      else next.dayLimit = change.hours
       break
     case 'events.shift': {
       const unknown = change.calendars?.find((id) => !calendarExists(id))
