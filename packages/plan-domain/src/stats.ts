@@ -1,5 +1,5 @@
 import { DAY, HOUR, mondayOf, parseLocal } from './dates'
-import { isSession } from './progress'
+import { isDone, isSession } from './progress'
 import type { Plan } from './types'
 
 export interface WeekStats {
@@ -52,7 +52,7 @@ export function planStats(plan: Plan, now: number): PlanStats {
     week.byCalendar[event.calendar] = (week.byCalendar[event.calendar] ?? 0) + hours
     stats.planned += hours
     if (end <= now) stats.plannedByNow += hours
-    if (event.done) {
+    if (isDone(event)) {
       week.done += hours
       stats.done += hours
       stats.doneSessions += 1

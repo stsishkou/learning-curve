@@ -84,9 +84,9 @@ export function runningTypical(sessions: readonly PlanEvent[]): TypicalAt[] {
   }))
 }
 
-/** What the logged time of `sessions` says about their planned lengths. Only the done ones count. */
+/** What the logged time of `sessions` says about their planned lengths. Only the done ones count, not the skipped. */
 export function accuracyOf(sessions: readonly PlanEvent[]): Accuracy {
-  const done = sessions.filter((e) => e.done)
+  const done = sessions.filter((e) => e.done && !e.skipped)
   const logged = done.filter((e) => e.actual !== undefined)
   const loggedPlanned = logged.reduce((sum, e) => sum + hoursOf(e), 0)
   const loggedSpent = logged.reduce((sum, e) => sum + (e.actual ?? 0) / 60, 0)

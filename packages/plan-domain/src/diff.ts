@@ -19,6 +19,7 @@ const KEYS = [
   'done',
   'actual',
   'unfinished',
+  'skipped',
   'rrule',
   'description',
 ] as const

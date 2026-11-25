@@ -207,6 +207,7 @@ export {
 export {
   courseProgress,
   doneWithoutTime,
+  isDone,
   isSession,
   plannedHours,
   realLength,

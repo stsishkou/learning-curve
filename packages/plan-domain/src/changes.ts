@@ -7,6 +7,7 @@ import {
   TITLE_MAX,
   applyEdits,
   forgetFinish,
+  forgetTime,
   isRecord,
   parsePatch,
   patchProblem,
@@ -472,6 +473,8 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
           forgetFinish(merged)
         }
         if (!merged.unfinished) delete merged.unfinished
+        if (merged.skipped) forgetTime(merged)
+        else delete merged.skipped
         if (patchProblem(merged, {})) fail('The event must end after it starts')
         next.added[next.added.indexOf(current)] = merged
         return next
@@ -490,6 +493,8 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       }
       if (!(merged.done ?? original.done)) forgetFinish(merged)
       if (!merged.unfinished) delete merged.unfinished
+      if (merged.skipped) forgetTime(merged)
+      else delete merged.skipped
       if (!merged.done === !original.done) delete merged.done
       if (!merged.skip?.length || !original.rrule) delete merged.skip
       if (!original.rrule) delete merged.rrule

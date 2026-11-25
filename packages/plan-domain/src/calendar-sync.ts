@@ -7,6 +7,7 @@ import { DAY, parseLocal, toLocalString, ymd } from './dates'
 import type { EventPatch } from './edits'
 import { tookNote } from './ics'
 import { skipDay } from './occurrence-changes'
+import { isDone } from './progress'
 import { hashText } from './revisions'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 import { previewUpdate } from './update'
@@ -41,7 +42,7 @@ export function writtenOf(event: PlanEvent): Written {
   const done = event.done === true
   const day = event.start.slice(0, 10)
   const written: Written = {
-    summary: done ? `${DONE}${event.title}` : event.title,
+    summary: isDone(event) ? `${DONE}${event.title}` : event.title,
     description: [tookNote(event), event.description].filter(Boolean).join('\n\n'),
     start: event.allDay ? day : event.start,
     end: event.allDay ? ymd(parseLocal(day) + DAY) : event.end,

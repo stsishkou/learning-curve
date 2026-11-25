@@ -1,6 +1,6 @@
 import { DAY, mondayOf, parseLocal, startOfDay } from './dates'
 import { planStart } from './occurrences'
-import { isSession, plannedHours } from './progress'
+import { isDone, isSession, plannedHours } from './progress'
 import type { Plan } from './types'
 
 export interface StudyDay {
@@ -32,7 +32,7 @@ export function studyStreak(plan: Plan, now: number): StudyStreak {
     const entry = isSession(event) ? byDay.get(startOfDay(parseLocal(event.start))) : undefined
     if (!entry) continue
     entry.planned += plannedHours(event)
-    if (event.done) entry.done += plannedHours(event)
+    if (isDone(event)) entry.done += plannedHours(event)
   }
   const days = [...byDay.values()]
   const today = startOfDay(now)

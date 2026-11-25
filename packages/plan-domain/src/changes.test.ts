@@ -6,11 +6,14 @@ import { parseLocal, toLocalString } from './dates'
 import { deadlineOf } from './deadlines'
 import { applyEdits, emptyEdits, parseEdits, shownPlan, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
+import { weekReview } from './goals'
 import { emptyHistory, recordChange } from './history'
 import { countsTwice, groupByLabel, planLabels } from './labels'
-import { isSession } from './progress'
+import { courseProgress, doneWithoutTime, isSession } from './progress'
+import { reviewOffers } from './reviews'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import { UPDATE_CHANGE_TYPES, UPDATE_SCHEMA } from './schema'
+import { planStats } from './stats'
 import { TRASH_DAYS, purgeTrash, trashOf } from './trash'
 import type { Plan, PlanEvent } from './types'
 import { parseUpdate, previewUpdate } from './update'
@@ -561,6 +564,62 @@ describe('labels', () => {
       { name: 'Partners', calendars: ['certs', 'journey'] },
       { name: 'Own', calendars: ['journey'] },
     ])
+  })
+})
+
+const skip = (uid: string): PlanChange => ({ type: 'event.patch', uid, patch: { done: true, skipped: true } })
+/** A session of a two-session module that ended before `NOW` */
+const probe = (n: number) =>
+  session({ title: `Probe — Probe module (${n}/2)`, start: `2026-11-2${n}T10:00`, end: `2026-11-2${n}T11:00` })
+const offered = (edits: PlanEdits) => reviewOffers(planOf(edits), NOW).some((offer) => offer.title.includes('Probe'))
+
+describe('skipped', () => {
+  test('a skipped session is no open work, and every count of success takes it as missed', () => {
+    const plan = planOf(apply([skip(SESSION), { type: 'events.done', uids: [NEXT], done: true }]))
+    const skipped = find(plan, SESSION)
+    expect(skipped).toMatchObject({ done: true, skipped: true })
+    // Done with, so the planner does not ask for the time it took.
+    expect(skipped && doneWithoutTime(skipped)).toBe(false)
+    const certs = courseProgress(plan).find((c) => c.calendar.id === 'certs')
+    expect(certs).toMatchObject({ doneSessions: 1, skippedSessions: 1 })
+    const monday = parseLocal('2026-11-23T00:00')
+    const review = weekReview(plan, monday, NOW)
+    expect(review.skipped).toBe(1)
+    expect(review.missed).toBeGreaterThanOrEqual(1)
+    expect(planStats(plan, NOW).doneSessions).toBe(1)
+  })
+
+  test('marking it not done brings it back as open work and drops the skipped mark', () => {
+    const edits = apply([skip(SESSION), { type: 'event.patch', uid: SESSION, patch: { done: false } }])
+    expect(edits.events[SESSION]).toBeUndefined()
+    expect(find(planOf(edits), SESSION)?.skipped).toBeUndefined()
+  })
+
+  test('skipped survives the edits file, and an added session keeps it too', () => {
+    const edits = apply([EXAMPLES['event.add']])
+    const { uid } = added(edits)
+    const both = apply([skip(SESSION), skip(uid)], edits)
+    const stored = JSON.stringify(both)
+    const again = parseEdits(JSON.parse(stored))
+    expect(again).toEqual(both)
+    expect(find(planOf(again), uid)).toMatchObject({ done: true, skipped: true })
+  })
+
+  test('skipping drops the time logged for the session', () => {
+    const edits = apply([
+      { type: 'events.done', uids: [SESSION], done: true, actual: { [SESSION]: 45 } },
+      skip(SESSION),
+    ])
+    expect(find(planOf(edits), SESSION)?.actual).toBeUndefined()
+  })
+
+  test('a module that was only skipped offers no reviews; one session done is enough', () => {
+    const one = apply([{ type: 'event.add', event: probe(1) }])
+    const first = added(one).uid
+    const both = apply([{ type: 'event.add', event: probe(2) }], one)
+    const second = added(both).uid
+    expect(offered(apply([skip(first), skip(second)], both))).toBe(false)
+    expect(offered(apply([skip(first), { type: 'events.done', uids: [second], done: true }], both))).toBe(true)
   })
 })
 

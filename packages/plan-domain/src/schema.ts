@@ -113,6 +113,11 @@ const EVENT: Schema = {
       description:
         'true when a done session ran out of time before its goal was met: the rest goes on in a later session. Only on a done session.',
     },
+    skipped: {
+      type: 'boolean',
+      description:
+        'true when the person chose not to do the session: it is done with, so no longer open work, but it counts as missed. Only on a done session.',
+    },
     estimate: {
       type: 'integer',
       minimum: 1,
@@ -324,6 +329,11 @@ const CHANGES: Schema[] = [
             type: 'boolean',
             description:
               'true when the person says a done session ended before its goal was met; false takes that back. Kept only while the session is done.',
+          },
+          skipped: {
+            type: 'boolean',
+            description:
+              'true, with `done: true`, when the person says they will not do the session: it leaves the open work and counts as missed. `done: false` takes it back.',
           },
           rrule: {
             ...RRULE,

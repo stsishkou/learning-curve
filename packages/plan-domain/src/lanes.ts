@@ -51,7 +51,7 @@ export function calendarLanes(plan: Plan, now: number | null, hidden: ReadonlySe
     const sessions = events.map((e): LaneSession => ({
       uid: e.uid,
       day: e.start.slice(0, 10),
-      state: e.done ? 'done' : now !== null && parseLocal(e.end) <= now ? 'missed' : 'open',
+      state: e.skipped ? 'missed' : e.done ? 'done' : now !== null && parseLocal(e.end) <= now ? 'missed' : 'open',
     }))
     return [
       {

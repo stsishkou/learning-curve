@@ -41,6 +41,12 @@ const remote = (uid: string, edit: Partial<RemoteEvent> = {}): RemoteEvent => {
   return { id: `id-${uid}`, uid, etag: 'edited', cancelled: false, summary, start, end, ...edit }
 }
 
+test('a skipped session is written as free time, without the ✓ of a done one', () => {
+  const written = writtenOf({ ...session, done: true, skipped: true })
+  expect(written.summary).toBe(session.title)
+  expect(written.free).toBe(true)
+})
+
 test('a done session is written with ✓, as free time, with how long it took first in its notes', () => {
   const written = writtenOf({ ...session, done: true, actual: 75 })
   expect(written.summary).toBe(`✓ ${session.title}`)

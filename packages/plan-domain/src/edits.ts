@@ -18,6 +18,7 @@ export type EventPatch = Partial<
     | 'began'
     | 'paused'
     | 'unfinished'
+    | 'skipped'
     | 'estimate'
     | 'from'
     | 'paced'
@@ -40,13 +41,19 @@ export const withoutRecord = <T extends EventPatch>({
   ...rest
 }: T) => rest
 
-/** Drops what only a done session has: its logged time, the stopwatch's record and the unfinished mark. */
-export function forgetFinish(fields: EventPatch) {
+/** Drops the logged time, the stopwatch's record and the unfinished mark: a skipped session was not studied. */
+export function forgetTime(fields: EventPatch) {
   delete fields.actual
   delete fields.measured
   delete fields.began
   delete fields.paused
   delete fields.unfinished
+}
+
+/** Drops what only a done session has: its logged time, the stopwatch's record and the unfinished and skipped marks. */
+export function forgetFinish(fields: EventPatch) {
+  forgetTime(fields)
+  delete fields.skipped
 }
 
 /** A calendar's look. For a generated calendar it overrides the content; an unknown id adds a calendar. */
@@ -117,7 +124,7 @@ export function parsePatch(value: unknown): EventPatch | null {
     if ((key === 'title' || key === 'calendar') && !field.trim()) return null
     patch[key] = key === 'title' ? field.trim() : field
   }
-  for (const key of ['done', 'unfinished'] as const) {
+  for (const key of ['done', 'unfinished', 'skipped'] as const) {
     const field = value[key]
     if (field === undefined) continue
     if (typeof field !== 'boolean') return null
@@ -216,6 +223,7 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
     if (patch.paused) event.paused = patch.paused
   }
   if (patch.done && patch.unfinished) event.unfinished = true
+  if (patch.done && patch.skipped) event.skipped = true
   if (patch.estimate) event.estimate = patch.estimate
   if (patch.from) event.from = patch.from
   if (patch.paced) event.paced = true
@@ -323,6 +331,7 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
         forgetFinish(next)
       }
       if (!next.unfinished) delete next.unfinished
+      if (!next.skipped) delete next.skipped
       if (!next.skip?.length) delete next.skip
       return calendarIds.has(next.calendar) ? next : { ...next, calendar: event.calendar }
     }),

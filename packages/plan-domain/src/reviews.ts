@@ -1,7 +1,7 @@
 import type { NewEvent } from './changes'
 import { DAY, HOUR, parseLocal, startOfDay, toLocalString, ymd } from './dates'
 import { occurrences } from './occurrences'
-import { isSession } from './progress'
+import { isDone, isSession } from './progress'
 import type { Plan, PlanEvent } from './types'
 
 /** Days after a module is finished on which it is reviewed: the gaps grow, as spaced repetition asks. */
@@ -64,7 +64,8 @@ export function reviewOffers(plan: Plan, now: number): ReviewOffer[] {
   for (const [key, sessions] of modules) {
     const last = sessions.reduce((latest, e) => (e.end > latest.end ? e : latest))
     const module = moduleOf(last)
-    if (!sessions.every((e) => e.done)) continue
+    // A module whose sessions were all skipped was not studied: there is nothing to review.
+    if (!sessions.every((e) => e.done) || !sessions.some(isDone)) continue
     if (parseLocal(last.end) < today - OFFER_FOR) continue
     if (reviewed.has(`${last.calendar}\n${reviewPrefix(module)}`)) continue
 

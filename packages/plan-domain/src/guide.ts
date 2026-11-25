@@ -202,7 +202,7 @@ The changes you can use:
 | \`course.add\` | A new course: a calendar (\`name\`, \`color\`, optional \`labels\`) and all its \`sessions\`, as one step |
 | \`events.add\` | Several \`events\` in calendars that exist, as one step |
 | \`event.add\` | One \`event\` |
-| \`event.patch\` | Changes fields of the event \`uid\`: \`title\`, \`description\`, \`start\`, \`end\`, \`calendar\`, \`done\`, \`actual\`, \`rrule\`, \`skip\` |
+| \`event.patch\` | Changes fields of the event \`uid\`: \`title\`, \`description\`, \`start\`, \`end\`, \`calendar\`, \`done\`, \`actual\`, \`skipped\`, \`rrule\`, \`skip\` |
 | \`event.detach\` | Moves one repeat (\`day\`) of a repeating event to \`start\`–\`end\`; the series stays |
 | \`event.split\` | Splits the session \`uid\` into \`parts\` (\`start\`, \`end\`) that add up to its length; the first part keeps the uid |
 | \`event.remove\` | Moves the event \`uid\` to the trash (restorable for 30 days) |
@@ -251,6 +251,8 @@ ${code(habit)}
   person says them. Time spent on one session: \`event.patch\` with \`actual\` in minutes. \`measured\`, \`began\` and \`paused\` are written by the stopwatch of the Focus page: read
   them, never send them. A time you send replaces them, as the person recalled it. When the person says a session
   ended before its goal was met, add \`unfinished: true\` to the same patch: the rest of the module goes on later.
+- **A session the person will not do**: \`event.patch\` with \`done: true, skipped: true\`. It leaves the open work
+  (no catch-up, no forecast) and counts as missed in every success figure. \`done: false\` brings it back.
 - **Moving a few sessions**: one \`events.move\` with all of them, so it is one step to undo.
 - **A session too long for one sitting**: \`event.split\` with the slots of its parts, on the same or other days.
   They must add up to its length. A lab stays one block.

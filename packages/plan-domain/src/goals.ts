@@ -1,7 +1,7 @@
 import { accuracyOf, type Accuracy } from './accuracy'
 import { isCustomEvent } from './changes'
 import { DAY, parseLocal, startOfDay } from './dates'
-import { isSession, plannedHours, spentHours } from './progress'
+import { isDone, isSession, plannedHours, spentHours } from './progress'
 import type { Plan, PlanEvent } from './types'
 
 /** A module of a course: the sessions that share a title once the `(2/3)` counter is taken off. */
@@ -31,8 +31,10 @@ export interface WeekReview {
   spent: number
   sessions: number
   doneSessions: number
-  /** Sessions of the week that are over and not done */
+  /** Sessions of the week that are over and not done, the skipped ones included */
   missed: number
+  /** Of the missed sessions, the ones the person chose to skip */
+  skipped: number
   goals: ModuleGoal[]
   /** What the time logged this week says, with the counts it rests on */
   accuracy: Accuracy
@@ -56,7 +58,7 @@ export function moduleGoals(plan: Plan): ModuleGoal[] {
       finish: 0,
     }
     goal.sessions += 1
-    if (e.done) goal.done += 1
+    if (isDone(e)) goal.done += 1
     goal.finish = Math.max(goal.finish, startOfDay(parseLocal(e.start)))
     goals.set(key, goal)
   }
@@ -98,7 +100,7 @@ export function moduleOverruns(plan: Plan): ModuleOverrun[] {
   }
   const rows = [...modules.values()].flatMap((sessions): ModuleOverrun[] => {
     const [first] = sessions
-    const done = sessions.filter((e) => e.done)
+    const done = sessions.filter(isDone)
     if (!first || !done.length) return []
     // In a course made in the viewer every session is added; only one added to a generated module is extra work.
     const generated = sessions.some((e) => !isCustomEvent(e))
@@ -165,16 +167,20 @@ export function weekReview(plan: Plan, monday: number, now: number): WeekReview 
     sessions: 0,
     doneSessions: 0,
     missed: 0,
+    skipped: 0,
     goals: goalsBetween(plan, monday, end),
     accuracy: accuracyOf(week),
   }
   for (const e of week) {
     review.sessions += 1
     review.planned += plannedHours(e)
-    if (e.done) {
+    if (isDone(e)) {
       review.doneSessions += 1
       review.done += plannedHours(e)
       review.spent += spentHours(e)
+    } else if (e.skipped) {
+      review.missed += 1
+      review.skipped += 1
     } else if (parseLocal(e.end) <= now) {
       review.missed += 1
     }

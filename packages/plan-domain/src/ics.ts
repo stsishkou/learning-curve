@@ -114,7 +114,7 @@ export function buildICS(calendar: PlanCalendar, events: PlanEvent[], tz: string
     }
     if (e.rrule) lines.push(`RRULE:${e.rrule}`)
     for (const day of e.skip ?? []) lines.push(`EXDATE;TZID=${tz}:${compact(`${day}T${e.start.slice(11, 16)}`)}`)
-    const finished = options.markDone === true && e.done === true
+    const finished = options.markDone === true && e.done === true && !e.skipped
     lines.push(`SUMMARY:${escapeText(finished ? `✓ ${e.title}` : e.title)}`)
     const description = [finished ? tookNote(e) : '', e.description].filter(Boolean).join('\n\n')
     if (description) lines.push(`DESCRIPTION:${escapeText(description)}`)

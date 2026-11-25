@@ -9,6 +9,8 @@ export interface CourseProgress {
   doneHours: number
   sessions: number
   doneSessions: number
+  /** Sessions the person chose to skip: neither done nor open */
+  skippedSessions: number
   /** Hours the done sessions really took: the logged time, or the planned time where none was logged */
   spentHours: number
   /** Real hours per planned hour of the logged sessions; 1 until enough are logged to say (`MIN_LOGGED`) */
@@ -26,6 +28,9 @@ export const isSession = (e: PlanEvent) => !e.rrule && !e.allDay && e.availabili
 
 export const plannedHours = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.start)) / HOUR
 
+/** Finished as planned: done and not skipped. Every count of success uses this; open work is `!e.done`. */
+export const isDone = (e: PlanEvent) => e.done === true && !e.skipped
+
 /** Hours a done session took: what was logged, or its planned length. */
 export const spentHours = (e: PlanEvent) => (e.actual === undefined ? plannedHours(e) : e.actual / 60)
 
@@ -34,7 +39,7 @@ export const realLength = (e: PlanEvent): number | null =>
   e.done && e.actual !== undefined && !e.rrule ? (e.actual * HOUR) / 60 : null
 
 /** A session marked done with no logged time: the pace cannot count it, so the planner asks for its time. */
-export const doneWithoutTime = (e: PlanEvent) => isSession(e) && e.done === true && e.actual === undefined
+export const doneWithoutTime = (e: PlanEvent) => isSession(e) && isDone(e) && e.actual === undefined
 
 /** The logged sessions one session is judged against, and what they took. */
 export interface ReferenceClass {
@@ -66,7 +71,7 @@ export function courseProgress(plan: Plan): CourseProgress[] {
   return plan.calendars.flatMap((calendar) => {
     const sessions = plan.events.filter((e) => e.calendar === calendar.id && isSession(e))
     if (!sessions.length) return []
-    const done = sessions.filter((e) => e.done)
+    const done = sessions.filter(isDone)
     const doneHours = done.reduce((sum, e) => sum + hoursOf(e), 0)
     const spent = done.reduce((sum, e) => sum + spentHours(e), 0)
     const accuracy = accuracyOf(sessions)
@@ -80,6 +85,7 @@ export function courseProgress(plan: Plan): CourseProgress[] {
         accuracy,
         sessions: sessions.length,
         doneSessions: done.length,
+        skippedSessions: sessions.filter((e) => e.skipped).length,
         next: sessions.find((e) => !e.done) ?? null,
         finish: sessions.reduce((max, e) => (e.start > max ? e.start : max), '').slice(0, 10),
       },

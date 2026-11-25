@@ -51,6 +51,11 @@ export interface PlanEvent {
   paused?: number
   /** The done session's time ran out before its goal was met: the rest goes on in a later session */
   unfinished?: boolean
+  /**
+   * The person chose not to do the session: it is no longer open work, but every count of success takes it as missed.
+   * Only on a done session
+   */
+  skipped?: boolean
   /** Minutes the session was first planned with, kept once a change made it longer or shorter */
   estimate?: number
   /** The uid of the session this one was split from */
