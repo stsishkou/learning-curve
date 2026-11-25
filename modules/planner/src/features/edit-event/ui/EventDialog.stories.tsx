@@ -1,3 +1,5 @@
+import { fmtDuration } from '@lc/i18n/format'
+import { m } from '@lc/i18n/messages'
 import { isSession, parseLocal, splitInHalves, type PlanEvent } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
@@ -7,6 +9,9 @@ import { EventDialog } from './EventDialog'
 
 const pick = (test: (e: PlanEvent) => boolean) => fixturePlan.events.find(test) ?? itemAt(fixturePlan.events)
 const upcoming = pick((e) => isSession(e) && parseLocal(e.start) > fixtureNow)
+const finished = pick((e) => isSession(e) && Boolean(e.done) && e.actual === undefined)
+const MINUTE = 60_000
+const plannedOf = (e: PlanEvent) => Math.round((parseLocal(e.end) - parseLocal(e.start)) / MINUTE)
 
 const meta = {
   title: 'Planner/Features/EventDialog',
@@ -38,6 +43,43 @@ export const Session: Story = {}
 
 /** Marked done and changed by hand: the dialog offers to take both back. */
 export const DoneAndEdited: Story = { args: { event: pick((e) => Boolean(e.done)), edited: true } }
+
+/**
+ * Marked done without a time, as the bulk actions and tools do: the card says the time is not logged instead of
+ * showing the plan as the time spent, and one choice logs it.
+ */
+export const DoneNotLogged: Story = {
+  args: { event: finished },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const missing = await body.findByText(m.spent_not_logged())
+    await waitFor(() => expect(missing).toBeVisible())
+    await userEvent.click(body.getByRole('button', { name: m.spent_as_planned() }))
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'event.patch',
+      uid: finished.uid,
+      patch: { actual: plannedOf(finished) },
+    })
+    await userEvent.click(body.getByRole('button', { name: m.spent_over_plan({ time: fmtDuration(30 * MINUTE) }) }))
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'event.patch',
+      uid: finished.uid,
+      patch: { actual: plannedOf(finished) + 30 },
+    })
+  },
+}
+
+/** A logged time is shown as it was logged, and steps by a quarter hour from there. */
+export const DoneLogged: Story = {
+  args: { event: { ...finished, actual: 75 } },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const logged = await body.findByText(fmtDuration(75 * MINUTE))
+    await waitFor(() => expect(logged).toBeVisible())
+    await userEvent.click(body.getByRole('button', { name: m.spent_more() }))
+    await expect(args.onChange).toHaveBeenCalledWith({ type: 'event.patch', uid: finished.uid, patch: { actual: 90 } })
+  },
+}
 
 export const ReadOnly: Story = { args: { canEdit: false } }
 

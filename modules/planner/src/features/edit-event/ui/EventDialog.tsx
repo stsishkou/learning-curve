@@ -284,6 +284,7 @@ export function EventDialog({
           {canEdit && event.done && isSession(event) && (
             <SpentTime
               event={event}
+              spent={event.actual}
               disabled={busy}
               onLog={(actual) => void run({ type: 'event.patch', uid: event.uid, patch: { actual } })}
             />
