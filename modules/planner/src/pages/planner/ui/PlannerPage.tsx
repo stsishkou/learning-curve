@@ -599,7 +599,7 @@ export function PlannerPage({
       </div>
 
       <EventDialog
-        plan={plan}
+        plan={wholePlan}
         event={selected}
         day={pickedDay}
         onDayChange={setPickedDay}
@@ -660,7 +660,7 @@ export function PlannerPage({
         }}
       />
       <CatchUpDialog
-        plan={plan}
+        plan={wholePlan}
         open={dialogs.isOpen('catchUp')}
         now={now}
         onChange={session.change}

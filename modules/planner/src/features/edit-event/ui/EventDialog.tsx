@@ -80,6 +80,7 @@ function eventLink(uid: string): string {
 }
 
 interface Props {
+  /** The whole plan, hidden calendars included: a free slot and the overlap warning count their sessions too */
   plan: Plan
   /** The event to show; null with no `draft` keeps the dialog closed */
   event: PlanEvent | null
@@ -199,6 +200,8 @@ export function EventDialog({
   const offer = free && free.uid === event?.uid ? free : null
   const asking = event !== null && !event.done && isSession(event) && finishing === event.uid
   const calendar = plan.calendars.find((c) => c.id === event?.calendar)
+  // A hidden calendar stays offered to the event already in it, so its form keeps a value.
+  const offered = plan.calendars.filter((c) => !c.hidden || c.id === event?.calendar)
   let when = ''
   if (event) {
     const s = parseLocal(event.start)
@@ -235,7 +238,7 @@ export function EventDialog({
           key={draft.start}
           heading={m.new_event()}
           initial={draft}
-          calendars={plan.calendars}
+          calendars={offered}
           chooseAvailability
           overlaps={overlaps}
           busy={busy}
@@ -251,7 +254,7 @@ export function EventDialog({
           key={event.uid}
           heading={m.edit()}
           initial={{ ...event }}
-          calendars={plan.calendars}
+          calendars={offered}
           allDay={event.allDay}
           recurring={Boolean(event.rrule)}
           overlaps={event.availability === 'free' ? undefined : overlaps}
