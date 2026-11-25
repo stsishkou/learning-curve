@@ -34,6 +34,8 @@ interface Props {
    * changes of one action, to be stored in order.
    */
   onChanges?: ((changes: PlanChange[]) => void) | undefined
+  /** Present when the page asks for times before it marks sessions done; without it they are marked done at once */
+  onMarkDone?: ((uids: string[]) => void) | undefined
 }
 
 const matches = (o: Occurrence, filter: Filter, now: number | null) =>
@@ -46,7 +48,7 @@ const matches = (o: Occurrence, filter: Filter, now: number | null) =>
  * The whole plan grouped by day in its own scrolling box, opened at today. A filter narrows it to what is open,
  * done or overdue; on an editable plan several events can be ticked and changed together.
  */
-export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
+export function AgendaList({ plan, items, now, onSelect, onChanges, onMarkDone }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const todayRef = useRef<HTMLHeadingElement>(null)
   const maxHeight = useFillHeight(box)
@@ -172,7 +174,14 @@ export function AgendaList({ plan, items, now, onSelect, onChanges }: Props) {
               className={BULK}
               icon={<Check size={14} aria-hidden />}
               label={m.bulk_done()}
-              onClick={() => act([{ type: 'events.done', uids, done: true }])}
+              onClick={() => {
+                if (onMarkDone) {
+                  onMarkDone(uids)
+                  setPicked(new Set())
+                } else {
+                  act([{ type: 'events.done', uids, done: true }])
+                }
+              }}
             />
             <Button className={BULK} onClick={() => act([{ type: 'events.done', uids, done: false }])}>
               {m.bulk_undone()}

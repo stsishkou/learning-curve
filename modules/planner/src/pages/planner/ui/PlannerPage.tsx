@@ -57,6 +57,7 @@ import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
 import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog } from '../../../features/keyboard-shortcuts'
+import { LogDoneDialog } from '../../../features/log-done'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
@@ -202,6 +203,8 @@ export function PlannerPage({
   // The day Reschedule opens from; null while it is closed.
   const [reschedule, setReschedule] = useState<string | null>(null)
   const [overdueHidden, setOverdueHidden] = useState(false)
+  /** Sessions marked done in bulk, waiting for their times */
+  const [logDone, setLogDone] = useState<string[]>([])
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
   const [pickedDay, setPickedDay] = useState<string | null>(null)
 
@@ -416,7 +419,7 @@ export function PlannerPage({
       {canEdit && overdue.length > 0 && !overdueHidden && (
         <OverdueBar
           count={overdue.length}
-          onMarkDone={() => quiet.change({ type: 'events.done', uids: overdue.map((e) => e.uid), done: true })}
+          onMarkDone={() => setLogDone(overdue.map((e) => e.uid))}
           onCatchUp={() => dialogs.show('catchUp')}
           onDismiss={() => setOverdueHidden(true)}
         />
@@ -528,6 +531,7 @@ export function PlannerPage({
               now={now}
               onSelect={select}
               onChanges={canEdit ? quiet.changeAll : undefined}
+              onMarkDone={canEdit ? setLogDone : undefined}
             />
           )}
         </section>
@@ -608,6 +612,7 @@ export function PlannerPage({
         onNextWeek={() => nav.showWeek(weekStart + 7 * DAY)}
         onClose={() => dialogs.hide('review')}
       />
+      <LogDoneDialog plan={plan} uids={logDone} onChange={session.change} onClose={() => setLogDone([])} />
       <CatchUpDialog
         plan={plan}
         open={dialogs.isOpen('catchUp')}
