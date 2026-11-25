@@ -13,13 +13,15 @@ export interface Command {
   group: string
   /** Keys that run it without the palette, shown on the right */
   keys?: string | undefined
+  /** Listed before the events found, as a label is: whoever types its name is looking for it, not for a session */
+  pinned?: boolean | undefined
   run: () => void
 }
 
 interface Props {
   /** The parent owns it and sets it to false in `onClose` */
   open: boolean
-  /** Its events are searched by title once two letters are typed */
+  /** Its events are searched by title, and by the labels of their calendars, once two letters are typed */
   plan: Plan
   /** The actions to list, grouped by `group` in the order given: `{ id, label, group, run }` plus optional `keys` */
   commands: Command[]
@@ -63,17 +65,15 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onQuickAdd
       .filter((c) => !text || matches(c.label) || matches(c.group))
       .map((command) => ({ kind: 'command', key: command.id, group: command.group, command, run: command.run }))
     if (text.length >= 2) {
-      for (const event of plan.events) {
-        if (found.length >= commands.length + MAX_EVENTS) break
-        if (matches(event.title)) {
-          found.push({
-            kind: 'event',
-            key: event.uid,
-            group: m.palette_events(),
-            event,
-            run: () => onSelectEvent(event),
-          })
-        }
+      // After the titles that match, what is ahead in the calendars whose label matches.
+      const labelled = new Set(plan.calendars.filter((c) => c.labels?.some(matches)).map((c) => c.id))
+      const ahead = (event: PlanEvent) => now === null || parseLocal(event.end) >= now
+      const hits = [
+        ...plan.events.filter((event) => matches(event.title)),
+        ...plan.events.filter((event) => labelled.has(event.calendar) && !matches(event.title) && ahead(event)),
+      ]
+      for (const event of hits.slice(0, MAX_EVENTS)) {
+        found.push({ kind: 'event', key: event.uid, group: m.palette_events(), event, run: () => onSelectEvent(event) })
       }
     }
     const quick = onQuickAdd && now !== null ? parseQuickEvent(query, now) : null
@@ -81,8 +81,15 @@ export function CommandPalette({ open, plan, commands, onSelectEvent, onQuickAdd
       found.push({ kind: 'quick', key: 'quick-add', group: m.new_event(), quick, run: () => onQuickAdd?.(quick) })
     }
     // A typed time means a new event; then events: someone who typed a title is looking for a session, not an action.
-    const rank = { quick: 0, event: 1, command: 2 }
-    return found.toSorted((a, b) => rank[a.kind] - rank[b.kind])
+    const rank = (item: Item) =>
+      item.kind === 'quick'
+        ? 0
+        : item.kind === 'command' && item.command.pinned && text
+          ? 1
+          : item.kind === 'event'
+            ? 2
+            : 3
+    return found.toSorted((a, b) => rank(a) - rank(b))
   }, [query, commands, plan, onSelectEvent, onQuickAdd, now])
 
   const current = Math.min(active, Math.max(0, items.length - 1))

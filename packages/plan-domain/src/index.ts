@@ -117,6 +117,19 @@ export {
   type PlanEdits,
 } from './edits'
 export {
+  LABEL_MAX,
+  LABELS_MAX,
+  cleanLabel,
+  countsTwice,
+  groupByLabel,
+  hasLabel,
+  labelList,
+  planLabels,
+  sameLabel,
+  type LabelGroup,
+  type PlanLabel,
+} from './labels'
+export {
   ALARM_MINUTES,
   IMPORT_HOWTO,
   buildICS,

@@ -7,10 +7,11 @@ import { deadlineOf } from './deadlines'
 import { applyEdits, emptyEdits, parseEdits, shownPlan, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
 import { emptyHistory, recordChange } from './history'
+import { countsTwice, groupByLabel, planLabels } from './labels'
 import { isSession } from './progress'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import { UPDATE_CHANGE_TYPES, UPDATE_SCHEMA } from './schema'
-import { TRASH_DAYS, trashOf } from './trash'
+import { TRASH_DAYS, purgeTrash, trashOf } from './trash'
 import type { Plan, PlanEvent } from './types'
 import { parseUpdate, previewUpdate } from './update'
 
@@ -84,6 +85,9 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   'calendar.clear': { type: 'calendar.clear', id: 'journey' },
   'calendars.order': { type: 'calendars.order', ids: ['personal', 'certs'] },
   'calendar.hide': { type: 'calendar.hide', id: 'journey', hidden: true },
+  'calendar.labels': { type: 'calendar.labels', id: 'journey', labels: ['Partners', 'Certification'] },
+  'label.rename': { type: 'label.rename', from: 'Partners', to: 'Google Partners' },
+  'label.hide': { type: 'label.hide', label: 'Partners', hidden: true },
   'trash.restore': { type: 'trash.restore' },
   'trash.empty': { type: 'trash.empty' },
   'events.shift': { type: 'events.shift', calendars: ['certs', 'hfllm'], from: '2026-11-23', days: 1, hours: 0.5 },
@@ -108,8 +112,13 @@ describe('every kind of change', () => {
     expect(parseChange(JSON.parse(stored))).toEqual(change)
   })
 
+  /** A label is renamed only where some calendar carries it */
+  const before: Partial<Record<PlanChange['type'], PlanChange[]>> = {
+    'label.rename': [EXAMPLES['calendar.labels']],
+    'label.hide': [EXAMPLES['calendar.labels']],
+  }
   test.each(Object.values(EXAMPLES))('$type applies to the generated plan', (change) => {
-    expect(() => apply([change])).not.toThrow()
+    expect(() => apply([...(before[change.type] ?? []), change])).not.toThrow()
   })
 
   const validUpdate = new Ajv2020({ strict: false }).compile(UPDATE_SCHEMA)
@@ -456,6 +465,102 @@ describe('calendar order and visibility', () => {
     expect(ids(shown)).toEqual(natural.filter((id) => id !== 'journey'))
     expect(shown.events).toEqual(plan.events.filter((e) => e.calendar !== 'journey'))
     expect(shownPlan(base)).toBe(base)
+  })
+})
+
+const labelsOf = (edits: PlanEdits, id: string) => planOf(edits).calendars.find((c) => c.id === id)?.labels
+const tag = (id: string, labels: string[]): PlanChange => ({ type: 'calendar.labels', id, labels })
+
+describe('labels', () => {
+  test('a label is kept trimmed, once per calendar whatever its case, and the first spelling wins', () => {
+    expect(
+      parseChange({ type: 'calendar.labels', id: 'journey', labels: ['  Google   Skills ', 'google skills', 7] }),
+    ).toEqual(tag('journey', ['Google Skills']))
+    expect(() => parseChange({ type: 'calendar.labels', id: 'journey', labels: 'Partners' })).toThrow(/labels/)
+  })
+
+  test('calendar.labels gives the whole list; an empty one takes every label off and leaves no edit', () => {
+    const tagged = apply([EXAMPLES['calendar.labels']])
+    expect(labelsOf(tagged, 'journey')).toEqual(['Partners', 'Certification'])
+    expect(labelsOf(tagged, 'certs')).toBeUndefined()
+    expect(apply([tag('journey', [])], tagged).labels).toBeUndefined()
+    expect(() => apply([tag('nope', ['Partners'])])).toThrow('Unknown calendar "nope"')
+  })
+
+  test('label.rename renames the label on every calendar, merging it into one the calendar already has', () => {
+    const tagged = apply([tag('journey', ['Partners', 'Google']), tag('certs', ['partners'])])
+    const renamed = apply([{ type: 'label.rename', from: 'PARTNERS', to: 'Google' }], tagged)
+    expect(labelsOf(renamed, 'journey')).toEqual(['Google'])
+    expect(labelsOf(renamed, 'certs')).toEqual(['Google'])
+  })
+
+  test('label.rename to null takes the label off every calendar; an unknown label is refused', () => {
+    const tagged = apply([tag('journey', ['Partners']), tag('certs', ['Partners', 'Exam'])])
+    const removed = apply([{ type: 'label.rename', from: 'partners', to: null }], tagged)
+    expect(removed.labels).toEqual({ certs: ['Exam'] })
+    expect(() => apply([{ type: 'label.rename', from: 'Nope', to: null }], tagged)).toThrow('Unknown label "Nope"')
+  })
+
+  test('course.add gives the new calendar its labels', () => {
+    const edits = apply([{ ...EXAMPLES['course.add'], labels: ['Partners'] }])
+    const [id] = Object.keys(edits.calendars)
+    expect(labelsOf(edits, id ?? '')).toEqual(['Partners'])
+  })
+
+  test('labels survive a trip through the edits file', () => {
+    const edits = apply([EXAMPLES['calendar.labels']])
+    const stored = JSON.stringify(edits)
+    expect(parseEdits(JSON.parse(stored))).toEqual(edits)
+  })
+
+  test('a calendar purged from the trash takes its labels with it', () => {
+    const course = apply([{ ...EXAMPLES['course.add'], labels: ['Partners'] }])
+    const [id = ''] = Object.keys(course.calendars)
+    const removed = apply([{ type: 'calendar.remove', id }], course)
+    expect(removed.labels).toEqual({ [id]: ['Partners'] })
+    expect(purgeTrash(base, removed, NOW + (TRASH_DAYS + 1) * 86_400_000).labels).toBeUndefined()
+  })
+
+  test('label.hide hides every calendar with the label as one step, and shows them again', () => {
+    const tagged = apply([tag('journey', ['Partners']), tag('certs', ['partners'])])
+    const hidden = apply([EXAMPLES['label.hide']], tagged)
+    expect(hidden.hidden?.toSorted()).toEqual(['certs', 'journey'])
+    expect(apply([{ ...EXAMPLES['label.hide'], hidden: false }], hidden).hidden).toBeUndefined()
+    expect(() => apply([{ type: 'label.hide', label: 'Nope', hidden: true }], tagged)).toThrow('Unknown label "Nope"')
+  })
+
+  test('label.hide keeps one calendar shown', () => {
+    const all = ids(base).map((id) => tag(id, ['Everything']))
+    expect(() => apply([...all, { type: 'label.hide', label: 'Everything', hidden: true }])).toThrow(/last calendar/)
+  })
+
+  test('groupByLabel puts an item under each label of its calendar, then the ones without', () => {
+    const items = [
+      { id: 'a', labels: ['Partners', 'Exam'] },
+      { id: 'b', labels: ['partners'] },
+      { id: 'c', labels: [] },
+    ]
+    const groups = groupByLabel(items, (item) => item)
+    expect(groups.map((g) => [g.label, g.items.map((item) => item.id)])).toEqual([
+      ['Partners', ['a', 'b']],
+      ['Exam', ['a']],
+      [null, ['c']],
+    ])
+    expect(countsTwice(groups)).toBe(true)
+    const plain: { id: string; labels?: string[] } = { id: 'd' }
+    expect(groupByLabel([plain], (item) => item)).toEqual([{ label: null, items: [plain] }])
+    expect(countsTwice(groupByLabel(items.slice(1), (item) => item))).toBe(false)
+  })
+
+  test('planLabels lists each label once, in the order of the first calendar carrying it', () => {
+    const plan = planOf(apply([tag('certs', ['Exam', 'Partners']), tag('journey', ['partners', 'Own'])]))
+    const firsts = plan.calendars.map((c) => c.id)
+    expect(firsts.indexOf('certs')).toBeLessThan(firsts.indexOf('journey'))
+    expect(planLabels(plan)).toEqual([
+      { name: 'Exam', calendars: ['certs'] },
+      { name: 'Partners', calendars: ['certs', 'journey'] },
+      { name: 'Own', calendars: ['journey'] },
+    ])
   })
 })
 

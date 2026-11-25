@@ -54,6 +54,7 @@ export {
   RotateCcw,
   Scissors,
   Search,
+  Tag,
   Timer,
   Trash2,
   TriangleAlert,

@@ -3,6 +3,7 @@
 // and how to fill it. `parseUpdate` is the code that enforces them; change both together.
 
 import { SPLIT_PARTS_MAX } from './changes'
+import { LABEL_MAX, LABELS_MAX } from './labels'
 
 type Schema = Record<string, unknown>
 
@@ -30,6 +31,15 @@ const COLOR: Schema = {
   description:
     'Color of the calendar as "#rrggbb". Pick one that is easy to tell from the colors of the other calendars and reads on both a light and a dark background.',
   examples: ['#2F5BEA'],
+}
+
+const LABELS: Schema = {
+  type: 'array',
+  maxItems: LABELS_MAX,
+  items: { type: 'string', minLength: 1, maxLength: LABEL_MAX },
+  description:
+    'Labels of the calendar: short names that group courses, such as a provider or a program ("Google Skills for Partners", "Certification"). Reuse a label the plan already has, with the same spelling; case does not matter.',
+  examples: [['Google Skills for Partners']],
 }
 
 const RRULE: Schema = {
@@ -195,6 +205,12 @@ export const PLAN_SCHEMA: Schema = {
             description: "true when the calendar does not exist in the person's calendar app yet.",
           },
           note: { type: 'string', description: 'What the calendar is for.' },
+          labels: LABELS,
+          hidden: {
+            type: 'boolean',
+            description:
+              'true when the person hid it from every view; it is still planned and counts toward the budget.',
+          },
           custom: { type: 'boolean', description: 'true for a calendar added after the schedule was generated.' },
         },
       },
@@ -268,6 +284,7 @@ const CHANGES: Schema[] = [
       name: { type: 'string', minLength: 1, description: 'Name of the course as the calendar shows it.' },
       color: COLOR,
       sessions: { type: 'array', minItems: 1, maxItems: 400, items: NEW_SESSION },
+      labels: LABELS,
     },
     ['name', 'color', 'sessions'],
   ),
@@ -433,6 +450,12 @@ const CHANGES: Schema[] = [
     },
     ['name', 'color'],
   ),
+  change(
+    'calendar.labels',
+    'Gives a calendar that is in the plan its labels, all of them: the list replaces the one it has. An empty list takes every label off.',
+    { id: { type: 'string', description: 'The `id` of the calendar.' }, labels: LABELS },
+    ['id', 'labels'],
+  ),
   change('plan.rename', 'Gives the plan another name.', { title: { type: 'string', minLength: 1, maxLength: 80 } }, [
     'title',
   ]),
@@ -451,6 +474,7 @@ export const UPDATE_CHANGE_TYPES = [
   'events.shift',
   'events.done',
   'calendar.save',
+  'calendar.labels',
   'plan.rename',
 ] as const
 

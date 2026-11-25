@@ -190,7 +190,7 @@
   "open_course": "Open the course",
   "mark_done": "Mark done",
   "mark_not_done": "Mark not done",
-  "calendars_hint": "Drag the handle to reorder. Rename, recolor, add, hide, clear or remove a calendar. What you remove goes to the trash.",
+  "calendars_hint": "Drag the handle to reorder. Rename, recolor, label, add, hide, clear or remove a calendar. What you remove goes to the trash.",
   "new_calendar": "New calendar",
   "field_color": "Color",
   "field_calendar_name": "Calendar name",
@@ -776,7 +776,7 @@
   "help_event_title": "New event and search",
   "help_event": "Three ways to add an event: the Event button, a double click on a free slot, or dragging across a day; the form opens beside it.\nThe fastest is a line in the search (Ctrl/⌘ K or /): “Review tomorrow 14:00 1h”. The same search finds events and commands.",
   "help_calendars_title": "Calendars",
-  "help_calendars": "Every course is a calendar with its own color. A click on a chip hides or shows it, the eye on the chip (or a double click) leaves it alone, and Show all brings the rest back.\nCalendars renames, recolors, reorders and adds them, and hides a calendar with all its events from every view: it stays in the plan and counts toward the week.",
+  "help_calendars": "Every course is a calendar with its own color. A click on a chip hides or shows it, the eye on the chip (or a double click) leaves it alone, and Show all brings the rest back.\nLabels, above the chips once some calendar has one, show only the calendars of one label; a second click shows them all again.\nCalendars renames, recolors, reorders and adds them, gives them labels, and hides a calendar with all its events from every view: it stays in the plan and counts toward the week.",
   "help_grid_title": "Moving events",
   "help_grid": "Drag an event to another time or day; drag an edge to change its length. One repeat of a repeating event moves alone, the others stay.\nWith the keyboard: Alt + arrows move, Alt Shift ↑ ↓ change the length, Delete sends it to the trash. The number next to a weekday is the hours of study that day.",
   "help_more_title": "More actions",
@@ -1036,5 +1036,75 @@
   "timeline_leave_title": "Leave without applying the draft?",
   "timeline_leave_text": "The draft is not stored: leaving drops it.",
   "timeline_stay": "Stay",
-  "timeline_leave": "Discard and leave"
+  "timeline_leave": "Discard and leave",
+  "history_labels_set": "Labels changed: {name}",
+  "history_label_renamed": "Label renamed: {from} → {to}",
+  "history_label_removed": "Label removed: {name}",
+  "history_label_hidden": "Calendars labelled {name} hidden",
+  "history_label_shown": "Calendars labelled {name} shown again",
+  "labels": "Labels",
+  "labels_hint": "Group courses by provider or program; a course can carry several labels. They filter the planner, group the timeline and give totals on Progress.",
+  "label_add": "Label",
+  "label_add_to": "Add a label to {name}",
+  "label_new": "New label for {name}",
+  "label_remove_from": "Remove the label {label} from {name}",
+  "label_rename": "Rename the label {label}",
+  "label_name": "Name of the label {label}",
+  "label_delete": "Remove the label {label} from every calendar",
+  "label_hide": "Hide every calendar labelled {label}",
+  "label_show": "Show every calendar labelled {label}",
+  "label_all": "All",
+  "label_none": "No label",
+  "palette_only_label": "Show only “{label}”",
+  "timeline_group_labels": "Group by label",
+  "dash_group": "Group",
+  "dash_group_course": "By course",
+  "dash_group_label": "By label",
+  "dash_counts_twice": "A course with two labels counts under both.",
+  "dash_first_label": "Each course counts under its first label.",
+  "calendars_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} calendar",
+        "countPlural=*": "{count} calendars"
+      }
+    }
+  ],
+  "courses_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} course",
+        "countPlural=*": "{count} courses"
+      }
+    }
+  ],
+  "sessions_left": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} session left",
+        "countPlural=*": "{count} sessions left"
+      }
+    }
+  ]
 }

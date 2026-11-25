@@ -1,9 +1,11 @@
 import { m } from '@lc/i18n/messages'
-import type { Plan, PlanCalendar, PlanChange } from '@lc/plan-domain'
+import { planLabels, type Plan, type PlanCalendar, type PlanChange } from '@lc/plan-domain'
 import { Button, Eye, EyeOff, FOOT, GripVertical, INPUT, META, Modal, TITLE, Trash2 } from '@lc/ui'
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 
 import { useReorder, type HandleProps } from '../model/use-reorder'
+import { CalendarLabels } from './CalendarLabels'
+import { LabelsSection } from './LabelsSection'
 
 /** Offered for a new calendar: the first one no calendar uses yet. */
 const PALETTE: readonly [string, ...string[]] = [
@@ -36,12 +38,14 @@ interface Props {
 }
 
 /**
- * Rename, recolor, reorder and hide any calendar, add new ones, clear or remove any of them: what is removed goes
- * to the trash. A hidden calendar stays here, dimmed, to be shown again.
+ * Rename, recolor, reorder, label and hide any calendar, add new ones, clear or remove any of them: what is removed
+ * goes to the trash. A hidden calendar stays here, dimmed, to be shown again. Under the calendars, every label with
+ * its own rename, remove and hide.
  */
 export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpenTrash, onClose }: Props) {
   const [error, setError] = useState('')
   const [said, setSaid] = useState('')
+  const [labelling, setLabelling] = useState<string | null>(null)
   const list = useRef<HTMLUListElement>(null)
   const refocus = useRef<string | null>(null)
   const saying = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -51,6 +55,7 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
   const freeColor = PALETTE.find((color) => !used.has(color)) ?? PALETTE[0]
   const ids = plan.calendars.map((c) => c.id)
   const shownCount = plan.calendars.filter((c) => !c.hidden).length
+  const known = planLabels(plan).map((label) => label.name)
 
   async function run(change: PlanChange) {
     try {
@@ -81,6 +86,9 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
     void run({ type: 'calendars.order', ids: next })
   })
   useEffect(() => () => clearTimeout(saying.current), [])
+  useEffect(() => {
+    if (!open) setLabelling(null)
+  }, [open])
 
   // A moved row is put back in the list by React, which can take the focus from its handle: give it back.
   const order = ids.join()
@@ -123,6 +131,16 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
                 onClear={counts.get(c.id) ? () => run({ type: 'calendar.clear', id: c.id }) : undefined}
                 onRemove={plan.calendars.length > 1 ? () => run({ type: 'calendar.remove', id: c.id }) : undefined}
               />
+              {/* Under the name: past the handle and the color, w-6 + gap-2 + size-9 + gap-2. */}
+              <div className="pt-1 pb-1.5 pl-[76px]">
+                <CalendarLabels
+                  calendar={c}
+                  known={known}
+                  adding={labelling === c.id}
+                  onAdding={(adding) => setLabelling(adding ? c.id : null)}
+                  onChange={(labels) => run({ type: 'calendar.labels', id: c.id, labels })}
+                />
+              </div>
             </li>
           ))}
         </ul>
@@ -137,6 +155,7 @@ export function CalendarsDialog({ plan, open, onChange, undo, trashCount, onOpen
       <p className="sr-only" role="status">
         {said}
       </p>
+      <LabelsSection plan={plan} onChange={run} />
       <h4 className="mt-4 mb-1.5 text-[13px] font-semibold text-muted">{m.new_calendar()}</h4>
       <CalendarRow
         key={`new|${plan.calendars.length}`}

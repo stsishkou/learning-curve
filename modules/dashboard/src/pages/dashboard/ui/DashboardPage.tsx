@@ -10,7 +10,16 @@ import {
   type Plan,
   type WeekStats,
 } from '@lc/plan-domain'
-import { HelpToggle, IconsToggle, PageHeader, ScreenButtons, stickyTop, useFullscreen, useShortcuts } from '@lc/ui'
+import {
+  HelpToggle,
+  IconsToggle,
+  PageHeader,
+  ScreenButtons,
+  Segmented,
+  stickyTop,
+  useFullscreen,
+  useShortcuts,
+} from '@lc/ui'
 import { useMemo, type ReactNode } from 'react'
 
 import { useNow } from '../../../shared/lib'
@@ -23,6 +32,7 @@ import { RatioStrip } from '../../../widgets/ratio-strip'
 import { StatTiles } from '../../../widgets/stat-tiles'
 import { StudyStreak } from '../../../widgets/study-streak'
 import { WeeklyLoad } from '../../../widgets/weekly-load'
+import { useByLabel } from '../model/use-by-label'
 
 interface Props {
   plan: Plan
@@ -70,6 +80,8 @@ export function DashboardPage({
   const finish = useMemo<number | null>(() => (now === null ? null : paceForecast(plan, now).finish), [plan, now])
   const rows = useMemo(() => tableRows(stats.weeks), [stats])
   const range = useMemo(() => (now === null ? null : finishRange(plan, now)), [plan, now])
+  const [byLabel, setByLabel] = useByLabel()
+  const labelled = plan.calendars.some((c) => c.labels?.length)
   const fullscreen = useFullscreen()
   // The whole screen is for the charts: it is laid out as Expand lays it out.
   const wide = expanded || fullscreen.on
@@ -106,6 +118,19 @@ export function DashboardPage({
         <p className="min-w-0 flex-1 basis-[240px] text-[14px] text-muted">
           {plan.meta.title} · {m.dash_until({ date: fmtDay(parseLocal(plan.meta.planEnd)) })}
         </p>
+        {labelled && (
+          <div className="text-[13px]">
+            <Segmented
+              label={m.dash_group()}
+              value={byLabel ? 'label' : 'course'}
+              options={[
+                { value: 'course', label: m.dash_group_course() },
+                { value: 'label', label: m.dash_group_label() },
+              ]}
+              onChange={(next) => setByLabel(next === 'label')}
+            />
+          </div>
+        )}
         {toggleExpanded && (
           <div className="flex gap-2">
             <ScreenButtons
@@ -133,8 +158,8 @@ export function DashboardPage({
       <RatioStrip plan={plan} />
       <BiasTrend plan={plan} />
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <WeeklyLoad plan={plan} stats={stats} now={now} />
-        <CourseBars plan={plan} />
+        <WeeklyLoad plan={plan} stats={stats} now={now} byLabel={labelled && byLabel} />
+        <CourseBars plan={plan} byLabel={labelled && byLabel} />
       </div>
 
       <ModuleOverruns plan={plan} />

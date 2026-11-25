@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 interface Props {
   title: string
   /** One line under the title that says how to read the chart */
-  hint?: string
+  hint?: string | undefined
   /** A `Hint` mark shown after the title while the help mode is on */
   help?: ReactNode
   /** Shown opposite the title, such as a legend */

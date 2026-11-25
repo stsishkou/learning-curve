@@ -28,6 +28,16 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return m.history_calendars_ordered()
     case 'calendar.hide':
       return change.hidden ? m.history_calendar_hidden({ name: subject }) : m.history_calendar_shown({ name: subject })
+    case 'calendar.labels':
+      return m.history_labels_set({ name: subject })
+    case 'label.rename':
+      return change.to === null
+        ? m.history_label_removed({ name: change.from })
+        : m.history_label_renamed({ from: change.from, to: change.to })
+    case 'label.hide':
+      return change.hidden
+        ? m.history_label_hidden({ name: change.label })
+        : m.history_label_shown({ name: change.label })
     case 'trash.restore':
       return m.history_restored()
     case 'trash.empty':

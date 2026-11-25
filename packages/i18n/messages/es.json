@@ -190,7 +190,7 @@
   "open_course": "Abrir el curso",
   "mark_done": "Marcar hecho",
   "mark_not_done": "Marcar pendiente",
-  "calendars_hint": "Arrastra el asa para cambiar el orden. Renombra, cambia el color, añade, oculta, vacía o elimina un calendario. Lo eliminado va a la papelera.",
+  "calendars_hint": "Arrastra el asa para cambiar el orden. Renombra, cambia el color, etiqueta, añade, oculta, vacía o elimina un calendario. Lo eliminado va a la papelera.",
   "new_calendar": "Nuevo calendario",
   "field_color": "Color",
   "field_calendar_name": "Nombre del calendario",
@@ -776,7 +776,7 @@
   "help_event_title": "Nuevo evento y búsqueda",
   "help_event": "Tres formas de añadir un evento: el botón Evento, doble clic en un hueco libre o arrastrar sobre un día; el formulario se abre al lado.\nLo más rápido es una línea en la búsqueda (Ctrl/⌘ K o /): «Repaso mañana 14:00 1h». La misma búsqueda encuentra eventos y comandos.",
   "help_calendars_title": "Calendarios",
-  "help_calendars": "Cada curso es un calendario con su color. Un clic en la etiqueta lo oculta o lo muestra, el ojo (o doble clic) lo deja solo y Mostrar todos devuelve el resto.\nCalendarios cambia nombres, colores y orden, añade nuevos y oculta un calendario con todos sus eventos en todas las vistas: sigue en el plan y cuenta para la semana.",
+  "help_calendars": "Cada curso es un calendario con su color. Un clic en el botón del calendario lo oculta o lo muestra, el ojo (o doble clic) lo deja solo y Mostrar todos devuelve el resto.\nLas etiquetas, sobre los botones cuando algún calendario tiene una, muestran solo los calendarios de una etiqueta; un segundo clic los devuelve todos.\nCalendarios cambia nombres, colores y orden, añade nuevos, pone etiquetas y oculta un calendario con todos sus eventos en todas las vistas: sigue en el plan y cuenta para la semana.",
   "help_grid_title": "Mover eventos",
   "help_grid": "Arrastra un evento a otra hora o día; arrastra un borde para cambiar su duración. De un evento repetido se mueve una sola repetición, las demás se quedan.\nCon el teclado: Alt + flechas mueven, Alt Mayús ↑ ↓ cambian la duración, Supr lo envía a la papelera. El número junto al día es las horas de estudio de ese día.",
   "help_more_title": "Más acciones",
@@ -1036,5 +1036,75 @@
   "timeline_leave_title": "¿Salir sin aplicar el borrador?",
   "timeline_leave_text": "El borrador no está guardado: si sales, se pierde.",
   "timeline_stay": "Quedarse",
-  "timeline_leave": "Descartar y salir"
+  "timeline_leave": "Descartar y salir",
+  "history_labels_set": "Etiquetas cambiadas: {name}",
+  "history_label_renamed": "Etiqueta renombrada: {from} → {to}",
+  "history_label_removed": "Etiqueta quitada: {name}",
+  "history_label_hidden": "Calendarios con la etiqueta {name} ocultos",
+  "history_label_shown": "Calendarios con la etiqueta {name} visibles de nuevo",
+  "labels": "Etiquetas",
+  "labels_hint": "Agrupa los cursos por proveedor o programa; un curso puede llevar varias etiquetas. Filtran el planificador, agrupan el cronograma y dan totales en Progreso.",
+  "label_add": "Etiqueta",
+  "label_add_to": "Añadir una etiqueta a {name}",
+  "label_new": "Nueva etiqueta para {name}",
+  "label_remove_from": "Quitar la etiqueta {label} de {name}",
+  "label_rename": "Renombrar la etiqueta {label}",
+  "label_name": "Nombre de la etiqueta {label}",
+  "label_delete": "Quitar la etiqueta {label} de todos los calendarios",
+  "label_hide": "Ocultar todos los calendarios con la etiqueta {label}",
+  "label_show": "Mostrar todos los calendarios con la etiqueta {label}",
+  "label_all": "Todos",
+  "label_none": "Sin etiqueta",
+  "palette_only_label": "Solo «{label}»",
+  "timeline_group_labels": "Agrupar por etiqueta",
+  "dash_group": "Agrupar",
+  "dash_group_course": "Por curso",
+  "dash_group_label": "Por etiqueta",
+  "dash_counts_twice": "Un curso con dos etiquetas cuenta en ambas.",
+  "dash_first_label": "Cada curso cuenta en su primera etiqueta.",
+  "calendars_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} calendario",
+        "countPlural=*": "{count} calendarios"
+      }
+    }
+  ],
+  "courses_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} curso",
+        "countPlural=*": "{count} cursos"
+      }
+    }
+  ],
+  "sessions_left": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "queda {count} sesión",
+        "countPlural=*": "quedan {count} sesiones"
+      }
+    }
+  ]
 }

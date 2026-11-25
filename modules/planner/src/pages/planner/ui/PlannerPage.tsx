@@ -10,6 +10,7 @@ import {
   occurrences,
   parseLocal,
   planFileName,
+  planLabels,
   planStart,
   removeOccurrence,
   reviewOffers,
@@ -57,7 +58,7 @@ import { CatchUpDialog } from '../../../features/catch-up'
 import { CommandPalette, type Command } from '../../../features/command-palette'
 import { CountdownDialog } from '../../../features/countdown-settings'
 import { EventDialog } from '../../../features/edit-event'
-import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
+import { CalendarFilter, LabelFilter, useHiddenCalendars } from '../../../features/filter-calendars'
 import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog } from '../../../features/keyboard-shortcuts'
 import { LogDoneDialog, ResizedDoneDialog, UnloggedBar, type ResizedDone } from '../../../features/log-done'
@@ -168,7 +169,7 @@ export function PlannerPage({
 }: Props) {
   const now = useNow()
   const mod = useModKey()
-  const { hidden, toggle, solo, showAll, reset } = useHiddenCalendars()
+  const { hidden, toggle, solo, showOnly, showAll, reset } = useHiddenCalendars()
   const session = usePlanSession(state, { onChange, onTravel, onTrimHistory, onChangeAll })
   const { plan: wholePlan, canEdit } = session
   // Calendars hidden from the list are out of every view; what saves, exports or re-plans still gets the whole plan.
@@ -311,11 +312,8 @@ export function PlannerPage({
         ? document.querySelector(`[data-key="${CSS.escape(selectedKey)}"]`)
         : null
 
-  const only = (id: string) =>
-    solo(
-      id,
-      plan.calendars.map((c) => c.id),
-    )
+  const allIds = plan.calendars.map((c) => c.id)
+  const only = (id: string) => solo([id], allIds)
   const shift = () => setReschedule(ymd(today ?? weekStart))
 
   const { cursor, steps } = session.history
@@ -339,7 +337,17 @@ export function PlannerPage({
     only,
     showAll,
   })
-  const palette: Command[] = [...toCommands(actions), ...(commands ?? [])]
+  const palette: Command[] = [
+    ...toCommands(actions),
+    ...planLabels(plan).map((label): Command => ({
+      id: `label:${label.name}`,
+      label: m.palette_only_label({ label: label.name }),
+      group: m.labels(),
+      pinned: true,
+      run: () => showOnly(label.calendars, allIds),
+    })),
+    ...(commands ?? []),
+  ]
 
   useShortcuts({
     'mod+k': () => dialogs.show('palette'),
@@ -434,6 +442,12 @@ export function PlannerPage({
         fullscreen={fullscreen.supported ? fullscreen : undefined}
         summary={expanded && view === 'week' && <BudgetLine plan={plan} weekItems={weekItems} />}
       >
+        <LabelFilter
+          calendars={plan.calendars}
+          hidden={hidden}
+          onOnly={(ids) => solo(ids, allIds)}
+          onShowAll={showAll}
+        />
         <Hint title={m.help_calendars_title()} text={m.help_calendars()} />
         <CalendarFilter
           calendars={plan.calendars}

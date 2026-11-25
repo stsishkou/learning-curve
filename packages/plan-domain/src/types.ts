@@ -13,6 +13,8 @@ export interface PlanCalendar {
    * so the weekly budget, the re-balance and the feeds count them
    */
   hidden?: boolean
+  /** Labels given in the viewer or by a chat, such as a provider or a program; its sessions carry them too */
+  labels?: string[]
 }
 
 /** `review` is a short session that goes back to a finished module; it is planned in the viewer, not generated. */

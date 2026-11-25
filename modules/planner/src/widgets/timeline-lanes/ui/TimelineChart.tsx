@@ -1,13 +1,15 @@
 import { m } from '@lc/i18n/messages'
-import { DAY, type CalendarLane, type LaneChange } from '@lc/plan-domain'
+import { DAY, groupByLabel, ymd, type CalendarLane, type LaneChange } from '@lc/plan-domain'
 import { Button, Segmented } from '@lc/ui'
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { scaleOf, ticksOf } from '../lib/scale'
 import { daysInView, wheelSideways } from '../lib/scroll'
 import type { LaneEditing } from '../model/editing'
+import { useByLabel } from '../model/use-by-label'
 import { usePan } from '../model/use-pan'
 import { PX_PER_DAY, useZoom, type TimelineZoom } from '../model/use-zoom'
+import { LaneGroupHeader } from './LaneGroupHeader'
 import { LaneRow } from './LaneRow'
 import { TimelineAxis } from './TimelineAxis'
 import { TimelineLegend } from './TimelineLegend'
@@ -67,6 +69,9 @@ export function TimelineChart({
   const id = useId()
   const [zoom, setZoom] = useZoom()
   const [showBefore, setShowBefore] = useState(true)
+  const [byLabel, setByLabel] = useByLabel()
+  const groups = useMemo(() => groupByLabel(lanes, (lane) => lane.calendar), [lanes])
+  const labelled = groups.some((group) => group.label !== null)
   const scroller = useRef<HTMLDivElement>(null)
   const axis = useRef<HTMLDivElement>(null)
   const [trackWidth, setTrackWidth] = useState(0)
@@ -157,6 +162,17 @@ export function TimelineChart({
           </Button>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2">
+          {labelled && (
+            <label className="flex cursor-pointer items-center gap-2 font-medium">
+              <input
+                type="checkbox"
+                className="size-4 accent-[var(--focus)]"
+                checked={byLabel}
+                onChange={(e) => setByLabel(e.target.checked)}
+              />
+              {m.timeline_group_labels()}
+            </label>
+          )}
           {changes.size > 0 && (
             <label className="flex cursor-pointer items-center gap-2 font-medium">
               <input
@@ -190,22 +206,27 @@ export function TimelineChart({
           {/* Over the names and the days alike while the lanes scroll under them. */}
           <div className="sticky top-0 left-0 z-30 border-b border-line bg-surface" />
           <TimelineAxis ref={axis} scale={scale} ticks={ticks} now={now} pxPerDay={pxPerDay} />
-          {lanes.map((lane) => (
-            <LaneRow
-              key={lane.calendar.id}
-              lane={lane}
-              change={changes.get(lane.calendar.id)}
-              showBefore={showBefore}
-              moved={moved}
-              scale={scale}
-              ticks={ticks}
-              weekLines={pxPerDay * 7 >= WEEK_LINE_PX}
-              now={now}
-              selected={selected === lane.calendar.id}
-              working={working.has(lane.calendar.id)}
-              edit={edit}
-              keysHint={`${id}-keys`}
-            />
+          {(byLabel && labelled ? groups : [{ label: null, items: lanes }]).map((group) => (
+            <Fragment key={group.label ?? ''}>
+              {byLabel && labelled && <LaneGroupHeader group={group} today={now === null ? '' : ymd(now)} />}
+              {group.items.map((lane) => (
+                <LaneRow
+                  key={lane.calendar.id}
+                  lane={lane}
+                  change={changes.get(lane.calendar.id)}
+                  showBefore={showBefore}
+                  moved={moved}
+                  scale={scale}
+                  ticks={ticks}
+                  weekLines={pxPerDay * 7 >= WEEK_LINE_PX}
+                  now={now}
+                  selected={selected === lane.calendar.id}
+                  working={working.has(lane.calendar.id)}
+                  edit={edit}
+                  keysHint={`${id}-keys`}
+                />
+              ))}
+            </Fragment>
           ))}
         </div>
       </div>

@@ -15,6 +15,7 @@ import {
   type EventPatch,
   type PlanEdits,
 } from './edits'
+import { cleanLabel, hasLabel, labelList, sameLabel } from './labels'
 import { isSession } from './progress'
 import { PLAIN_WEEKLY_RULE, weekdaysOf } from './recurrence'
 import type { SessionMove } from './replan'
@@ -72,6 +73,12 @@ export type PlanChange =
   | { type: 'calendars.order'; ids: string[] }
   /** Hides the calendar and its events from every view, or shows them again; they stay planned */
   | { type: 'calendar.hide'; id: string; hidden: boolean }
+  /** Gives the calendar these labels, all of them: an empty list takes every label off */
+  | { type: 'calendar.labels'; id: string; labels: string[] }
+  /** Renames a label on every calendar that carries it; `to: null` takes it off all of them */
+  | { type: 'label.rename'; from: string; to: string | null }
+  /** Hides every calendar that carries the label, or shows them all again, as one step */
+  | { type: 'label.hide'; label: string; hidden: boolean }
   /** Brings back the listed events and calendars, or the whole trash when neither is given */
   | { type: 'trash.restore'; events?: string[] | undefined; calendars?: string[] | undefined }
   /** Removes everything in the trash for good */
@@ -110,7 +117,7 @@ export type PlanChange =
   /** Adds the review sessions of one finished module, as one step */
   | { type: 'reviews.plan'; reviews: NewEvent[] }
   /** Adds a course as one step: a new calendar with that name and color, and its sessions in it */
-  | { type: 'course.add'; name: string; color: string; sessions: NewSession[] }
+  | { type: 'course.add'; name: string; color: string; sessions: NewSession[]; labels?: string[] | undefined }
   /** Adds several events to calendars that exist, as one step */
   | { type: 'events.add'; events: NewEvent[] }
 
@@ -209,11 +216,13 @@ export function parseChange(input: unknown): PlanChange {
     case 'course.add': {
       const color = text('color')
       if (!HEX_COLOR.test(color)) return fail('color must look like #1a2b3c')
+      const labels = labelList(input.labels)
       return {
         type: 'course.add',
         name: text('name'),
         color,
         sessions: parseMany(input.sessions, 'sessions', parseNewSession),
+        ...(labels.length ? { labels } : {}),
       }
     }
     case 'event.remove':
@@ -270,6 +279,20 @@ export function parseChange(input: unknown): PlanChange {
     case 'calendar.hide':
       return typeof input.hidden === 'boolean'
         ? { type: 'calendar.hide', id: text('id'), hidden: input.hidden }
+        : fail('hidden must be true or false')
+    case 'calendar.labels':
+      return Array.isArray(input.labels)
+        ? { type: 'calendar.labels', id: text('id'), labels: labelList(input.labels) }
+        : fail('labels must list texts; an empty list takes every label off')
+    case 'label.rename': {
+      const from = cleanLabel(text('from'))
+      if (input.to === null) return { type: 'label.rename', from, to: null }
+      const to = cleanLabel(text('to'))
+      return to ? { type: 'label.rename', from, to } : fail('to must name the label')
+    }
+    case 'label.hide':
+      return typeof input.hidden === 'boolean'
+        ? { type: 'label.hide', label: cleanLabel(text('label')), hidden: input.hidden }
         : fail('hidden must be true or false')
     case 'trash.restore': {
       const ids = (key: string) => {
@@ -389,6 +412,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     ...(edits.countdown ? { countdown: edits.countdown } : {}),
     ...(edits.order ? { order: [...edits.order] } : {}),
     ...(edits.hidden ? { hidden: [...edits.hidden] } : {}),
+    ...(edits.labels ? { labels: { ...edits.labels } } : {}),
   }
   const { removed } = next
   const removedAt = new Date(now).toISOString()
@@ -409,6 +433,21 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
     }
     if (patchProblem(created, {})) fail('The event must end after it starts')
     next.added.push(created)
+  }
+  const hide = (ids: string[], hidden: boolean) => {
+    const others = (next.hidden ?? []).filter((other) => !ids.includes(other))
+    if (hidden && !applyEdits(base, next).plan.calendars.some((c) => !ids.includes(c.id) && !c.hidden)) {
+      fail('The last calendar shown cannot be hidden')
+    }
+    const all = hidden ? [...others, ...ids] : others
+    if (all.length) next.hidden = all
+    else delete next.hidden
+  }
+  const setLabels = (id: string, labels: string[]) => {
+    const rest = without(next.labels ?? {}, id)
+    const all = labels.length ? { ...rest, [id]: labels } : rest
+    if (Object.keys(all).length) next.labels = all
+    else delete next.labels
   }
 
   switch (change.type) {
@@ -472,6 +511,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       if (taken) fail(`A calendar named "${change.name}" already exists: add its sessions with events.add`)
       const id = newId('cal')
       next.calendars[id] = { name: change.name, color: change.color }
+      if (change.labels?.length) setLabels(id, change.labels)
       for (const session of change.sessions) add({ ...session, calendar: id })
       break
     }
@@ -560,16 +600,34 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       if (listed(next) === listed(natural)) delete next.order
       break
     }
-    case 'calendar.hide': {
-      const { id, hidden } = change
-      if (!calendarExists(id)) fail(`Unknown calendar "${id}"`)
-      const others = (next.hidden ?? []).filter((other) => other !== id)
-      if (hidden && !applyEdits(base, next).plan.calendars.some((c) => c.id !== id && !c.hidden)) {
-        fail('The last calendar shown cannot be hidden')
+    case 'calendar.hide':
+      if (!calendarExists(change.id)) fail(`Unknown calendar "${change.id}"`)
+      hide([change.id], change.hidden)
+      break
+    case 'calendar.labels':
+      if (!calendarExists(change.id)) fail(`Unknown calendar "${change.id}"`)
+      setLabels(change.id, change.labels)
+      break
+    case 'label.rename': {
+      const { from, to } = change
+      const carriers = Object.entries(next.labels ?? {}).filter(([, list]) => list.some((own) => sameLabel(own, from)))
+      if (!carriers.length) fail(`Unknown label "${from}"`)
+      for (const [id, list] of carriers) {
+        setLabels(
+          id,
+          to === null
+            ? list.filter((own) => !sameLabel(own, from))
+            : labelList(list.map((own) => (sameLabel(own, from) ? to : own))),
+        )
       }
-      if (hidden) next.hidden = [...others, id]
-      else if (others.length) next.hidden = others
-      else delete next.hidden
+      break
+    }
+    case 'label.hide': {
+      const ids = applyEdits(base, next)
+        .plan.calendars.filter((c) => hasLabel(c, change.label))
+        .map((c) => c.id)
+      if (!ids.length) fail(`Unknown label "${change.label}"`)
+      hide(ids, change.hidden)
       break
     }
     case 'trash.restore': {

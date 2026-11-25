@@ -37,7 +37,9 @@ function calendarLines(plan: Plan): string[] {
     const facts = sessions.length
       ? `${sessions.length} sessions, ${left.length} not done (${left.reduce((sum, e) => sum + plannedHours(e), 0)} h)${titles}`
       : 'no sessions'
-    return `- \`${c.id}\`: ${c.name} (${c.color}): ${facts}`
+    const labels = c.labels?.length ? `, labels: ${c.labels.map((label) => `"${label}"`).join(', ')}` : ''
+    const hidden = c.hidden ? ', hidden in the viewer' : ''
+    return `- \`${c.id}\`: ${c.name} (${c.color}${labels}${hidden}): ${facts}`
   })
 }
 
@@ -173,6 +175,8 @@ ${weekLines(plan, now).join('\n')}
   one to three lines ending with \`Done: <how to tell it is finished>\`. Use the real URLs the person gave or the
   ones already in the plan; leave a line out rather than invent a URL.
 - A calendar is named after its course. Give a new one a color that differs from the colors above.
+- Labels group calendars by provider or program (\`Google Skills for Partners\`, \`Certification\`); a name needs
+  no prefix for that. Give a new course the labels of the courses it belongs with, spelled as listed above.
 
 ## How to answer: the update
 
@@ -195,7 +199,7 @@ The changes you can use:
 
 | \`type\` | What it does |
 | --- | --- |
-| \`course.add\` | A new course: a calendar (\`name\`, \`color\`) and all its \`sessions\`, as one step |
+| \`course.add\` | A new course: a calendar (\`name\`, \`color\`, optional \`labels\`) and all its \`sessions\`, as one step |
 | \`events.add\` | Several \`events\` in calendars that exist, as one step |
 | \`event.add\` | One \`event\` |
 | \`event.patch\` | Changes fields of the event \`uid\`: \`title\`, \`description\`, \`start\`, \`end\`, \`calendar\`, \`done\`, \`actual\`, \`rrule\`, \`skip\` |
@@ -206,6 +210,7 @@ The changes you can use:
 | \`events.shift\` | Moves every not-done session from the day \`from\` on by \`days\`, \`hours\` or both, in the \`calendars\` named or in all |
 | \`events.done\` | Marks the sessions \`uids\` done or not done |
 | \`calendar.save\` | Renames or recolors the calendar \`id\` |
+| \`calendar.labels\` | Gives the calendar \`id\` its \`labels\`, all of them; an empty list takes them off |
 | \`plan.rename\` | Gives the plan another \`title\` |
 
 The JSON Schema of the update describes every field; follow it when you have it.

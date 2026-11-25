@@ -1,4 +1,5 @@
 import { parseLocal } from './dates'
+import { labelList } from './labels'
 import { WEEKLY_RULE } from './recurrence'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
@@ -73,6 +74,8 @@ export interface PlanEdits {
   order?: string[]
   /** Ids of the calendars hidden from the list in the viewer */
   hidden?: string[]
+  /** Labels of the calendars, by calendar id; a calendar with none is not listed */
+  labels?: Record<string, string[]>
 }
 
 export const emptyEdits = (): PlanEdits => ({
@@ -261,6 +264,14 @@ export function parseEdits(value: unknown): PlanEdits {
   if (order.length) edits.order = order
   const hidden = idList(value.hidden)
   if (hidden.length) edits.hidden = hidden
+  if (isRecord(value.labels)) {
+    const labels = Object.fromEntries(
+      Object.entries(value.labels)
+        .map(([id, list]): [string, string[]] => [id, labelList(list)])
+        .filter(([, list]) => list.length > 0),
+    )
+    if (Object.keys(labels).length) edits.labels = labels
+  }
   return edits
 }
 
@@ -290,7 +301,10 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
       .map(([id, patch]) => ({ id, ...patch, isNew: true, custom: true })),
   ]
     .toSorted((a, b) => rankOf(a) - rankOf(b))
-    .map((c) => (hidden.has(c.id) ? { ...c, hidden: true } : c))
+    .map((c) => {
+      const labels = edits.labels?.[c.id]
+      return { ...c, ...(labels?.length ? { labels } : {}), ...(hidden.has(c.id) ? { hidden: true } : {}) }
+    })
   const calendarIds = new Set(calendars.map((c) => c.id))
   const gone = edits.removed
 
