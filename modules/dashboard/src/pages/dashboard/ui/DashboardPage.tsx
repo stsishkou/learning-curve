@@ -33,6 +33,7 @@ import { PaceForecast } from '../../../widgets/pace-forecast'
 import { RatioStrip } from '../../../widgets/ratio-strip'
 import { StatTiles } from '../../../widgets/stat-tiles'
 import { StudyStreak } from '../../../widgets/study-streak'
+import { WeekOutcomes } from '../../../widgets/week-outcomes'
 import { WeeklyLoad } from '../../../widgets/weekly-load'
 import { useByLabel } from '../model/use-by-label'
 
@@ -161,6 +162,7 @@ export function DashboardPage({
 
       <StatTiles plan={plan} stats={stats} now={now} forecast={finish} onCatchUp={onCatchUp} />
       <StudyStreak plan={plan} now={now} />
+      <WeekOutcomes plan={plan} now={now} />
       <BurnUp stats={stats} now={now} forecast={finish} range={range} />
       <PaceForecast
         plan={plan}
@@ -184,7 +186,7 @@ export function DashboardPage({
               : undefined
           }
         />
-        <CourseBars plan={plan} byLabel={labelled && byLabel} />
+        <CourseBars plan={plan} now={now} byLabel={labelled && byLabel} />
       </div>
 
       <ModuleOverruns plan={plan} />

@@ -4,18 +4,8 @@ import { hm, isSession, startOfDay, type Occurrence, type Plan, type PlanEvent }
 import { Button, calendarColor, Dot, Hint, Menu, Timer, type MenuItem } from '@lc/ui'
 import { useState } from 'react'
 
+import type { SessionActions } from '../../../shared/lib'
 import { DoneMark } from '../../../shared/ui'
-
-/** What can be done to a session of today from its row; present where the plan can be changed. */
-export interface TodayActions {
-  /** Asks for the time the session took and marks it done */
-  done: (uid: string) => void
-  skip: (uid: string) => void
-  /** Takes a skip back: the session is open work again */
-  unskip: (uid: string) => void
-  /** Moves the session to the next free slot; false when there is none */
-  move: (o: Occurrence) => boolean
-}
 
 interface Props {
   plan: Plan
@@ -27,7 +17,7 @@ interface Props {
   onSelect: (e: PlanEvent) => void
   /** Present when there is a focus page: called with the uid of the session to time there */
   onFocus?: ((uid: string) => void) | undefined
-  actions?: TodayActions | undefined
+  actions?: SessionActions | undefined
 }
 
 type TodayState = 'done' | 'skipped' | 'now' | 'missed' | 'later'

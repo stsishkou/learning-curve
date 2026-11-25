@@ -626,7 +626,21 @@
   "catchup_peak": "Semana más cargada",
   "catchup_over": "semanas sobre el presupuesto: {count}",
   "catchup_moved": "Sesiones que se mueven",
-  "catchup_unplaced": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "No hubo sitio para {count} sesión", "countPlural=*": "No hubo sitio para {count} sesiones"}}],
+  "catchup_unplaced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "No hubo sitio para {count} sesión",
+        "countPlural=*": "No hubo sitio para {count} sesiones"
+      }
+    }
+  ],
   "catchup_manual": "Desplazar por días a mano…",
   "catchup_apply": "Aplicar",
   "history_replanned": "Plan reorganizado: {count} sesiones",
@@ -1166,5 +1180,22 @@
   "reschedule_course": "Reprogramar «{name}»",
   "reschedule_week": "Reprogramar la semana {week}",
   "dash_over_weeks": "Semanas por delante sobre el presupuesto:",
-  "dash_course_late": "después de su fecha límite, {date}"
+  "dash_course_late": "después de su fecha límite, {date}",
+  "review_skipped": "omitidas a propósito: {count}",
+  "review_note": "¿Cómo fue la semana?",
+  "review_note_hint": "Una línea para después: por ejemplo, qué lo impidió",
+  "review_save": "Guardar el resumen",
+  "review_update": "Actualizar el resumen",
+  "review_saved": "Guardado con las cifras de la semana",
+  "last_week_unreviewed": "La semana pasada ({dates}) aún no tiene resumen",
+  "last_week_review": "Revisarla",
+  "history_week_reviewed": "Semana revisada: {week}",
+  "dash_outcomes": "Semanas: el plan frente a lo que pasó",
+  "dash_outcomes_hint": "Horas de cada semana: planificadas, hechas y el tiempo real. Una semana revisada muestra las cifras guardadas con su resumen.",
+  "dash_outcomes_notes": "Notas de los resúmenes",
+  "dash_outcomes_table": "Semanas en tabla",
+  "dash_missed": "Perdidas",
+  "dash_skipped": "Omitidas a propósito",
+  "dash_note": "Nota",
+  "dash_course_missed": "perdidas: {count}"
 }

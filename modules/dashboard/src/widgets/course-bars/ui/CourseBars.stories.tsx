@@ -1,4 +1,4 @@
-import { fixturePlan } from '@lc/plan-domain/fixtures'
+import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { CourseBars } from './CourseBars'
@@ -6,7 +6,7 @@ import { CourseBars } from './CourseBars'
 const meta = {
   title: 'Dashboard/Widgets/CourseBars',
   component: CourseBars,
-  args: { plan: fixturePlan },
+  args: { plan: fixturePlan, now: fixtureNow },
   argTypes: { plan: { control: false } },
 } satisfies Meta<typeof CourseBars>
 

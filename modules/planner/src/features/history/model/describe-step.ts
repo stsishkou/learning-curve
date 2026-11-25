@@ -1,6 +1,6 @@
-import { fmtHours } from '@lc/i18n/format'
+import { fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import type { HistoryStep } from '@lc/plan-domain'
+import { parseLocal, type HistoryStep } from '@lc/plan-domain'
 
 const sign = (n: number) => (n < 0 ? '−' : '+')
 
@@ -65,6 +65,8 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return subject ? m.history_countdown({ name: subject }) : m.history_countdown_nearest()
     case 'reviews.plan':
       return m.history_reviews({ name: subject })
+    case 'week.review':
+      return m.history_week_reviewed({ week: fmtShort(parseLocal(`${change.week}T00:00`)) })
     case 'course.add':
       return m.history_course({ name: subject, count: change.sessions.length })
     case 'events.add':

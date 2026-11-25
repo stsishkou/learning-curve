@@ -1,19 +1,32 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { countsTwice, courseProgress, groupByLabel, parseLocal, type CourseProgress, type Plan } from '@lc/plan-domain'
+import {
+  countsTwice,
+  courseProgress,
+  groupByLabel,
+  missedByCalendar,
+  parseLocal,
+  type CourseProgress,
+  type Plan,
+} from '@lc/plan-domain'
 import { calendarColor, Dot, Tag } from '@lc/ui'
 
 import { Card } from '../../../shared/ui'
 
 interface Props {
   plan: Plan
+  /** Minsk wall-clock ms; null before the clock is known, and no session counts as missed */
+  now: number | null
   /** Lists the courses under their labels, each label with its total */
   byLabel?: boolean | undefined
 }
 
+const NONE = new Map<string, { missed: number; skipped: number }>()
+
 /** One row per course: how many of its hours are done and when its last session is; by label, a total per label. */
-export function CourseBars({ plan, byLabel = false }: Props) {
+export function CourseBars({ plan, now, byLabel = false }: Props) {
   const courses = courseProgress(plan)
+  const missed = now === null ? NONE : missedByCalendar(plan, now)
   const groups = groupByLabel(courses, (c) => c.calendar)
   const grouped = byLabel && groups.some((group) => group.label !== null)
   return (
@@ -35,7 +48,7 @@ export function CourseBars({ plan, byLabel = false }: Props) {
                 </div>
                 <ul className="mt-2.5 grid grid-cols-[minmax(0,1fr)] gap-3 border-l-2 border-line-soft pl-3">
                   {group.items.map((c) => (
-                    <CourseRow key={c.calendar.id} course={c} />
+                    <CourseRow key={c.calendar.id} course={c} missed={missed.get(c.calendar.id)} />
                   ))}
                 </ul>
               </section>
@@ -45,7 +58,7 @@ export function CourseBars({ plan, byLabel = false }: Props) {
       ) : (
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-3.5">
           {courses.map((c) => (
-            <CourseRow key={c.calendar.id} course={c} />
+            <CourseRow key={c.calendar.id} course={c} missed={missed.get(c.calendar.id)} />
           ))}
         </ul>
       )}
@@ -53,7 +66,13 @@ export function CourseBars({ plan, byLabel = false }: Props) {
   )
 }
 
-function CourseRow({ course: c }: { course: CourseProgress }) {
+function CourseRow({
+  course: c,
+  missed,
+}: {
+  course: CourseProgress
+  missed: { missed: number; skipped: number } | undefined
+}) {
   const share = c.hours ? c.doneHours / c.hours : 0
   return (
     <li style={calendarColor(c.calendar.color)}>
@@ -75,7 +94,16 @@ function CourseRow({ course: c }: { course: CourseProgress }) {
         <div className="h-full rounded-full bg-cal" style={{ width: `${share * 100}%` }} />
       </div>
       <div className="mt-1 flex justify-between text-[12px] text-muted tabular-nums">
-        <span>{m.dash_sessions_done({ done: c.doneSessions, total: c.sessions })}</span>
+        <span>
+          {m.dash_sessions_done({ done: c.doneSessions, total: c.sessions })}
+          {missed && missed.missed > 0 && (
+            <span className="text-today-ink">
+              {' · '}
+              {m.dash_course_missed({ count: missed.missed })}
+              {missed.skipped > 0 && `, ${m.review_skipped({ count: missed.skipped })}`}
+            </span>
+          )}
+        </span>
         <span>{m.dash_finish({ date: fmtDay(parseLocal(`${c.finish}T00:00`)) })}</span>
       </div>
     </li>

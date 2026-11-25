@@ -63,8 +63,8 @@ Google/Outlook; a single group cannot say "Partner" and "Certification" at once.
 
 - The review lists the missed sessions of the week with Done, Skip and Move actions, takes a one-line note, and
   is saved: `week.review` (`week`: its Monday, `note`) stores the note with the week's numbers at that moment
-  (planned, done, real hours, missed, skipped, goals met) under `reviews` in `edits.json`. Saving again replaces
-  it. UI-only.
+  (planned, done, real hours, missed, skipped, goals met) under `weekNotes` in `edits.json` (`reviews` already
+  names the planned module reviews). Saving again replaces it. UI-only.
 - The planner offers "Review last week" from Monday until that week is reviewed.
 - Progress page: **Weeks: plan against what happened**, one group of bars per week (planned, done, real hours)
   with missed and skipped counts, and the saved notes. Course bars show missed and skipped counts.

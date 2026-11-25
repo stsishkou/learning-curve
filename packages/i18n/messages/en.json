@@ -626,7 +626,21 @@
   "catchup_peak": "Heaviest week",
   "catchup_over": "weeks over budget: {count}",
   "catchup_moved": "Sessions that move",
-  "catchup_unplaced": [{"declarations": ["input count", "local countPlural = count: plural"], "selectors": ["countPlural"], "match": {"countPlural=one": "No room was found for {count} session", "countPlural=*": "No room was found for {count} sessions"}}],
+  "catchup_unplaced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "No room was found for {count} session",
+        "countPlural=*": "No room was found for {count} sessions"
+      }
+    }
+  ],
   "catchup_manual": "Shift by days by hand…",
   "catchup_apply": "Apply",
   "history_replanned": "Plan rearranged: {count} sessions",
@@ -1166,5 +1180,22 @@
   "reschedule_course": "Reschedule “{name}”",
   "reschedule_week": "Reschedule the week {week}",
   "dash_over_weeks": "Weeks ahead over the budget:",
-  "dash_course_late": "past its deadline, {date}"
+  "dash_course_late": "past its deadline, {date}",
+  "review_skipped": "skipped on purpose: {count}",
+  "review_note": "How did the week go?",
+  "review_note_hint": "One line for later, e.g. what got in the way",
+  "review_save": "Keep the review",
+  "review_update": "Update the review",
+  "review_saved": "Kept with this week's numbers",
+  "last_week_unreviewed": "Last week ({dates}) is not reviewed yet",
+  "last_week_review": "Review it",
+  "history_week_reviewed": "Week reviewed: {week}",
+  "dash_outcomes": "Weeks: plan against what happened",
+  "dash_outcomes_hint": "Hours of each week: planned, done and the time it really took. A reviewed week shows the numbers kept with its review.",
+  "dash_outcomes_notes": "Review notes",
+  "dash_outcomes_table": "Weeks as a table",
+  "dash_missed": "Missed",
+  "dash_skipped": "Skipped on purpose",
+  "dash_note": "Note",
+  "dash_course_missed": "missed: {count}"
 }

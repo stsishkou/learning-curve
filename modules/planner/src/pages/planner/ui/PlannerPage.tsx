@@ -73,12 +73,12 @@ import { useReminders } from '../../../features/reminders'
 import { RescheduleDialog, type ReschedulePreset } from '../../../features/reschedule'
 import { SecondZoneDialog, useSecondZone } from '../../../features/second-zone'
 import { TrashDialog } from '../../../features/trash'
-import { WeekReviewDialog } from '../../../features/week-review'
-import { appName, eventKey, useModKey, useNow } from '../../../shared/lib'
+import { LastWeekBar, WeekReviewDialog } from '../../../features/week-review'
+import { appName, eventKey, useModKey, useNow, type SessionActions } from '../../../shared/lib'
 import { AgendaList } from '../../../widgets/agenda-list'
 import { BudgetLine } from '../../../widgets/budget-panel'
 import { MonthGrid } from '../../../widgets/month-grid'
-import { NowNext, type TodayActions } from '../../../widgets/now-next'
+import { NowNext } from '../../../widgets/now-next'
 import { Runway } from '../../../widgets/runway'
 import { WeekGrid } from '../../../widgets/week-grid'
 import { YearGrid } from '../../../widgets/year-grid'
@@ -225,6 +225,9 @@ export function PlannerPage({
     return { from: search.reschedule, preset: linked ? rebalanceFrom(search.reschedule, linked.id) : undefined }
   })
   const [overdueHidden, setOverdueHidden] = useState(false)
+  // The week the review dialog shows when it is opened for one other than the week on screen.
+  const [reviewMonday, setReviewMonday] = useState<number | null>(null)
+  const [lastWeekHidden, setLastWeekHidden] = useState(false)
   const [unloggedHidden, setUnloggedHidden] = useState(false)
   // Done sessions without a time, in date order: the pace cannot count them until their time is filled in.
   const unlogged = useMemo(
@@ -294,7 +297,19 @@ export function PlannerPage({
             .toSorted((a, b) => a.start.localeCompare(b.start)),
     [plan, now],
   )
-  const todayActions: TodayActions | undefined = canEdit
+  // Last week, while it had sessions and has no review kept yet.
+  const lastMonday = today === null ? null : mondayOf(today) - 7 * DAY
+  const lastWeekOpen = useMemo(
+    () =>
+      lastMonday !== null &&
+      !wholePlan.weekNotes?.some((note) => note.week === ymd(lastMonday)) &&
+      plan.events.some((e) => {
+        const start = parseLocal(e.start)
+        return isSession(e) && start >= lastMonday && start < lastMonday + 7 * DAY
+      }),
+    [plan, wholePlan.weekNotes, lastMonday],
+  )
+  const sessionActions: SessionActions | undefined = canEdit
     ? {
         done: (uid) => setLogDone([uid]),
         skip: (uid) => quiet.change({ type: 'event.patch', uid, patch: { done: true, skipped: true } }),
@@ -533,6 +548,14 @@ export function PlannerPage({
         <CalendarReviewBar count={apps.held.length} onReview={() => dialogs.show('syncReview')} />
       )}
 
+      {canEdit && lastWeekOpen && lastMonday !== null && !lastWeekHidden && (
+        <LastWeekBar
+          monday={lastMonday}
+          onReview={() => setReviewMonday(lastMonday)}
+          onDismiss={() => setLastWeekHidden(true)}
+        />
+      )}
+
       {offer && (
         <ReviewBar
           offer={offer}
@@ -646,7 +669,7 @@ export function PlannerPage({
                 now={now}
                 onSelect={select}
                 onFocus={onFocus}
-                actions={todayActions}
+                actions={sessionActions}
               />
             </div>
             <div className={`min-w-0 print:hidden ${view === 'list' ? 'max-lg:order-first' : ''}`}>
@@ -728,11 +751,16 @@ export function PlannerPage({
       />
       <WeekReviewDialog
         plan={plan}
-        monday={dialogs.isOpen('review') ? weekStart : null}
+        monday={reviewMonday ?? (dialogs.isOpen('review') ? weekStart : null)}
         now={now}
         onCatchUp={canEdit ? () => dialogs.show('catchUp') : undefined}
-        onNextWeek={() => nav.showWeek(weekStart + 7 * DAY)}
-        onClose={() => dialogs.hide('review')}
+        onNextWeek={() => nav.showWeek((reviewMonday ?? weekStart) + 7 * DAY)}
+        actions={sessionActions}
+        onChange={canEdit ? session.change : undefined}
+        onClose={() => {
+          setReviewMonday(null)
+          dialogs.hide('review')
+        }}
       />
       <ResizedDoneDialog resized={resized} onChange={session.change} onClose={() => setResized(null)} />
       <LogDoneDialog

@@ -1180,5 +1180,22 @@
   "reschedule_course": "Перепланировать «{name}»",
   "reschedule_week": "Перепланировать неделю {week}",
   "dash_over_weeks": "Недели впереди сверх бюджета:",
-  "dash_course_late": "позже дедлайна, {date}"
+  "dash_course_late": "позже дедлайна, {date}",
+  "review_skipped": "из них пропущено намеренно: {count}",
+  "review_note": "Как прошла неделя?",
+  "review_note_hint": "Одна строка на потом: например, что помешало",
+  "review_save": "Сохранить итоги",
+  "review_update": "Обновить итоги",
+  "review_saved": "Сохранено вместе с цифрами недели",
+  "last_week_unreviewed": "Итоги прошлой недели ({dates}) ещё не подведены",
+  "last_week_review": "Подвести итоги",
+  "history_week_reviewed": "Итоги недели: {week}",
+  "dash_outcomes": "Недели: план и что получилось",
+  "dash_outcomes_hint": "Часы каждой недели: по плану, сделано и сколько ушло на самом деле. Неделя с итогами показывает цифры, сохранённые с ними.",
+  "dash_outcomes_notes": "Заметки к итогам",
+  "dash_outcomes_table": "Недели таблицей",
+  "dash_missed": "Пропущено",
+  "dash_skipped": "Из них намеренно",
+  "dash_note": "Заметка",
+  "dash_course_missed": "пропущено: {count}"
 }

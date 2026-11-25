@@ -1,1 +1,1 @@
-export { NowNext, type TodayActions } from './ui/NowNext'
+export { NowNext } from './ui/NowNext'
