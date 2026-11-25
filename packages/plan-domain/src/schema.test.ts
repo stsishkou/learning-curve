@@ -93,6 +93,8 @@ test('what the schema refuses the parser refuses too', () => {
     { changes: [{ type: 'events.shift', from: '2026-11-25', hours: 0.25 }] },
     { changes: [{ type: 'events.shift', from: '2026-11-25' }] },
     { changes: [{ type: 'events.move', moves: [], reason: 'tidy' }] },
+    // The first planned length is the app's to keep.
+    { changes: [{ type: 'event.patch', uid: 'certs-001@learning-curve', patch: { estimate: 60 } }] },
     // Stopwatch time comes only from the Focus page.
     { changes: [{ type: 'event.patch', uid: 'certs-001@learning-curve', patch: { began: '2026-11-25T07:00' } }] },
     {

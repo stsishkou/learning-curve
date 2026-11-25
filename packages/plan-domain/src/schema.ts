@@ -103,6 +103,17 @@ const EVENT: Schema = {
       description:
         'true when a done session ran out of time before its goal was met: the rest goes on in a later session. Only on a done session.',
     },
+    estimate: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 1440,
+      description:
+        'Minutes the session was first planned with, once a change made it longer or shorter. Kept by the app: read it, never send it.',
+    },
+    from: {
+      type: 'string',
+      description: 'The `uid` of the session this part was split from. Kept by the app: read it, never send it.',
+    },
     measured: {
       const: true,
       description:

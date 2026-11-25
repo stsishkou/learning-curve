@@ -17,6 +17,8 @@ export type EventPatch = Partial<
     | 'began'
     | 'paused'
     | 'unfinished'
+    | 'estimate'
+    | 'from'
     | 'paced'
     | 'rrule'
     | 'skip'
@@ -25,6 +27,9 @@ export type EventPatch = Partial<
 
 /** What the stopwatch records with a time it measured. Only `session.finish` writes it; a patch never may. */
 export const STOPWATCH_FIELDS = ['measured', 'began', 'paused'] as const
+
+/** What the app keeps about where a session came from: its first planned length and the session it was split from. */
+export const ORIGIN_FIELDS = ['estimate', 'from'] as const
 
 /** `fields` without the stopwatch's record: a time set any other way was not measured. */
 export const withoutRecord = <T extends EventPatch>({
@@ -86,6 +91,9 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 export const without = <T>(record: Record<string, T>, key: string): Record<string, T> =>
   Object.fromEntries(Object.entries(record).filter(([name]) => name !== key))
 
+/** An event's length in minutes */
+const lengthOf = (event: Pick<PlanEvent, 'start' | 'end'>) => (parseLocal(event.end) - parseLocal(event.start)) / 60_000
+
 /** Whole minutes from `least` to a day */
 const minutes = (field: unknown, least: number): field is number =>
   typeof field === 'number' && Number.isInteger(field) && field >= least && field <= 24 * 60
@@ -127,6 +135,14 @@ export function parsePatch(value: unknown): EventPatch | null {
   if (value.paused !== undefined) {
     if (!minutes(value.paused, 0)) return null
     patch.paused = value.paused
+  }
+  if (value.estimate !== undefined) {
+    if (!minutes(value.estimate, 1)) return null
+    patch.estimate = value.estimate
+  }
+  if (value.from !== undefined) {
+    if (typeof value.from !== 'string' || !value.from) return null
+    patch.from = value.from
   }
   if (value.rrule !== undefined) {
     if (typeof value.rrule !== 'string' || !WEEKLY_RULE.test(value.rrule) || !value.rrule.includes('BYDAY=')) {
@@ -179,6 +195,8 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
     if (patch.paused) event.paused = patch.paused
   }
   if (patch.done && patch.unfinished) event.unfinished = true
+  if (patch.estimate) event.estimate = patch.estimate
+  if (patch.from) event.from = patch.from
   if (patch.paced) event.paced = true
   if (patch.rrule) event.rrule = patch.rrule
   if (patch.rrule && patch.skip?.length) event.skip = patch.skip
@@ -250,6 +268,11 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
       const patch = edits.events[event.uid]
       if (!patch || patchProblem(event, patch)) return event
       const next = { ...event, ...patch }
+      delete next.from
+      // A generated session's first length is the one it is generated with.
+      const planned = lengthOf(event)
+      if (lengthOf(next) === planned) delete next.estimate
+      else next.estimate = planned
       if (!next.done) {
         delete next.done
         forgetFinish(next)

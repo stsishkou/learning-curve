@@ -148,7 +148,9 @@ ${weekLines(plan, now).join('\n')}
 4. **Where sessions go.** Follow the slots the course's sessions already use (look at their start times). For a
    new course, ask which days and hours suit when the person did not say.
 5. **What is done stays.** Do not move, rename or remove a session with \`"done": true\`. Mark a session done only
-   when the person says they finished it.
+   when the person says they finished it. A resized session keeps the length it was first planned with in
+   \`estimate\`, and a part of a split session names the session it came from in \`from\`: the app keeps both, so
+   read them and never send them.
 6. **Deadlines.** A \`milestone\` event is a deadline: sessions of its course must end before it. A calendar has one:
    set it with \`event.add\` (\`"kind": "milestone"\`, \`start\` and \`end\` both \`<day>T00:00\`, titled
    \`Дедлайн: <calendar name>\`), move it by patching its \`start\` and \`end\`, clear it with \`event.remove\`.

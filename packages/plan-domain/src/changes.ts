@@ -2,6 +2,7 @@ import { DAY, HOUR, parseLocal, startOfDay, toLocalString, weekday } from './dat
 import {
   HEX_COLOR,
   LOCAL_TIME,
+  ORIGIN_FIELDS,
   STOPWATCH_FIELDS,
   TITLE_MAX,
   applyEdits,
@@ -186,6 +187,9 @@ export function parseChange(input: unknown): PlanChange {
       const raw = input.patch
       if (isRecord(raw) && STOPWATCH_FIELDS.some((key) => raw[key] !== undefined)) {
         return fail(`${STOPWATCH_FIELDS.join(', ')} are written by the stopwatch of the Focus page, never sent`)
+      }
+      if (isRecord(raw) && ORIGIN_FIELDS.some((key) => raw[key] !== undefined)) {
+        return fail(`${ORIGIN_FIELDS.join(' and ')} are kept by the app, never sent`)
       }
       const patch = parsePatch(raw)
       return patch
@@ -384,6 +388,10 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
         const repeat = current.rrule ? { ...(rrule ? { rrule } : {}), ...(skip ? { skip } : {}) } : {}
         const kept = fields.actual === undefined ? current : withoutRecord(current)
         const merged: PlanEvent = { ...kept, ...fields, ...repeat }
+        // The first resize keeps the length the session was planned with.
+        if (merged.estimate === undefined && length(merged) !== length(current)) {
+          merged.estimate = length(current) / MINUTE
+        }
         if (!merged.skip?.length) delete merged.skip
         if (!merged.done) {
           delete merged.done
@@ -467,9 +475,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       if (total !== length(event)) fail(`The parts must add up to the length of the session, ${length(event) / HOUR} h`)
       const [first, ...rest] = change.parts
       if (!first) return fail('A split needs its parts')
-      const { uid: _uid, ...copy } = event
+      // The first part keeps the whole first length; the others name the session they came from, so they pool.
+      const { uid: _uid, estimate: _estimate, ...copy } = event
       const split = applyChange(base, next, { type: 'event.patch', uid: event.uid, patch: { ...first } }, now)
-      for (const part of rest) split.added.push({ ...copy, ...part, uid: `${newId('custom')}@learning-curve` })
+      for (const part of rest) {
+        split.added.push({ ...copy, ...part, from: event.from ?? event.uid, uid: `${newId('custom')}@learning-curve` })
+      }
       return split
     }
     case 'event.remove': {
@@ -576,6 +587,7 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
   return next
 }
 
+const MINUTE = HOUR / 60
 const length = (slot: Slot) => parseLocal(slot.end) - parseLocal(slot.start)
 
 /** Why an event cannot be split, in words a model can act on; null when it can. */

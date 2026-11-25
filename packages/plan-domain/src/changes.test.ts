@@ -195,6 +195,40 @@ describe('a session that is not finished', () => {
   })
 })
 
+const resize = (uid: string, end: string): PlanChange => ({ type: 'event.patch', uid, patch: { end } })
+
+describe('the first planned length', () => {
+  const original = itemAt(base.events.filter((e) => e.uid === SESSION))
+  const later = (minutes: number, of: PlanEvent = original) => toLocalString(parseLocal(of.start) + minutes * 60_000)
+
+  test('a resized generated session keeps the length it was planned with; a moved one has none to keep', () => {
+    expect(find(planOf(apply([resize(SESSION, later(90))])), SESSION)?.estimate).toBe(60)
+    expect(find(planOf(apply([EXAMPLES['event.patch']])), SESSION)).not.toHaveProperty('estimate')
+  })
+
+  test('an added session keeps its first length, however often it is resized after', () => {
+    const extra = apply([EXAMPLES['event.add']])
+    const event = added(extra)
+    const resized = apply([resize(event.uid, later(90, event)), resize(event.uid, later(120, event))], extra)
+    expect(added(resized)).toMatchObject({ estimate: 60, end: later(120, event) })
+    expect(parseEdits(structuredClone(resized))).toEqual(resized)
+  })
+
+  test('a split keeps the whole length on its first part, and the other parts name the session they came from', () => {
+    const edits = apply([EXAMPLES['event.split']])
+    expect(find(planOf(edits), SESSION)?.estimate).toBe(60)
+    expect(added(edits)).toMatchObject({ from: SESSION })
+    expect(added(edits)).not.toHaveProperty('estimate')
+    expect(parseEdits(structuredClone(edits))).toEqual(edits)
+  })
+
+  test('an event.patch cannot set them: the app keeps them', () => {
+    for (const patch of [{ estimate: 30 }, { from: NEXT }]) {
+      expect(() => parseChange({ type: 'event.patch', uid: SESSION, patch }), JSON.stringify(patch)).toThrow(/app/)
+    }
+  })
+})
+
 describe('session.finish', () => {
   const finish = EXAMPLES['session.finish']
   const STOPWATCH = ['measured', 'began', 'paused']

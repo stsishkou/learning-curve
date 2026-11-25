@@ -44,6 +44,10 @@ export interface PlanEvent {
   paused?: number
   /** The done session's time ran out before its goal was met: the rest goes on in a later session */
   unfinished?: boolean
+  /** Minutes the session was first planned with, kept once a change made it longer or shorter */
+  estimate?: number
+  /** The uid of the session this one was split from */
+  from?: string
 }
 
 export interface PlanMeta {
