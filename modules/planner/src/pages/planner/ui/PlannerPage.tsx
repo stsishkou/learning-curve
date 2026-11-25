@@ -58,7 +58,7 @@ import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
 import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog } from '../../../features/keyboard-shortcuts'
-import { LogDoneDialog, UnloggedBar } from '../../../features/log-done'
+import { LogDoneDialog, ResizedDoneDialog, UnloggedBar, type ResizedDone } from '../../../features/log-done'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
@@ -219,6 +219,12 @@ export function PlannerPage({
    * opened, so saving does not change its rows under it.
    */
   const [logDone, setLogDone] = useState<string[]>(() => (search.fill ? unlogged : []))
+  const [resized, setResized] = useState<ResizedDone | null>(null)
+  // A done session made longer or shorter may mean the time it took rather than a new plan: the page asks which.
+  const moveInGrid = (o: Occurrence, slot: { s: number; e: number }) => {
+    if (o.done && isSession(o) && slot.e - slot.s !== o.e - o.s) setResized({ event: o, slot })
+    else quiet.change(moveOccurrence(o, slot))
+  }
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
   const [pickedDay, setPickedDay] = useState<string | null>(null)
 
@@ -512,7 +518,7 @@ export function PlannerPage({
               items={gridItems}
               now={now}
               onSelect={select}
-              onMove={canEdit ? (o, slot) => quiet.change(moveOccurrence(o, slot)) : undefined}
+              onMove={canEdit ? moveInGrid : undefined}
               onRemove={canEdit ? (o) => quiet.change(removeOccurrence(o)) : undefined}
               onCreate={canEdit ? drafting.begin : undefined}
               draft={drafting.slot}
@@ -634,6 +640,7 @@ export function PlannerPage({
         onNextWeek={() => nav.showWeek(weekStart + 7 * DAY)}
         onClose={() => dialogs.hide('review')}
       />
+      <ResizedDoneDialog resized={resized} onChange={session.change} onClose={() => setResized(null)} />
       <LogDoneDialog
         plan={plan}
         uids={logDone}

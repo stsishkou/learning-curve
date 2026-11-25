@@ -1,13 +1,17 @@
+import { fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   applyChange,
   applyEdits,
+  DAY,
   doneWithoutTime,
   editedUids,
   emptyHistory,
   emptyTrash,
   historyEdits,
   historyView,
+  isSession,
+  occurrences,
   parseLocal,
   recordChange,
   trashOf,
@@ -232,5 +236,36 @@ export const FillTimes: Story = {
     })
     await expect(args.onSearchChange).toHaveBeenCalledWith({ fill: undefined })
     await expect(await body.findByText(m.unlogged_bar({ count: unlogged.length - 1 }))).toBeVisible()
+  },
+}
+
+const doneThisWeek = occurrences(fixturePlan, fixtureWeek, fixtureWeek + 7 * DAY, new Set()).find(
+  (o) => isSession(o) && o.done,
+)
+
+/**
+ * A done session made longer in the grid, here with Alt+Shift+↓: the page asks whether that is the time it took or a
+ * new plan, and the time it took is the default.
+ */
+export const ResizeDoneAsks: Story = {
+  play: async ({ args, canvasElement }) => {
+    if (!doneThisWeek) throw new Error('No done session in the week')
+    const block = canvasElement.querySelector<HTMLElement>(
+      `[data-slot="${CSS.escape(`${doneThisWeek.title}@${doneThisWeek.s}`)}"]`,
+    )
+    if (!block) throw new Error('The done session is not in the grid')
+    block.focus()
+    await userEvent.keyboard('{Alt>}{Shift>}{ArrowDown}{/Shift}{/Alt}')
+    await expect(args.onChange).not.toHaveBeenCalled()
+    const longer = (doneThisWeek.e - doneThisWeek.s) / 60_000 + 30
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(
+      await body.findByRole('button', { name: m.resize_done_time({ time: fmtDuration(longer * 60_000) }) }),
+    )
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'event.patch',
+      uid: doneThisWeek.uid,
+      patch: { actual: longer },
+    })
   },
 }
