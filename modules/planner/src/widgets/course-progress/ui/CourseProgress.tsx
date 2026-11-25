@@ -1,6 +1,6 @@
 import { fmtHours, fmtRatio, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { courseProgress, parseLocal, type Plan, type PlanEvent } from '@lc/plan-domain'
+import { courseProgress, MIN_LOGGED, parseLocal, type Plan, type PlanEvent } from '@lc/plan-domain'
 import { calendarColor, ProgressRing } from '@lc/ui'
 
 interface Props {
@@ -39,6 +39,13 @@ export function CourseProgress({ plan, onSelect }: Props) {
                 {m.progress_finish({ date: fmtShort(parseLocal(c.finish)) })}
                 {Math.abs(c.pace - 1) >= 0.05 &&
                   ` · ${m.pace_note_logged({ ratio: fmtRatio(c.pace), count: c.accuracy.logged })}`}
+                {/* Below enough logged sessions the course keeps the plan's pace: it says so rather than look on plan. */}
+                {c.accuracy.pace === null && c.accuracy.done > 0 && (
+                  <>
+                    {' · '}
+                    <span>{m.pace_wait_n({ min: MIN_LOGGED, count: c.accuracy.logged })}</span>
+                  </>
+                )}
               </span>
               {c.next && (
                 <button

@@ -1,7 +1,8 @@
-import { buildPlan, DEFAULT_CONFIG } from '@lc/plan-domain'
+import { m } from '@lc/i18n/messages'
+import { buildPlan, DEFAULT_CONFIG, isSession, MIN_LOGGED, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 
 import { CourseProgress } from './CourseProgress'
 
@@ -26,3 +27,23 @@ export const Default: Story = {}
 
 /** A freshly generated plan: every ring is empty and each course points at its first session. */
 export const NothingDone: Story = { args: { plan: buildPlan(DEFAULT_CONFIG, '2026-11-22') } }
+
+/** The fixture with the first `count` done sessions logged at their plan. */
+const loggedFirst = (count: number): Plan => {
+  let i = 0
+  return {
+    ...fixturePlan,
+    events: fixturePlan.events.map((e) =>
+      e.done && isSession(e) && i++ < count ? { ...e, actual: (parseLocal(e.end) - parseLocal(e.start)) / 60_000 } : e,
+    ),
+  }
+}
+
+/** Fewer logged sessions than a pace needs: the course says how many there are instead of showing the plan's pace. */
+export const LearningThePace: Story = {
+  args: { plan: loggedFirst(MIN_LOGGED - 2) },
+  play: async ({ canvasElement }) => {
+    const note = m.pace_wait_n({ min: MIN_LOGGED, count: MIN_LOGGED - 2 })
+    await expect(within(canvasElement).getByText(note)).toBeVisible()
+  },
+}

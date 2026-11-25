@@ -589,6 +589,7 @@
   "dash_pace_wait": "темп — с {count} записанных",
   "dash_pace_if_planned": "{pace}, если остальные шли по плану",
   "pace_note_logged": "темп {ratio} · n {count}",
+  "pace_wait_n": "темп — с {min} записанных, сейчас {count}",
   "dash_forecast_left": "Осталось",
   "dash_forecast_plan": "По плану",
   "dash_forecast_real": "Прогноз",

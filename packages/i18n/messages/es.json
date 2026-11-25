@@ -573,6 +573,7 @@
   "dash_pace_wait": "ritmo a partir de {count} registradas",
   "dash_pace_if_planned": "{pace} si el resto fue según lo previsto",
   "pace_note_logged": "ritmo {ratio} · n {count}",
+  "pace_wait_n": "ritmo desde {min} registradas, {count} por ahora",
   "dash_forecast_left": "Queda",
   "dash_forecast_plan": "Previsto",
   "dash_forecast_real": "Previsión",

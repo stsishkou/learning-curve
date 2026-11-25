@@ -573,6 +573,7 @@
   "dash_pace_wait": "a pace from {count} logged",
   "dash_pace_if_planned": "{pace} if the rest took their plan",
   "pace_note_logged": "pace {ratio} · n {count}",
+  "pace_wait_n": "a pace from {min} logged, {count} so far",
   "dash_forecast_left": "Left",
   "dash_forecast_plan": "Planned",
   "dash_forecast_real": "Forecast",

@@ -1,6 +1,6 @@
 import { fmtHours, fmtRatio, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, goalsBetween, weekReview, type ModuleGoal, type Plan } from '@lc/plan-domain'
+import { DAY, goalsBetween, MIN_LOGGED, weekReview, type ModuleGoal, type Plan } from '@lc/plan-domain'
 import { ArrowRight, Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
 import type { ReactNode } from 'react'
 
@@ -64,7 +64,7 @@ function Review({ plan, monday, now, onCatchUp, onNextWeek, onClose }: Props & {
     accuracy.pace !== null
       ? m.pace_note_logged({ ratio: fmtRatio(accuracy.pace), count: accuracy.logged })
       : accuracy.done
-        ? m.dash_pace_logged({ logged: accuracy.logged, done: accuracy.done })
+        ? `${m.dash_pace_logged({ logged: accuracy.logged, done: accuracy.done })} · ${m.dash_pace_wait({ count: MIN_LOGGED })}`
         : ''
   const heading = 'mt-4 text-[12px] font-semibold tracking-wide text-muted uppercase'
 
