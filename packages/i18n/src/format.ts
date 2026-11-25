@@ -69,5 +69,18 @@ export function fmtZoneRegion(zone: string): string {
   }
 }
 
+/**
+ * Real time per planned time: `×1.25 · 25% longer`, `×0.8 · 20% shorter`. Never a bare percent, which makes ×2 look
+ * twice as far from the plan as ×0.5 (docs/estimate-accuracy-research.md, 5.3).
+ */
+export function fmtRatio(ratio: number): string {
+  const locale = getLocale()
+  const factor = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(ratio)
+  const off = Math.round(Math.abs(ratio - 1) * 100)
+  const percent = new Intl.NumberFormat(locale, { style: 'percent' }).format(off / 100)
+  if (!off) return `×${factor} · ${m.ratio_as_planned()}`
+  return `×${factor} · ${ratio > 1 ? m.ratio_longer({ percent }) : m.ratio_shorter({ percent })}`
+}
+
 /** How far a clock is from the plan's own, as a signed number of hours: `+2 ч`, `−5,5 ч`; empty for no difference. */
 export const fmtShift = (ms: number) => (ms ? `${ms > 0 ? '+' : '−'}${fmtHours(Math.abs(ms) / 3_600_000)}` : '')

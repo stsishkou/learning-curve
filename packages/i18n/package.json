@@ -13,13 +13,15 @@
     "i18n": "paraglide-js compile --project ./project.inlang",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint -c ../../.oxlintrc.json",
-    "check:i18n": "inlang check --project ./project.inlang --source ./src/format.ts $(find ../../apps/web/src ../../modules -type f \\( -name '*.tsx' -o -name '*.ts' \\) ! -name 'index.ts' ! -name '*.gen.ts' ! -path '*/lib/*' 2>/dev/null)"
+    "check:i18n": "inlang check --project ./project.inlang --source ./src/format.ts $(find ../../apps/web/src ../../modules -type f \\( -name '*.tsx' -o -name '*.ts' \\) ! -name 'index.ts' ! -name '*.gen.ts' ! -path '*/lib/*' 2>/dev/null)",
+    "test": "vitest run"
   },
   "dependencies": {
     "@inlang/paraglide-js": "catalog:"
   },
   "devDependencies": {
-    "@inlang/cli": "3.6.0"
+    "@inlang/cli": "3.6.0",
+    "vitest": "catalog:"
   },
   "nx": {
     "tags": [

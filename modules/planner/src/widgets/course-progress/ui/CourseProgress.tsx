@@ -1,4 +1,4 @@
-import { fmtHours, fmtShort } from '@lc/i18n/format'
+import { fmtHours, fmtRatio, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { courseProgress, parseLocal, type Plan, type PlanEvent } from '@lc/plan-domain'
 import { calendarColor, ProgressRing } from '@lc/ui'
@@ -38,7 +38,7 @@ export function CourseProgress({ plan, onSelect }: Props) {
                 {m.progress_sessions({ done: c.doneSessions, total: c.sessions })} ·{' '}
                 {m.progress_finish({ date: fmtShort(parseLocal(c.finish)) })}
                 {Math.abs(c.pace - 1) >= 0.05 &&
-                  ` · ${m.pace_note_logged({ pace: c.pace.toFixed(1), count: c.accuracy.logged })}`}
+                  ` · ${m.pace_note_logged({ ratio: fmtRatio(c.pace), count: c.accuracy.logged })}`}
               </span>
               {c.next && (
                 <button

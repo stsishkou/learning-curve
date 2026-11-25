@@ -1,4 +1,4 @@
-import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
+import { fmtDay, fmtHours, fmtRatio, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   DAY,
@@ -23,7 +23,6 @@ interface Props {
   onFillTimes?: (() => void) | undefined
 }
 
-const fmtPace = (pace: number) => `×${pace.toFixed(2).replace(/0$/, '')}`
 const days = (ms: number) => Math.round(ms / DAY)
 
 /** A slip of a day or more against the plan, in words. */
@@ -40,13 +39,13 @@ function Pace({ accuracy }: { accuracy: Accuracy }) {
   const note = 'block text-[12px] text-muted'
   return (
     <>
-      {accuracy.pace === null ? '—' : fmtPace(accuracy.pace)}
+      {accuracy.pace === null ? '—' : fmtRatio(accuracy.pace)}
       <span className={note}>{m.dash_pace_logged({ logged: accuracy.logged, done: accuracy.done })}</span>
       {accuracy.pace === null ? (
         <span className={note}>{m.dash_pace_wait({ count: MIN_LOGGED })}</span>
       ) : (
         accuracy.ifPlanned !== null && (
-          <span className={note}>{m.dash_pace_if_planned({ pace: fmtPace(accuracy.ifPlanned) })}</span>
+          <span className={note}>{m.dash_pace_if_planned({ pace: fmtRatio(accuracy.ifPlanned) })}</span>
         )
       )}
     </>

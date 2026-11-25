@@ -1,4 +1,4 @@
-import { fmtHours, fmtShort } from '@lc/i18n/format'
+import { fmtHours, fmtRatio, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import { DAY, goalsBetween, weekReview, type ModuleGoal, type Plan } from '@lc/plan-domain'
 import { ArrowRight, Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
@@ -62,7 +62,7 @@ function Review({ plan, monday, now, onCatchUp, onNextWeek, onClose }: Props & {
   // The week's pace once enough of it is logged; until then, how much of it is.
   const paceNote =
     accuracy.pace !== null
-      ? m.pace_note_logged({ pace: accuracy.pace.toFixed(2).replace(/0$/, ''), count: accuracy.logged })
+      ? m.pace_note_logged({ ratio: fmtRatio(accuracy.pace), count: accuracy.logged })
       : accuracy.done
         ? m.dash_pace_logged({ logged: accuracy.logged, done: accuracy.done })
         : ''

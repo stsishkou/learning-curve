@@ -12,7 +12,7 @@ interface Props {
   now: number | null
 }
 
-/** The headline numbers: how much is done, whether that is on pace, and how much time is left. */
+/** The headline numbers: how much is done, how far ahead of the plan's schedule that is, and how much time is left. */
 export function StatTiles({ plan, stats, now }: Props) {
   const share = stats.planned ? stats.done / stats.planned : 0
   const lead = stats.done - stats.plannedByNow
@@ -37,7 +37,7 @@ export function StatTiles({ plan, stats, now }: Props) {
         {stats.doneSessions}
       </Tile>
       <Tile
-        label={m.dash_pace()}
+        label={m.dash_lead()}
         note={
           Math.abs(lead) < 0.25
             ? m.dash_on_track()
