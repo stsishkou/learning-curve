@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest'
 
 import { MIN_LOGGED, accuracyOf, runningTypical } from './accuracy'
-import { mondayOf, parseLocal } from './dates'
-import { applyEdits, emptyEdits } from './edits'
+import { applyChange, type PlanChange } from './changes'
+import { mondayOf, parseLocal, toLocalString } from './dates'
+import { applyEdits, emptyEdits, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
 import { paceForecast } from './forecast'
-import { weekReview } from './goals'
+import { moduleOverruns, weekReview } from './goals'
 import { courseProgress, doneWithoutTime, isSession, referenceClass } from './progress'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import type { Plan, PlanEvent } from './types'
@@ -151,5 +152,106 @@ describe('runningTypical', () => {
     expect(before).toEqual([6, 7])
     const [sixth] = runningTypical(sessionsOf(late))
     expect(sixth?.typical.ratio).toBeCloseTo(2 ** (1 / 6))
+  })
+})
+
+const planOf = (edits: PlanEdits) => applyEdits(base, edits).plan
+const finish = (e: PlanEvent, actual: number, unfinished?: true): PlanChange => ({
+  type: 'event.patch',
+  uid: e.uid,
+  patch: unfinished ? { done: true, actual, unfinished } : { done: true, actual },
+})
+
+describe('moduleOverruns', () => {
+  const NOW = Date.parse('2026-11-23T09:00:00Z')
+  const COUNTER = / \(\d+\/\d+\)$/
+  const firstOfMany = itemAt(certs.filter((e) => / \(1\/\d+\)$/.test(e.title)))
+  const moduleTitle = firstOfMany.title.replace(COUNTER, '')
+  const sessions = certs.filter((e) => e.title.startsWith(`${moduleTitle} (`))
+  const n = sessions.length
+  const single = itemAt(certs.filter((e) => !COUNTER.test(e.title)))
+  const after = (edits: PlanEdits, ...changes: PlanChange[]) =>
+    changes.reduce((next, change) => applyChange(base, next, change, NOW), edits)
+  const rowOf = (plan: Plan) => moduleOverruns(plan).find((row) => moduleTitle.endsWith(` — ${row.title}`))
+
+  test('compares the hours logged on a module with the hours it was planned with, once every session is logged', () => {
+    const row = rowOf(planOf(after(emptyEdits(), ...sessions.map((e, i) => finish(e, i ? 75 : 90)))))
+    expect(row).toMatchObject({ sessions: n, done: n, planned: n, added: 0, unfinished: 0 })
+    expect(row?.ratio).toBeCloseTo((90 + 75 * (n - 1)) / 60 / n)
+  })
+
+  test('gives no ratio while a session of the module is open or done without a time', () => {
+    const [first, second] = sessions
+    if (!first || !second) throw new Error('No module of two sessions')
+    const plan = planOf(
+      after(emptyEdits(), finish(first, 90), { type: 'event.patch', uid: second.uid, patch: { done: true } }),
+    )
+    expect(rowOf(plan)).toMatchObject({ done: 2, logged: 1, ratio: null })
+  })
+
+  test('a session added to the module later counts in its real hours, not in what it was planned with', () => {
+    const last = itemAt(sessions, n - 1)
+    const extra = { ...last, uid: 'custom-extra@learning-curve', start: '2027-03-01T10:00', end: '2027-03-01T11:00' }
+    const edits = after(emptyEdits(), ...sessions.map((e) => finish(e, 60)))
+    const row = rowOf(planOf({ ...edits, added: [{ ...extra, done: true, actual: 60 }] }))
+    expect(row).toMatchObject({ sessions: n + 1, planned: n, spent: n + 1, added: 1 })
+    expect(row?.ratio).toBeCloseTo((n + 1) / n)
+  })
+
+  test('a module made in the viewer was planned with the sessions it has: none of them counts as added', () => {
+    const own = [1, 2].map((i) => ({
+      ...single,
+      uid: `custom-own-${i}@learning-curve`,
+      title: `Свой курс — Своя тема (${i}/2)`,
+      start: `2027-03-0${i}T10:00`,
+      end: `2027-03-0${i}T11:00`,
+      done: true,
+      actual: 60,
+    }))
+    const row = moduleOverruns(planOf({ ...emptyEdits(), added: own })).find((r) => r.title === 'Своя тема')
+    expect(row).toMatchObject({ sessions: 2, planned: 2, added: 0, ratio: 1 })
+  })
+
+  test('the parts of a split session share the length it was planned with', () => {
+    const { uid, start } = firstOfMany
+    const later = (minutes: number) => toLocalString(parseLocal(start) + minutes * 60_000)
+    const split = after(emptyEdits(), {
+      type: 'event.split',
+      uid,
+      parts: [
+        { start, end: later(30) },
+        { start: later(240), end: later(270) },
+      ],
+    })
+    const part = itemAt(planOf(split).events.filter((e) => e.from === uid))
+    const row = rowOf(planOf(after(split, ...[...sessions, part].map((e) => finish(e, 60)))))
+    expect(row).toMatchObject({ sessions: n + 1, planned: n, added: 0 })
+  })
+
+  test('a session made longer counts at the length it was first planned with', () => {
+    const { uid, start } = firstOfMany
+    const end = toLocalString(parseLocal(start) + 2 * 3_600_000)
+    const edits = after(
+      emptyEdits(),
+      { type: 'event.patch', uid, patch: { end } },
+      ...sessions.map((e) => finish(e, 60)),
+    )
+    expect(rowOf(planOf(edits))).toMatchObject({ planned: n, ratio: 1 })
+  })
+
+  test('a module whose last session ran out of time waits for the rest', () => {
+    const changes = sessions.map((e, i) => finish(e, 60, i === n - 1 ? true : undefined))
+    expect(rowOf(planOf(after(emptyEdits(), ...changes)))).toMatchObject({ ratio: null, unfinished: 1 })
+  })
+
+  test('ranks the modules from the longest overrun down, those without a ratio last', () => {
+    const other = (e: PlanEvent) => ![moduleTitle, single.title].includes(e.title.replace(COUNTER, ''))
+    const open = itemAt(certs.filter(other))
+    const edits = after(emptyEdits(), ...sessions.map((e) => finish(e, 90)), finish(single, 45), {
+      type: 'event.patch',
+      uid: open.uid,
+      patch: { done: true },
+    })
+    expect(moduleOverruns(planOf(edits)).map((row) => row.ratio)).toEqual([1.5, 0.75, null])
   })
 })

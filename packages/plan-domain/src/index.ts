@@ -71,10 +71,12 @@ export { paceForecast, type PaceForecast } from './forecast'
 export {
   goalsBetween,
   moduleGoals,
+  moduleOverruns,
   monthGoals,
   weekReview,
   type CourseGoal,
   type ModuleGoal,
+  type ModuleOverrun,
   type WeekReview,
 } from './goals'
 export {

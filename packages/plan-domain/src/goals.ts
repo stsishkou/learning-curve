@@ -1,4 +1,5 @@
 import { accuracyOf, type Accuracy } from './accuracy'
+import { isCustomEvent } from './changes'
 import { DAY, parseLocal, startOfDay } from './dates'
 import { isSession, plannedHours, spentHours } from './progress'
 import type { Plan, PlanEvent } from './types'
@@ -60,6 +61,72 @@ export function moduleGoals(plan: Plan): ModuleGoal[] {
     goals.set(key, goal)
   }
   return [...goals.values()].toSorted((a, b) => a.finish - b.finish)
+}
+
+/** How the hours logged on a module compare with the hours it was planned with. */
+export interface ModuleOverrun {
+  calendar: string
+  /** The module's title without the course name and the counter */
+  title: string
+  /** Its sessions now, split parts and added ones included, how many of them are done and how many have a time */
+  sessions: number
+  done: number
+  logged: number
+  /** Hours the module was planned with: the sessions it was created with, each at its first length */
+  planned: number
+  /** Hours logged on its done sessions */
+  spent: number
+  /** `spent ÷ planned` once every session is done with a logged time and the last one met its goal; null before */
+  ratio: number | null
+  /** Sessions added to it after it was planned: the work the plan did not foresee */
+  added: number
+  /** Done sessions whose time ran out before their goal */
+  unfinished: number
+}
+
+/**
+ * Every module with a done session, from the longest overrun down, then those still without a ratio. The module, not
+ * the session, is what the content estimated: a session can end on time with its goal unmet and the rest done in an
+ * added one, which only the module's total shows (docs/estimate-accuracy-research.md, 5.3).
+ */
+export function moduleOverruns(plan: Plan): ModuleOverrun[] {
+  const modules = new Map<string, PlanEvent[]>()
+  for (const e of plan.events) {
+    if (!isSession(e) || e.kind === 'review') continue
+    const key = `${e.calendar}\n${moduleOf(e)}`
+    modules.set(key, [...(modules.get(key) ?? []), e])
+  }
+  const rows = [...modules.values()].flatMap((sessions): ModuleOverrun[] => {
+    const [first] = sessions
+    const done = sessions.filter((e) => e.done)
+    if (!first || !done.length) return []
+    // In a course made in the viewer every session is added; only one added to a generated module is extra work.
+    const generated = sessions.some((e) => !isCustomEvent(e))
+    const isAdded = (e: PlanEvent) => generated && isCustomEvent(e) && e.from === undefined
+    // A split part's hours are already in the first length of the session it came from.
+    const planned = sessions
+      .filter((e) => e.from === undefined && !isAdded(e))
+      .reduce((sum, e) => sum + (e.estimate === undefined ? plannedHours(e) : e.estimate / 60), 0)
+    const logged = done.filter((e) => e.actual !== undefined)
+    const spent = logged.reduce((sum, e) => sum + (e.actual ?? 0) / 60, 0)
+    const last = sessions.toSorted((a, b) => a.start.localeCompare(b.start)).at(-1)
+    const complete = logged.length === sessions.length && !last?.unfinished && planned > 0
+    return [
+      {
+        calendar: first.calendar,
+        title: moduleOf(first).replace(/^[^—]+— /, ''),
+        sessions: sessions.length,
+        done: done.length,
+        logged: logged.length,
+        planned,
+        spent,
+        ratio: complete ? spent / planned : null,
+        added: sessions.filter(isAdded).length,
+        unfinished: done.filter((e) => e.unfinished).length,
+      },
+    ]
+  })
+  return rows.toSorted((a, b) => (b.ratio ?? -1) - (a.ratio ?? -1))
 }
 
 /** The modules to finish from `from` up to `to` (wall-clock ms): the ones whose last session falls there. */

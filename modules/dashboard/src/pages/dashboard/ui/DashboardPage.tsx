@@ -8,6 +8,7 @@ import { useNow } from '../../../shared/lib'
 import { BiasTrend } from '../../../widgets/bias-trend'
 import { BurnUp } from '../../../widgets/burn-up'
 import { CourseBars } from '../../../widgets/course-bars'
+import { ModuleOverruns } from '../../../widgets/module-overruns'
 import { PaceForecast } from '../../../widgets/pace-forecast'
 import { RatioStrip } from '../../../widgets/ratio-strip'
 import { StatTiles } from '../../../widgets/stat-tiles'
@@ -122,6 +123,8 @@ export function DashboardPage({
         <WeeklyLoad plan={plan} stats={stats} now={now} />
         <CourseBars plan={plan} />
       </div>
+
+      <ModuleOverruns plan={plan} />
 
       <details className="rounded-2xl border border-line bg-surface px-4 py-3 md:px-5">
         <summary className="cursor-pointer text-[14px] font-semibold">{m.dash_table()}</summary>
