@@ -23,6 +23,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { useFillHeight, useNow } from '../../../shared/lib'
 import { ScreenButtons } from '../../../shared/ui'
 import { Hourglass } from '../../../widgets/hourglass'
+import { finishRecord, loggedMinutes } from '../model/finish'
 import { useGlass } from '../model/use-glass'
 import { useStopwatch } from '../model/use-stopwatch'
 import { useTitleLead } from '../model/use-title-lead'
@@ -50,7 +51,6 @@ interface Props {
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
-const QUARTER = 15 * MINUTE
 /** How many sessions the queue lists */
 const QUEUE = 6
 const URL_PATTERN = /https?:\/\/\S+/
@@ -62,8 +62,6 @@ function stopwatchText(ms: number) {
   const rest = `${two(Math.floor(seconds / 60) % 60)}:${two(seconds % 60)}`
   return seconds >= 3600 ? `${Math.floor(seconds / 3600)}:${rest}` : rest
 }
-/** What gets logged: quarter-hour steps, like the time field of a session, and never nothing. */
-const loggedMinutes = (ms: number) => Math.max(QUARTER, Math.round(ms / QUARTER) * QUARTER) / MINUTE
 
 // Whole multiples of the glass's 39 × 63 cells, so it fills its box at one, two and three device pixels per CSS pixel.
 const GLASS_BOX = 'h-[126px] w-[78px] md:h-[189px] md:w-[117px]'
@@ -173,11 +171,13 @@ export function FocusPage(props: Props) {
   const linkOnTop = wide && toggleExpanded !== undefined
 
   async function finish(event: PlanEvent) {
-    const minutes = loggedMinutes(elapsed)
+    const at = Date.now()
+    const record = finishRecord(elapsed, watch.began ?? at - elapsed, at)
+    const minutes = record.actual
     setBusy(true)
     setError('')
     try {
-      await onChange({ type: 'event.patch', uid: event.uid, patch: { done: true, actual: minutes } })
+      await onChange({ type: 'session.finish', uid: event.uid, ...record })
       watch.reset()
       glass.reset()
       pick(undefined)

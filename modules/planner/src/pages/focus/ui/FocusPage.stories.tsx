@@ -73,19 +73,19 @@ type Story = StoryObj<typeof meta>
 
 /**
  * The session in progress, or the next one that is not done, with a stopwatch. `Start` runs it, `Finish` sends one
- * `event.patch` that marks the session done and logs the time in quarter-hour steps.
+ * `session.finish` that marks the session done and logs the time in whole minutes, with the real start and pauses.
  */
 export const Default: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('button', { name: START }))
     await expect(canvas.getByRole('button', { name: PAUSE })).toBeVisible()
-    // A stopwatch that has counted nothing has nothing to log.
+    // A stopwatch that has counted almost nothing logs the least a session may take.
     await new Promise<void>((resolve) => setTimeout(() => resolve(), 20))
     await userEvent.click(canvas.getByRole('button', { name: PAUSE }))
     await userEvent.click(canvas.getByRole('button', { name: FINISH }))
     await expect(args.onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'event.patch', patch: { done: true, actual: 15 } }),
+      expect.objectContaining({ type: 'session.finish', actual: 5, paused: 0 }),
     )
   },
 }

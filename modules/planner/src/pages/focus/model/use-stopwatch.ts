@@ -9,6 +9,8 @@ interface Saved {
   startedAt: number | null
   /** Time counted before that start, in ms */
   banked: number
+  /** Epoch ms of the first start: Finish keeps it as the real start, and the minutes the stopwatch stood follow */
+  began: number
 }
 
 function read(): Saved | null {
@@ -18,7 +20,10 @@ function read(): Saved | null {
     if (!('uid' in saved) || typeof saved.uid !== 'string') return null
     if (!('banked' in saved) || typeof saved.banked !== 'number') return null
     const startedAt = 'startedAt' in saved && typeof saved.startedAt === 'number' ? saved.startedAt : null
-    return { uid: saved.uid, banked: saved.banked, startedAt }
+    // A stopwatch kept before it knew its first start takes it as if it never stood.
+    const began =
+      'began' in saved && typeof saved.began === 'number' ? saved.began : (startedAt ?? Date.now()) - saved.banked
+    return { uid: saved.uid, banked: saved.banked, startedAt, began }
   } catch {
     return null
   }
@@ -59,11 +64,14 @@ export function useStopwatch() {
     ready,
     timed: saved?.uid ?? null,
     running: saved !== null && saved.startedAt !== null,
+    /** Epoch ms of the first start of what it holds time for */
+    began: saved?.began ?? null,
     elapsedAt,
     /** Starts or resumes; time kept for another uid is dropped */
     start: (uid: string) => {
       const now = Date.now()
-      keep({ uid, banked: saved?.uid === uid ? elapsedAt(now) : 0, startedAt: now })
+      const same = saved?.uid === uid
+      keep({ uid, banked: same ? elapsedAt(now) : 0, startedAt: now, began: same ? saved.began : now })
     },
     // Counted to this moment, not to the last tick of the display.
     pause: () => {

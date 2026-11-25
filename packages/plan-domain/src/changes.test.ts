@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 import { applyChange, parseChange, splitInHalves, type NewEvent, type PlanChange } from './changes'
 import { parseLocal, toLocalString } from './dates'
 import { deadlineOf } from './deadlines'
-import { applyEdits, emptyEdits, type PlanEdits } from './edits'
+import { applyEdits, emptyEdits, parseEdits, type PlanEdits } from './edits'
 import { itemAt } from './fixtures'
 import { emptyHistory, recordChange } from './history'
 import { isSession } from './progress'
@@ -92,6 +92,7 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
     calendar: 'certs',
   },
   'events.done': { type: 'events.done', uids: [SESSION], done: true },
+  'session.finish': { type: 'session.finish', uid: SESSION, actual: 68, began: '2026-11-23T12:04', paused: 7 },
   'plan.rename': { type: 'plan.rename', title: 'Another plan' },
   'plan.countdown': { type: 'plan.countdown', calendar: 'hfllm' },
   'reviews.plan': { type: 'reviews.plan', reviews: [session({ title: 'Review' })] },
@@ -149,6 +150,67 @@ describe('event.patch', () => {
     expect(find(planOf(done), SESSION)).toMatchObject({ done: true, actual: 75 })
     const undone = apply([{ type: 'event.patch', uid: SESSION, patch: { done: false } }], done)
     expect(find(planOf(undone), SESSION)?.actual).toBeUndefined()
+  })
+})
+
+describe('session.finish', () => {
+  const finish = EXAMPLES['session.finish']
+  const STOPWATCH = ['measured', 'began', 'paused']
+  const record = { done: true, actual: 68, measured: true, began: '2026-11-23T12:04', paused: 7 }
+  const keepsNoRecord = (event: PlanEvent | undefined) => {
+    for (const key of STOPWATCH) expect(event).not.toHaveProperty(key)
+  }
+
+  test('marks the session done with the stopwatch time, its first start and its pauses', () => {
+    expect(find(planOf(apply([finish])), SESSION)).toMatchObject(record)
+  })
+
+  test('a stopwatch that never stood keeps no pause', () => {
+    expect(find(planOf(apply([{ ...finish, paused: 0 }])), SESSION)).not.toHaveProperty('paused')
+  })
+
+  test('a time typed by hand replaces the stopwatch record', () => {
+    const typed = apply([{ type: 'event.patch', uid: SESSION, patch: { actual: 75 } }], apply([finish]))
+    const event = find(planOf(typed), SESSION)
+    expect(event).toMatchObject({ done: true, actual: 75 })
+    keepsNoRecord(event)
+  })
+
+  test('the record goes when the session is no longer done', () => {
+    const undone = apply([{ type: 'event.patch', uid: SESSION, patch: { done: false } }], apply([finish]))
+    keepsNoRecord(find(planOf(undone), SESSION))
+  })
+
+  test('works on an added session and goes with its done mark too', () => {
+    const extra = apply([EXAMPLES['event.add']])
+    const { uid } = added(extra)
+    const finished = apply([{ ...finish, uid }], extra)
+    expect(added(finished)).toMatchObject(record)
+    keepsNoRecord(added(apply([{ type: 'event.patch', uid, patch: { done: false } }], finished)))
+  })
+
+  test('is read back from the edits file, for generated and added sessions', () => {
+    const extra = apply([EXAMPLES['event.add']])
+    const edits = apply([finish, { ...finish, uid: added(extra).uid }], extra)
+    expect(parseEdits(structuredClone(edits))).toEqual(edits)
+  })
+
+  test('refuses a time out of range, a start that is not a time and a pause below zero', () => {
+    for (const bad of [{ actual: 4 }, { actual: 1441 }, { began: '2026-11-23 12:04' }, { paused: -1 }]) {
+      expect(() => parseChange({ ...finish, ...bad }), JSON.stringify(bad)).toThrow()
+    }
+  })
+
+  test('an event.patch cannot claim stopwatch time', () => {
+    const claims = { measured: true, began: '2026-11-23T12:04', paused: 5 }
+    for (const [key, value] of Object.entries(claims)) {
+      const patch = { done: true, actual: 60, [key]: value }
+      expect(() => parseChange({ type: 'event.patch', uid: SESSION, patch }), key).toThrow(/stopwatch/)
+    }
+  })
+
+  test('an update from a chat or a tool cannot carry it', () => {
+    expect(() => parseUpdate({ changes: [finish] })).toThrow()
   })
 })
 

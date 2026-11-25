@@ -6,9 +6,40 @@ import type { Plan, PlanCalendar, PlanEvent } from './types'
 export type EventPatch = Partial<
   Pick<
     PlanEvent,
-    'title' | 'description' | 'start' | 'end' | 'calendar' | 'done' | 'actual' | 'paced' | 'rrule' | 'skip'
+    | 'title'
+    | 'description'
+    | 'start'
+    | 'end'
+    | 'calendar'
+    | 'done'
+    | 'actual'
+    | 'measured'
+    | 'began'
+    | 'paused'
+    | 'paced'
+    | 'rrule'
+    | 'skip'
   >
 >
+
+/** What the stopwatch records with a time it measured. Only `session.finish` writes it; a patch never may. */
+export const STOPWATCH_FIELDS = ['measured', 'began', 'paused'] as const
+
+/** `fields` without the stopwatch's record: a time set any other way was not measured. */
+export const withoutRecord = <T extends EventPatch>({
+  measured: _measured,
+  began: _began,
+  paused: _paused,
+  ...rest
+}: T) => rest
+
+/** Drops the logged time and the stopwatch's record with it, as a session that is not done has neither. */
+export function forgetTime(fields: EventPatch) {
+  delete fields.actual
+  delete fields.measured
+  delete fields.began
+  delete fields.paused
+}
 
 /** A calendar's look. For a generated calendar it overrides the content; an unknown id adds a calendar. */
 export type CalendarPatch = Pick<PlanCalendar, 'name' | 'color'>
@@ -53,6 +84,10 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 export const without = <T>(record: Record<string, T>, key: string): Record<string, T> =>
   Object.fromEntries(Object.entries(record).filter(([name]) => name !== key))
 
+/** Whole minutes from `least` to a day */
+const minutes = (field: unknown, least: number): field is number =>
+  typeof field === 'number' && Number.isInteger(field) && field >= least && field <= 24 * 60
+
 /** Reads a patch from untrusted input; returns null when a field has the wrong type or format. */
 export function parsePatch(value: unknown): EventPatch | null {
   if (!isRecord(value)) return null
@@ -74,9 +109,20 @@ export function parsePatch(value: unknown): EventPatch | null {
     patch.paced = true
   }
   if (value.actual !== undefined) {
-    const { actual } = value
-    if (typeof actual !== 'number' || !Number.isInteger(actual) || actual < 5 || actual > 24 * 60) return null
-    patch.actual = actual
+    if (!minutes(value.actual, 5)) return null
+    patch.actual = value.actual
+  }
+  if (value.measured !== undefined) {
+    if (value.measured !== true) return null
+    patch.measured = true
+  }
+  if (value.began !== undefined) {
+    if (typeof value.began !== 'string' || !LOCAL_TIME.test(value.began)) return null
+    patch.began = value.began
+  }
+  if (value.paused !== undefined) {
+    if (!minutes(value.paused, 0)) return null
+    patch.paused = value.paused
   }
   if (value.rrule !== undefined) {
     if (typeof value.rrule !== 'string' || !WEEKLY_RULE.test(value.rrule) || !value.rrule.includes('BYDAY=')) {
@@ -122,7 +168,12 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
     availability: value.availability === 'free' ? 'free' : 'busy',
   }
   if (patch.done) event.done = true
-  if (patch.done && patch.actual) event.actual = patch.actual
+  if (patch.done && patch.actual) {
+    event.actual = patch.actual
+    if (patch.measured) event.measured = true
+    if (patch.began) event.began = patch.began
+    if (patch.paused) event.paused = patch.paused
+  }
   if (patch.paced) event.paced = true
   if (patch.rrule) event.rrule = patch.rrule
   if (patch.rrule && patch.skip?.length) event.skip = patch.skip
@@ -196,7 +247,7 @@ export function applyEdits(plan: Plan, edits: PlanEdits): { plan: Plan; orphans:
       const next = { ...event, ...patch }
       if (!next.done) {
         delete next.done
-        delete next.actual
+        forgetTime(next)
       }
       if (!next.skip?.length) delete next.skip
       return calendarIds.has(next.calendar) ? next : { ...next, calendar: event.calendar }

@@ -2,12 +2,15 @@ import { DAY, HOUR, parseLocal, startOfDay, toLocalString, weekday } from './dat
 import {
   HEX_COLOR,
   LOCAL_TIME,
+  STOPWATCH_FIELDS,
   TITLE_MAX,
   applyEdits,
+  forgetTime,
   isRecord,
   parsePatch,
   patchProblem,
   without,
+  withoutRecord,
   type EventPatch,
   type PlanEdits,
 } from './edits'
@@ -90,6 +93,11 @@ export type PlanChange =
     }
   /** Marks several sessions done or not done as one step */
   | { type: 'events.done'; uids: string[]; done: boolean }
+  /**
+   * Finishes a session timed by the Focus page's stopwatch: done, with the minutes worked, the moment the stopwatch
+   * first started (Minsk wall-clock) and the minutes it stood paused. Only the app sends it, never an update
+   */
+  | { type: 'session.finish'; uid: string; actual: number; began: string; paused: number }
   /** Gives the plan another name: the heading of the viewer and the names of the files it downloads */
   | { type: 'plan.rename'; title: string }
   /** Names the calendar whose deadline the countdown follows; null: the nearest deadline, whichever calendar's it is */
@@ -175,7 +183,11 @@ export function parseChange(input: unknown): PlanChange {
   switch (input.type) {
     case 'event.patch': {
       if (input.patch === null) return { type: 'event.patch', uid: text('uid'), patch: null }
-      const patch = parsePatch(input.patch)
+      const raw = input.patch
+      if (isRecord(raw) && STOPWATCH_FIELDS.some((key) => raw[key] !== undefined)) {
+        return fail(`${STOPWATCH_FIELDS.join(', ')} are written by the stopwatch of the Focus page, never sent`)
+      }
+      const patch = parsePatch(raw)
       return patch
         ? { type: 'event.patch', uid: text('uid'), patch }
         : fail('patch has a field of the wrong type or format')
@@ -310,6 +322,14 @@ export function parseChange(input: unknown): PlanChange {
       }
       return { type: 'events.done', uids, done }
     }
+    case 'session.finish': {
+      const { actual, began, paused } =
+        parsePatch({ actual: input.actual, began: input.began, paused: input.paused }) ?? {}
+      if (actual === undefined || began === undefined || paused === undefined) {
+        return fail('session.finish needs actual (5 to 1440 minutes), began like 2026-11-23T12:00 and paused minutes')
+      }
+      return { type: 'session.finish', uid: text('uid'), actual, began, paused }
+    }
     default:
       return fail(`Unknown change "${input.type}"`)
   }
@@ -362,11 +382,12 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
         const { rrule, skip, ...fields } = patch
         // Only an event that repeats can change its days or skip one.
         const repeat = current.rrule ? { ...(rrule ? { rrule } : {}), ...(skip ? { skip } : {}) } : {}
-        const merged: PlanEvent = { ...current, ...fields, ...repeat }
+        const kept = fields.actual === undefined ? current : withoutRecord(current)
+        const merged: PlanEvent = { ...kept, ...fields, ...repeat }
         if (!merged.skip?.length) delete merged.skip
         if (!merged.done) {
           delete merged.done
-          delete merged.actual
+          forgetTime(merged)
         }
         if (patchProblem(merged, {})) fail('The event must end after it starts')
         next.added[next.added.indexOf(current)] = merged
@@ -377,13 +398,14 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
         next.events = without(next.events, uid)
         return next
       }
-      const merged: EventPatch = { ...next.events[uid], ...patch }
+      const earlier = next.events[uid] ?? {}
+      const merged: EventPatch = { ...(patch.actual === undefined ? earlier : withoutRecord(earlier)), ...patch }
       // Keep only what differs from the original event, so the edits list real changes.
       for (const key of ['title', 'description', 'start', 'end', 'calendar', 'rrule'] as const) {
         // oxlint-disable-next-line typescript/no-dynamic-delete -- the key is one of the six names above
         if (merged[key] === original[key]) delete merged[key]
       }
-      if (!(merged.done ?? original.done)) delete merged.actual
+      if (!(merged.done ?? original.done)) forgetTime(merged)
       if (!merged.done === !original.done) delete merged.done
       if (!merged.skip?.length || !original.rrule) delete merged.skip
       if (!original.rrule) delete merged.rrule
@@ -542,6 +564,11 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
           (sofar, uid) => applyChange(base, sofar, { type: 'event.patch', uid, patch: { done: change.done } }, now),
           next,
         )
+    }
+    case 'session.finish': {
+      const { uid, actual, began, paused } = change
+      const patch: EventPatch = { done: true, actual, measured: true, began, ...(paused ? { paused } : {}) }
+      return applyChange(base, next, { type: 'event.patch', uid, patch }, now)
     }
   }
   return next

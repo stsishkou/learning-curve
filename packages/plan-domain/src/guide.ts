@@ -234,7 +234,8 @@ ${code(habit)}
 ## How to give other updates
 
 - **Finished sessions**: \`events.done\` with their uids. Time spent, when the person says it: \`event.patch\` with
-  \`actual\` in minutes.
+  \`actual\` in minutes. \`measured\`, \`began\` and \`paused\` are written by the stopwatch of the Focus page: read
+  them, never send them. A time you send replaces them, as the person recalled it.
 - **Moving a few sessions**: one \`events.move\` with all of them, so it is one step to undo.
 - **A session too long for one sitting**: \`event.split\` with the slots of its parts, on the same or other days.
   They must add up to its length. A lab stays one block.

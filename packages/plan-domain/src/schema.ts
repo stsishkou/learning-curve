@@ -98,6 +98,23 @@ const EVENT: Schema = {
       maximum: 1440,
       description: 'Minutes a done session really took, when that was logged. Without it the planned length counts.',
     },
+    measured: {
+      const: true,
+      description:
+        '`actual` was measured by the stopwatch of the Focus page; without it the person recalled the time. Written by the app only: read it, never send it.',
+    },
+    began: {
+      ...LOCAL_TIME,
+      description:
+        'When the stopwatch first started on the session: the real start, which may differ from `start`. Written by the app only.',
+    },
+    paused: {
+      type: 'integer',
+      minimum: 0,
+      maximum: 1440,
+      description:
+        'Minutes the stopwatch stood paused between `began` and the finish; absent when it never stood. Written by the app only.',
+    },
     paced: {
       type: 'boolean',
       description: 'true when the length of the session was already adjusted to the real pace of its course.',

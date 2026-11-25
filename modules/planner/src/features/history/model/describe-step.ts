@@ -43,6 +43,8 @@ export function describeStep({ change, subject }: HistoryStep): string {
         return change.done ? m.history_done({ name: subject }) : m.history_not_done({ name: subject })
       }
       return m.history_done_many({ count: change.uids.length })
+    case 'session.finish':
+      return m.history_done({ name: subject })
     case 'plan.rename':
       return m.history_renamed({ name: subject })
     case 'plan.countdown':

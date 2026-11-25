@@ -36,6 +36,12 @@ export interface PlanEvent {
   paced?: boolean
   /** Minutes the finished session really took, when that was logged; otherwise it counts as planned */
   actual?: number
+  /** `actual` was measured by the Focus page's stopwatch, not recalled and typed in */
+  measured?: true
+  /** When the stopwatch first started on the session, Minsk wall-clock: the real start, which may differ from `start` */
+  began?: string
+  /** Minutes the stopwatch stood paused between `began` and the finish; absent when it never stood */
+  paused?: number
 }
 
 export interface PlanMeta {
