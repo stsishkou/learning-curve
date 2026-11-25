@@ -5,7 +5,7 @@ import { mondayOf, parseLocal } from './dates'
 import { applyEdits, emptyEdits } from './edits'
 import { paceForecast } from './forecast'
 import { weekReview } from './goals'
-import { courseProgress, isSession } from './progress'
+import { courseProgress, doneWithoutTime, isSession } from './progress'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import type { Plan, PlanEvent } from './types'
 
@@ -72,4 +72,12 @@ test('the week review counts the logged sessions of the week as well', () => {
   const first = certs[0]?.start ?? ''
   const review = weekReview(plan, mondayOf(parseLocal(first)), parseLocal(first) + 30 * 86_400_000)
   expect(review.accuracy).toMatchObject({ done: 3, logged: 2, pace: null })
+})
+
+test('a done session without a logged time is told apart from one with a time and from done personal time', () => {
+  const plan = finished([75, undefined])
+  const [logged, unlogged, open] = sessionsOf(plan)
+  const gym = base.events.find((e) => e.kind === 'personal')
+  expect([logged, unlogged, open].map((e) => e !== undefined && doneWithoutTime(e))).toEqual([false, true, false])
+  expect(gym !== undefined && doneWithoutTime({ ...gym, done: true })).toBe(false)
 })

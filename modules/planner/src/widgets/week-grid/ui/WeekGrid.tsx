@@ -3,6 +3,7 @@ import { m } from '@lc/i18n/messages'
 import {
   countsToBudget,
   DAY,
+  doneWithoutTime,
   durationHours,
   hm,
   HOUR,
@@ -29,6 +30,7 @@ import {
 } from 'react'
 
 import { eventKey, useFillHeight, useJustDone } from '../../../shared/lib'
+import { DoneMark } from '../../../shared/ui'
 import { useEdgePull, type Pull } from '../model/use-edge-pull'
 
 interface Props {
@@ -782,11 +784,11 @@ export function WeekGrid({
                       )}
                       <b className={`relative block font-semibold ${o.done ? 'line-through decoration-done' : ''}`}>
                         {o.done && (
-                          <span
-                            className={`mr-1 inline-block text-done-ink no-underline ${justDone.has(keyOf(o)) ? 'lc-done-pop' : ''}`}
-                          >
-                            ✓
-                          </span>
+                          <DoneMark
+                            unlogged={doneWithoutTime(o)}
+                            fresh={justDone.has(keyOf(o))}
+                            className="mr-1 inline-block"
+                          />
                         )}
                         {shortTitle(o)}
                       </b>

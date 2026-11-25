@@ -3,6 +3,7 @@ import { m } from '@lc/i18n/messages'
 import {
   countsToBudget,
   DAY,
+  doneWithoutTime,
   durationHours,
   hm,
   isSession,
@@ -18,6 +19,7 @@ import { Button, calendarColor, Check, Dot, Segmented, Trash2, X } from '@lc/ui'
 import { useEffect, useRef, useState } from 'react'
 
 import { eventKey, useFillHeight, useJustDone } from '../../../shared/lib'
+import { DoneMark } from '../../../shared/ui'
 
 type Filter = 'all' | 'open' | 'done' | 'overdue'
 
@@ -147,9 +149,7 @@ export function AgendaList({ plan, items, now, onSelect, onChanges, onMarkDone }
           >
             <Dot className="size-[9px] -translate-y-px" />
             {o.title}
-            {o.done && (
-              <span className={`text-done-ink no-underline ${justDone.has(eventKey(o)) ? 'lc-done-pop' : ''}`}>✓</span>
-            )}
+            {o.done && <DoneMark unlogged={doneWithoutTime(o)} fresh={justDone.has(eventKey(o))} />}
             {real !== null && real !== o.e - o.s && (
               <small className="inline-block text-[12px] text-muted tabular-nums">
                 {m.grid_took({ time: fmtDuration(real) })}

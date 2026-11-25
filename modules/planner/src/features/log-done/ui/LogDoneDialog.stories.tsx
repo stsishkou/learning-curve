@@ -1,6 +1,6 @@
 import { fmtDuration } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { isSession, parseLocal, type PlanChange } from '@lc/plan-domain'
+import { doneWithoutTime, isSession, parseLocal, type PlanChange } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
@@ -11,6 +11,7 @@ const MINUTE = 60_000
 const open = fixturePlan.events.filter((e) => isSession(e) && !e.done && parseLocal(e.start) > fixtureNow).slice(0, 3)
 const uids = open.map((e) => e.uid)
 const [first] = open
+const unlogged = fixturePlan.events.filter(doneWithoutTime).slice(-3)
 const plannedOf = (start: string, end: string) => (parseLocal(end) - parseLocal(start)) / MINUTE
 
 const meta = {
@@ -46,6 +47,40 @@ export const Default: Story = {
       done: true,
       actual: { [first.uid]: plannedOf(first.start, first.end) + 15 },
     })
+  },
+}
+
+/**
+ * Done sessions without a time, opened from the planner's bar or the dashboard: only the rows given a time are
+ * stored, the rest stay as they are.
+ */
+export const FillTimes: Story = {
+  args: { uids: unlogged.map((e) => e.uid) },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const [row] = await body.findAllByRole('listitem')
+    const [done] = unlogged
+    if (!row || !done) throw new Error('No done session to log')
+    await waitFor(() => expect(row).toBeVisible())
+    await userEvent.click(within(row).getByRole('button', { name: m.spent_as_planned() }))
+    await userEvent.click(body.getByRole('button', { name: m.save() }))
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'events.done',
+      uids: [done.uid],
+      done: true,
+      actual: { [done.uid]: plannedOf(done.start, done.end) },
+    })
+  },
+}
+
+/** Saving with no time chosen stores nothing: the done sessions stay as they were. */
+export const FillNothing: Story = {
+  args: { uids: unlogged.map((e) => e.uid) },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: m.save() }))
+    await expect(args.onChange).not.toHaveBeenCalled()
+    await expect(args.onClose).toHaveBeenCalled()
   },
 }
 

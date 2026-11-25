@@ -10,7 +10,7 @@ const MINUTE = 60_000
 
 interface Props {
   plan: Plan
-  /** The sessions to mark done; the dialog is open while there are any */
+  /** The sessions to mark done, or done sessions to log the time of; the dialog is open while there are any */
   uids: string[]
   /** Stores the change. Rejects with the reason when it cannot be stored: the dialog shows it */
   onChange: (change: PlanChange) => Promise<void>
@@ -19,7 +19,8 @@ interface Props {
 
 /**
  * Marks several sessions done at once and asks how long each took, so a bulk action does not leave them all
- * without a time. A row left without one is marked done without a time, as a choice the dialog counts.
+ * without a time. A row left without one is marked done without a time, as a choice the dialog counts. Given
+ * sessions that are all done already, it only fills in the times that are chosen.
  */
 export function LogDoneDialog({ plan, uids, onChange, onClose }: Props) {
   return (
@@ -35,13 +36,20 @@ function Rows({ plan, uids, onChange, onClose }: Props) {
   const [error, setError] = useState('')
   const sessions = uids.flatMap((uid) => plan.events.find((e) => e.uid === uid) ?? [])
   const unlogged = sessions.filter((e) => times[e.uid] === undefined).length
+  const filling = sessions.every((e) => e.done)
 
   async function save() {
+    const timed = Object.keys(times)
+    // Done sessions left without a choice stay as they are: there is nothing to store for them.
+    const marked = filling ? timed : uids
+    if (!marked.length) {
+      onClose()
+      return
+    }
     setBusy(true)
     setError('')
     try {
-      const actual = Object.keys(times).length ? { actual: times } : {}
-      await onChange({ type: 'events.done', uids, done: true, ...actual })
+      await onChange({ type: 'events.done', uids: marked, done: true, ...(timed.length ? { actual: times } : {}) })
       onClose()
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
@@ -52,8 +60,10 @@ function Rows({ plan, uids, onChange, onClose }: Props) {
 
   return (
     <>
-      <h3 className={TITLE}>{m.log_done_title({ count: sessions.length })}</h3>
-      <p className={META}>{m.log_done_hint()}</p>
+      <h3 className={TITLE}>
+        {filling ? m.log_fill_title({ count: sessions.length }) : m.log_done_title({ count: sessions.length })}
+      </h3>
+      <p className={META}>{filling ? m.log_fill_hint() : m.log_done_hint()}</p>
       <ul className="mt-3 grid max-h-[55dvh] gap-3 overflow-y-auto">
         {sessions.map((e) => {
           const s = parseLocal(e.start)
@@ -94,7 +104,7 @@ function Rows({ plan, uids, onChange, onClose }: Props) {
         )}
         <Button onClick={onClose}>{m.cancel()}</Button>
         <Button primary disabled={busy} onClick={() => void save()}>
-          {m.mark_done()}
+          {filling ? m.save() : m.mark_done()}
         </Button>
       </div>
     </>

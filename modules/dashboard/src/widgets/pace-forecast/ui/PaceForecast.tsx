@@ -5,6 +5,7 @@ import {
   MIN_LOGGED,
   countdown,
   courseProgress,
+  doneWithoutTime,
   paceForecast,
   parseLocal,
   type Accuracy,
@@ -18,6 +19,8 @@ interface Props {
   plan: Plan
   /** Wall-clock ms; null before the clock is known */
   now: number | null
+  /** Present when the host can open the done sessions without a time to fill them in */
+  onFillTimes?: (() => void) | undefined
 }
 
 const fmtPace = (pace: number) => `×${pace.toFixed(2).replace(/0$/, '')}`
@@ -54,11 +57,12 @@ function Pace({ accuracy }: { accuracy: Accuracy }) {
  * The plan corrected by reality: how long a planned hour takes in each course, judged by the time logged on done
  * sessions, and the day the rest will be finished at that pace.
  */
-export function PaceForecast({ plan, now }: Props) {
+export function PaceForecast({ plan, now, onFillTimes }: Props) {
   if (now === null) return null
   const courses = courseProgress(plan)
   const rows = courses.map((course) => ({ course, forecast: paceForecast(plan, now, course.calendar.id) }))
   const logged = rows.reduce((sum, row) => sum + row.forecast.logged, 0)
+  const unlogged = plan.events.filter(doneWithoutTime).length
   const target = countdown(plan, now)
   const next = target?.day ? { calendar: target.calendar, day: target.day } : null
   const towards = next && rows.find((row) => row.course.calendar.id === next.calendar)
@@ -74,6 +78,16 @@ export function PaceForecast({ plan, now }: Props) {
       help={<Hint title={m.help_forecast_title()} text={m.help_forecast({ count: MIN_LOGGED })} />}
     >
       {!logged && <p className="mb-3 text-[13px] text-muted">{m.dash_forecast_none()}</p>}
+      {unlogged > 0 && (
+        <p className="mb-3 flex flex-wrap items-baseline gap-x-3 text-[13px] text-muted">
+          <span>{m.unlogged_bar({ count: unlogged })}</span>
+          {onFillTimes && (
+            <button type="button" className="font-semibold text-focus hover:underline" onClick={onFillTimes}>
+              {m.unlogged_fill()}
+            </button>
+          )}
+        </p>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-[13px] tabular-nums">
           <thead>

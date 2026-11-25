@@ -22,6 +22,8 @@ interface Props {
   expanded?: boolean | undefined
   /** Present when the host keeps `expanded`: the page then offers Expand */
   onExpandedChange?: ((expanded: boolean) => void) | undefined
+  /** Present when the host can open the done sessions without a time, to fill them in */
+  onFillTimes?: (() => void) | undefined
 }
 
 // The negative margins take the bar to the edges of the page padding, as the page header does.
@@ -40,7 +42,14 @@ function tableRows(weeks: WeekStats[]) {
 }
 
 /** Progress of the plan in numbers and charts. Read-only: marks are made in the planner. */
-export function DashboardPage({ plan, headerAside, now: fixed, expanded = false, onExpandedChange }: Props) {
+export function DashboardPage({
+  plan,
+  headerAside,
+  now: fixed,
+  expanded = false,
+  onExpandedChange,
+  onFillTimes,
+}: Props) {
   const clock = useNow()
   const now = fixed ?? clock
   const stats = useMemo(() => planStats(plan, now ?? 0), [plan, now])
@@ -104,7 +113,7 @@ export function DashboardPage({ plan, headerAside, now: fixed, expanded = false,
       <StatTiles plan={plan} stats={stats} now={now} />
       <StudyStreak plan={plan} now={now} />
       <BurnUp stats={stats} now={now} forecast={now === null ? null : paceForecast(plan, now).finish} />
-      <PaceForecast plan={plan} now={now} />
+      <PaceForecast plan={plan} now={now} onFillTimes={onFillTimes} />
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <WeeklyLoad plan={plan} stats={stats} now={now} />
         <CourseBars plan={plan} />

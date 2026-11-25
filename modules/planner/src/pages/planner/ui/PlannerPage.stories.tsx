@@ -2,11 +2,13 @@ import { m } from '@lc/i18n/messages'
 import {
   applyChange,
   applyEdits,
+  doneWithoutTime,
   editedUids,
   emptyHistory,
   emptyTrash,
   historyEdits,
   historyView,
+  parseLocal,
   recordChange,
   trashOf,
   travel,
@@ -200,5 +202,35 @@ export const IconsOnly: Story = {
       'aria-checked',
       'true',
     )
+  },
+}
+
+const unlogged = fixturePlan.events.filter(doneWithoutTime).toSorted((a, b) => a.start.localeCompare(b.start))
+
+/**
+ * Done sessions without a time: a bar counts them and opens the list to fill them in. `fill` in the URL opens the
+ * same list, as the dashboard's link does. A time saved takes its session off the count.
+ */
+export const FillTimes: Story = {
+  args: { search: { week: ymd(fixtureWeek), fill: true } },
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const [first] = unlogged
+    const title = await body.findByText(m.log_fill_title({ count: unlogged.length }))
+    const dialog = title.closest('dialog')
+    if (!first || !dialog) throw new Error('No list of done sessions without a time')
+    const [row] = within(dialog).getAllByRole('listitem')
+    if (!row) throw new Error('The list has no rows')
+    await waitFor(() => expect(row).toBeVisible())
+    await userEvent.click(within(row).getByRole('button', { name: m.spent_as_planned() }))
+    await userEvent.click(within(dialog).getByRole('button', { name: m.save() }))
+    await expect(args.onChange).toHaveBeenCalledWith({
+      type: 'events.done',
+      uids: [first.uid],
+      done: true,
+      actual: { [first.uid]: (parseLocal(first.end) - parseLocal(first.start)) / 60_000 },
+    })
+    await expect(args.onSearchChange).toHaveBeenCalledWith({ fill: undefined })
+    await expect(await body.findByText(m.unlogged_bar({ count: unlogged.length - 1 }))).toBeVisible()
   },
 }

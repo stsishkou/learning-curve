@@ -33,6 +33,9 @@ export const spentHours = (e: PlanEvent) => (e.actual === undefined ? plannedHou
 export const realLength = (e: PlanEvent): number | null =>
   e.done && e.actual !== undefined && !e.rrule ? (e.actual * HOUR) / 60 : null
 
+/** A session marked done with no logged time: the pace cannot count it, so the planner asks for its time. */
+export const doneWithoutTime = (e: PlanEvent) => isSession(e) && e.done === true && e.actual === undefined
+
 const hoursOf = plannedHours
 
 /** Progress of every calendar that has sessions, in calendar order. */

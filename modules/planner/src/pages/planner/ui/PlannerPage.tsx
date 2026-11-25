@@ -2,6 +2,7 @@ import { m } from '@lc/i18n/messages'
 import {
   DAY,
   HOUR,
+  doneWithoutTime,
   isSession,
   mondayOf,
   moveOccurrence,
@@ -57,7 +58,7 @@ import { EventDialog } from '../../../features/edit-event'
 import { CalendarFilter, useHiddenCalendars } from '../../../features/filter-calendars'
 import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog } from '../../../features/keyboard-shortcuts'
-import { LogDoneDialog } from '../../../features/log-done'
+import { LogDoneDialog, UnloggedBar } from '../../../features/log-done'
 import { CalendarsDialog } from '../../../features/manage-calendars'
 import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
@@ -203,8 +204,21 @@ export function PlannerPage({
   // The day Reschedule opens from; null while it is closed.
   const [reschedule, setReschedule] = useState<string | null>(null)
   const [overdueHidden, setOverdueHidden] = useState(false)
-  /** Sessions marked done in bulk, waiting for their times */
-  const [logDone, setLogDone] = useState<string[]>([])
+  const [unloggedHidden, setUnloggedHidden] = useState(false)
+  // Done sessions without a time, in date order: the pace cannot count them until their time is filled in.
+  const unlogged = useMemo(
+    () =>
+      plan.events
+        .filter(doneWithoutTime)
+        .toSorted((a, b) => a.start.localeCompare(b.start))
+        .map((e) => e.uid),
+    [plan],
+  )
+  /**
+   * Sessions waiting for their times: marked done in bulk, or done without one. Kept as they were when the list
+   * opened, so saving does not change its rows under it.
+   */
+  const [logDone, setLogDone] = useState<string[]>(() => (search.fill ? unlogged : []))
   // Which repeat of a repeating event was opened, `YYYY-MM-DD`: the URL only names the series.
   const [pickedDay, setPickedDay] = useState<string | null>(null)
 
@@ -425,6 +439,14 @@ export function PlannerPage({
         />
       )}
 
+      {canEdit && unlogged.length > 0 && !unloggedHidden && (
+        <UnloggedBar
+          count={unlogged.length}
+          onFill={() => setLogDone(unlogged)}
+          onDismiss={() => setUnloggedHidden(true)}
+        />
+      )}
+
       {canEdit && !overdueHidden && (view === 'week' || view === 'day') && (
         <Backlog plan={plan} events={overdue} onSelect={select} onCarry={setCarried} />
       )}
@@ -612,7 +634,15 @@ export function PlannerPage({
         onNextWeek={() => nav.showWeek(weekStart + 7 * DAY)}
         onClose={() => dialogs.hide('review')}
       />
-      <LogDoneDialog plan={plan} uids={logDone} onChange={session.change} onClose={() => setLogDone([])} />
+      <LogDoneDialog
+        plan={plan}
+        uids={logDone}
+        onChange={session.change}
+        onClose={() => {
+          setLogDone([])
+          if (search.fill) onSearchChange({ fill: undefined })
+        }}
+      />
       <CatchUpDialog
         plan={plan}
         open={dialogs.isOpen('catchUp')}

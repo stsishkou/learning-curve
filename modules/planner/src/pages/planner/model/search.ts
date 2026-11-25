@@ -24,6 +24,8 @@ export interface PlannerSearch {
   hideDone?: true | undefined
   /** uid of the event whose dialog is open */
   event?: string | undefined
+  /** The done sessions without a time open in a list, to fill in how long each took */
+  fill?: true | undefined
   /** The calendar app a sign-in just came back from; its dialog opens to say how it went */
   link?: CalendarProvider | undefined
   /** How that sign-in went */
@@ -46,6 +48,7 @@ export const parsePlannerSearch = (search: Record<string, unknown>): PlannerSear
   expanded: search.expanded === true ? true : undefined,
   hideDone: search.hideDone === true ? true : undefined,
   event: typeof search.event === 'string' && search.event ? search.event : undefined,
+  fill: search.fill === true ? true : undefined,
   link: isCalendarProvider(search.link) ? search.link : undefined,
   signin: isSignInEnd(search.signin) ? search.signin : undefined,
 })

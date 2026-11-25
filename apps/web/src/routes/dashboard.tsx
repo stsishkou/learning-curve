@@ -18,6 +18,7 @@ function DashboardRoute() {
       plan={Route.useLoaderData().plan}
       expanded={Route.useSearch().expanded === true}
       onExpandedChange={(next) => void navigate({ search: { expanded: next || undefined }, resetScroll: false })}
+      onFillTimes={() => void navigate({ to: '/', search: { fill: true } })}
       headerAside={<ShellAside />}
     />
   )

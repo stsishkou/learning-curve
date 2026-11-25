@@ -1,8 +1,8 @@
 import { m } from '@lc/i18n/messages'
-import { MIN_LOGGED, isSession, parseLocal, type Plan } from '@lc/plan-domain'
+import { MIN_LOGGED, doneWithoutTime, isSession, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
+import { expect, fn, userEvent, within } from 'storybook/test'
 
 import { PaceForecast } from './PaceForecast'
 
@@ -32,6 +32,21 @@ type Story = StoryObj<typeof meta>
 export const NothingLogged: Story = {
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText(/Gemini Certs.*30/)).toBeVisible()
+  },
+}
+
+/**
+ * Done sessions without a time are counted above the table, and a host that can open them offers to fill them in:
+ * the dashboard is read-only, so the planner opens the list.
+ */
+export const FillTimes: Story = {
+  args: { onFillTimes: fn() },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement)
+    const count = fixturePlan.events.filter(doneWithoutTime).length
+    await expect(canvas.getByText(m.unlogged_bar({ count }))).toBeVisible()
+    await userEvent.click(canvas.getByRole('button', { name: m.unlogged_fill() }))
+    await expect(args.onFillTimes).toHaveBeenCalled()
   },
 }
 

@@ -1,5 +1,5 @@
 import { m } from '@lc/i18n/messages'
-import { DAY, isSession, occurrences, parseLocal, type PlanChange } from '@lc/plan-domain'
+import { DAY, doneWithoutTime, isSession, occurrences, parseLocal, type PlanChange } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
@@ -37,9 +37,31 @@ export const MarkDoneAsksForTimes: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement)
     for (const e of next)
+      // oxlint-disable-next-line no-await-in-loop -- a person ticks one box after another
       await userEvent.click(canvas.getByRole('checkbox', { name: m.list_select({ title: e.title }) }))
     await userEvent.click(canvas.getByRole('button', { name: m.bulk_done() }))
     await expect(args.onMarkDone).toHaveBeenCalledWith(next.map((e) => e.uid))
     await expect(args.onChanges).not.toHaveBeenCalled()
+  },
+}
+
+const firstDone = fixturePlan.events.find((e) => isSession(e) && e.done)
+const partlyLogged = {
+  ...fixturePlan,
+  events: fixturePlan.events.map((e) => (e === firstDone ? { ...e, actual: 75 } : e)),
+}
+const partlyLoggedItems = occurrences(partlyLogged, fixtureWeek - 7 * DAY, fixtureWeek + 21 * DAY, new Set())
+
+/**
+ * A done session without a logged time has a hollow tick, and a screen reader hears that its time is not logged; one
+ * with a time keeps the plain tick.
+ */
+export const DoneWithoutTime: Story = {
+  args: { plan: partlyLogged, items: partlyLoggedItems },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const unlogged = partlyLoggedItems.filter(doneWithoutTime).length
+    await expect(unlogged).toBe(partlyLoggedItems.filter((o) => o.done).length - 1)
+    await expect(canvas.getAllByText(m.spent_not_logged())).toHaveLength(unlogged)
   },
 }
