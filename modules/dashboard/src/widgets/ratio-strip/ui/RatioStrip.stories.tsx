@@ -40,7 +40,7 @@ export const Logged: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // The table under the chart repeats each label: the first is the chart's.
-    const [label] = canvas.getAllByText(/^n \d+ · .*×/)
+    const [label] = await canvas.findAllByText(/^n \d+ · .*×/)
     await expect(label).toBeVisible()
     const mark = canvasElement.querySelector('[data-mark]')
     if (!mark) throw new Error('No mark to hover')
