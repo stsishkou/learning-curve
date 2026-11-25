@@ -117,6 +117,144 @@ Course A — Topic X               3 of 3    3 h      4 h 15     ×1.42   +1 ses
 Course A — Topic Y               2 of 2    2 h      1 h 30     ×0.75   —
 ```
 
+### 1.4 Ten features, ranked
+
+The rank follows what is lost by waiting. A record that is not stored on the day a session is done cannot be
+rebuilt later, while a view can be built at any time over the records that exist. So the features that change what
+is stored come first, then the shared model, then the views (inferred). Sizes are rough (inferred): S is a day or
+less, M a few days.
+
+1. **Stopwatch record (`session.finish`)**: logging L2 and L3.
+   - What: Finish on Focus stores whole minutes, `measured: true`, `began` (first start, Minsk wall-clock) and
+     `paused` (minutes stopped), instead of a quarter-hour `actual`.
+   - Why: stopwatch and recalled times have different errors (2.1, correction 2). The quarter-hour grid breaks the
+     median (4.3). A weekday or time-of-day view needs the real start (4.4; the PSP time log, 5.1).
+   - Protocol: the app-only `PlanChange` of section 9, L2/L3. `applyChange` reduces it to an `event.patch`. In
+     `parseChange`, a new case validates it, `parsePatch` reads the fields back, and `event.patch` refuses them from
+     input. `schema.ts` documents the three fields on `EVENT`, keeps `CHANGES` and `UPDATE_CHANGE_TYPES` as they are,
+     and keeps the `event.patch` patch closed. `guide.ts` says they are read, never sent.
+   - Size M. Every session finished before it ships loses its start and pauses. The first one is on 2026-11-26.
+2. **Honest pace from one accuracy model**: view 1.
+   - What: `packages/plan-domain/src/accuracy.ts` gives, per course and per kind:
+     - the done, logged and unlogged counts;
+     - the ratio of sums, for forecasting;
+     - the geometric mean of the per-session ratios with its 95% interval, for "typical" (5.3);
+     - the reference class of a session: the same course and kind from 6 logged sessions, else the same kind, else
+       none (5.2).
+     It summarises nothing below 6 (4.1). The forecast, the course list, the week review, Focus, the new dashboard
+     cards and the AI tools all read this one function.
+   - Why: today an unlogged done session enters the pace as ×1 in three places, with no count beside it, and drives
+     the catch-up "pace" scenario (2.2).
+   - Protocol: none. Size M.
+3. **"Not finished, continues next time"**: question 10.4.
+   - What: a done session can carry `unfinished: true`, meaning the hour was spent but the module's "Done:" goal was
+     not met. The card and Focus's Finish offer it next to the time. A continuation session is added through the
+     existing add flow.
+   - Why: the module is the real unit of estimate. Without this flag, a session that runs out of time logs ×1 and the
+     module's overrun stays hidden (5.3).
+   - Protocol: `event.patch` gains `unfinished?: boolean`. Unlike the stopwatch fields, a person or a chat may send it
+     ("I didn't get through it"). `parsePatch` validates it, and it is dropped wherever `done` drops `actual`
+     (`edits.ts:197-200`, `changes.ts:367-370`, `386`). `schema.ts` adds it to `EVENT` and to the `event.patch`
+     patch. `guide.ts` gets a line under "How to give other updates": "when the goal of a session was not met, send
+     `done`, `actual` and `unfinished: true`". The drift test then checks the parser and the schema agree.
+   - Size M.
+4. **First estimate kept**: logging L4.
+   - What: `applyChange` sets `estimate` (minutes) the first time a change resizes a session and never overwrites it.
+     The parts of a split carry `from`, the uid they came from.
+   - Why: history cannot recover a first estimate (2.3). Sessions added in the viewer and paced sessions lose it.
+   - Protocol: no new kind. `parseChange`'s `event.patch` refuses `estimate` and `from`, and `parsePatch` reads them
+     from `edits.json`. `schema.ts` documents both as read-only on `EVENT`, and the patch stays closed. `guide.ts`
+     gets a line beside rule 5 (`guide.ts:150-151`).
+   - Size S–M.
+5. **Focus: "sessions like this took ×1.25 (n 9)"**: view 3.
+   - What: one line under "left / over", a tick on the existing bar, and after Finish this session's ratio next to
+     the typical one. It appears from 6 logged sessions in the reference class (sketch in 1.3).
+   - Protocol: none. Size S once feature 2 exists.
+6. **Ratio strip card**: view 2.
+   - What: a dashboard card after the forecast. Each course gets a row of dots on a log axis, with the ×1 line and
+     kind as a shape. The geometric mean and its interval appear from 6 logged sessions. Hovering a dot names its
+     session, and the card has a table twin.
+   - Protocol: none. Size M.
+7. **Bias over time**: view 4.
+   - What: one small panel per course, with x = the logged session's number and a running geometric mean in a band
+     that narrows as n grows. The week review shows its weekly ratio with n.
+   - Protocol: none. Size M.
+8. **Module overrun list**: view 5.
+   - What: modules ranked by real ÷ planned hours, with the sessions added later and the unfinished count, in a
+     collapsed `details` like the weekly table.
+   - Needs features 3 and 4 for its last two columns. Protocol: none beyond them. Size S–M.
+9. **A finish range instead of one date**: Evidence-Based Scheduling's Monte Carlo (5.1).
+   - What: per course, the remaining planned hours are simulated with ratios drawn from that course's logged
+     history: all courses below 6 logged, none below 6 in all. The forecast shows the P50 and P90 finish, and the
+     burn-up draws the band.
+   - The domain function takes a seed, so tests are deterministic. Ratios older than about six months drop out, as
+     Spolsky advises.
+   - Protocol: none. Size M; worth it from about 20 logged sessions, which `certs` reaches on 2026-12-10 (measured, 3).
+10. **Accuracy for chats and tools.**
+    - What: a read-only `get_accuracy` MCP tool and a `GET /api/plan-accuracy` route, as thin adapters over
+      feature 2. The AI chat tab gets the same data.
+    - With it, a chat can quote a course's typical ratio and n before it resizes sessions to a pace, and propose
+      lengths for added sessions from the reference class.
+    - Protocol: no `PlanChange` and no `schema.ts` change, because it is a read, not an update. `guide.ts` gets a
+      paragraph: "before resizing sessions or proposing a length, read the accuracy and quote n; below 6 logged,
+      keep the planned length". `pnpm run test` still covers the guide's examples.
+    - Size S–M.
+
+### 1.5 Ten UX/UI improvements
+
+These make logging take less effort and the numbers harder to misread. None needs a protocol change of its own.
+
+1. **"Done" asks for the time.** "Mark done" in the card opens the time stepper at once, and one confirm stores
+   both. Today the stepper appears only after the session is done (`EventDialog.tsx:284-289`, `438-442`). This is
+   logging L1.
+2. **A stepper that does not start at the plan.**
+   - Today it starts at the planned length (`SpentTime.tsx:21`), which pulls a recalled time towards ×1 (inferred).
+   - It should start at the Focus time when there is one, and otherwise empty, with chips: "as planned · −15 · +15 ·
+     +30 · +1 h".
+3. **Bulk "done" asks for times too.** The overdue bar and the agenda's bulk action (`PlannerPage.tsx:419`,
+   `AgendaList.tsx:175`) open a short list with a time on each row. "Not logged" is a choice the person makes, never
+   the silent default.
+4. **"Not logged" is visible.**
+   - A done session without a time shows a hollow check in the grid and the agenda.
+   - A chip, "5 done without time", on the planner and the dashboard opens a quick-fill list.
+5. **Resizing a done session warns.** The grid's resize handles on a done session (`WeekGrid.tsx:811-824`) ask
+   whether to change the plan or the logged time, with the logged time as the default. An update already gets this
+   warning (`rules.ts:47-48`); this is question 10.5.
+6. **One word for one meaning.**
+   - Rename the "Pace" tile, which shows schedule lead (`StatTiles.tsx:39-53`), to "Lead".
+   - "Pace" keeps real ÷ planned.
+   - Every ratio reads "×1.25 · 25% longer · n 9", never as a bare percent (5.3). This is question 10.6.
+7. **A finish that can be corrected.**
+   - After Finish, the status line shows the logged time and its ratio, with "Adjust" and an undo for a few seconds.
+   - When the stopwatch ran more than twice the plan or past midnight, Focus asks "Were you working all of this?"
+     before it stores the time. A forgotten stopwatch makes exactly the outlier that moves a ratio of sums most (5.3).
+8. **Breaks shown as they were.** Focus shows "worked 52 min · paused 8 min". Feature 1 keeps both numbers, so
+   whether a taken break counts becomes a display choice (question 10.3).
+9. **"Learning" states instead of early charts.** Each view shows "4 of 6 logged" for a course until it may
+   summarise, and the Focus line stays hidden below 6 (4.1). An empty chart and a chart of two dots both mislead.
+10. **Direction by position and glyph, never by colour alone.**
+    - The planner's chips read "took 1 h 20 ▲" or "▼".
+    - Kind is a shape.
+    - Every new chart has a table twin and keyboard focus (section 7).
+
+### 1.6 Order and the defaults taken
+
+- **Before the first session (2026-11-26 14:00):** feature 1 and UX 1–2, so that every logged time is whole minutes,
+  measured or recalled, from day one.
+- **During the first week**, before `certs` has 6 logged sessions on 2026-11-30 (measured, 3): features 2–4 and
+  UX 3–6.
+- **From 6 logged sessions:** features 5–8 and UX 7–10.
+- **From 20 logged sessions** (2026-12-10 for `certs`): feature 9. Feature 10 can follow feature 2 at any time.
+
+The open questions in section 10 are taken at these defaults:
+
+- Q1: show both paces with the count, and decide on the logged pace from 6 sessions on.
+- Q2: log whole minutes.
+- Q3: keep both numbers and show the worked time.
+- Q4: yes, feature 3.
+- Q5: warn, UX 5.
+- Q6: rename, UX 6.
+
 ## 2. Ground truth from the code
 
 ### 2.1 Claim 1: "`actual` is a single total in minutes, 5 to 1440; pauses, the real start and interruptions are not kept"
@@ -564,6 +702,8 @@ One app-only change carries all three, because only the stopwatch knows them.
 - **Priority**: last. For the 131 generated sessions the baseline already holds the first estimate (section 2.3).
 
 ## 10. Open questions only the owner can answer
+
+Section 1.6 takes a default for each one. These are the questions to revisit if a default turns out wrong.
 
 1. **Unlogged done sessions in the pace**: keep them at ×1 (today), leave them out, or show both with the count
    (view 1 as sketched)? The forecast and the catch-up "pace" scenario follow whatever is chosen
