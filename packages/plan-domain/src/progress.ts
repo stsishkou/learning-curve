@@ -1,4 +1,4 @@
-import { accuracyOf, type Accuracy } from './accuracy'
+import { accuracyOf, type Accuracy, type RatioSummary } from './accuracy'
 import { HOUR, parseLocal } from './dates'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
@@ -35,6 +35,29 @@ export const realLength = (e: PlanEvent): number | null =>
 
 /** A session marked done with no logged time: the pace cannot count it, so the planner asks for its time. */
 export const doneWithoutTime = (e: PlanEvent) => isSession(e) && e.done === true && e.actual === undefined
+
+/** The logged sessions one session is judged against, and what they took. */
+export interface ReferenceClass {
+  /** `course`: the same course and kind; `kind`: the same kind in every course */
+  scope: 'course' | 'kind'
+  /** Logged sessions in the class */
+  count: number
+  typical: RatioSummary
+}
+
+/**
+ * The outside view of one session: what the logged sessions most like it took, the session itself left out. The
+ * same course and kind once that class has `MIN_LOGGED` logged sessions, otherwise the same kind in every course,
+ * otherwise nothing (docs/estimate-accuracy-research.md, 5.2).
+ */
+export function referenceClass(plan: Plan, event: PlanEvent): ReferenceClass | null {
+  const alike = plan.events.filter((e) => e.uid !== event.uid && isSession(e) && e.kind === event.kind)
+  const course = accuracyOf(alike.filter((e) => e.calendar === event.calendar))
+  if (course.typical) return { scope: 'course', count: course.logged, typical: course.typical }
+  const kind = accuracyOf(alike)
+  if (kind.typical) return { scope: 'kind', count: kind.logged, typical: kind.typical }
+  return null
+}
 
 const hoursOf = plannedHours
 

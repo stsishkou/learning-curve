@@ -74,13 +74,15 @@ export function fmtZoneRegion(zone: string): string {
  * twice as far from the plan as ×0.5 (docs/estimate-accuracy-research.md, 5.3).
  */
 export function fmtRatio(ratio: number): string {
-  const locale = getLocale()
-  const factor = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(ratio)
   const off = Math.round(Math.abs(ratio - 1) * 100)
-  const percent = new Intl.NumberFormat(locale, { style: 'percent' }).format(off / 100)
-  if (!off) return `×${factor} · ${m.ratio_as_planned()}`
-  return `×${factor} · ${ratio > 1 ? m.ratio_longer({ percent }) : m.ratio_shorter({ percent })}`
+  const percent = new Intl.NumberFormat(getLocale(), { style: 'percent' }).format(off / 100)
+  if (!off) return `${fmtFactor(ratio)} · ${m.ratio_as_planned()}`
+  return `${fmtFactor(ratio)} · ${ratio > 1 ? m.ratio_longer({ percent }) : m.ratio_shorter({ percent })}`
 }
+
+/** The factor alone, `×1.25`, where the words of `fmtRatio` stand next to it already. */
+export const fmtFactor = (ratio: number) =>
+  `×${new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 }).format(ratio)}`
 
 /** How far a clock is from the plan's own, as a signed number of hours: `+2 ч`, `−5,5 ч`; empty for no difference. */
 export const fmtShift = (ms: number) => (ms ? `${ms > 0 ? '+' : '−'}${fmtHours(Math.abs(ms) / 3_600_000)}` : '')

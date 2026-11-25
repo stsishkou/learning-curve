@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest'
 
-import { fmtRatio } from './format'
+import { fmtFactor, fmtRatio } from './format'
 import { overwriteGetLocale } from './paraglide/runtime.js'
 
 describe('fmtRatio', () => {
@@ -17,6 +17,7 @@ describe('fmtRatio', () => {
 
   test('gives the factor two decimals at most', () => {
     expect(fmtRatio(1.3333)).toBe('×1.33 · 33% longer')
+    expect(fmtFactor(1.3333)).toBe('×1.33')
   })
 
   test('writes the numbers the way the language does', () => {

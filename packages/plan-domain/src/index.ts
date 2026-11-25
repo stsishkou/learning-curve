@@ -186,8 +186,10 @@ export {
   isSession,
   plannedHours,
   realLength,
+  referenceClass,
   spentHours,
   type CourseProgress,
+  type ReferenceClass,
 } from './progress'
 export { planStats, type PlanStats, type WeekStats } from './stats'
 export { DEFAULT_CONFIG, buildPlan, weeklyHours, type ScheduleConfig } from './schedule'

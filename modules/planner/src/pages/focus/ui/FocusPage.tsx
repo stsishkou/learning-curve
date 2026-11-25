@@ -1,6 +1,15 @@
-import { fmtDay, fmtDuration } from '@lc/i18n/format'
+import { fmtDay, fmtDuration, fmtFactor, fmtRatio } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { hm, isSession, parseLocal, startOfDay, type Plan, type PlanChange, type PlanEvent } from '@lc/plan-domain'
+import {
+  hm,
+  isSession,
+  parseLocal,
+  referenceClass,
+  startOfDay,
+  type Plan,
+  type PlanChange,
+  type PlanEvent,
+} from '@lc/plan-domain'
 import {
   Button,
   calendarColor,
@@ -23,7 +32,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { useFillHeight, useNow } from '../../../shared/lib'
 import { ScreenButtons } from '../../../shared/ui'
 import { Hourglass } from '../../../widgets/hourglass'
-import { finishRecord, loggedMinutes } from '../model/finish'
+import { finishRecord, likelyLength, loggedMinutes } from '../model/finish'
 import { useGlass } from '../model/use-glass'
 import { useStopwatch } from '../model/use-stopwatch'
 import { useTitleLead } from '../model/use-title-lead'
@@ -85,6 +94,18 @@ const DIGITS_EM = { minutes: '[--digits:3.5]', hours: '[--digits:4.6]' }
  * really took, which is what the pace forecast is worked out from. The session is the one in progress, or the next
  * one that is not done; any other from the queue can be picked.
  */
+/** The session Finish just logged, as the status line shows it */
+interface Logged {
+  uid: string
+  title: string
+  minutes: number
+  /** Logged minutes per planned minute */
+  ratio: number
+  /** What sessions like it took, when enough of them are logged */
+  typical: { ratio: number; count: number } | null
+  unfinished: boolean
+}
+
 export function FocusPage(props: Props) {
   const { plan, canEdit, session: wanted, onPick, onChange, headerAside, now: fixed } = props
   const { expanded = false, onExpandedChange } = props
@@ -97,9 +118,7 @@ export function FocusPage(props: Props) {
   const pick = (uid: string | undefined) => (onPick ? onPick(uid) : setOwn(uid))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [logged, setLogged] = useState<{ uid: string; title: string; minutes: number; unfinished: boolean } | null>(
-    null,
-  )
+  const [logged, setLogged] = useState<Logged | null>(null)
 
   const open = plan.events
     .filter((e) => isSession(e) && !e.done)
@@ -125,6 +144,11 @@ export function FocusPage(props: Props) {
   const listed = session && !queue.includes(session) ? [session, ...queue] : queue
 
   const planned = session ? parseLocal(session.end) - parseLocal(session.start) : 0
+  // The outside view of the session in hand: what the logged sessions most like it took.
+  const like = session ? referenceClass(plan, session) : null
+  const likely = like ? likelyLength(planned, like.typical.ratio) : null
+  // The bar reaches the plan or the typical length, whichever is longer, so the tick for the typical one fits on it.
+  const span = Math.max(planned, likely ?? 0)
   const running = watch.running && watch.timed === session?.uid
   const glass = useGlass(session?.uid ?? null, planned, watch)
   const { elapsed, block, rhythm, settings } = glass
@@ -176,6 +200,8 @@ export function FocusPage(props: Props) {
     const at = Date.now()
     const record = finishRecord(elapsed, watch.began ?? at - elapsed, at)
     const minutes = record.actual
+    const plannedMinutes = (parseLocal(event.end) - parseLocal(event.start)) / MINUTE
+    const alike = referenceClass(plan, event)
     setBusy(true)
     setError('')
     try {
@@ -183,7 +209,14 @@ export function FocusPage(props: Props) {
       watch.reset()
       glass.reset()
       pick(undefined)
-      setLogged({ uid: event.uid, title: event.title, minutes, unfinished: false })
+      setLogged({
+        uid: event.uid,
+        title: event.title,
+        minutes,
+        ratio: minutes / plannedMinutes,
+        typical: alike && { ratio: alike.typical.ratio, count: alike.count },
+        unfinished: false,
+      })
     } catch (err) {
       setError(m.save_failed({ reason: err instanceof Error ? err.message : String(err) }))
     } finally {
@@ -192,7 +225,7 @@ export function FocusPage(props: Props) {
   }
 
   /** The session just finished ran out of time before its goal: the rest of the module goes on later. */
-  async function markUnfinished(finished: { uid: string; title: string; minutes: number }) {
+  async function markUnfinished(finished: Logged) {
     setBusy(true)
     setError('')
     try {
@@ -317,11 +350,21 @@ export function FocusPage(props: Props) {
                     </p>
                     {/* With the session in the glass, a bar would say the same again. */}
                     {(settings.hidden || rhythm) && (
-                      <div className="mx-auto mt-5 h-1.5 w-full max-w-[420px] min-w-[min(240px,70vw)] overflow-hidden rounded bg-line-soft">
-                        <i
-                          className={`block h-full rounded ${elapsed > planned ? 'bg-today' : 'bg-cal'}`}
-                          style={{ width: `${Math.min(100, (elapsed / planned) * 100)}%` }}
-                        />
+                      <div className="relative mx-auto mt-5 w-full max-w-[420px] min-w-[min(240px,70vw)]">
+                        <div className="h-1.5 overflow-hidden rounded bg-line-soft">
+                          <i
+                            className={`block h-full rounded ${elapsed > planned ? 'bg-today' : 'bg-cal'}`}
+                            style={{ width: `${Math.min(100, (elapsed / span) * 100)}%` }}
+                          />
+                        </div>
+                        {likely !== null && (
+                          <b
+                            aria-hidden
+                            data-tick="typical"
+                            className="absolute -top-1 h-3.5 w-0.5 -translate-x-1/2 rounded bg-muted"
+                            style={{ left: `${(likely / span) * 100}%` }}
+                          />
+                        )}
                       </div>
                     )}
                     <p className="mt-2.5 text-[13px] text-muted tabular-nums">
@@ -329,6 +372,15 @@ export function FocusPage(props: Props) {
                         ? m.focus_over({ time: fmtDuration(elapsed - planned) })
                         : m.focus_left({ time: fmtDuration(planned - elapsed) })}
                     </p>
+                    {like && likely !== null && (
+                      <p className="mt-0.5 text-[13px] text-muted tabular-nums">
+                        {(like.scope === 'course' ? m.focus_like_course : m.focus_like_kind)({
+                          ratio: fmtRatio(like.typical.ratio),
+                          count: like.count,
+                          time: fmtDuration(likely),
+                        })}
+                      </p>
+                    )}
                     {rhythm && block.kind === 'work' && !glass.due && (
                       <p className="mt-0.5 text-[13px] text-muted tabular-nums">
                         {m.focus_break_in({ minutes: minutesLeft })}
@@ -429,6 +481,12 @@ export function FocusPage(props: Props) {
             )}
             <p className="flex min-h-5 flex-wrap items-center gap-x-3 text-[13px] text-done-ink" role="status">
               {logged && m.focus_logged({ title: logged.title, time: fmtDuration(logged.minutes * MINUTE) })}
+              {logged && <span className="text-muted tabular-nums">{fmtRatio(logged.ratio)}</span>}
+              {logged?.typical && (
+                <span className="text-muted tabular-nums">
+                  {m.focus_logged_typical({ factor: fmtFactor(logged.typical.ratio), count: logged.typical.count })}
+                </span>
+              )}
               {logged &&
                 (logged.unfinished ? (
                   <span className="text-muted">{m.focus_unfinished_done()}</span>

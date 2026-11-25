@@ -3,9 +3,10 @@ import { describe, expect, test } from 'vitest'
 import { MIN_LOGGED, accuracyOf } from './accuracy'
 import { mondayOf, parseLocal } from './dates'
 import { applyEdits, emptyEdits } from './edits'
+import { itemAt } from './fixtures'
 import { paceForecast } from './forecast'
 import { weekReview } from './goals'
-import { courseProgress, doneWithoutTime, isSession } from './progress'
+import { courseProgress, doneWithoutTime, isSession, referenceClass } from './progress'
 import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import type { Plan, PlanEvent } from './types'
 
@@ -80,4 +81,42 @@ test('a done session without a logged time is told apart from one with a time an
   const gym = base.events.find((e) => e.kind === 'personal')
   expect([logged, unlogged, open].map((e) => e !== undefined && doneWithoutTime(e))).toEqual([false, true, false])
   expect(gym !== undefined && doneWithoutTime({ ...gym, done: true })).toBe(false)
+})
+
+/** The plan with these sessions done, each with its logged minutes. */
+function loggedPlan(minutes: Map<PlanEvent, number>): Plan {
+  const events = Object.fromEntries([...minutes].map(([e, actual]) => [e.uid, { done: true, actual }]))
+  return applyEdits(base, { ...emptyEdits(), events }).plan
+}
+const studyOf = (calendar: string) => base.events.filter((e) => e.calendar === calendar && e.kind === 'study')
+const eachTook = (sessions: PlanEvent[], actual: number) => sessions.map((e): [PlanEvent, number] => [e, actual])
+
+describe('referenceClass', () => {
+  const ahead = itemAt(certs)
+  const done = certs.slice(1)
+
+  test(`says nothing until ${MIN_LOGGED} sessions like it are logged`, () => {
+    const plan = loggedPlan(new Map(eachTook(done.slice(0, MIN_LOGGED - 1), 75)))
+    expect(referenceClass(plan, ahead)).toBeNull()
+  })
+
+  test('takes the same course and kind once that class is big enough', () => {
+    const plan = loggedPlan(new Map(eachTook(done.slice(0, MIN_LOGGED), 75)))
+    const like = referenceClass(plan, ahead)
+    expect(like).toMatchObject({ scope: 'course', count: MIN_LOGGED })
+    expect(like?.typical.ratio).toBeCloseTo(1.25)
+  })
+
+  test('falls back to the same kind in every course while the course has too few', () => {
+    const other = studyOf('hfllm').slice(0, MIN_LOGGED - 2)
+    const plan = loggedPlan(new Map([...eachTook(done.slice(0, 2), 90), ...eachTook(other, 60)]))
+    expect(referenceClass(plan, ahead)).toMatchObject({ scope: 'kind', count: MIN_LOGGED })
+  })
+
+  test('leaves the session itself out, so a finished one is compared with the others', () => {
+    const plan = loggedPlan(new Map([[ahead, 120], ...eachTook(done.slice(0, MIN_LOGGED), 60)]))
+    const like = referenceClass(plan, ahead)
+    expect(like?.count).toBe(MIN_LOGGED)
+    expect(like?.typical.ratio).toBeCloseTo(1)
+  })
 })

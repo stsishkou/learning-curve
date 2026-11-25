@@ -1,5 +1,6 @@
+import { fmtDuration, fmtFactor, fmtRatio } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { isSession, parseLocal } from '@lc/plan-domain'
+import { isSession, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
@@ -102,6 +103,70 @@ export const FinishedUnfinished: Story = {
       expect.objectContaining({ type: 'event.patch', patch: { unfinished: true } }),
     )
     await expect(await canvas.findByText(m.focus_unfinished_done())).toBeVisible()
+  },
+}
+
+/** The fixture with every done study session logged at `ratio` times its plan. */
+const studyLoggedAt = (ratio: number): Plan => ({
+  ...fixturePlan,
+  events: fixturePlan.events.map((e) =>
+    e.done && isSession(e) && e.kind === 'study'
+      ? { ...e, actual: Math.round(((parseLocal(e.end) - parseLocal(e.start)) / MINUTE) * ratio) }
+      : e,
+  ),
+})
+const nextStudy = itemAt(fixturePlan.events.filter((e) => isSession(e) && !e.done && e.kind === 'study'))
+const slower = studyLoggedAt(1.25)
+const alike = slower.events.filter(
+  (e) => e.calendar === nextStudy.calendar && e.kind === 'study' && e.actual !== undefined,
+).length
+/**
+ * Text as Testing Library reads it off the page: its default normalizer turns the no-break space that `Intl` puts
+ * before `%` in Russian into a plain one in the page's text, but not in the text it is asked to find.
+ */
+const asRead = (text: string) => text.replaceAll('\u00a0', ' ')
+const hiddenGlass = () => {
+  clearFocus()
+  localStorage.setItem('learning-curve:focus-breaks', JSON.stringify({ mode: 'session', hidden: true }))
+  return clearFocus
+}
+
+/**
+ * Enough sessions like this one are logged: under the time left the page says what they took and how long this one
+ * will probably take, and a tick on the bar marks that length. The glass is hidden here, so the bar is drawn.
+ */
+export const SessionsLikeThis: Story = {
+  args: { plan: slower, session: nextStudy.uid },
+  beforeEach: hiddenGlass,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const line = m.focus_like_course({ ratio: fmtRatio(1.25), count: alike, time: fmtDuration(75 * MINUTE) })
+    await expect(await canvas.findByText(asRead(line))).toBeVisible()
+    await expect(canvasElement.querySelector('[data-tick="typical"]')).not.toBeNull()
+  },
+}
+
+/** Too few sessions like this one are logged to say anything: no line and no tick. */
+export const TooFewLikeThis: Story = {
+  args: { session: nextStudy.uid },
+  beforeEach: hiddenGlass,
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByRole('timer')).toBeVisible()
+    await expect(canvasElement.querySelector('[data-tick="typical"]')).toBeNull()
+  },
+}
+
+/** After Finish the status line puts the session's own ratio next to what sessions like it took. */
+export const FinishedComparesWithTypical: Story = {
+  args: { plan: slower, session: nextStudy.uid },
+  beforeEach: fresh,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: START }))
+    await userEvent.click(canvas.getByRole('button', { name: PAUSE }))
+    await userEvent.click(canvas.getByRole('button', { name: FINISH }))
+    const typical = m.focus_logged_typical({ factor: fmtFactor(1.25), count: alike })
+    await expect(await canvas.findByText(typical)).toBeVisible()
   },
 }
 
