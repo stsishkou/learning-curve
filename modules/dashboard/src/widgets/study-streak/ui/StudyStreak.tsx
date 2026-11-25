@@ -49,7 +49,7 @@ export function StudyStreak({ plan, now }: Props) {
       title={m.dash_streak()}
       hint={m.dash_streak_hint()}
       aside={
-        <span className="flex flex-wrap gap-x-3.5 gap-y-1">
+        <span className="flex min-w-0 flex-wrap gap-x-3.5 gap-y-1">
           <LegendKey color={DONE[0]} label={m.streak_legend_done()} />
           <LegendKey color={MISSED} label={m.streak_legend_missed()} />
           <LegendKey color={AHEAD} label={m.streak_legend_ahead()} />

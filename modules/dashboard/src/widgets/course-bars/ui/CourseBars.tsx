@@ -19,7 +19,7 @@ export function CourseBars({ plan, byLabel = false }: Props) {
   return (
     <Card title={m.dash_courses()} hint={grouped && countsTwice(groups) ? m.dash_counts_twice() : undefined}>
       {grouped ? (
-        <div className="grid gap-5">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
           {groups.map((group) => {
             const hours = group.items.reduce((sum, c) => sum + c.hours, 0)
             const done = group.items.reduce((sum, c) => sum + c.doneHours, 0)
@@ -33,7 +33,7 @@ export function CourseBars({ plan, byLabel = false }: Props) {
                     {fmtHours(done)} / {fmtHours(hours)} · {Math.round((hours ? done / hours : 0) * 100)}%
                   </span>
                 </div>
-                <ul className="mt-2.5 grid gap-3 border-l-2 border-line-soft pl-3">
+                <ul className="mt-2.5 grid grid-cols-[minmax(0,1fr)] gap-3 border-l-2 border-line-soft pl-3">
                   {group.items.map((c) => (
                     <CourseRow key={c.calendar.id} course={c} />
                   ))}
@@ -43,7 +43,7 @@ export function CourseBars({ plan, byLabel = false }: Props) {
           })}
         </div>
       ) : (
-        <ul className="grid gap-3.5">
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-3.5">
           {courses.map((c) => (
             <CourseRow key={c.calendar.id} course={c} />
           ))}

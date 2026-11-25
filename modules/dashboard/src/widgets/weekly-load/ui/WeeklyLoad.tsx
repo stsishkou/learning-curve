@@ -97,7 +97,7 @@ export function WeeklyLoad({ plan, stats, now, byLabel = false }: Props) {
       hint={`${m.dash_weekly_hint({ hours: fmtHours(budget) })}${byLabel ? ` ${m.dash_first_label()}` : ''}`}
       help={<Hint title={m.help_weekly_title()} text={m.help_weekly()} />}
       aside={
-        <span className="flex flex-wrap gap-x-3.5 gap-y-1">
+        <span className="flex min-w-0 flex-wrap gap-x-3.5 gap-y-1">
           {calendars.map((c) => (
             <LegendKey key={c.key} color={c.color} label={c.name} />
           ))}

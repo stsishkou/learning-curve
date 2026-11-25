@@ -236,7 +236,7 @@ export function BiasTrend({ plan }: { plan: Plan }) {
       help={<Hint title={m.help_trend_title()} text={m.help_trend()} />}
       aside={
         typicals.length > 0 && (
-          <span className="flex flex-wrap gap-x-3.5 gap-y-1">
+          <span className="flex min-w-0 flex-wrap gap-x-3.5 gap-y-1">
             <LegendKey shape="line" color="var(--muted)" label={m.dash_strip_typical_label()} />
             <LegendKey color={BAND} label={m.dash_strip_interval_label()} />
             <LegendKey shape="line" color={PLAN} label={m.dash_strip_plan()} />

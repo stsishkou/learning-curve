@@ -177,7 +177,7 @@ export function RatioStrip({ plan }: { plan: Plan }) {
       help={<Hint title={m.help_strip_title()} text={m.help_strip()} />}
       aside={
         rows.length > 0 && (
-          <span className="flex flex-wrap gap-x-3.5 gap-y-1">
+          <span className="flex min-w-0 flex-wrap gap-x-3.5 gap-y-1">
             {kinds.has('circle') && (
               <Key label={m.kind_study()}>
                 <Glyph shape="circle" x={0} y={0} fill="var(--muted)" />
