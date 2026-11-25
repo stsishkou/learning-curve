@@ -333,6 +333,8 @@ describe('adding events', () => {
     const edits = apply([deadline])
     expect(added(edits)).toMatchObject({ kind: 'milestone', allDay: true, availability: 'free' })
     expect(deadlineOf(planOf(edits), 'journey')).toBe('2027-02-16')
+    const stored = JSON.stringify(edits)
+    expect(deadlineOf(planOf(parseEdits(JSON.parse(stored))), 'journey')).toBe('2027-02-16')
   })
 
   test('a milestone is one day at midnight and never repeats', () => {

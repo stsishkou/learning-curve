@@ -171,6 +171,20 @@ export function parseAddedEvent(value: unknown): PlanEvent | null {
   if (!isRecord(value) || !patch || typeof value.uid !== 'string' || !value.uid) return null
   const { title, start, end, calendar } = patch
   if (!title || !start || !end || !calendar) return null
+  if (value.kind === 'milestone') {
+    const milestone: PlanEvent = {
+      uid: value.uid,
+      calendar,
+      title,
+      start,
+      end,
+      description: patch.description ?? '',
+      kind: 'milestone',
+      availability: 'free',
+      allDay: true,
+    }
+    return patchProblem(milestone, {}) ? null : milestone
+  }
   const event: PlanEvent = {
     uid: value.uid,
     calendar,
