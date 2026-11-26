@@ -354,3 +354,59 @@ export const NarrowNoExpand: Story = {
     await expect(dialogOf(canvasElement).offsetWidth).toBeLessThanOrEqual(560)
   },
 }
+
+/** Expanded, the event reads like a page: a larger title, the description at reading size in lines of limited length. */
+export const ExpandedReading: Story = {
+  beforeEach: storeExpanded('1'),
+  globals: DESKTOP,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const heading = await body.findByRole('heading', { name: upcoming.title })
+    await expect(getComputedStyle(heading).fontSize).toBe('22px')
+    const description = dialogOf(canvasElement).querySelector('pre')
+    if (!description) throw new Error('no description')
+    await expect(getComputedStyle(description).fontSize).toBe('15.5px')
+    await expect(getComputedStyle(description).maxWidth).not.toBe('none')
+  },
+}
+
+/** A long description scrolls between the title and the buttons, which both stay in view. */
+export const ExpandedLongDescription: Story = {
+  beforeEach: storeExpanded('1'),
+  globals: DESKTOP,
+  args: {
+    event: {
+      ...upcoming,
+      description: Array.from({ length: 60 }, (_, i) => `Line ${i + 1} of a long description`).join('\n'),
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const heading = await body.findByRole('heading', { name: upcoming.title })
+    const dlg = dialogOf(canvasElement)
+    await expect(dlg.scrollHeight).toBeGreaterThan(dlg.clientHeight)
+    dlg.scrollTop = dlg.scrollHeight
+    await waitFor(async () => {
+      const frame = dlg.getBoundingClientRect()
+      await expect(heading.getBoundingClientRect().top).toBeGreaterThanOrEqual(frame.top)
+      await expect(body.getByRole('button', { name: m.edit() }).getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        frame.bottom,
+      )
+    })
+  },
+}
+
+/** Edit keeps the expanded size and gives the description room to write in. */
+export const ExpandedEdit: Story = {
+  beforeEach: storeExpanded('1'),
+  globals: DESKTOP,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: m.edit() }))
+    const dlg = dialogOf(canvasElement)
+    await waitFor(() => expect(dlg.offsetWidth).toBe(760))
+    const field = dlg.querySelector('textarea')
+    if (!field) throw new Error('no description field')
+    await expect(getComputedStyle(field).minHeight).toBe('240px')
+  },
+}

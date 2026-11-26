@@ -33,6 +33,8 @@ interface Props {
   overlaps?: ((start: string, end: string) => Overlap[]) | undefined
   /** Called with the fields as they stand after every change, so the page can show the event before it is saved */
   onValues?: ((values: EventFormValues) => void) | undefined
+  /** In the expanded dialog: the description starts with more room */
+  expanded?: boolean | undefined
 }
 
 export function EventForm({
@@ -49,6 +51,7 @@ export function EventForm({
   onProblem,
   overlaps,
   onValues,
+  expanded = false,
 }: Props) {
   const [title, setTitle] = useState(initial.title)
   const [description, setDescription] = useState(initial.description)
@@ -152,7 +155,7 @@ export function EventForm({
       <label className={FIELD}>
         {m.field_description()}
         <textarea
-          className={`${INPUT} field-sizing-content max-h-[18lh] min-h-[120px] resize-y text-[14px]/[1.5]`}
+          className={`${INPUT} field-sizing-content max-h-[18lh] ${expanded ? 'min-h-[240px]' : 'min-h-[120px]'} resize-y text-[14px]/[1.5]`}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

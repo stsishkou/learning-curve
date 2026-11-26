@@ -7,6 +7,10 @@ export const META = 'flex flex-wrap items-center gap-2 text-[13.5px] text-muted'
 // under it fades out instead of being cut, and a dialog that does not scroll looks as it would without it.
 export const FOOT =
   'sticky bottom-0 z-10 -mx-[22px] mt-1.5 -mb-5 flex flex-wrap justify-end gap-2 bg-[linear-gradient(to_bottom,transparent,var(--surface)_12px)] px-[22px] pt-3 pb-5'
+// Its mirror at the top, for a heading row that stays in view: the body's first element, reaching over the padding
+// above (20px), its lower edge fading.
+export const HEAD =
+  'sticky top-0 z-10 -mx-[22px] -mt-5 bg-[linear-gradient(to_top,transparent,var(--surface)_12px)] px-[22px] pt-5 pb-3'
 
 interface Props {
   /** The parent owns it: the dialog follows this value and never closes on its own account */
@@ -58,8 +62,8 @@ const SIZE = {
 
 /**
  * A native `<dialog>` opened with `showModal()`: the page behind it is inert, the focus stays inside, Esc and a
- * click on the backdrop close it. `TITLE`, `META` and `FOOT`, exported next to it, are the class strings for its
- * heading, the line under the heading and the button row.
+ * click on the backdrop close it. `TITLE`, `META`, `HEAD` and `FOOT`, exported next to it, are the class strings for
+ * its heading, the line under the heading, a heading row that stays in view and the button row.
  */
 export function Modal({ open, onClose, label, size = 'normal', top = false, anchor, children }: Props) {
   const place = top ? 'mx-auto mt-[12vh] mb-auto' : 'm-auto'

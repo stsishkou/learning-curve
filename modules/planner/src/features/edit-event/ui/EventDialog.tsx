@@ -28,6 +28,7 @@ import {
   Dot,
   ExternalLink,
   FOOT,
+  HEAD,
   Link2,
   Maximize2,
   META,
@@ -62,6 +63,8 @@ const linkify = (text: string) =>
   )
 
 const NO_BUSY: BusyBlock[] = []
+
+const BIG_TITLE = 'mb-1 text-[22px]/[1.3] font-semibold'
 
 const HEAD_BUTTON =
   'grid size-8 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-ink'
@@ -271,6 +274,7 @@ export function EventDialog({
         <EventForm
           key={event.uid}
           heading={m.edit()}
+          expanded={big}
           initial={{ ...event }}
           calendars={offered}
           allDay={event.allDay}
@@ -290,9 +294,9 @@ export function EventDialog({
       )}
       {event && !editing && (
         <>
-          <div className="flex items-start gap-3">
+          <div className={`flex items-start gap-3 ${big ? HEAD : ''}`}>
             <h3
-              className={`${TITLE} min-w-0 flex-1 ${event.done ? `text-muted line-through ${event.skipped ? 'decoration-today' : 'decoration-done'}` : ''}`}
+              className={`${big ? BIG_TITLE : TITLE} min-w-0 flex-1 ${event.done ? `text-muted line-through ${event.skipped ? 'decoration-today' : 'decoration-done'}` : ''}`}
             >
               {event.title}
             </h3>
@@ -333,7 +337,9 @@ export function EventDialog({
             </div>
           )}
           {event.description && (
-            <pre className="mt-3.5 rounded-[10px] bg-surface-2 px-3.5 py-3 font-sans text-[14px]/[1.55] wrap-anywhere whitespace-pre-wrap">
+            <pre
+              className={`mt-3.5 rounded-[10px] bg-surface-2 px-3.5 py-3 font-sans ${big ? 'max-w-[75ch] text-[15.5px]/[1.6]' : 'text-[14px]/[1.55]'} wrap-anywhere whitespace-pre-wrap`}
+            >
               {linkify(event.description)}
             </pre>
           )}
