@@ -461,3 +461,28 @@ export const FocusClearsStickyRows: Story = {
     )
   },
 }
+
+/**
+ * Narrowing the window takes Expand away; the focus it had moves to Close instead of leaving the dialog. The story
+ * narrows its own frame, since a story cannot change the viewport midway.
+ */
+export const NarrowingKeepsFocus: Story = {
+  globals: DESKTOP,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const expand = await body.findByRole('button', { name: m.expand() })
+    expand.focus()
+    await expect(expand).toHaveFocus()
+    const frame = window.frameElement
+    if (!frame) throw new Error('the story is not in a frame')
+    const style = frame.getAttribute('style')
+    frame.setAttribute('style', `${style ?? ''};width:700px`)
+    try {
+      await waitFor(() => expect(body.queryByRole('button', { name: m.expand() })).toBeNull())
+      await expect(body.getByRole('button', { name: m.close() })).toHaveFocus()
+    } finally {
+      if (style === null) frame.removeAttribute('style')
+      else frame.setAttribute('style', style)
+    }
+  },
+}

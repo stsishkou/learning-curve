@@ -40,7 +40,7 @@ import {
   Trash2,
   X,
 } from '@lc/ui'
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 import { useEventExpanded } from '../model/use-event-expanded'
 import { EventForm } from './EventForm'
@@ -147,6 +147,12 @@ export function EventDialog({
   const { available: expandable, expanded, toggle: toggleExpanded } = useEventExpanded()
   // A new event's form stays beside its draft, which shows the event on the page while it is filled in.
   const big = expanded && event !== null
+  const closeButton = useRef<HTMLButtonElement>(null)
+  // Expand goes away when the window narrows: the focus it had would leave the dialog, so Close takes it.
+  useLayoutEffect(() => {
+    const target = closeButton.current
+    if (!expandable && target && !target.closest('dialog')?.contains(document.activeElement)) target.focus()
+  }, [expandable])
   const close = () => {
     setEditing(false)
     setError('')
@@ -320,6 +326,7 @@ export function EventDialog({
                 data-tip={m.close()}
                 // Not Expand, which comes first: a stray Enter would change how every later event opens.
                 data-autofocus
+                ref={closeButton}
                 onClick={close}
               >
                 <X size={18} aria-hidden />
