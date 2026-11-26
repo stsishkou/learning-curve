@@ -66,3 +66,13 @@ export const WithToggle: Story = {
     await expect(trigger).toHaveAttribute('aria-expanded', 'true')
   },
 }
+
+/** A menu of its own in a toolbar shows its own icon instead of the `⋮`, and keeps its name. */
+export const WithIcon: Story = {
+  args: { label: 'Side panels', icon: <Calendar size={17} aria-hidden /> },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole('button', { name: 'Side panels' })
+    await expect(trigger.querySelector('.lucide-calendar')).not.toBeNull()
+    await expect(trigger.querySelector('.lucide-ellipsis-vertical')).toBeNull()
+  },
+}

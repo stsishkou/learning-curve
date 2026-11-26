@@ -44,6 +44,7 @@ export {
   Minimize2,
   Minus,
   MoveHorizontal,
+  PanelRight,
   Pause,
   Pencil,
   Play,

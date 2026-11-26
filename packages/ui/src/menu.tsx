@@ -26,6 +26,8 @@ interface Props {
   label: string
   /** The rows, top to bottom: `{ id, label, run }` plus the optional `icon`, `keys`, `badge`, `checked`, `disabled`, `className` */
   items: MenuItem[]
+  /** The trigger's icon, for a menu of its own in a toolbar; the `⋮` when absent */
+  icon?: ReactNode
   /** Extra classes for the trigger button */
   className?: string
 }
@@ -48,7 +50,7 @@ const rowsOf = (menu: HTMLElement) =>
  * `checked` is a switch and keeps the menu open. Arrow keys, Home and End move between the rows; Tab, Escape and a
  * click outside close it.
  */
-export function Menu({ label, items, className = '' }: Props) {
+export function Menu({ label, items, icon, className = '' }: Props) {
   const id = useId()
   const anchor = `--menu-${id.replaceAll(/[^a-z0-9]/gi, '')}`
   const trigger = useRef<HTMLButtonElement>(null)
@@ -101,7 +103,7 @@ export function Menu({ label, items, className = '' }: Props) {
         aria-expanded={open}
         popoverTarget={id}
       >
-        <EllipsisVertical size={18} aria-hidden />
+        {icon ?? <EllipsisVertical size={18} aria-hidden />}
       </button>
       <div
         ref={panel}
