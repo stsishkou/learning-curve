@@ -428,3 +428,36 @@ export const FocusStartsOnClose: Story = {
     await waitFor(() => expect(body.getByRole('button', { name: m.close() })).toHaveFocus())
   },
 }
+
+const linkedLines = Array.from({ length: 60 }, (_, i) =>
+  i === 2 ? 'https://example.com/near-the-top' : i === 57 ? 'https://example.com/near-the-end' : `Line ${i + 1}`,
+).join('\n')
+
+/** A control reached with the keyboard is scrolled clear of the title row and the button row, not under them. */
+export const FocusClearsStickyRows: Story = {
+  beforeEach: storeExpanded('1'),
+  globals: DESKTOP,
+  args: { event: { ...upcoming, description: linkedLines } },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const heading = await body.findByRole('heading', { name: upcoming.title })
+    const head = heading.parentElement
+    const foot = body.getByRole('button', { name: m.edit() }).parentElement
+    if (!head || !foot) throw new Error('no title row or button row')
+    const dlg = dialogOf(canvasElement)
+    const top = body.getByRole('link', { name: 'https://example.com/near-the-top' })
+    const end = body.getByRole('link', { name: 'https://example.com/near-the-end' })
+
+    // Each link half under its row: the browser counts it as in view, and without padding would not scroll it.
+    dlg.scrollTop += top.getBoundingClientRect().top - (head.getBoundingClientRect().top + 8)
+    top.focus()
+    await waitFor(() =>
+      expect(top.getBoundingClientRect().top).toBeGreaterThanOrEqual(head.getBoundingClientRect().bottom - 1),
+    )
+    dlg.scrollTop += end.getBoundingClientRect().bottom - (foot.getBoundingClientRect().bottom - 8)
+    end.focus()
+    await waitFor(() =>
+      expect(end.getBoundingClientRect().bottom).toBeLessThanOrEqual(foot.getBoundingClientRect().top + 1),
+    )
+  },
+}

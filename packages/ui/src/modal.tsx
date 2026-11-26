@@ -54,6 +54,28 @@ function placeBeside(dlg: HTMLDialogElement, target: Element | null) {
   dlg.style.top = `${Math.max(EDGE, Math.min(at.top, window.innerHeight - EDGE - height))}px`
 }
 
+/** The row that sticks at one end of the body: its first (or last) element, or that one's own, and so on down. */
+function stickyAt(body: Element, end: 'first' | 'last'): HTMLElement | null {
+  let el = end === 'first' ? body.firstElementChild : body.lastElementChild
+  while (el) {
+    if (el instanceof HTMLElement && getComputedStyle(el).position === 'sticky') return el
+    el = end === 'first' ? el.firstElementChild : el.lastElementChild
+  }
+  return null
+}
+
+/**
+ * Pads the dialog's scrolling by the rows that stick to its top and bottom (`HEAD`, `FOOT`), as the theme pads the
+ * page by its sticky bars: a control reached with Tab is scrolled clear of them. Without it, a control half under a
+ * row counts as in view and stays there.
+ */
+function padStickyRows(dlg: HTMLDialogElement) {
+  const body = dlg.firstElementChild
+  if (!body) return
+  dlg.style.scrollPaddingTop = `${stickyAt(body, 'first')?.offsetHeight ?? 0}px`
+  dlg.style.scrollPaddingBottom = `${stickyAt(body, 'last')?.offsetHeight ?? 0}px`
+}
+
 const SIZE = {
   normal: 'w-[min(560px,calc(100vw-32px))]',
   wide: 'w-[min(760px,calc(100vw-32px))]',
@@ -93,14 +115,21 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, anch
   // After every render: the element moves when the event it shows is edited, and the dialog changes height.
   useLayoutEffect(() => {
     latestAnchor.current = anchor
-    if (ref.current && open) placeBeside(ref.current, anchor?.() ?? null)
+    if (!ref.current || !open) return
+    placeBeside(ref.current, anchor?.() ?? null)
+    padStickyRows(ref.current)
   })
   useEffect(() => {
     const dlg = ref.current
     if (!dlg || !open) return undefined
-    const settle = () => placeBeside(dlg, latestAnchor.current?.() ?? null)
+    const settle = () => {
+      placeBeside(dlg, latestAnchor.current?.() ?? null)
+      padStickyRows(dlg)
+    }
     const resized = new ResizeObserver(settle)
     resized.observe(dlg)
+    // The body too: a heading that wraps on a narrower window makes its row taller without resizing the dialog.
+    if (dlg.firstElementChild) resized.observe(dlg.firstElementChild)
     window.addEventListener('resize', settle)
     // Capturing: the page and the panes inside it scroll under an open dialog.
     window.addEventListener('scroll', settle, true)
