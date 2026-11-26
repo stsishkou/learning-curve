@@ -313,7 +313,15 @@ export function EventDialog({
                   {big ? <Minimize2 size={18} aria-hidden /> : <Maximize2 size={18} aria-hidden />}
                 </button>
               )}
-              <button type="button" className={HEAD_BUTTON} aria-label={m.close()} data-tip={m.close()} onClick={close}>
+              <button
+                type="button"
+                className={HEAD_BUTTON}
+                aria-label={m.close()}
+                data-tip={m.close()}
+                // Not Expand, which comes first: a stray Enter would change how every later event opens.
+                data-autofocus
+                onClick={close}
+              >
                 <X size={18} aria-hidden />
               </button>
             </span>

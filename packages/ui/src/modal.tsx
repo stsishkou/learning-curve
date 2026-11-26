@@ -63,7 +63,8 @@ const SIZE = {
 /**
  * A native `<dialog>` opened with `showModal()`: the page behind it is inert, the focus stays inside, Esc and a
  * click on the backdrop close it. `TITLE`, `META`, `HEAD` and `FOOT`, exported next to it, are the class strings for
- * its heading, the line under the heading, a heading row that stays in view and the button row.
+ * its heading, the line under the heading, a heading row that stays in view and the button row. The element marked
+ * `data-autofocus` takes the focus when the dialog opens; without one, the first control does.
  */
 export function Modal({ open, onClose, label, size = 'normal', top = false, anchor, children }: Props) {
   const place = top ? 'mx-auto mt-[12vh] mb-auto' : 'm-auto'
@@ -74,7 +75,12 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, anch
   useEffect(() => {
     const dlg = ref.current
     if (!dlg) return
-    if (open && !dlg.open) dlg.showModal()
+    if (open && !dlg.open) {
+      dlg.showModal()
+      // The platform's `autofocus`, which React does not render: its own `autoFocus` focuses before `showModal()`,
+      // and showing the dialog then moves the focus to the first control.
+      dlg.querySelector<HTMLElement>('[data-autofocus]')?.focus()
+    }
     if (!open && dlg.open) dlg.close()
   }, [open])
 

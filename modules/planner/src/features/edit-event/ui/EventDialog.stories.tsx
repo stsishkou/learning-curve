@@ -418,3 +418,13 @@ export const ExpandedEdit: Story = {
     await expect(getComputedStyle(field).minHeight).toBe('240px')
   },
 }
+
+/** The dialog opens with the focus on Close: a stray Enter closes it, and nothing else changes. */
+export const FocusStartsOnClose: Story = {
+  globals: DESKTOP,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await body.findByRole('button', { name: m.expand() })
+    await waitFor(() => expect(body.getByRole('button', { name: m.close() })).toHaveFocus())
+  },
+}
