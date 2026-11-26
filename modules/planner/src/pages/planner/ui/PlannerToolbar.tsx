@@ -9,6 +9,7 @@ import {
   Hint,
   Kbd,
   Menu,
+  PanelRight,
   Plus,
   Redo2,
   Search,
@@ -46,6 +47,8 @@ interface Props {
   pinned?: boolean
   /** Present where the browser can fill the whole screen */
   fullscreen?: { on: boolean; toggle: () => void } | undefined
+  /** Present in the wide layout: the switches of the side panels */
+  panels?: MenuItem[] | undefined
 }
 
 // The negative margins take the bar to the edges of the page padding, as the page header does.
@@ -67,6 +70,7 @@ export function PlannerToolbar({
   summary,
   pinned = false,
   fullscreen,
+  panels,
 }: Props) {
   const datePicker = useRef<HTMLInputElement>(null)
   const timeGrid = nav.view === 'week' || nav.view === 'day'
@@ -235,6 +239,7 @@ export function PlannerToolbar({
                 onClick={nav.toggleFullDay}
               />
             )}
+            {panels && <Menu label={m.side_panels()} icon={<PanelRight size={17} aria-hidden />} items={panels} />}
             <ScreenButtons
               expanded={nav.expanded}
               expandHint={m.expand_hint()}

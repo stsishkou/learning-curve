@@ -83,13 +83,14 @@ import { Runway } from '../../../widgets/runway'
 import { WeekGrid } from '../../../widgets/week-grid'
 import { YearGrid } from '../../../widgets/year-grid'
 import { buildActions, type DialogName } from '../model/build-actions'
-import { toCommands, toMenuItems, toShortcutRows, toShortcuts } from '../model/planner-actions'
+import { toCommands, toMenuItem, toMenuItems, toShortcutRows, toShortcuts } from '../model/planner-actions'
 import type { PlannerSearch } from '../model/search'
 import { useDialogFlags } from '../model/use-dialog-flags'
 import { useEventDraft } from '../model/use-event-draft'
 import { usePlanSession, type PlannerState } from '../model/use-plan-session'
 import { usePlannerView } from '../model/use-planner-view'
 import { useQuietChange } from '../model/use-quiet-change'
+import { useWidePanels, type WidePanels } from '../model/use-wide-panels'
 import { InsightTabs } from './InsightTabs'
 import { OverdueBar } from './OverdueBar'
 import { PlannerHeader } from './PlannerHeader'
@@ -183,6 +184,9 @@ export function PlannerPage({
   const fullscreen = useFullscreen()
   // The whole screen is for the calendar: it is laid out as Expand lays it out.
   const expanded = nav.expanded || fullscreen.on
+  const widePanels = useWidePanels()
+  // What is remembered for the wide layout never hides a panel of the regular one.
+  const side: WidePanels = expanded ? widePanels.shown : { next: true, insights: true }
   const quiet = useQuietChange(session)
   // A sign-in to a calendar app comes back to the page with its outcome: that app's dialog shows how it went.
   const dialogs = useDialogFlags<DialogName>([
@@ -383,6 +387,7 @@ export function PlannerPage({
     integrations: { waiting: apps.held.length },
     reminders: reminders.supported ? reminders : undefined,
     fullscreen: fullscreen.supported ? fullscreen : undefined,
+    panels: expanded ? widePanels : undefined,
     help: { on: helpOn, toggle: toggleHelp },
     iconsOnly: { on: iconsOnly, toggle: toggleIconsOnly },
     trashCount,
@@ -504,6 +509,11 @@ export function PlannerPage({
         history={canEdit ? quiet : undefined}
         pinned={expanded}
         fullscreen={fullscreen.supported ? fullscreen : undefined}
+        panels={
+          expanded
+            ? actions.filter((a) => a.id === 'panel-next' || a.id === 'panel-insights').map(toMenuItem)
+            : undefined
+        }
         summary={expanded && view === 'week' && <BudgetLine plan={plan} weekItems={weekItems} />}
       >
         <LabelFilter
@@ -599,7 +609,9 @@ export function PlannerPage({
         )
       )}
 
-      <div className={`grid grid-cols-1 items-start gap-4 ${expanded ? '' : 'lg:grid-cols-[1fr_280px]'}`}>
+      <div
+        className={`grid grid-cols-1 items-start gap-4 ${side.next || side.insights ? 'lg:grid-cols-[1fr_280px]' : ''}`}
+      >
         <section className="lc-calendar relative min-w-0 rounded-2xl border border-line bg-surface">
           {(view === 'week' || view === 'day') && (
             <Hint title={m.help_grid_title()} text={m.help_grid()} className="absolute top-1.5 left-1.5 z-10" />
@@ -659,44 +671,51 @@ export function PlannerPage({
             />
           )}
         </section>
-        {!expanded && (
+        {(side.next || side.insights) && (
           // On one column the day comes before the calendar; the list is long, so its insights go above it too.
           <aside className="grid min-w-0 gap-4 max-lg:contents print:hidden">
-            <div className="min-w-0 max-lg:order-first print:hidden">
-              <NowNext
-                plan={plan}
-                upcoming={upcoming}
-                now={now}
-                onSelect={select}
-                onFocus={onFocus}
-                actions={sessionActions}
-              />
-            </div>
-            <div className={`min-w-0 print:hidden ${view === 'list' ? 'max-lg:order-first' : ''}`}>
-              <InsightTabs
-                plan={plan}
-                weekItems={weekItems}
-                hidden={hidden}
-                now={now}
-                weekStart={weekStart}
-                shown={nav.grid}
-                onPickDay={nav.goTo}
-                onSelect={select}
-                onReview={() => dialogs.show('review')}
-                onReschedule={
-                  canEdit && weekStart + 7 * DAY > (today ?? weekStart)
-                    ? () => setReschedule({ from: ymd(Math.max(weekStart, today ?? weekStart)) })
-                    : undefined
-                }
-                onPickWeek={(monday) =>
-                  onSearchChange({
-                    week: ymd(monday),
-                    day: undefined,
-                    view: view === 'week' || view === 'month' ? view : 'week',
-                  })
-                }
-              />
-            </div>
+            {side.next && (
+              <div data-panel="next" className="min-w-0 max-lg:order-first print:hidden">
+                <NowNext
+                  plan={plan}
+                  upcoming={upcoming}
+                  now={now}
+                  onSelect={select}
+                  onFocus={onFocus}
+                  actions={sessionActions}
+                />
+              </div>
+            )}
+            {side.insights && (
+              <div
+                data-panel="insights"
+                className={`min-w-0 print:hidden ${view === 'list' ? 'max-lg:order-first' : ''}`}
+              >
+                <InsightTabs
+                  plan={plan}
+                  weekItems={weekItems}
+                  hidden={hidden}
+                  now={now}
+                  weekStart={weekStart}
+                  shown={nav.grid}
+                  onPickDay={nav.goTo}
+                  onSelect={select}
+                  onReview={() => dialogs.show('review')}
+                  onReschedule={
+                    canEdit && weekStart + 7 * DAY > (today ?? weekStart)
+                      ? () => setReschedule({ from: ymd(Math.max(weekStart, today ?? weekStart)) })
+                      : undefined
+                  }
+                  onPickWeek={(monday) =>
+                    onSearchChange({
+                      week: ymd(monday),
+                      day: undefined,
+                      view: view === 'week' || view === 'month' ? view : 'week',
+                    })
+                  }
+                />
+              </div>
+            )}
           </aside>
         )}
       </div>

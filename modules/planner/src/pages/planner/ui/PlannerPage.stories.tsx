@@ -25,6 +25,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
+import { WIDE_PANELS_KEY } from '../model/use-wide-panels'
 import { PlannerPage } from './PlannerPage'
 
 /**
@@ -117,8 +118,54 @@ export const Month: Story = { args: { search: { week: ymd(fixtureWeek), view: 'm
 
 export const List: Story = { args: { search: { week: ymd(fixtureWeek), view: 'list' } } }
 
-/** All 24 hours with the calendar expanded to the whole window: the header, the runway and the side panel are hidden. */
+/**
+ * All 24 hours with the calendar expanded to the whole window: the header and the runway are hidden, and the side
+ * panels until they are turned on.
+ */
 export const FullDayExpanded: Story = { args: { search: { week: ymd(fixtureWeek), fullDay: true, expanded: true } } }
+
+const storePanels = (value: string | null) => () => {
+  if (value === null) localStorage.removeItem(WIDE_PANELS_KEY)
+  else localStorage.setItem(WIDE_PANELS_KEY, value)
+  return () => localStorage.removeItem(WIDE_PANELS_KEY)
+}
+const panel = (root: HTMLElement, name: string) => root.querySelector(`[data-panel="${name}"]`)
+
+/**
+ * The expanded calendar opens without its side panels; the side-panel menu brings back Next and Insights one by
+ * one, and the choice is remembered. Collapsing shows both again, whatever is remembered for the wide layout.
+ */
+export const WideSidePanels: Story = {
+  beforeEach: storePanels(null),
+  args: { search: { week: ymd(fixtureWeek), expanded: true } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await expect(panel(canvasElement, 'next')).toBeNull()
+    await expect(panel(canvasElement, 'insights')).toBeNull()
+    await userEvent.click(page.getByRole('button', { name: m.side_panels() }))
+    const insights = await page.findByRole('menuitemcheckbox', { name: m.panel_insights() })
+    await expect(insights).toHaveAttribute('aria-checked', 'false')
+    await userEvent.click(insights)
+    await expect(insights).toHaveAttribute('aria-checked', 'true')
+    await waitFor(() => expect(panel(canvasElement, 'insights')).not.toBeNull())
+    await expect(panel(canvasElement, 'next')).toBeNull()
+    await expect(localStorage.getItem(WIDE_PANELS_KEY)).toBe('["insights"]')
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(page.getByRole('button', { name: m.collapse() }))
+    await waitFor(() => expect(panel(canvasElement, 'next')).not.toBeNull())
+    await expect(panel(canvasElement, 'insights')).not.toBeNull()
+  },
+}
+
+/** A panel turned on in an earlier visit is there when the expanded calendar opens again. */
+export const WideSidePanelsRemembered: Story = {
+  beforeEach: storePanels('["next"]'),
+  args: { search: { week: ymd(fixtureWeek), expanded: true } },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(panel(canvasElement, 'next')).not.toBeNull())
+    await expect(panel(canvasElement, 'insights')).toBeNull()
+  },
+}
 
 /** `canEdit: false`, as on a host that cannot write the plan file: nothing on the page changes the plan. */
 export const ReadOnly: Story = {

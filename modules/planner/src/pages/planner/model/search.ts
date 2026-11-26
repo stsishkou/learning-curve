@@ -18,7 +18,10 @@ export interface PlannerSearch {
   zoom?: PlannerZoom | undefined
   /** The week grid shows all 24 hours instead of only the hours that have events */
   fullDay?: true | undefined
-  /** The calendar takes the whole window: the header, the runway and the side panel are hidden */
+  /**
+   * The calendar takes the whole window: the header and the runway are hidden, the side panels show only when
+   * turned on
+   */
   expanded?: true | undefined
   /** Sessions marked done are left out of the day, week and month views */
   hideDone?: true | undefined

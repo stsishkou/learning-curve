@@ -17,6 +17,7 @@ import {
   Maximize2,
   Printer,
   MoveHorizontal,
+  PanelRight,
   Redo2,
   Search,
   Settings,
@@ -27,6 +28,7 @@ import {
 
 import type { PlannerAction } from './planner-actions'
 import type { PlannerViewState } from './use-planner-view'
+import type { WidePanel, WidePanels } from './use-wide-panels'
 
 export type DialogName =
   | 'calendars'
@@ -61,6 +63,8 @@ interface Context {
   reminders?: { on: boolean; lead: number; toggle: () => void } | undefined
   /** Present where the browser can fill the whole screen */
   fullscreen?: { on: boolean; toggle: () => void } | undefined
+  /** Present in the wide layout: which side panels are shown next to the calendar */
+  panels?: { shown: WidePanels; toggle: (panel: WidePanel) => void } | undefined
   /** The help marks next to the main features */
   help: { on: boolean; toggle: () => void }
   /** Buttons with an icon show only the icon */
@@ -244,6 +248,30 @@ export function buildActions(ctx: Context): PlannerAction[] {
             checked: ctx.fullscreen.on,
             menu: 'narrow' as const,
             run: ctx.fullscreen.toggle,
+          },
+        ]
+      : []),
+    ...(ctx.panels
+      ? [
+          {
+            id: 'panel-next',
+            group: view,
+            label: ctx.panels.shown.next ? m.panel_next_hide() : m.panel_next_show(),
+            menuLabel: m.panel_next(),
+            icon: <PanelRight {...ICON} />,
+            checked: ctx.panels.shown.next,
+            menu: 'narrow' as const,
+            run: () => ctx.panels?.toggle('next'),
+          },
+          {
+            id: 'panel-insights',
+            group: view,
+            label: ctx.panels.shown.insights ? m.panel_insights_hide() : m.panel_insights_show(),
+            menuLabel: m.panel_insights(),
+            icon: <PanelRight {...ICON} />,
+            checked: ctx.panels.shown.insights,
+            menu: 'narrow' as const,
+            run: () => ctx.panels?.toggle('insights'),
           },
         ]
       : []),

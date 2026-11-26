@@ -32,20 +32,22 @@ export interface PlannerAction {
 export const toCommands = (actions: PlannerAction[]): Command[] =>
   actions.filter((a) => a.palette !== false).map(({ id, group, label, keys, run }) => ({ id, group, label, keys, run }))
 
+/** The row of one action in any menu, wherever the `⋮` menu lists it. */
+export const toMenuItem = (a: PlannerAction): MenuItem => ({
+  id: a.id,
+  icon: a.icon,
+  label: a.menuLabel ?? a.label,
+  keys: a.keys,
+  badge: a.badge,
+  checked: a.checked,
+  disabled: a.disabled,
+  run: a.run,
+})
+
 export const toMenuItems = (actions: PlannerAction[]): MenuItem[] =>
   actions
     .filter((a) => a.menu)
-    .map((a) => ({
-      id: a.id,
-      icon: a.icon,
-      label: a.menuLabel ?? a.label,
-      keys: a.keys,
-      badge: a.badge,
-      checked: a.checked,
-      disabled: a.disabled,
-      className: a.menu === 'narrow' ? 'md:hidden' : undefined,
-      run: a.run,
-    }))
+    .map((a) => ({ ...toMenuItem(a), className: a.menu === 'narrow' ? 'md:hidden' : undefined }))
 
 export const toShortcuts = (actions: PlannerAction[]): Shortcuts =>
   Object.fromEntries(actions.flatMap((a) => (a.keys ? [[a.keys.toLowerCase(), a.run]] : [])))
