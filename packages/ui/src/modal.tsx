@@ -28,7 +28,7 @@ interface Props {
 }
 
 /** Below this width a dialog beside its element would cover it anyway. */
-const ANCHOR_FROM = 768
+export const ANCHOR_FROM = 768
 const GAP = 12
 const EDGE = 16
 
