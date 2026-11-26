@@ -102,7 +102,7 @@ function install(): () => void {
     timer = window.setTimeout(() => show(el), 0)
   }
 
-  const focusOut = (e: FocusEvent) => {
+  const ownTarget = (e: Event) => {
     if (owner && e.target instanceof Node && owner.contains(e.target)) hide()
   }
   const key = (e: KeyboardEvent) => {
@@ -112,7 +112,9 @@ function install(): () => void {
   document.addEventListener('pointerover', over)
   document.addEventListener('pointerout', out)
   document.addEventListener('focusin', focusIn)
-  document.addEventListener('focusout', focusOut)
+  document.addEventListener('focusout', ownTarget)
+  // Pressed from the keyboard: what the control does may move it or change it, and the tooltip would stay behind.
+  document.addEventListener('click', ownTarget)
   document.addEventListener('keydown', key)
   document.addEventListener('pointerdown', hide)
   document.addEventListener('scroll', hide, { capture: true, passive: true })
@@ -122,7 +124,8 @@ function install(): () => void {
     document.removeEventListener('pointerover', over)
     document.removeEventListener('pointerout', out)
     document.removeEventListener('focusin', focusIn)
-    document.removeEventListener('focusout', focusOut)
+    document.removeEventListener('focusout', ownTarget)
+    document.removeEventListener('click', ownTarget)
     document.removeEventListener('keydown', key)
     document.removeEventListener('pointerdown', hide)
     document.removeEventListener('scroll', hide, { capture: true })

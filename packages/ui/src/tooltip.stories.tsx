@@ -58,6 +58,17 @@ export const OnKeyboardFocus: Story = {
   },
 }
 
+/** Pressing a control with the keyboard puts its tooltip away: what it does may move the control or change it. */
+export const HidesWhenPressed: Story = {
+  play: async ({ canvasElement }) => {
+    await userEvent.tab()
+    await expect(within(canvasElement).getByRole('button', { name: 'Work week' })).toHaveFocus()
+    await waitFor(() => expect(shown()).toBe(true))
+    await userEvent.keyboard('{Enter}')
+    await expect(shown()).toBe(false)
+  },
+}
+
 /** A tooltip shows above an open dialog too, for the buttons inside it. */
 export const InADialog: Story = {
   render: () => (
