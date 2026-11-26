@@ -31,9 +31,14 @@ export function useFillHeight(
       setHeight(window.innerWidth < minWidth ? undefined : Math.max(minHeight, window.innerHeight - top - bottomGap))
     }
     measure()
-    // The box moves when anything above it changes height, not only when the window does.
+    // The box moves when anything above it changes height, not only when the window does. Its own column counts too:
+    // a card above it can go while a taller column next to it keeps the page's height.
     const observer = new ResizeObserver(measure)
-    observer.observe(document.body)
+    let node: HTMLElement | null = ref.current?.parentElement ?? document.body
+    while (node) {
+      observer.observe(node)
+      node = node.parentElement
+    }
     window.addEventListener('resize', measure)
     return () => {
       observer.disconnect()

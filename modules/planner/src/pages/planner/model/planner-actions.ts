@@ -32,7 +32,7 @@ export interface PlannerAction {
 export const toCommands = (actions: PlannerAction[]): Command[] =>
   actions.filter((a) => a.palette !== false).map(({ id, group, label, keys, run }) => ({ id, group, label, keys, run }))
 
-/** The row of one action in any menu, wherever the `⋮` menu lists it. */
+/** One action as a row of a menu of its own: without the class that hides `⋮` rows on a wide screen. */
 export const toMenuItem = (a: PlannerAction): MenuItem => ({
   id: a.id,
   icon: a.icon,

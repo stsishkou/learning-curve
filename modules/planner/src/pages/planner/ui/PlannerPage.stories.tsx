@@ -157,6 +157,30 @@ export const WideSidePanels: Story = {
   },
 }
 
+const insightsHeight = (root: HTMLElement) =>
+  Number.parseFloat(
+    root.querySelector<HTMLElement>('[data-panel="insights"] section > div:last-child')?.style.maxHeight ?? '',
+  )
+
+/**
+ * With the whole day on, the calendar already reaches the bottom of the window, so the page keeps its height when
+ * Next goes; Insights still takes the room Next leaves.
+ */
+export const WideInsightsTakesNextsRoom: Story = {
+  beforeEach: storePanels('["next","insights"]'),
+  args: { search: { week: ymd(fixtureWeek), expanded: true, fullDay: true } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await waitFor(() => expect(panel(canvasElement, 'next')).not.toBeNull())
+    await waitFor(() => expect(insightsHeight(canvasElement)).toBeGreaterThan(0))
+    const before = insightsHeight(canvasElement)
+    await userEvent.click(page.getByRole('button', { name: m.side_panels() }))
+    await userEvent.click(await page.findByRole('menuitemcheckbox', { name: m.panel_next() }))
+    await waitFor(() => expect(panel(canvasElement, 'next')).toBeNull())
+    await waitFor(() => expect(insightsHeight(canvasElement)).toBeGreaterThan(before))
+  },
+}
+
 /** A panel turned on in an earlier visit is there when the expanded calendar opens again. */
 export const WideSidePanelsRemembered: Story = {
   beforeEach: storePanels('["next"]'),

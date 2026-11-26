@@ -23,7 +23,7 @@ export function parseWidePanels(raw: string | null): WidePanels {
 
 /**
  * The side panels the wide layout shows next to the calendar, remembered per browser. None until the stored choice
- * is read after mount, so the wide layout first looks as it did before panels could be shown in it.
+ * is read after mount: the server has no storage, and the first render in the browser has to match its HTML.
  */
 export function useWidePanels() {
   const [shown, setShown] = useState<WidePanels>(NONE)
