@@ -78,6 +78,11 @@ export function Modal({ open, onClose, label, size = 'normal', top = false, anch
     if (!open && dlg.open) dlg.close()
   }, [open])
 
+  // A dialog that changes size starts again at its top: a row that sticks in one size scrolls away in the other.
+  useLayoutEffect(() => {
+    ref.current?.scrollTo({ top: 0 })
+  }, [size])
+
   const latestAnchor = useRef(anchor)
   // After every render: the element moves when the event it shows is edited, and the dialog changes height.
   useLayoutEffect(() => {

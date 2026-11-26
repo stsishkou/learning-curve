@@ -370,7 +370,10 @@ export const ExpandedReading: Story = {
   },
 }
 
-/** A long description scrolls between the title and the buttons, which both stay in view. */
+/**
+ * A long description scrolls between the title and the buttons, which both stay in view. Collapsing then starts the
+ * small dialog at its top: its title row is not sticky, and the pressed button would be scrolled away.
+ */
 export const ExpandedLongDescription: Story = {
   beforeEach: storeExpanded('1'),
   globals: DESKTOP,
@@ -392,6 +395,11 @@ export const ExpandedLongDescription: Story = {
       await expect(body.getByRole('button', { name: m.edit() }).getBoundingClientRect().bottom).toBeLessThanOrEqual(
         frame.bottom,
       )
+    })
+    await userEvent.click(body.getByRole('button', { name: m.expand() }))
+    await waitFor(async () => {
+      await expect(dlg.offsetWidth).toBeLessThanOrEqual(560)
+      await expect(heading.getBoundingClientRect().top).toBeGreaterThanOrEqual(dlg.getBoundingClientRect().top)
     })
   },
 }
