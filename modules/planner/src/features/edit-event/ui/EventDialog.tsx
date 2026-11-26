@@ -29,7 +29,9 @@ import {
   ExternalLink,
   FOOT,
   Link2,
+  Maximize2,
   META,
+  Minimize2,
   Modal,
   Scissors,
   Timer,
@@ -39,6 +41,7 @@ import {
 } from '@lc/ui'
 import { useState } from 'react'
 
+import { useEventExpanded } from '../model/use-event-expanded'
 import { EventForm } from './EventForm'
 import { EventNudge } from './EventNudge'
 import { OverlapNote, type Overlap } from './OverlapNote'
@@ -59,6 +62,9 @@ const linkify = (text: string) =>
   )
 
 const NO_BUSY: BusyBlock[] = []
+
+const HEAD_BUTTON =
+  'grid size-8 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-ink'
 
 const stamp = (local: string) => `${local.replaceAll(/[-:]/g, '')}00`
 
@@ -135,6 +141,9 @@ export function EventDialog({
   const [linked, setLinked] = useState(false)
   /** The session whose Mark done asks for its time */
   const [finishing, setFinishing] = useState<string | null>(null)
+  const { available: expandable, expanded, toggle: toggleExpanded } = useEventExpanded()
+  // A new event's form stays beside its draft, which shows the event on the page while it is filled in.
+  const big = expanded && event !== null
   const close = () => {
     setEditing(false)
     setError('')
@@ -235,7 +244,12 @@ export function EventDialog({
       : []
 
   return (
-    <Modal open={Boolean(event) || Boolean(draft)} anchor={anchor} onClose={close}>
+    <Modal
+      open={Boolean(event) || Boolean(draft)}
+      anchor={big ? undefined : anchor}
+      size={big ? 'wide' : 'normal'}
+      onClose={close}
+    >
       {draft && !event && (
         <EventForm
           // A fresh form per slot, so fields never carry over from the previous one.
@@ -282,15 +296,23 @@ export function EventDialog({
             >
               {event.title}
             </h3>
-            <button
-              type="button"
-              className="-mt-1 -mr-1.5 grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-ink"
-              aria-label={m.close()}
-              data-tip={m.close()}
-              onClick={close}
-            >
-              <X size={18} aria-hidden />
-            </button>
+            <span className="-mt-1 -mr-1.5 flex shrink-0 gap-0.5">
+              {expandable && (
+                <button
+                  type="button"
+                  className={HEAD_BUTTON}
+                  aria-pressed={big}
+                  aria-label={m.expand()}
+                  data-tip={m.event_expand_hint()}
+                  onClick={toggleExpanded}
+                >
+                  {big ? <Minimize2 size={18} aria-hidden /> : <Maximize2 size={18} aria-hidden />}
+                </button>
+              )}
+              <button type="button" className={HEAD_BUTTON} aria-label={m.close()} data-tip={m.close()} onClick={close}>
+                <X size={18} aria-hidden />
+              </button>
+            </span>
           </div>
           <div className={META} style={calendarColor(calendar?.color)}>
             <Dot className="size-2.5" />

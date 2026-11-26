@@ -5,7 +5,50 @@ import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
+import { EVENT_EXPANDED_KEY } from '../model/use-event-expanded'
 import { EventDialog } from './EventDialog'
+
+const storeExpanded = (value: '1' | null) => () => {
+  if (value === null) localStorage.removeItem(EVENT_EXPANDED_KEY)
+  else localStorage.setItem(EVENT_EXPANDED_KEY, value)
+  return () => localStorage.removeItem(EVENT_EXPANDED_KEY)
+}
+
+/** A fixed stand-in for the event on the page, for the dialog to open beside: its right edge is at 160px. */
+const spot = () => {
+  const el = document.createElement('div')
+  el.dataset.spot = ''
+  el.style.cssText = 'position:fixed;left:40px;top:40px;width:120px;height:40px'
+  document.body.append(el)
+  return () => el.remove()
+}
+const atSpot = () => document.querySelector('[data-spot]')
+/** The spot's right edge and the 12px gap */
+const BESIDE = '172px'
+
+const DESKTOP = { viewport: { value: 'desktop', isRotated: false } }
+
+function dialogOf(root: HTMLElement): HTMLDialogElement {
+  const dlg = root.ownerDocument.querySelector('dialog[open]')
+  if (!(dlg instanceof HTMLDialogElement)) throw new Error('no open dialog')
+  return dlg
+}
+
+/**
+ * How far the dialog's centre is from the middle of the area it is laid out in: the window less the scrollbar gutter
+ * the page keeps (`scrollbar-gutter: stable`), which a fixed element filling the window measures. The open animation
+ * scales the dialog around its centre, so the centre is right even mid-animation.
+ */
+function offCentre(dlg: HTMLDialogElement): number {
+  const doc = dlg.ownerDocument
+  const frame = doc.createElement('div')
+  frame.style.cssText = 'position:fixed;inset:0;visibility:hidden'
+  doc.body.append(frame)
+  const middle = frame.getBoundingClientRect().width / 2
+  frame.remove()
+  const box = dlg.getBoundingClientRect()
+  return Math.abs(box.left + box.width / 2 - middle)
+}
 
 const pick = (test: (e: PlanEvent) => boolean) => fixturePlan.events.find(test) ?? itemAt(fixturePlan.events)
 const upcoming = pick((e) => isSession(e) && parseLocal(e.start) > fixtureNow)
@@ -33,6 +76,7 @@ const meta = {
     onDayChange: fn(),
   },
   argTypes: { plan: { control: false }, event: { control: false }, draft: { control: false } },
+  beforeEach: storeExpanded(null),
 } satisfies Meta<typeof EventDialog>
 
 export default meta
@@ -209,5 +253,104 @@ export const Split: Story = {
     const split = await body.findByRole('button', { name: /✂|split|раздел|divid/i })
     await userEvent.click(split)
     await expect(args.onChange).toHaveBeenCalledWith(splitInHalves(upcoming))
+  },
+}
+
+/**
+ * Expand moves the dialog from beside its event to the middle of the window, larger, and remembers that; pressing it
+ * again puts it back. Focus stays on the button, whose name stays the same: only its pressed state changes.
+ */
+export const Expand: Story = {
+  beforeEach: spot,
+  globals: DESKTOP,
+  args: { anchor: atSpot },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(window.innerWidth).toBeGreaterThanOrEqual(768)
+    const expand = await body.findByRole('button', { name: m.expand() })
+    await expect(expand).toHaveAttribute('aria-pressed', 'false')
+    await waitFor(() => expect(dialogOf(canvasElement).style.left).toBe(BESIDE))
+    await userEvent.click(expand)
+    await expect(expand).toHaveAttribute('aria-pressed', 'true')
+    await expect(expand).toHaveFocus()
+    await waitFor(async () => {
+      const dlg = dialogOf(canvasElement)
+      await expect(dlg.style.left).toBe('')
+      await expect(dlg.offsetWidth).toBe(760)
+      await expect(offCentre(dlg)).toBeLessThanOrEqual(1)
+    })
+    await expect(localStorage.getItem(EVENT_EXPANDED_KEY)).toBe('1')
+    await userEvent.click(expand)
+    await expect(expand).toHaveAttribute('aria-pressed', 'false')
+    await waitFor(() => expect(dialogOf(canvasElement).style.left).toBe(BESIDE))
+    await expect(localStorage.getItem(EVENT_EXPANDED_KEY)).toBeNull()
+  },
+}
+
+/** Once expanded, the next event opens expanded. */
+export const ExpandRemembered: Story = {
+  beforeEach: [spot, storeExpanded('1')],
+  globals: DESKTOP,
+  args: { anchor: atSpot },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByRole('button', { name: m.expand() })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(async () => {
+      const dlg = dialogOf(canvasElement)
+      await expect(dlg.style.left).toBe('')
+      await expect(offCentre(dlg)).toBeLessThanOrEqual(1)
+    })
+  },
+}
+
+/**
+ * Esc closes the expanded dialog at once, and the next one still opens expanded. A scripted Escape is not trusted, so
+ * the browser would not act on it: `requestClose()` makes the close request Esc makes.
+ */
+export const EscClosesExpanded: Story = {
+  beforeEach: storeExpanded('1'),
+  globals: DESKTOP,
+  play: async ({ args, canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByRole('button', { name: m.expand() })).toHaveAttribute('aria-pressed', 'true')
+    dialogOf(canvasElement).requestClose()
+    await waitFor(() => expect(args.onClose).toHaveBeenCalledTimes(1))
+    await expect(localStorage.getItem(EVENT_EXPANDED_KEY)).toBe('1')
+  },
+}
+
+/** Expanding halfway through Mark done keeps the question on screen. */
+export const ExpandKeepsState: Story = {
+  globals: DESKTOP,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: m.mark_done() }))
+    await userEvent.click(body.getByRole('button', { name: m.expand() }))
+    await expect(body.getByRole('button', { name: m.spent_done_without() })).toBeInTheDocument()
+  },
+}
+
+/** The form for a new event stays beside its draft, which shows the event on the page while it is filled in. */
+export const NewEventNeverExpands: Story = {
+  beforeEach: [spot, storeExpanded('1')],
+  globals: DESKTOP,
+  args: { ...NewEvent.args, anchor: atSpot },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await waitFor(() => expect(dialogOf(canvasElement).style.left).toBe(BESIDE))
+    await expect(body.queryByRole('button', { name: m.expand() })).toBeNull()
+  },
+}
+
+/** On a phone the dialog already fills the width: there is no Expand, whatever was remembered. */
+export const NarrowNoExpand: Story = {
+  beforeEach: storeExpanded('1'),
+  globals: { viewport: { value: 'mobile2', isRotated: false } },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(window.innerWidth).toBeLessThan(768)
+    await body.findByRole('button', { name: m.close() })
+    await expect(body.queryByRole('button', { name: m.expand() })).toBeNull()
+    await expect(dialogOf(canvasElement).offsetWidth).toBeLessThanOrEqual(560)
   },
 }

@@ -172,6 +172,7 @@
   "expand": "Ampliar",
   "collapse": "Reducir",
   "expand_hint": "El calendario ocupa toda la ventana: sin cabecera ni línea de tiempo, y los paneles laterales solo si los activas",
+  "event_expand_hint": "Mostrar el evento en grande en el centro de la pantalla; los siguientes se abrirán igual",
   "side_panels": "Paneles laterales",
   "panel_next": "Panel «Siguiente»",
   "panel_insights": "Panel «Resumen»",

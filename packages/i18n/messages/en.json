@@ -172,6 +172,7 @@
   "expand": "Expand",
   "collapse": "Collapse",
   "expand_hint": "Calendar across the whole window: no header or runway, side panels only when turned on",
+  "event_expand_hint": "Show the event large in the middle of the screen; the next events open the same way",
   "side_panels": "Side panels",
   "panel_next": "Next panel",
   "panel_insights": "Insights panel",
