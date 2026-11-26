@@ -28,6 +28,8 @@ type Story = StoryObj<typeof meta>
 // One tooltip serves the whole page: it lives in the top layer, outside the story.
 const tip = () => document.querySelector<HTMLElement>('.lc-tip')
 const shown = () => tip()?.matches(':popover-open') === true
+// The tooltip waits 300ms after the pointer rests; with every story running at once that timer fires late.
+const SHOWS_WITHIN = 3000
 
 /**
  * Anything with `data-tip` gets a tooltip a moment after the pointer rests on it, under it, and loses it when the
@@ -37,7 +39,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole('button', { name: 'Work week' })
     await userEvent.hover(button)
-    await waitFor(() => expect(shown()).toBe(true), { timeout: 600 })
+    await waitFor(() => expect(shown()).toBe(true), { timeout: SHOWS_WITHIN })
     await expect(tip()).toHaveTextContent('Monday to Friday only')
     await expect(tip()?.getBoundingClientRect().top).toBeGreaterThanOrEqual(button.getBoundingClientRect().bottom)
     await userEvent.unhover(button)
@@ -79,7 +81,7 @@ export const InADialog: Story = {
   play: async () => {
     const dialog = within(document.body).getByRole('dialog')
     await userEvent.hover(within(dialog).getByRole('button', { name: 'Delete' }))
-    await waitFor(() => expect(shown()).toBe(true), { timeout: 600 })
+    await waitFor(() => expect(shown()).toBe(true), { timeout: SHOWS_WITHIN })
     await expect(tip()?.checkVisibility()).toBe(true)
   },
 }
