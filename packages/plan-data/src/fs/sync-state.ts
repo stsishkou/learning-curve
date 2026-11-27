@@ -1,4 +1,5 @@
-import { join } from 'node:path'
+import { mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 
 import { parseRevisions, type CalendarProvider, type PlanId } from '@lc/plan-domain'
 import { parseCalendarSync } from '@lc/plan-domain/sync'
@@ -23,6 +24,7 @@ export function createFsSyncState(
 ): SyncStateStore {
   const writePart = (plan: PlanId, part: string, value: unknown): Promise<void> => {
     const file = syncFile(dir, plan)
+    mkdirSync(dirname(file), { recursive: true })
     writeJsonAtomic(file, { ...readObject(file), [part]: value })
     return Promise.resolve()
   }

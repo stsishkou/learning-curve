@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { emptyEdits, parsePlanId, parseUserId } from '@lc/plan-domain'
+import { parseCalendarSync } from '@lc/plan-domain/sync'
 import { DEFAULT_PLAN, LOCAL_OWNER } from '@lc/plan-service'
 import {
   describePlanLibrary,
@@ -145,6 +146,20 @@ test('sync state keeps the file layout the app already writes, and reads ids fro
   await syncState.saveFeedRevisions(DEFAULT_PLAN, {})
   const written: unknown = JSON.parse(readFileSync(join(dir, 'sync.json'), 'utf8'))
   expect(written).toMatchObject({ google: { calendars: { study: { id: 'cal', summary: 'S' } } } })
+})
+
+test('another plan keeps its sync state in its own folder, created by the first save', async () => {
+  const dir = seededDir()
+  const { syncState } = portsIn(dir)
+  const other = parsePlanId('other')
+  const revisions = { e1: { seq: 1, modified: 5, hash: 'h' } }
+  const sync = { ...parseCalendarSync(null), calendars: { study: { id: 'cal', summary: 'S' } } }
+  await syncState.saveFeedRevisions(other, revisions)
+  await syncState.saveCalendarSync(other, 'google', sync)
+  expect(await syncState.feedRevisions(other)).toEqual(revisions)
+  expect(await syncState.calendarSync(other, 'google')).toEqual(sync)
+  expect(statSync(join(dir, 'plans', 'other', 'sync.json')).isFile()).toBe(true)
+  expect(await syncState.feedRevisions(DEFAULT_PLAN)).toEqual({})
 })
 
 test('the library keeps one owner in library/ and another in people/<id>/library/', async () => {
