@@ -9,8 +9,9 @@ them. The adapters live in `@lc/plan-data`; each composition root wires them.
 
 - `.` (`src/index.ts`): the only entry. `src/ports/` holds one file per port; `src/ports/index.ts` adds `PlanPorts`,
   the set of them a composition root passes in. `src/services/` holds the use cases, built by
-  `createPlanServices(ports)`: the plan, the library, busy time and re-balance; each resolves the actor's plan and
-  asks `accessOf` itself. `src/parse.ts` reads each use case's input from untrusted JSON, with the messages a
+  `createPlanServices(ports)`: the plan, the library, busy time, re-balance and the calendar sync; each resolves the
+  actor's plan and asks `accessOf` itself. `src/services/calendar-sync/` holds the sync rounds and the inbox
+  decisions, run one at a time; a stored change starts a round for every connected calendar app. `src/parse.ts` reads each use case's input from untrusted JSON, with the messages a
   person sees.
 
 Imports `@lc/plan-domain` and its entries only: never React, `node:*`, `@lc/plan-data` or `@lc/plan-content`

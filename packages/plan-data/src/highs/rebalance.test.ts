@@ -26,7 +26,7 @@ import {
 } from '@lc/plan-domain/rebalance'
 import { describe, expect, test } from 'vitest'
 
-import { requestFromTool } from './rebalance'
+import { requestFromTool } from '../rebalance'
 import { solveLp } from './solver'
 
 const MONDAY = parseLocal('2026-12-07T00:00')

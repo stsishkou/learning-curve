@@ -112,23 +112,26 @@ export interface CalendarSignIn {
     /** When the account was connected; null when it is not */
     readonly connectedAt: number | null
   }>
-  /** Keeps the client, trimmed, for the next sign-in. */
+  /**
+   * Keeps the client, trimmed, for the next sign-in. Called only where the store can be written: the service checks
+   * `host.writable()` first.
+   */
   readonly saveClient: (provider: CalendarProvider, id: string, secret: string) => Promise<void>
   /**
    * The app's sign-in page for the client, coming back to `redirect` with a code. Starts a one-time sign-in, which
    * expires unless `finishConnect` finishes it soon. Rejects with `CalendarAuthError` `client` when no client is
-   * known.
+   * known. Called only where the store can be written.
    */
   readonly connectAddress: (provider: CalendarProvider, redirect: string) => Promise<string>
   /**
    * Finishes the sign-in `connectAddress` started and keeps the account. Rejects with `CalendarAuthError`: `state`
    * for a sign-in that expired or is not this one, `scope` when access to the calendars was left out, `client`,
-   * `reconnect` or `token` when the app refused.
+   * `reconnect` or `token` when the app refused. Called only where the store can be written.
    */
   readonly finishConnect: (provider: CalendarProvider, code: string, state: string) => Promise<void>
   /**
    * Signs out here and, where the app can be told, has it forget the grant; the calendars there stay as they are.
-   * Signing out here works even when the app cannot be reached.
+   * Signing out here works even when the app cannot be reached. Called only where the store can be written.
    */
   readonly disconnect: (provider: CalendarProvider) => Promise<void>
 }
@@ -139,7 +142,8 @@ export interface CalendarTokens {
    * A token for `owner`'s account in `provider`'s API, reused until shortly before it expires; `renew` gets a new
    * one, after the app refused the last. Rejects with `CalendarAuthError` `reconnect` when the account must be
    * connected again (it is then forgotten) and `client` when no client is known or the app refuses it; other
-   * failures reject as they come.
+   * failures reject as they come. Asked only by a round or a decision, which run only where the store can be
+   * written, since a renewed token is kept.
    */
   readonly token: (owner: UserId, provider: CalendarProvider, renew: boolean) => Promise<string>
 }

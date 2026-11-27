@@ -5,7 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./fs": "./src/fs/index.ts"
+    "./fs": "./src/fs/index.ts",
+    "./ical": "./src/ical/index.ts",
+    "./highs": "./src/highs/index.ts",
+    "./google": "./src/google/index.ts",
+    "./outlook": "./src/outlook/index.ts",
+    "./local": "./src/local/index.ts"
   },
   "scripts": {
     "plan": "tsx scripts/build-plan.ts",

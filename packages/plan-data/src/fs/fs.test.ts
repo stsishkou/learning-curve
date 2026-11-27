@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { emptyEdits, parsePlanId, parseUserId } from '@lc/plan-domain'
 import { parseCalendarSync } from '@lc/plan-domain/sync'
-import { DEFAULT_PLAN, LOCAL_OWNER } from '@lc/plan-service'
+import { CalendarAuthError, DEFAULT_PLAN, LOCAL_OWNER } from '@lc/plan-service'
 import {
   describePlanLibrary,
   describePlanRepository,
@@ -13,6 +13,8 @@ import {
 } from '@lc/plan-service/testing'
 import { expect, test } from 'vitest'
 
+import { googleConnector } from '../google'
+import { outlookConnector } from '../outlook'
 import { bundledPlan, createFsPorts, findDataDir, type FsOptions } from './index'
 
 const freshDir = (): string => mkdtempSync(join(tmpdir(), 'lc-fs-'))
@@ -25,7 +27,14 @@ const seededDir = (): string => {
 }
 
 const portsIn = (dir: string, options: Partial<Omit<FsOptions, 'dir'>> = {}) =>
-  createFsPorts({ dir, busyFeedFromHost: null, calendarIds: {}, ...options })
+  createFsPorts({
+    dir,
+    busyFeedFromHost: null,
+    calendarIds: {},
+    connectors: { google: googleConnector, outlook: outlookConnector },
+    clientsFromHost: {},
+    ...options,
+  })
 
 const seededPorts = (options: Partial<Omit<FsOptions, 'dir'>> = {}) => portsIn(seededDir(), options)
 
@@ -178,4 +187,40 @@ test('findDataDir takes PLAN_DATA_DIR, else the nearest data directory upwards',
   mkdirSync(join(root, 'packages', 'plan-data', 'data'), { recursive: true })
   mkdirSync(join(root, 'apps', 'web'), { recursive: true })
   expect(findDataDir(join(root, 'apps', 'web'), {})).toBe(join(root, 'packages', 'plan-data', 'data'))
+})
+
+test('a client saved for a calendar app is kept trimmed beside the other settings, readable by its owner only', async () => {
+  const dir = seededDir()
+  writeFileSync(join(dir, 'local.json'), JSON.stringify({ busyFeed: 'https://x/a.ics' }))
+  const { calendarSignIn } = portsIn(dir)
+  expect(await calendarSignIn.status('google')).toEqual({ configured: false, connectedAt: null })
+  await calendarSignIn.saveClient('google', ' id ', ' secret ')
+  expect(await calendarSignIn.status('google')).toEqual({ configured: true, connectedAt: null })
+  expect(await calendarSignIn.status('outlook')).toEqual({ configured: false, connectedAt: null })
+  expect(JSON.parse(readFileSync(join(dir, 'local.json'), 'utf8'))).toEqual({
+    busyFeed: 'https://x/a.ics',
+    google: { clientId: 'id', clientSecret: 'secret' },
+  })
+  expect(statSync(join(dir, 'local.json')).mode & 0o777).toBe(0o600)
+})
+
+test('a client the host sets wins over a saved one; a part it leaves empty is the saved one', async () => {
+  const dir = seededDir()
+  await portsIn(dir).calendarSignIn.saveClient('google', 'saved-id', 'saved-secret')
+  const hosted = portsIn(dir, { clientsFromHost: { google: { id: 'host-id', secret: '' } } })
+  const address = new URL(await hosted.calendarSignIn.connectAddress('google', 'http://localhost/cb'))
+  expect(address.searchParams.get('client_id')).toBe('host-id')
+  const fresh = portsIn(seededDir(), { clientsFromHost: { outlook: { id: 'host-id', secret: 'host-secret' } } })
+  expect(await fresh.calendarSignIn.status('outlook')).toEqual({ configured: true, connectedAt: null })
+})
+
+test('a sign-in needs a client and its own state, and a token needs a connected account', async () => {
+  const { calendarSignIn, calendarTokens } = seededPorts()
+  const noClient = calendarSignIn.connectAddress('google', 'http://localhost/cb')
+  await expect(noClient).rejects.toBeInstanceOf(CalendarAuthError)
+  await expect(noClient).rejects.toMatchObject({ reason: 'client' })
+  await expect(calendarSignIn.finishConnect('google', 'code', 'unknown')).rejects.toMatchObject({ reason: 'state' })
+  const token = calendarTokens.token(LOCAL_OWNER, 'google', false)
+  await expect(token).rejects.toBeInstanceOf(CalendarAuthError)
+  await expect(token).rejects.toMatchObject({ reason: 'reconnect' })
 })

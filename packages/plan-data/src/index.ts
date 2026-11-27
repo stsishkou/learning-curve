@@ -1,4 +1,4 @@
-export { loadBusy, parseBusy } from './busy'
+export { loadBusy, parseBusy } from './ical/busy'
 export {
   acceptProposals,
   calendarStatus,
@@ -17,7 +17,7 @@ export {
   saveCalendarClient,
 } from './calendar-sync/oauth'
 export { rebalanceCalendar, requestFromTool } from './rebalance'
-export { solveLp } from './solver'
+export { solveLp } from './highs/solver'
 export { listPlanFiles, readPlanVersion, removePlanFile, renamePlanFile, savePlanVersion } from './library'
 export {
   canWrite,

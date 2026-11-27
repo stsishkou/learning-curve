@@ -4,11 +4,14 @@ export { failureMessage, type PlanFailure } from './failure'
 export {
   parseBusyAddress,
   parseBusyWindow,
+  parseCalendarClient,
   parseChanges,
   parseCursor,
   parseFileRef,
   parseFileRename,
   parseFileSave,
+  parseProposalIds,
+  parseProvider,
   parseRebalanceInput,
 } from './parse'
 export {
@@ -37,6 +40,7 @@ export {
 export { Superseded, newestOnly } from './queue'
 export { fail, ok, type Result } from './result'
 export type { BusyFeed, BusyService } from './services/busy'
+export type { CalendarSignInFailure, CalendarStatus, CalendarSyncService } from './services/calendar-sync/service'
 export { createPlanServices, type PlanServices } from './services/create'
 export type { LibraryService, PlanFileSave } from './services/library'
 export type { PlanFeed, PlanRebuild, PlanService } from './services/plans'

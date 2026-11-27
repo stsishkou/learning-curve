@@ -5,11 +5,14 @@ import { describe, expect, test } from 'vitest'
 import {
   parseBusyAddress,
   parseBusyWindow,
+  parseCalendarClient,
   parseChanges,
   parseCursor,
   parseFileRef,
   parseFileRename,
   parseFileSave,
+  parseProposalIds,
+  parseProvider,
   parseRebalanceInput,
 } from './parse'
 
@@ -114,5 +117,56 @@ describe('parseRebalanceInput', () => {
     })
     expect(plan).toEqual(fixtureBase)
     expect(request).toMatchObject({ calendar: 'certs', from: '2026-12-07', overBudget: false })
+  })
+})
+
+describe('the calendar app parsers', () => {
+  test.each([['icloud'], [null], [1]])('refuses %j: Unknown calendar app', (input) =>
+    expect(() => parseProvider(input)).toThrow('Unknown calendar app'),
+  )
+
+  test('reads a calendar app by its name', () => {
+    expect(parseProvider('google')).toBe('google')
+    expect(parseProvider('outlook')).toBe('outlook')
+  })
+
+  test.each([
+    [null],
+    [{ provider: 'google' }],
+    [{ provider: 'google', ids: [] }],
+    [{ provider: 'google', ids: 'a' }],
+    [{ provider: 'google', ids: ['a', 1] }],
+  ])('refuses %j: Proposal ids are required', (input) =>
+    expect(() => parseProposalIds(input)).toThrow('Proposal ids are required'),
+  )
+
+  test('reads the app and the held edits to decide on', () => {
+    expect(() => parseProposalIds({ provider: 'icloud', ids: ['a'] })).toThrow('Unknown calendar app')
+    expect(parseProposalIds({ provider: 'outlook', ids: ['a', 'b'] })).toEqual({ provider: 'outlook', ids: ['a', 'b'] })
+  })
+
+  test.each([
+    [null],
+    [{ provider: 'google', id: 'a' }],
+    [{ provider: 'google', id: ' ', secret: 's' }],
+    [{ provider: 'google', id: 'a', secret: 3 }],
+  ])('refuses %j: A client id and secret are required', (input) =>
+    expect(() => parseCalendarClient(input)).toThrow('A client id and secret are required'),
+  )
+
+  test('reads a client of at most 300 characters each, as given: it is trimmed where it is kept', () => {
+    const long = 'x'.repeat(301)
+    expect(() => parseCalendarClient({ provider: 'google', id: long, secret: 's' })).toThrow(
+      'The client id or secret is too long',
+    )
+    expect(() => parseCalendarClient({ provider: 'google', id: 'a', secret: long })).toThrow(
+      'The client id or secret is too long',
+    )
+    expect(() => parseCalendarClient({ provider: 'icloud', id: 'a', secret: 's' })).toThrow('Unknown calendar app')
+    expect(parseCalendarClient({ provider: 'google', id: ' a ', secret: 's ' })).toEqual({
+      provider: 'google',
+      id: ' a ',
+      secret: 's ',
+    })
   })
 })

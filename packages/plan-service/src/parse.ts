@@ -1,10 +1,21 @@
-import { DAY, feedAddress, isPlan, parseChange, type Plan, type PlanChange } from '@lc/plan-domain'
+import {
+  DAY,
+  feedAddress,
+  isCalendarProvider,
+  isPlan,
+  parseChange,
+  type CalendarProvider,
+  type Plan,
+  type PlanChange,
+} from '@lc/plan-domain'
 import { parseRebalanceRequest, type RebalanceRequest } from '@lc/plan-domain/rebalance'
 
 import type { PlanFileSave } from './services/library'
 
 /** The longest stretch of busy time read at once: a month grid is six weeks */
 const MAX_WINDOW = 62 * DAY
+/** The longest OAuth client id or secret kept */
+const MAX_CLIENT = 300
 
 const record = (value: unknown): Record<string, unknown> => {
   if (typeof value !== 'object' || value === null) throw new Error('An object is required')
@@ -17,6 +28,10 @@ const text = (value: unknown, name: string): string => {
 }
 
 const optional = (value: unknown) => (typeof value === 'string' && value ? value : undefined)
+
+/** The fields of an object, or none for anything else: a missing field is then reported by its own message. */
+const fields = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null ? { ...value } : {}
 
 /** The changes of an update to store: a list of at least one, each read by `parseChange`. */
 export function parseChanges(input: unknown): PlanChange[] {
@@ -76,4 +91,35 @@ export function parseRebalanceInput(input: unknown): { plan: Plan; request: Reba
   }
   const request = 'request' in input ? input.request : undefined
   return { plan: input.plan, request: parseRebalanceRequest(request, input.plan) }
+}
+
+/** A calendar app the plan can be kept in, named in a route or a request. */
+export function parseProvider(input: unknown): CalendarProvider {
+  if (!isCalendarProvider(input)) throw new Error('Unknown calendar app')
+  return input
+}
+
+/** The held edits of a calendar app to decide on: the app, and the inbox ids of at least one edit. */
+export function parseProposalIds(input: unknown): { provider: CalendarProvider; ids: string[] } {
+  const { provider, ids } = fields(input)
+  if (!Array.isArray(ids) || !ids.length || !ids.every((id) => typeof id === 'string')) {
+    throw new Error('Proposal ids are required')
+  }
+  return {
+    provider: parseProvider(provider),
+    ids: ids.filter((id): id is string => typeof id === 'string'),
+  }
+}
+
+/**
+ * A person's own OAuth client for a calendar app, as given: the sign-in keeps it trimmed. The id and the secret are
+ * at most 300 characters each.
+ */
+export function parseCalendarClient(input: unknown): { provider: CalendarProvider; id: string; secret: string } {
+  const { provider, id, secret } = fields(input)
+  if (typeof id !== 'string' || typeof secret !== 'string' || !id.trim() || !secret.trim()) {
+    throw new Error('A client id and secret are required')
+  }
+  if (id.length > MAX_CLIENT || secret.length > MAX_CLIENT) throw new Error('The client id or secret is too long')
+  return { provider: parseProvider(provider), id, secret }
 }

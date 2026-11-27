@@ -8,8 +8,8 @@ import {
 } from '@lc/plan-domain/rebalance'
 import { newestOnly } from '@lc/plan-service'
 
-import { loadBusy } from './busy'
-import { solveLp } from './solver'
+import { solveLp } from './highs/solver'
+import { loadBusy } from './ical/busy'
 import { readBusyFeed } from './store'
 
 const queue = newestOnly()
