@@ -54,9 +54,10 @@ export function PlanTitle({ title, onRename }: Props) {
 
   return (
     <h1 className={heading}>
+      {/* As wide as the heading plus the margins it hangs out by: a heading sized to it would otherwise cut the name. */}
       <button
         type="button"
-        className="group -mx-1.5 inline-flex max-w-full items-center gap-2 rounded-lg px-1.5 text-left hover:bg-surface-2"
+        className="group -mx-1.5 inline-flex max-w-[calc(100%+--spacing(3))] items-center gap-2 rounded-lg px-1.5 text-left hover:bg-surface-2"
         data-tip={m.rename_plan()}
         onClick={() => setDraft(title)}
       >

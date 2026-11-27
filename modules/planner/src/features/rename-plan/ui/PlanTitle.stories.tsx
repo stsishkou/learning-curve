@@ -44,3 +44,17 @@ export const InputMethod: Story = {
 
 /** Without `onRename` the name is a plain heading. */
 export const ReadOnly: StoryObj<typeof PlanTitle> = { args: { onRename: undefined } }
+
+/** In a row that takes it at its own width, as the plan page's heading row does, the name is shown whole. */
+export const InARow: Story = {
+  render: (args) => (
+    <div className="flex items-center gap-3">
+      <PlanTitle {...args} />
+      <p>55 events</p>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const name = within(canvasElement).getByText('AI Agent Engineer')
+    await expect(name.scrollWidth).toBeLessThanOrEqual(name.clientWidth)
+  },
+}
