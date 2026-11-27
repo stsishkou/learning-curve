@@ -1,0 +1,26 @@
+{
+  "name": "@lc/plan-service",
+  "private": true,
+  "description": "The application layer of the plan: the ports every store and outside service implements, who may do what, and failures as values. Pure TypeScript",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lc/plan-domain": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:service",
+      "scope:plan"
+    ]
+  }
+}

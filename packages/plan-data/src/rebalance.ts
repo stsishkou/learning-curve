@@ -6,9 +6,9 @@ import {
   type RebalanceRequest,
   type RebalanceResult,
 } from '@lc/plan-domain/rebalance'
+import { newestOnly } from '@lc/plan-service'
 
 import { loadBusy } from './busy'
-import { newestOnly } from './queue'
 import { solveLp } from './solver'
 import { readBusyFeed } from './store'
 

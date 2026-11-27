@@ -425,6 +425,35 @@
       }
     },
     {
+      "files": ["packages/plan-service/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": [
+                  "@lc/*",
+                  "!@lc/plan-domain",
+                  "!@lc/plan-domain/*",
+                  "react",
+                  "react/**",
+                  "react-dom",
+                  "react-dom/**",
+                  "node:*"
+                ],
+                "message": "The service depends on the domain only: stores and outside services come in as ports."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["packages/plan-data/**"],
       "rules": {
         "no-restricted-imports": [
@@ -432,8 +461,8 @@
           {
             "patterns": [
               {
-                "group": ["@lc/*", "!@lc/plan-domain", "!@lc/plan-content", "react", "react/**"],
-                "message": "The data store depends on the domain and the content only."
+                "group": ["@lc/*", "!@lc/plan-domain", "!@lc/plan-content", "!@lc/plan-service", "react", "react/**"],
+                "message": "The data store depends on the domain, the content and the service only."
               }
             ]
           }

@@ -16,6 +16,7 @@
   "dependencies": {
     "@lc/plan-content": "workspace:*",
     "@lc/plan-domain": "workspace:*",
+    "@lc/plan-service": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
     "highs": "catalog:",
     "ical.js": "catalog:"
