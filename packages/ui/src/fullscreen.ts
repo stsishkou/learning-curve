@@ -8,6 +8,9 @@ function subscribe(listener: () => void): () => void {
 const shown = () => document.fullscreenElement !== null
 const allowed = () => document.fullscreenEnabled
 const never = () => false
+// Most browsers can: a switch drawn by the server and taken away after hydration moves nothing in the many pages that
+// keep it, where one added after hydration would push the buttons beside it on every load.
+const likely = () => true
 
 async function flip(): Promise<void> {
   try {
@@ -21,10 +24,10 @@ const toggle = () => void flip()
 
 /**
  * Whether the page fills the whole screen, and the switch for it. `supported` is false where the browser cannot (an
- * iPhone, a frame without leave) and on the server, so the switch can stay hidden there.
+ * iPhone, a frame without leave), so the switch can stay hidden there; the server takes it as true.
  */
 export function useFullscreen(): { supported: boolean; on: boolean; toggle: () => void } {
   const on = useSyncExternalStore(subscribe, shown, never)
-  const supported = useSyncExternalStore(subscribe, allowed, never)
+  const supported = useSyncExternalStore(subscribe, allowed, likely)
   return { supported, on, toggle }
 }

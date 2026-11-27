@@ -30,6 +30,8 @@ interface Props {
   icon?: ReactNode
   /** Extra classes for the trigger button */
   className?: string
+  /** Marks the trigger with a dot: something in the menu waits for the person */
+  dot?: boolean | undefined
 }
 
 const TRIGGER =
@@ -50,7 +52,7 @@ const rowsOf = (menu: HTMLElement) =>
  * `checked` is a switch and keeps the menu open. Arrow keys, Home and End move between the rows; Tab, Escape and a
  * click outside close it.
  */
-export function Menu({ label, items, icon, className = '' }: Props) {
+export function Menu({ label, items, icon, className = '', dot = false }: Props) {
   const id = useId()
   const anchor = `--menu-${id.replaceAll(/[^a-z0-9]/gi, '')}`
   const trigger = useRef<HTMLButtonElement>(null)
@@ -95,7 +97,7 @@ export function Menu({ label, items, icon, className = '' }: Props) {
       <button
         ref={trigger}
         type="button"
-        className={`${TRIGGER} ${className}`}
+        className={`relative ${TRIGGER} ${className}`}
         style={{ anchorName: anchor }}
         aria-label={label}
         data-tip={label}
@@ -104,6 +106,13 @@ export function Menu({ label, items, icon, className = '' }: Props) {
         popoverTarget={id}
       >
         {icon ?? <EllipsisVertical size={18} aria-hidden />}
+        {dot && (
+          <span
+            data-dot
+            aria-hidden
+            className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-bg bg-today"
+          />
+        )}
       </button>
       <div
         ref={panel}

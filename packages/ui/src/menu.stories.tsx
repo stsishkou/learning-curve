@@ -76,3 +76,12 @@ export const WithIcon: Story = {
     await expect(trigger.querySelector('.lucide-ellipsis-vertical')).toBeNull()
   },
 }
+
+/** A dot on the trigger says that something in the menu waits for the person, before the menu is opened. */
+export const WithDot: Story = {
+  args: { dot: true },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole('button', { name: 'More actions' })
+    await expect(trigger.querySelector('[data-dot]')).toBeVisible()
+  },
+}
