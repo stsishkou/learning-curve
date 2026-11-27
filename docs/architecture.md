@@ -64,7 +64,6 @@ Modules do not know about each other, about the router, or about where data come
   onSearchChange={…}
   onChange={…}                                  // persistence: one server function for every PlanChange
   rebalance={rebalance}                         // heavy work the server does: re-balancing a calendar
-  headerAside={<LanguageSwitcher />}            // slot
   renderExport={(dialog) => <ExportDialog {...dialog} />}   // another module, opened from the planner's integrations
   commands={shellCommands()}                    // palette entries the app owns: theme, language
 />
@@ -101,8 +100,8 @@ src/
 
 - **Single responsibility**: one reason to change per package — rules of the plan (`plan-domain`), where it is
   stored (`plan-data`), how it looks (`ui`), what it says (`i18n`), one user-facing area (each module).
-- **Open/closed**: the planner is extended through `headerAside`, `renderActions`, `renderExport` and `commands`, not
-  edited, when the app adds an action.
+- **Open/closed**: the planner is extended through `renderActions`, `renderExport` and `commands`, not edited, when
+  the app adds an action.
 - **Liskov / interface segregation**: components take the narrow data they use (`plan`, `hidden`), not a store or
   a router.
 - **Dependency inversion**: modules declare callbacks (`onChange`, `onSearchChange`, `rebalance`); the app supplies
@@ -114,8 +113,11 @@ src/
 - **A module**: copy the shape of `modules/calendar-export` (`package.json` with the `type:module` tag,
   `tsconfig.json`, `src/index.ts`), add it to `apps/web/package.json` and compose it in a route. The lint rule for
   `modules/**` already refuses every `@lc/*` package except the shared ones, so nothing is added there.
-- **A page**: its header is `PageHeader` from `@lc/ui`, first in the page container. Every page whose header holds
-  actions or navigation keeps it on screen while the page scrolls; do not write a page header by hand.
+- **A page**: it draws no header. The app's root route renders one bar for every route (`ShellBar`, built on
+  `AppBar` from `@lc/ui`): the sections, Expand and Full screen, and a settings panel with the language, the theme,
+  the display switches and the links about the app. Moving between pages never moves it. A page names itself with
+  an `sr-only` `h1`; a control only it needs goes in its own content, its `⋮` menu or a `Hint`, never in the bar. A
+  page laid out wide (expanded or in full screen) hides the bar and shows Collapse in its own top row.
 - **A route**: a file in `apps/web/src/routes` that renders a module's page. Keep logic out of route files.
 - **A server function**: `apps/web/src/server/`, using `@lc/plan-data`; pass the result into the module as props.
 - **Something read from outside the plan** (the person's own calendar): fetched and parsed in `plan-data`

@@ -27,6 +27,7 @@ import {
   type RebalanceResult,
 } from '@lc/plan-domain'
 import { fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
+import { AppBar } from '@lc/ui'
 import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
@@ -475,21 +476,23 @@ export const NoCourses: Story = {
 
 /**
  * On a phone the page never scrolls sideways: only the chart's own days do, and the panel follows it. Scrolled, the
- * chart passes under the header that stays at the top.
+ * chart passes under the app's bar that stays at the top.
  */
 export const Phone: Story = {
-  args: {
-    // Like the app's sections: a row that scrolls sideways and is wider than a phone.
-    headerAside: (
-      <div className="flex min-w-0 gap-1.5 overflow-x-auto">
-        {['Plan', 'Timeline', 'Focus', 'Progress', 'Components', 'Settings', 'Library', 'Help'].map((name) => (
-          <button key={name} type="button" className="px-3 py-2 whitespace-nowrap">
+  render: (args) => (
+    <>
+      <AppBar
+        label="Sections"
+        // Like the app's sections: a row that scrolls sideways and is wider than a phone.
+        nav={['Plan', 'Timeline', 'Focus', 'Progress', 'Components', 'Settings', 'Library', 'Help'].map((name) => (
+          <a key={name} href={`#${name}`} className="px-3 py-2 whitespace-nowrap">
             {name} section
-          </button>
+          </a>
         ))}
-      </div>
-    ),
-  },
+      />
+      <Host {...args} />
+    </>
+  ),
   globals: { viewport: { value: 'mobile2', isRotated: false } },
   play: async ({ canvasElement }) => {
     const root = canvasElement.ownerDocument.documentElement
@@ -499,16 +502,12 @@ export const Phone: Story = {
     await laterWeek(canvasElement)
     await findDraftBar(canvasElement)
     await expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth)
-    // Scrolled under the header that stays at the top, the chart's own sticky column stays under it too.
+    // Scrolled under the bar that stays at the top, the chart's own sticky column stays under it too.
     const region = await chart(canvasElement)
     window.scrollTo(0, region.getBoundingClientRect().top + window.scrollY + 120)
-    const top = [...canvasElement.querySelectorAll<HTMLElement>('.sticky')].find(
-      (el) => !region.contains(el) && el.getBoundingClientRect().height > 0,
-    )
-    if (!top) throw new Error('no sticky header')
-    const bar = top.getBoundingClientRect()
+    const bar = within(canvasElement).getByRole('banner').getBoundingClientRect()
     const hit = canvasElement.ownerDocument.elementFromPoint(bar.left + 40, bar.top + bar.height / 2)
-    await expect(top.contains(hit)).toBe(true)
+    await expect(within(canvasElement).getByRole('banner').contains(hit)).toBe(true)
     window.scrollTo(0, 0)
   },
 }
@@ -521,16 +520,35 @@ const withScreen = () => {
 }
 
 /**
- * Expand gives the timeline the whole window: the page header goes, the chart reaches the bottom of the window and
- * the course panel shows only while a course is picked, with a way to close it. Collapse brings the page back.
+ * The page has no header of its own: the app's bar names it and holds Expand and Full screen. It is as wide as the
+ * app's other pages, so moving between them moves nothing, and says what it is to a screen reader.
+ */
+export const NoHeaderOfItsOwn: Story = {
+  globals: { viewport: { value: 'desktop', isRotated: false } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    const region = await chart(canvasElement)
+    await expect(page.queryByRole('banner')).toBeNull()
+    await expect(page.getByRole('heading', { level: 1, name: m.timeline() })).toBeInTheDocument()
+    await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
+    await expect(page.queryByRole('button', { name: m.fullscreen() })).toBeNull()
+    // 1240 px of page, 20 px of it padding, in the middle of the room the page has: the window less its scrollbar's.
+    const room = canvasElement.clientWidth
+    await expect(room).toBeGreaterThan(1240)
+    await expect(region.getBoundingClientRect().left).toBe((room - 1200) / 2)
+  },
+}
+
+/**
+ * Expand gives the timeline the whole window: the chart reaches the bottom of the window and the course panel shows
+ * only while a course is picked, with a way to close it. Collapse, in the chart's own row, brings the page back.
  */
 export const ExpandFillsTheWindow: Story = {
   play: async ({ args, canvasElement }) => {
     const page = within(canvasElement)
-    await expect(page.getByRole('heading', { level: 1, name: m.timeline() })).toBeVisible()
-    await userEvent.click(within(await chart(canvasElement)).getByRole('button', { name: m.expand() }))
+    await chart(canvasElement)
+    await userEvent.keyboard('e')
     await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
-    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
     const region = await chart(canvasElement)
     await waitFor(() => expect(window.innerHeight - region.getBoundingClientRect().bottom).toBeLessThan(40))
     await expect(page.queryByRole('region', { name: m.timeline_course() })).toBeNull()
@@ -541,7 +559,7 @@ export const ExpandFillsTheWindow: Story = {
     await waitFor(() => expect(page.queryByRole('region', { name: m.timeline_course() })).toBeNull())
     await userEvent.click(within(region).getByRole('button', { name: m.collapse() }))
     await expect(args.onExpandedChange).toHaveBeenLastCalledWith(false)
-    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.timeline() })).toBeVisible())
+    await waitFor(() => expect(page.queryByRole('button', { name: m.collapse() })).toBeNull())
   },
 }
 
@@ -549,15 +567,13 @@ export const ExpandFillsTheWindow: Story = {
 export const FullScreen: Story = {
   beforeEach: withScreen,
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement)
     const region = within(await chart(canvasElement))
-    await userEvent.click(region.getByRole('button', { name: m.fullscreen() }))
+    await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
-    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
     await expect(region.queryByRole('button', { name: m.expand() })).toBeNull()
-    await userEvent.click(region.getByRole('button', { name: m.fullscreen_exit() }))
+    await userEvent.click(await region.findByRole('button', { name: m.fullscreen_exit() }))
     await expect(screen?.calls.exits).toBe(1)
-    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.timeline() })).toBeVisible())
+    await waitFor(() => expect(region.queryByRole('button', { name: m.fullscreen_exit() })).toBeNull())
   },
 }
 
@@ -573,28 +589,30 @@ export const ExpandAndFullScreenByKeys: Story = {
   },
 }
 
-/** The how-to under the title folds to one line, and stays folded in this browser. */
-export const TheHintFolds: Story = {
-  beforeEach: () => localStorage.removeItem('learning-curve:timeline-hint'),
+/** How the page works is a help mark in the chart's own row, shown with the other marks. */
+export const HowItWorksIsAHelpMark: Story = {
+  beforeEach: () => {
+    localStorage.setItem('lc-help', '1')
+    return () => localStorage.removeItem('lc-help')
+  },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement)
-    await expect(page.getByText(m.timeline_page_hint())).toBeVisible()
-    await userEvent.click(page.getByText(m.timeline_how()))
-    await waitFor(() => expect(page.getByText(m.timeline_page_hint())).not.toBeVisible())
-    await expect(localStorage.getItem('learning-curve:timeline-hint')).toBe('folded')
+    const region = within(await chart(canvasElement))
+    await expect(region.getByRole('button', { name: m.help_timeline_title() })).toBeVisible()
   },
 }
 
-/** `Icons only` in the header leaves Expand and Full screen with their icons, named in their tooltips. */
+/** In the icons-only mode Collapse and Exit full screen keep their icons, named in their tooltips. */
 export const IconsOnly: Story = {
+  args: { expanded: true },
+  // As the app's head script sets it.
   beforeEach: () => {
-    clearIconsOnly()
+    document.documentElement.setAttribute('data-icons', 'only')
     return clearIconsOnly
   },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement)
-    await userEvent.click(page.getByRole('button', { name: m.icons_only() }))
-    const expand = within(await chart(canvasElement)).getByRole('button', { name: m.expand() })
-    await expect(within(expand).getByText(m.expand()).getBoundingClientRect().width).toBeLessThanOrEqual(1)
+    const collapse = within(await chart(canvasElement)).getByRole('button', { name: m.collapse() })
+    await waitFor(async () =>
+      expect(within(collapse).getByText(m.collapse()).getBoundingClientRect().width).toBeLessThanOrEqual(1),
+    )
   },
 }

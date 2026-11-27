@@ -3,7 +3,6 @@ import { FocusPage, parseFocusSearch } from '@lc/planner'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { getPlanState, savePlanChange } from '#/server/plan'
-import { ShellAside } from '#/shell/ShellAside'
 
 /** The focus page of the planner module at `/focus`: one session and a stopwatch that logs the time it took. */
 export const Route = createFileRoute('/focus')({
@@ -34,7 +33,6 @@ function FocusRoute() {
       onExpandedChange={(next) =>
         void navigate({ search: (prev) => ({ ...prev, expanded: next || undefined }), resetScroll: false })
       }
-      headerAside={<ShellAside />}
     />
   )
 }

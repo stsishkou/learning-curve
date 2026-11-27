@@ -83,7 +83,7 @@ import { useQuietChange } from '../model/use-quiet-change'
 import { useWidePanels, type WidePanels } from '../model/use-wide-panels'
 import { InsightTabs } from './InsightTabs'
 import { OverdueBar } from './OverdueBar'
-import { PlannerHeader } from './PlannerHeader'
+import { PlanHeading } from './PlanHeading'
 import { PlannerToolbar } from './PlannerToolbar'
 import { UndoBar } from './UndoBar'
 
@@ -104,9 +104,7 @@ interface Props {
   onChangeAll?: (changes: PlanChange[]) => Promise<void>
   /** Present when the host keeps plan files with versions: the plan file reader lists them */
   library?: PlanLibrary | undefined
-  /** Shown next to the title: controls the host owns, such as the language switcher */
-  headerAside?: ReactNode
-  /** More header actions that work on the plan as it is shown now, such as export */
+  /** More actions that work on the plan as it is shown now, such as export: at the end of the plan's name row */
   renderActions?: (shown: { plan: Plan; hidden: ReadonlySet<string> }) => ReactNode
   /** Present when the host has a focus page: called with the uid of the session to time there */
   onFocus?: (uid: string) => void
@@ -153,7 +151,6 @@ export function PlannerPage({
   onTrimHistory,
   onChangeAll,
   library,
-  headerAside,
   renderActions,
   onFocus,
   busy,
@@ -432,14 +429,13 @@ export function PlannerPage({
 
       {!expanded && (
         <>
-          <PlannerHeader
+          <PlanHeading
             plan={plan}
             onRename={canEdit ? (title) => quiet.change({ type: 'plan.rename', title }) : undefined}
-            aside={headerAside}
           >
-            <Hint title={m.help_file_title()} text={m.help_file()} className="self-center max-md:hidden" />
-            {renderActions?.({ plan, hidden })}
-          </PlannerHeader>
+            <Hint title={m.help_file_title()} text={m.help_file()} />
+            {renderActions && <div className="ml-auto flex gap-2">{renderActions({ plan, hidden })}</div>}
+          </PlanHeading>
 
           <Runway
             plan={plan}

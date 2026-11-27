@@ -6,6 +6,7 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-r
 import { type DocsConfig, getDocsConfig } from '#/server/docs'
 import { getPlanRevision } from '#/server/plan'
 import { FollowPlan } from '#/shell/FollowPlan'
+import { ShellBar } from '#/shell/ShellBar'
 import { THEME_BOOT_SCRIPT } from '#/shell/theme'
 import { TodayIcon, todayIcon } from '#/shell/TodayIcon'
 
@@ -58,6 +59,8 @@ export const Route = createRootRoute({
 function Root() {
   return (
     <>
+      {/* Once for every page, so moving between them never draws it again. */}
+      <ShellBar />
       <Outlet />
       <FollowPlan revision={Route.useLoaderData({ select: (data) => data.revision })} />
     </>

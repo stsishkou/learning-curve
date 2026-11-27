@@ -109,9 +109,9 @@ type Story = StoryObj<typeof meta>
 
 /**
  * The page as the app renders it at `/`. A small in-memory host stands in for the app, so editing, the trash and
- * the history all work and nothing is saved. The header slots (`headerAside`, `renderActions`) are empty: the app
- * fills them with the language switcher and the export module. The page follows the real clock, so "today" is
- * marked only when the stand is opened during the fixture's week.
+ * the history all work and nothing is saved. The app's bar, with the sections, Expand and Full screen, is above it
+ * in the app and not part of the page. The page follows the real clock, so "today" is marked only when the stand is
+ * opened during the fixture's week.
  */
 export const Week: Story = {}
 
@@ -215,16 +215,16 @@ const withScreen =
   }
 
 /**
- * Full screen hides the browser's bars and lays the calendar across all of it, as Expand does; leaving it brings the
- * header back.
+ * Full screen hides the browser's bars and lays the calendar across all of it, as Expand does, with Exit full screen
+ * in the toolbar; leaving it brings the plan's name and the deadline back.
  */
 export const FullScreen: Story = {
   beforeEach: withScreen(),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
-    const enter = await page.findByRole('button', { name: m.fullscreen() })
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-    await userEvent.click(enter)
+    await expect(await page.findByRole('heading', { level: 1 })).toBeVisible()
+    await expect(page.queryByRole('button', { name: m.fullscreen() })).toBeNull()
+    await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
     await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
     await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
@@ -240,7 +240,7 @@ export const FullScreen: Story = {
 export const FullScreenByKeys: Story = {
   beforeEach: withScreen(),
   play: async ({ args, canvasElement }) => {
-    await within(canvasElement).findByRole('button', { name: m.fullscreen() })
+    await within(canvasElement).findByRole('button', { name: m.more_actions() })
     await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
     await expect(args.onSearchChange).not.toHaveBeenCalledWith(expect.objectContaining({ fullDay: true }))
@@ -249,11 +249,28 @@ export const FullScreenByKeys: Story = {
 
 /** Where the browser cannot fill the screen (an iPhone, a frame without leave) there is no full-screen switch. */
 export const NoFullScreenWhereTheBrowserCannot: Story = {
+  args: { search: { week: ymd(fixtureWeek), expanded: true } },
   beforeEach: withScreen({ enabled: false }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
-    await expect(await page.findByRole('button', { name: m.expand() })).toBeVisible()
+    await expect(await page.findByRole('button', { name: m.collapse() })).toBeVisible()
     await expect(page.queryByRole('button', { name: m.fullscreen() })).toBeNull()
+  },
+}
+
+/**
+ * The page has no header of its own: the app's bar holds the sections, Expand and Full screen. The plan's name,
+ * which a click renames, and its size open the page, above the deadline and the calendar.
+ */
+export const PlanNameOpensThePage: Story = {
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    const name = await page.findByRole('heading', { level: 1 })
+    await expect(name).toHaveTextContent(fixturePlan.meta.title)
+    await expect(page.queryByRole('banner')).toBeNull()
+    await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
+    const views = page.getAllByRole('group', { name: m.view() })[0]
+    await expect(name.getBoundingClientRect().bottom).toBeLessThan(views?.getBoundingClientRect().top ?? 0)
   },
 }
 

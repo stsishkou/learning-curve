@@ -18,17 +18,14 @@ import {
   Coffee,
   Dot,
   ExternalLink,
-  HelpToggle,
-  IconsToggle,
   Hint,
-  PageHeader,
   Pause,
   Play,
   RotateCcw,
   useFullscreen,
   useShortcuts,
 } from '@lc/ui'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useFillHeight, useNow } from '../../../shared/lib'
 import { ScreenButtons } from '../../../shared/ui'
@@ -50,11 +47,9 @@ interface Props {
   onPick?: (uid: string | undefined) => void
   /** Stores one change. Rejects with the reason when it cannot be stored: the page shows it */
   onChange: (change: PlanChange) => Promise<void>
-  /** Shown next to the title: controls the host owns, such as the sections of the app */
-  headerAside?: ReactNode
   /** Minsk wall-clock ms to take as the present, for a fixed picture in a story; the real clock otherwise */
   now?: number
-  /** The stopwatch takes the whole window: no page header */
+  /** The stopwatch takes the whole window */
   expanded?: boolean | undefined
   /** Present when the host keeps `expanded`: the page then offers Expand */
   onExpandedChange?: ((expanded: boolean) => void) | undefined
@@ -125,7 +120,7 @@ interface Asking {
 const UNDO_MS = 10_000
 
 export function FocusPage(props: Props) {
-  const { plan, canEdit, session: wanted, onPick, onChange, headerAside, now: fixed } = props
+  const { plan, canEdit, session: wanted, onPick, onChange, now: fixed } = props
   const { expanded = false, onExpandedChange } = props
   const clock = useNow()
   const now = fixed ?? clock
@@ -226,8 +221,11 @@ export function FocusPage(props: Props) {
       {m.open_course()} <ExternalLink size={14} aria-hidden />
     </a>
   )
+  // Collapse and Exit full screen: the app's bar has Expand and Full screen, and the wide layout leaves it out.
+  const screenRow = wide ? toggleExpanded : undefined
   // In Expand the link goes up beside the screen buttons, to leave the height to the watch.
-  const linkOnTop = wide && toggleExpanded !== undefined
+  const linkOnTop = screenRow !== undefined
+  const help = <Hint title={m.help_focus_title()} text={m.help_focus()} />
 
   /** Stores a change that finishes `event` with `minutes` and clears the stopwatch, which Undo can give back a while. */
   async function log(event: PlanEvent, change: PlanChange, minutes: number) {
@@ -352,48 +350,36 @@ export function FocusPage(props: Props) {
     <div
       className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1240px] pt-3.5 pb-10 md:pt-5 md:pb-12'}`}
     >
-      {!wide && (
-        <PageHeader
-          aside={headerAside}
-          actions={
-            <>
-              <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:flex-none!" />
-              <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
-            </>
-          }
-        >
-          <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
-            {m.focus()}
-            <Hint title={m.help_focus_title()} text={m.help_focus()} />
-          </h1>
-          <p className="mt-1 text-[14px] text-muted">{m.focus_hint()}</p>
-        </PageHeader>
-      )}
+      {/* The app's bar names the page on screen. */}
+      <h1 className="sr-only">{m.focus()}</h1>
 
       <div ref={columns} className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_340px]">
         <section
-          className={`flex min-w-0 flex-col gap-4 rounded-2xl border border-line bg-surface px-5 ${wide ? 'pb-6' : 'pb-10 md:pb-14'} ${toggleExpanded ? 'pt-3' : 'pt-10 md:pt-14'}`}
+          className={`relative flex min-w-0 flex-col gap-4 rounded-2xl border border-line bg-surface px-5 ${wide ? 'pb-6' : 'pb-10 md:pb-14'} ${screenRow ? 'pt-3' : 'pt-10 md:pt-14'}`}
           // The card is the screen's height, so the watch can take what is left of it; it grows if it must.
           style={{
             ...calendarColor(color),
             ...(wide && fill !== undefined && { height: fill, minHeight: 'min-content' }),
           }}
         >
-          {toggleExpanded && (
+          {screenRow ? (
             <div
               className={`flex flex-wrap items-center gap-2 ${linkOnTop && courseUrl ? 'justify-between' : 'justify-end'}`}
             >
               {linkOnTop && courseLink}
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {help}
                 <ScreenButtons
                   expanded={expanded}
                   expandHint={m.focus_expand_hint()}
-                  onToggleExpanded={toggleExpanded}
+                  onToggleExpanded={screenRow}
                   fullscreen={fullscreen.supported ? fullscreen : undefined}
                   className="py-1! text-[13px]"
                 />
               </div>
             </div>
+          ) : (
+            <div className="absolute top-3 right-3">{help}</div>
           )}
           <div
             className={

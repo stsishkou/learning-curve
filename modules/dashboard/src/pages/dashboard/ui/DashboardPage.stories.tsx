@@ -27,7 +27,7 @@ const meta = {
   component: DashboardPage,
   parameters: { layout: 'fullscreen' },
   args: { plan: fixturePlan, now: fixtureNow, onExpandedChange: fn() },
-  argTypes: { plan: { control: false }, headerAside: { control: false } },
+  argTypes: { plan: { control: false } },
   render: (args) => <Host {...args} />,
 } satisfies Meta<typeof DashboardPage>
 
@@ -54,21 +54,34 @@ const pageOf = (canvasElement: HTMLElement) => {
 }
 
 /**
- * Expand gives the charts the whole window: the page header goes, the page is no longer held to a column in the
- * middle, and the plan's name and end stay above the charts. Collapse brings the page back.
+ * The page has no header of its own: the app's bar names it and holds Expand and Full screen. It still says what it
+ * is to a screen reader.
+ */
+export const NoHeaderOfItsOwn: Story = {
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await expect(page.queryByRole('banner')).toBeNull()
+    await expect(page.getByRole('heading', { level: 1, name: m.dashboard() })).toBeInTheDocument()
+    await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
+    await expect(page.queryByRole('button', { name: m.fullscreen() })).toBeNull()
+  },
+}
+
+/**
+ * Expand gives the charts the whole window: the page is no longer held to a column in the middle, and the plan's
+ * name and end stay above the charts, beside Collapse, which brings the page back.
  */
 export const ExpandSpreadsTheCharts: Story = {
   play: async ({ args, canvasElement }) => {
     const page = within(canvasElement)
-    await expect(page.getByRole('heading', { level: 1, name: m.dashboard() })).toBeVisible()
-    await userEvent.click(page.getByRole('button', { name: m.expand() }))
+    await page.findByText(fixturePlan.meta.title, { exact: false })
+    await userEvent.keyboard('e')
     await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
-    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
-    await expect(getComputedStyle(pageOf(canvasElement)).maxWidth).toBe('none')
+    await waitFor(() => expect(getComputedStyle(pageOf(canvasElement)).maxWidth).toBe('none'))
     await expect(page.getByText(fixturePlan.meta.title, { exact: false })).toBeVisible()
     await userEvent.click(page.getByRole('button', { name: m.collapse() }))
     await expect(args.onExpandedChange).toHaveBeenLastCalledWith(false)
-    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.dashboard() })).toBeVisible())
+    await waitFor(() => expect(page.queryByRole('button', { name: m.collapse() })).toBeNull())
   },
 }
 
@@ -90,13 +103,13 @@ export const FullScreen: Story = {
   beforeEach: withScreen,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
-    await userEvent.click(page.getByRole('button', { name: m.fullscreen() }))
+    await page.findByText(fixturePlan.meta.title, { exact: false })
+    await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
-    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
     await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
-    await userEvent.click(page.getByRole('button', { name: m.fullscreen_exit() }))
+    await userEvent.click(await page.findByRole('button', { name: m.fullscreen_exit() }))
     await expect(screen?.calls.exits).toBe(1)
-    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.dashboard() })).toBeVisible())
+    await waitFor(() => expect(page.queryByRole('button', { name: m.fullscreen_exit() })).toBeNull())
   },
 }
 
@@ -104,7 +117,7 @@ export const FullScreen: Story = {
 export const ExpandAndFullScreenByKeys: Story = {
   beforeEach: withScreen,
   play: async ({ args, canvasElement }) => {
-    await expect(within(canvasElement).getByRole('heading', { level: 1, name: m.dashboard() })).toBeVisible()
+    await within(canvasElement).findByText(fixturePlan.meta.title, { exact: false })
     await userEvent.keyboard('e')
     await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
     await userEvent.keyboard('{Shift>}F{/Shift}')
@@ -112,16 +125,16 @@ export const ExpandAndFullScreenByKeys: Story = {
   },
 }
 
-/** `Icons only` in the header leaves Expand and Full screen with their icons, named in their tooltips. */
+/** In the icons-only mode Collapse and Exit full screen keep their icons, named in their tooltips. */
 export const IconsOnly: Story = {
+  args: { expanded: true },
+  // As the app's head script sets it.
   beforeEach: () => {
-    clearIconsOnly()
+    document.documentElement.setAttribute('data-icons', 'only')
     return clearIconsOnly
   },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement)
-    await userEvent.click(page.getByRole('button', { name: m.icons_only() }))
-    const expand = page.getByRole('button', { name: m.expand() })
-    await expect(within(expand).getByText(m.expand()).getBoundingClientRect().width).toBeLessThanOrEqual(1)
+    const collapse = within(canvasElement).getByRole('button', { name: m.collapse() })
+    await expect(within(collapse).getByText(m.collapse()).getBoundingClientRect().width).toBeLessThanOrEqual(1)
   },
 }

@@ -6,7 +6,6 @@ import { useState } from 'react'
 
 import { getPlanState, savePlanChanges, travelPlanHistory } from '#/server/plan'
 import { rebalancePlan } from '#/server/reschedule'
-import { ShellAside } from '#/shell/ShellAside'
 
 /** The timeline page of the planner module at `/timeline`: every course on its lane, changed as a draft. */
 export const Route = createFileRoute('/timeline')({
@@ -43,7 +42,6 @@ function TimelineRoute() {
         await router.invalidate()
       }}
       rebalance={rebalance}
-      headerAside={<ShellAside />}
       onDraftChange={setDirty}
       expanded={expanded === true}
       onExpandedChange={(next) => void navigate({ search: { expanded: next || undefined }, resetScroll: false })}

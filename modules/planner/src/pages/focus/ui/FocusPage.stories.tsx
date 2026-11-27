@@ -316,23 +316,37 @@ const stopwatchOf = (canvasElement: HTMLElement) => {
 }
 
 /**
- * Expand gives the stopwatch the whole window: the page header goes and the stopwatch reaches the bottom of the
- * window, with the queue still beside it. Collapse brings the page back.
+ * The page has no header of its own: the app's bar names it and holds Expand and Full screen. It still says what it
+ * is to a screen reader.
+ */
+export const NoHeaderOfItsOwn: Story = {
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    stopwatchOf(canvasElement)
+    await expect(page.queryByRole('banner')).toBeNull()
+    await expect(page.getByRole('heading', { level: 1, name: m.focus() })).toBeInTheDocument()
+    await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
+    await expect(page.queryByRole('button', { name: m.fullscreen() })).toBeNull()
+  },
+}
+
+/**
+ * Expand gives the stopwatch the whole window: it reaches the bottom of the window, with the queue still beside it.
+ * Collapse, at the top of the stopwatch, brings the page back.
  */
 export const ExpandFillsTheWindow: Story = {
   play: async ({ args, canvasElement }) => {
     const page = within(canvasElement)
-    await expect(page.getByRole('heading', { level: 1, name: m.focus() })).toBeVisible()
-    await userEvent.click(page.getByRole('button', { name: m.expand() }))
+    stopwatchOf(canvasElement)
+    await userEvent.keyboard('e')
     await expect(args.onExpandedChange).toHaveBeenCalledWith(true)
-    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
     await waitFor(() =>
       expect(window.innerHeight - stopwatchOf(canvasElement).getBoundingClientRect().bottom).toBeLessThan(40),
     )
     await expect(page.getByRole('heading', { name: m.focus_queue() })).toBeVisible()
     await userEvent.click(page.getByRole('button', { name: m.collapse() }))
     await expect(args.onExpandedChange).toHaveBeenLastCalledWith(false)
-    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.focus() })).toBeVisible())
+    await waitFor(() => expect(page.queryByRole('button', { name: m.collapse() })).toBeNull())
   },
 }
 
@@ -341,13 +355,25 @@ export const FullScreen: Story = {
   beforeEach: withScreen,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
-    await userEvent.click(page.getByRole('button', { name: m.fullscreen() }))
+    stopwatchOf(canvasElement)
+    await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
-    await waitFor(() => expect(page.queryByRole('heading', { level: 1 })).toBeNull())
     await expect(page.queryByRole('button', { name: m.expand() })).toBeNull()
-    await userEvent.click(page.getByRole('button', { name: m.fullscreen_exit() }))
+    await userEvent.click(await page.findByRole('button', { name: m.fullscreen_exit() }))
     await expect(screen?.calls.exits).toBe(1)
-    await waitFor(() => expect(page.getByRole('heading', { level: 1, name: m.focus() })).toBeVisible())
+    await waitFor(() => expect(page.queryByRole('button', { name: m.fullscreen_exit() })).toBeNull())
+  },
+}
+
+/** How the page works is a help mark on the stopwatch, shown with the other marks. */
+export const HowItWorksIsAHelpMark: Story = {
+  beforeEach: () => {
+    localStorage.setItem('lc-help', '1')
+    return () => localStorage.removeItem('lc-help')
+  },
+  play: async ({ canvasElement }) => {
+    const box = within(stopwatchOf(canvasElement))
+    await expect(box.getByRole('button', { name: m.help_focus_title() })).toBeVisible()
   },
 }
 
@@ -365,16 +391,13 @@ export const ExpandAndFullScreenByKeys: Story = {
 
 /** In the icons-only mode the stopwatch's buttons show only their icons; their names stay for a screen reader. */
 export const IconsOnly: Story = {
+  // As the app's head script sets it.
   beforeEach: () => {
-    clearIconsOnly()
-    localStorage.setItem('lc-icons-only', '1')
+    document.documentElement.setAttribute('data-icons', 'only')
     return clearIconsOnly
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
-    await waitFor(() =>
-      expect(page.getByRole('button', { name: m.icons_only() })).toHaveAttribute('aria-pressed', 'true'),
-    )
     const start = page.getByRole('button', { name: START })
     await expect(within(start).getByText(START).getBoundingClientRect().width).toBeLessThanOrEqual(1)
   },
@@ -495,14 +518,13 @@ export const TheTitleCountsDown: Story = {
 export const ExpandGrowsTheWatch: Story = {
   beforeEach: fresh,
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement)
     const glass = await waitFor(() => glassOf(canvasElement))
     await waitFor(() => expect(glass.getBoundingClientRect().height).toBeGreaterThan(0))
     const before = {
       glass: glass.getBoundingClientRect().height,
       digits: Number.parseFloat(getComputedStyle(timerOf(canvasElement)).fontSize),
     }
-    await userEvent.click(page.getByRole('button', { name: m.expand() }))
+    await userEvent.keyboard('e')
     await waitFor(() => expect(glassOf(canvasElement).getBoundingClientRect().height).toBeGreaterThan(before.glass))
     if (window.innerWidth >= 701) {
       await expect(Number.parseFloat(getComputedStyle(timerOf(canvasElement)).fontSize)).toBeGreaterThan(before.digits)

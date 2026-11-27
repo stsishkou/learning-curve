@@ -11,8 +11,8 @@ import {
   type Plan,
   type PlanChange,
 } from '@lc/plan-domain'
-import { HelpToggle, IconsToggle, Hint, PageHeader, useFullscreen, useShortcuts } from '@lc/ui'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Hint, useFullscreen, useShortcuts } from '@lc/ui'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { RescheduleDialog, type Rebalance } from '../../../features/reschedule'
 import { useFillHeight, useNow } from '../../../shared/lib'
@@ -23,7 +23,6 @@ import { CoursePanel } from './CoursePanel'
 import { AppliedBar, DraftBar } from './DraftBar'
 import { DraftReview } from './DraftReview'
 import { LeaveDraftDialog } from './LeaveDraftDialog'
-import { PageHint } from './PageHint'
 
 /** The plan with what the page needs to know about it; the planner's state fits it as it is */
 export interface TimelineState {
@@ -42,13 +41,11 @@ interface Props {
   onTravel: (cursor: number) => Promise<void>
   /** Present when the host can work out a re-balance: a course can then be given a new finish */
   rebalance?: Rebalance | undefined
-  /** Shown next to the title: controls the host owns, such as the sections of the app */
-  headerAside?: ReactNode
   /** Told whenever the page gets or loses a draft, so the host can hold its own navigation while there is one */
   onDraftChange?: ((dirty: boolean) => void) | undefined
   /** A navigation the host holds for the draft: the page asks whether to stay or drop the draft and go */
   leaving?: { onStay: () => void; onLeave: () => void } | undefined
-  /** The timeline takes the whole window: no page header, and the course panel only while a course is picked */
+  /** The timeline takes the whole window, and the course panel shows only while a course is picked */
   expanded?: boolean | undefined
   /** Present when the host keeps `expanded`: the page then offers Expand */
   onExpandedChange?: ((expanded: boolean) => void) | undefined
@@ -63,7 +60,7 @@ const reasonOf = (err: unknown) => (err instanceof Error ? err.message : String(
  * the changes that would do it and draws them over the plan as it is, and only Apply stores them, in one go.
  */
 export function TimelinePage(props: Props) {
-  const { state, onChangeAll, onTravel, rebalance, headerAside, onDraftChange, leaving, expanded = false } = props
+  const { state, onChangeAll, onTravel, rebalance, onDraftChange, leaving, expanded = false } = props
   const { onExpandedChange } = props
   const { plan, canEdit } = state
   const now = useNow()
@@ -173,25 +170,10 @@ export function TimelinePage(props: Props) {
 
   return (
     <div
-      className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1400px] pt-3.5 pb-32 md:pt-5'}`}
+      className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1240px] pt-3.5 pb-32 md:pt-5'}`}
     >
-      {!wide && (
-        <PageHeader
-          aside={headerAside}
-          actions={
-            <>
-              <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:flex-none!" />
-              <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
-            </>
-          }
-        >
-          <h1 className="flex items-center gap-2 text-[22px]/[1.2] font-semibold tracking-[-0.01em]">
-            {m.timeline()}
-            <Hint title={m.help_timeline_title()} text={m.help_timeline()} />
-          </h1>
-          <PageHint text={m.timeline_page_hint()} />
-        </PageHeader>
-      )}
+      {/* The app's bar names the page on screen. */}
+      <h1 className="sr-only">{m.timeline()}</h1>
 
       {error !== null && !dirty && (
         <p className="text-[13.5px] text-today-ink" role="alert">
@@ -207,15 +189,19 @@ export function TimelinePage(props: Props) {
             <TimelineChart
               height={fill}
               tools={
-                toggleExpanded && (
-                  <ScreenButtons
-                    expanded={expanded}
-                    expandHint={m.timeline_expand_hint()}
-                    onToggleExpanded={toggleExpanded}
-                    fullscreen={fullscreen.supported ? fullscreen : undefined}
-                    className="py-1! text-[13px]"
-                  />
-                )
+                <>
+                  <Hint title={m.help_timeline_title()} text={m.help_timeline()} className="self-center" />
+                  {/* Expand and Full screen are in the app's bar, which the wide layout leaves out. */}
+                  {wide && toggleExpanded && (
+                    <ScreenButtons
+                      expanded={expanded}
+                      expandHint={m.timeline_expand_hint()}
+                      onToggleExpanded={toggleExpanded}
+                      fullscreen={fullscreen.supported ? fullscreen : undefined}
+                      className="py-1! text-[13px]"
+                    />
+                  )}
+                </>
               }
               lanes={after}
               changes={changes}

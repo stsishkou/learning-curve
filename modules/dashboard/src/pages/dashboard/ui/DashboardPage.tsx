@@ -12,17 +12,8 @@ import {
   type Plan,
   type WeekStats,
 } from '@lc/plan-domain'
-import {
-  HelpToggle,
-  IconsToggle,
-  PageHeader,
-  ScreenButtons,
-  Segmented,
-  stickyTop,
-  useFullscreen,
-  useShortcuts,
-} from '@lc/ui'
-import { useMemo, type ReactNode } from 'react'
+import { ScreenButtons, Segmented, stickyTop, useFullscreen, useShortcuts } from '@lc/ui'
+import { useMemo } from 'react'
 
 import { useNow } from '../../../shared/lib'
 import { BiasTrend } from '../../../widgets/bias-trend'
@@ -39,11 +30,9 @@ import { useByLabel } from '../model/use-by-label'
 
 interface Props {
   plan: Plan
-  /** Shown next to the title: controls the host owns, such as navigation and the language switcher */
-  headerAside?: ReactNode
   /** Minsk wall-clock time to show the plan at, instead of the running clock */
   now?: number
-  /** The charts take the whole window: no page header */
+  /** The charts take the whole window */
   expanded?: boolean | undefined
   /** Present when the host keeps `expanded`: the page then offers Expand */
   onExpandedChange?: ((expanded: boolean) => void) | undefined
@@ -73,7 +62,6 @@ function tableRows(weeks: WeekStats[]) {
 /** Progress of the plan in numbers and charts. Read-only: marks are made in the planner. */
 export function DashboardPage({
   plan: wholePlan,
-  headerAside,
   now: fixed,
   expanded = false,
   onExpandedChange,
@@ -105,21 +93,9 @@ export function DashboardPage({
     <div
       className={`grid grid-cols-[minmax(0,1fr)] gap-4 px-3 md:px-5 ${wide ? 'pt-3 pb-4' : 'mx-auto max-w-[1240px] pt-3.5 pb-10 md:pt-5 md:pb-12'}`}
     >
-      {!wide && (
-        <PageHeader
-          aside={headerAside}
-          actions={
-            <>
-              <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:flex-none!" />
-              <HelpToggle label={m.help_toggle()} className="max-md:flex-none!" />
-            </>
-          }
-        >
-          <h1 className="text-[22px]/[1.2] font-semibold tracking-[-0.01em]">{m.dashboard()}</h1>
-        </PageHeader>
-      )}
-      {/* Out of the header, so the plan stays named while the header is hidden; it then takes the header's place at
-          the top. */}
+      {/* The app's bar names the page on screen. */}
+      <h1 className="sr-only">{m.dashboard()}</h1>
+      {/* The plan stays named in the wide layout, which leaves the app's bar out: the row then sticks at the top. */}
       <div
         ref={wide ? stickyTop : undefined}
         className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${wide ? PINNED : ''}`}
@@ -140,7 +116,8 @@ export function DashboardPage({
             />
           </div>
         )}
-        {toggleExpanded && (
+        {/* The app's bar has Expand and Full screen; the wide layout leaves it out. */}
+        {wide && toggleExpanded && (
           <div className="flex gap-2">
             <ScreenButtons
               expanded={expanded}

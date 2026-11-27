@@ -3,7 +3,6 @@ import { mondayOf, parseLocal, ymd } from '@lc/plan-domain'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { getPlanState } from '#/server/plan'
-import { ShellAside } from '#/shell/ShellAside'
 
 /** The dashboard module rendered at `/dashboard`: the same plan as the planner, read-only. */
 export const Route = createFileRoute('/dashboard')({
@@ -28,7 +27,6 @@ function DashboardRoute() {
           search: { reschedule: from, calendar, week: ymd(mondayOf(parseLocal(`${from}T00:00`))) },
         })
       }
-      headerAside={<ShellAside />}
     />
   )
 }

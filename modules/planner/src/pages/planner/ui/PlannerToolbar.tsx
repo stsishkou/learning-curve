@@ -243,12 +243,15 @@ export function PlannerToolbar({
               />
             )}
             {panels && <Menu label={m.side_panels()} icon={<PanelRight size={17} aria-hidden />} items={panels} />}
-            <ScreenButtons
-              expanded={nav.expanded}
-              expandHint={m.expand_hint()}
-              onToggleExpanded={nav.toggleExpanded}
-              fullscreen={fullscreen}
-            />
+            {/* The app's bar has Expand and Full screen; the pinned toolbar takes its place at the top. */}
+            {pinned && (
+              <ScreenButtons
+                expanded={nav.expanded}
+                expandHint={m.expand_hint()}
+                onToggleExpanded={nav.toggleExpanded}
+                fullscreen={fullscreen}
+              />
+            )}
           </div>
         </div>
       </div>

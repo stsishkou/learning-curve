@@ -17,7 +17,7 @@ import {
 import { getPlanFile, getPlanFiles, removeSavedPlan, renameSavedPlan, savePlanFile } from '#/server/library'
 import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory, trimPlanHistory } from '#/server/plan'
 import { rebalancePlan } from '#/server/reschedule'
-import { ShellAside, STAND_URL } from '#/shell/ShellAside'
+import { STAND_URL } from '#/shell/ShellBar'
 import { setTheme } from '#/shell/theme'
 
 /** The planner module rendered at `/`; the route only wires it to the URL, the server functions and the other modules. */
@@ -102,7 +102,6 @@ function PlannerRoute() {
             }
           : undefined
       }
-      headerAside={<ShellAside />}
       renderExport={(dialog) => <ExportDialog {...dialog} />}
       rebalance={rebalance}
       busy={{
