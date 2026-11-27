@@ -1,6 +1,7 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { parseLocal, previewUpdate, type Plan, type PlanEvent } from '@lc/plan-domain'
+import { parseLocal, type Plan, type PlanEvent } from '@lc/plan-domain'
+import { previewUpdate } from '@lc/plan-domain/protocol'
 
 import { appName } from '../../../shared/lib'
 import { changeText, slotText } from '../../../shared/ui'

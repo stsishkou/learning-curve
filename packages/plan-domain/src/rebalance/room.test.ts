@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 
-import type { BusyBlock } from '../busy'
-import { parseLocal, weekday } from '../dates'
-import type { Plan, PlanEvent } from '../types'
+import type { BusyBlock } from '../core/busy'
+import { parseLocal, weekday } from '../core/dates'
+import type { Plan, PlanEvent } from '../core/types'
 import { movingSessions } from './request'
 import { roomOf } from './room'
 import type { RebalanceRequest } from './types'

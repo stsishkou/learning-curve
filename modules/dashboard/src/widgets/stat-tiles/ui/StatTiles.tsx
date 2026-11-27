@@ -1,6 +1,7 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, countdown, parseLocal, startOfDay, type Plan, type PlanStats } from '@lc/plan-domain'
+import { DAY, countdown, parseLocal, startOfDay, type Plan } from '@lc/plan-domain'
+import type { PlanStats } from '@lc/plan-domain/insights'
 import { calendarColor, ProgressRing } from '@lc/ui'
 import type { ReactNode } from 'react'
 

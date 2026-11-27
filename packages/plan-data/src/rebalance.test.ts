@@ -2,15 +2,10 @@ import {
   DAY,
   DEFAULT_CONFIG,
   HOUR,
-  RHYTHMS,
   buildPlan,
-  defaultStudyHours,
   mondayOf,
-  movingSessions,
   occurrences,
   parseLocal,
-  planRebalance,
-  roomOf,
   toLocalString,
   weekday,
   weeklyHours,
@@ -18,11 +13,18 @@ import {
   type BusyBlock,
   type Plan,
   type PlanEvent,
-  type RebalanceRequest,
-  type RebalanceResult,
   type SessionMove,
 } from '@lc/plan-domain'
 import { itemAt } from '@lc/plan-domain/fixtures'
+import {
+  RHYTHMS,
+  defaultStudyHours,
+  movingSessions,
+  planRebalance,
+  roomOf,
+  type RebalanceRequest,
+  type RebalanceResult,
+} from '@lc/plan-domain/rebalance'
 import { describe, expect, test } from 'vitest'
 
 import { requestFromTool } from './rebalance'

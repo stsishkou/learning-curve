@@ -7,8 +7,6 @@ import {
   emptyTrash,
   historyEdits,
   historyView,
-  planFileName,
-  previewUpdate,
   recordChange,
   trashOf,
   travel,
@@ -21,6 +19,8 @@ import {
   type PlanTrash,
   type RuleWarning,
 } from '@lc/plan-domain'
+import { planFileName } from '@lc/plan-domain/ics'
+import { previewUpdate } from '@lc/plan-domain/protocol'
 import { useCallback, useMemo, useState } from 'react'
 
 import { downloadText } from '../../../shared/lib'

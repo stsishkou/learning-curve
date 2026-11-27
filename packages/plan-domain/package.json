@@ -4,8 +4,13 @@
   "description": "The study plan domain: types, Minsk dates, schedule rules, edits and .ics export. Pure TypeScript, no framework",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./fixtures": "./src/fixtures.ts"
+    ".": "./src/core/index.ts",
+    "./insights": "./src/insights/index.ts",
+    "./protocol": "./src/protocol/index.ts",
+    "./ics": "./src/ics/index.ts",
+    "./sync": "./src/sync/index.ts",
+    "./rebalance": "./src/rebalance/index.ts",
+    "./fixtures": "./src/fixtures/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

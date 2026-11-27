@@ -1,4 +1,5 @@
-import type { Plan, RebalanceRequest, RebalanceResult } from '@lc/plan-domain'
+import type { Plan } from '@lc/plan-domain'
+import type { RebalanceRequest, RebalanceResult } from '@lc/plan-domain/rebalance'
 import { useEffect, useRef, useState } from 'react'
 
 export type Rebalance = (plan: Plan, request: RebalanceRequest) => Promise<RebalanceResult>

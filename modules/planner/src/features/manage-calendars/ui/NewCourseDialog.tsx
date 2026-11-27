@@ -4,14 +4,12 @@ import {
   DAY,
   LABEL_MAX,
   cleanLabel,
-  defaultStudyHours,
   moduleHours,
   nowMinsk,
   parseLocal,
   parseModules,
   planCourse,
   planLabels,
-  previewUpdate,
   sameLabel,
   ymd,
   type CourseInput,
@@ -20,8 +18,9 @@ import {
   type NewSession,
   type Plan,
   type PlanChange,
-  type UpdatePreview,
 } from '@lc/plan-domain'
+import { previewUpdate, type UpdatePreview } from '@lc/plan-domain/protocol'
+import { defaultStudyHours } from '@lc/plan-domain/rebalance'
 import { Button, FIELD, FOOT, INPUT, META, Modal, TITLE, TriangleAlert } from '@lc/ui'
 import { useDeferredValue, useId, useMemo, useState, type SubmitEvent } from 'react'
 

@@ -1,4 +1,4 @@
-import type { LpModel } from '@lc/plan-domain'
+import type { LpModel } from '@lc/plan-domain/rebalance'
 import { expect, test } from 'vitest'
 
 import { solveLp } from './solver'

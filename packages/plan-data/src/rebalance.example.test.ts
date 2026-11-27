@@ -1,14 +1,11 @@
+import { parseLocal, type Plan, type PlanEvent, type SessionMove } from '@lc/plan-domain'
 import {
   movingSessions,
-  parseLocal,
   planRebalance,
   roomOf,
-  type Plan,
-  type PlanEvent,
   type RebalanceRequest,
   type RebalanceTarget,
-  type SessionMove,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/rebalance'
 import { describe, expect, test } from 'vitest'
 
 import { solveLp } from './solver'

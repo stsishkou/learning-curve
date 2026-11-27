@@ -1,7 +1,8 @@
 // What a calendar app has to offer for the plan to be kept in it: its sign-in, and the few calls the sync makes,
 // already in the terms of `@lc/plan-domain`'s `calendar-sync`. The rules live there and in `engine.ts`, the same for
 // every app.
-import type { CalendarProvider, Plan, RemoteEvent, SyncCalendarRow, SyncRow, SyncState, Written } from '@lc/plan-domain'
+import type { CalendarProvider, Plan } from '@lc/plan-domain'
+import type { RemoteEvent, SyncCalendarRow, SyncRow, SyncState, Written } from '@lc/plan-domain/sync'
 
 /** An event as the app stored it: its id there and its version. */
 export interface Saved {

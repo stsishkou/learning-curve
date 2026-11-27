@@ -1,5 +1,5 @@
 import { m } from '@lc/i18n/messages'
-import { GOOGLE_SCOPE } from '@lc/plan-domain'
+import { GOOGLE_SCOPE } from '@lc/plan-domain/sync'
 import { useState, type ChangeEvent } from 'react'
 
 import { readClientFile, type ClientFile } from '../model/client-file'

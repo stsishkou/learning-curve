@@ -1,5 +1,6 @@
 import { m } from '@lc/i18n/messages'
-import { ALARM_MINUTES, hm, nowMinsk, type Occurrence } from '@lc/plan-domain'
+import { hm, nowMinsk, type Occurrence } from '@lc/plan-domain'
+import { ALARM_MINUTES } from '@lc/plan-domain/ics'
 import { useEffect, useState } from 'react'
 
 import { REMINDER_LEADS } from '../../../shared/lib'

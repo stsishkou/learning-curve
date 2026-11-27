@@ -13,11 +13,9 @@ import {
   nowMinsk,
   occurrences,
   parseLocal,
-  planFileName,
   planLabels,
   planStart,
   removeOccurrence,
-  reviewOffers,
   shownPlan,
   startOfDay,
   toLocalString,
@@ -29,9 +27,10 @@ import {
   type Plan,
   type PlanChange,
   type PlanEvent,
-  type RebalanceRequest,
-  type RebalanceResult,
 } from '@lc/plan-domain'
+import { planFileName } from '@lc/plan-domain/ics'
+import { reviewOffers } from '@lc/plan-domain/insights'
+import type { RebalanceRequest, RebalanceResult } from '@lc/plan-domain/rebalance'
 import { Hint, useFullscreen, useHelpMode, useIconsOnly, useShortcuts } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 

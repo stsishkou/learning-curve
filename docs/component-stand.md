@@ -85,7 +85,7 @@ apps/stand/
   src/docs/page.tsx           the generated page of a component: the default one plus its source path
 packages/ui/src/*.stories.tsx                       stories live next to their components
 modules/*/src/**/ui/*.stories.tsx
-packages/plan-domain/src/fixtures.ts                the plan every story uses
+packages/plan-domain/src/fixtures/index.ts              the plan every story uses
 ```
 
 - **Theme switch.** The toolbar rewrites `<meta name="color-scheme">` in the preview, the same mechanism as

@@ -3,7 +3,8 @@
 //   pnpm run plan --ics   → also writes exports/*.ics
 import { mkdirSync, writeFileSync } from 'node:fs'
 
-import { IMPORT_HOWTO, calendarICS, icsFileName, nextDeadline, parseLocal, weeklyHours } from '@lc/plan-domain'
+import { nextDeadline, parseLocal, weeklyHours } from '@lc/plan-domain'
+import { IMPORT_HOWTO, calendarICS, icsFileName } from '@lc/plan-domain/ics'
 
 import { readEdits, writePlan } from '../src/store'
 

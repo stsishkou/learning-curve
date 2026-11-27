@@ -1,21 +1,18 @@
 // Node-only: Outlook (Microsoft 365 and Outlook.com, through Microsoft Graph) as a calendar app the plan is kept in.
+import { addDays, parseLocal, toMinsk, type Plan } from '@lc/plan-domain'
 import {
-  addDays,
   isGoneRepeat,
   OUTLOOK_SCOPES,
   outlookBody,
   outlookZone,
-  parseLocal,
   readOutlookCalendar,
   remoteOfOutlook,
   repeatWindow,
-  toMinsk,
-  type Plan,
   type SyncCalendarRow,
   type SyncRow,
   type SyncState,
   type Written,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/sync'
 
 import type { CalendarAdapter, CalendarKit, Saved } from '../calendar-sync/kit'
 import { OutlookApiError, OutlookCalendarApi } from './api'

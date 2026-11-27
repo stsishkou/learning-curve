@@ -1,5 +1,6 @@
 import { m } from '@lc/i18n/messages'
-import type { Plan, RebalanceRequest } from '@lc/plan-domain'
+import type { Plan } from '@lc/plan-domain'
+import type { RebalanceRequest } from '@lc/plan-domain/rebalance'
 import { parseTimelineSearch, TimelinePage } from '@lc/planner'
 import { createFileRoute, useBlocker, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'

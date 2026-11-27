@@ -3,16 +3,9 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import {
-  addDays,
-  emptyEdits,
-  historyEdits,
-  isSession,
-  parseCalendarSync,
-  travel,
-  type PlanEvent,
-} from '@lc/plan-domain'
+import { addDays, emptyEdits, historyEdits, isSession, travel, type PlanEvent } from '@lc/plan-domain'
 import { itemAt } from '@lc/plan-domain/fixtures'
+import { parseCalendarSync } from '@lc/plan-domain/sync'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 
 import { FakeOutlook } from './fake-outlook'

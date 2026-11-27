@@ -1,6 +1,7 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, laneSpare, startOfDay, type CalendarLane, type LaneChange, type LaneSessionState } from '@lc/plan-domain'
+import { DAY, startOfDay } from '@lc/plan-domain'
+import { laneSpare, type CalendarLane, type LaneChange, type LaneSessionState } from '@lc/plan-domain/insights'
 import { calendarColor, Dot } from '@lc/ui'
 import type { CSSProperties } from 'react'
 

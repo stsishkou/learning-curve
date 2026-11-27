@@ -1,5 +1,5 @@
 // Node-only: the few Google Calendar API calls the sync makes, over `fetch`.
-import type { GoogleBody, GoogleEvent } from '@lc/plan-domain'
+import type { GoogleBody, GoogleEvent } from '@lc/plan-domain/sync'
 
 const API = 'https://www.googleapis.com/calendar/v3'
 const TIMEOUT = 20_000

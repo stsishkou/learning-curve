@@ -1,4 +1,4 @@
-import type { LpModel, LpSolution, LpTerm, LpVariable, Solve } from '@lc/plan-domain'
+import type { LpModel, LpSolution, LpTerm, LpVariable, Solve } from '@lc/plan-domain/rebalance'
 import highsLoader, { type Highs } from 'highs'
 
 let runtime: Promise<Highs> | undefined

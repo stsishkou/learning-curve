@@ -1,6 +1,7 @@
 import { m } from '@lc/i18n/messages'
-import { parseLocal, planStats } from '@lc/plan-domain'
+import { parseLocal } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
+import { planStats } from '@lc/plan-domain/insights'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 

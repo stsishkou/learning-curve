@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
-import { parseLocal } from '../dates'
-import type { PlanEvent } from '../types'
+import { parseLocal } from '../core/dates'
+import type { PlanEvent } from '../core/types'
 import type { LpModel, LpTerm } from './lp'
 import { buildModel, earliestDays, reachOf, readDays, rhythmDays, targetDays } from './model'
 import type { Room, RoomDay } from './room'

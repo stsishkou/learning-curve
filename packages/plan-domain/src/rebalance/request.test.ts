@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
+import type { Plan, PlanEvent } from '../core/types'
 import { fixturePlan } from '../fixtures'
-import type { Plan, PlanEvent } from '../types'
 import { currentRhythm, defaultStudyHours, movingSessions, nearestRhythm, parseRebalanceRequest } from './request'
 
 const event = (calendar: string, start: string, end: string, extra: Partial<PlanEvent> = {}): PlanEvent => ({

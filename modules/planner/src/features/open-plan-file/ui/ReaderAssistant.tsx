@@ -1,16 +1,7 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import {
-  PLAN_SCHEMA,
-  UPDATE_SCHEMA,
-  parseLocal,
-  parseUpdate,
-  planBrief,
-  planGuide,
-  previewUpdate,
-  type Plan,
-  type PlanChange,
-} from '@lc/plan-domain'
+import { parseLocal, type Plan, type PlanChange } from '@lc/plan-domain'
+import { PLAN_SCHEMA, UPDATE_SCHEMA, parseUpdate, planBrief, planGuide, previewUpdate } from '@lc/plan-domain/protocol'
 import { Button, ExternalLink, FIELD, Hint, INPUT, TriangleAlert } from '@lc/ui'
 import { useMemo, useState } from 'react'
 

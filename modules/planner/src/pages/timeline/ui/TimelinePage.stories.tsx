@@ -3,7 +3,6 @@ import {
   addDays,
   applyChange,
   applyEdits,
-  calendarLanes,
   DAY,
   deadlineChange,
   deadlineOf,
@@ -11,22 +10,20 @@ import {
   historyEdits,
   historyView,
   isSession,
-  lanesRange,
   mondayOf,
   nowMinsk,
   parseLocal,
-  previewUpdate,
-  rebalanceChange,
   recordChange,
   toLocalString,
   travel,
   ymd,
   type Plan,
   type PlanChange,
-  type RebalanceRequest,
-  type RebalanceResult,
 } from '@lc/plan-domain'
 import { fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
+import { calendarLanes, lanesRange } from '@lc/plan-domain/insights'
+import { previewUpdate } from '@lc/plan-domain/protocol'
+import { rebalanceChange, type RebalanceRequest, type RebalanceResult } from '@lc/plan-domain/rebalance'
 import { AppBar } from '@lc/ui'
 import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
 import type { Meta, StoryObj } from '@storybook/react-vite'

@@ -1,5 +1,5 @@
-import { HOUR, parseLocal } from '../dates'
-import type { PlanEvent } from '../types'
+import { HOUR, parseLocal } from '../core/dates'
+import type { PlanEvent } from '../core/types'
 import type { LpConstraint, LpModel, LpTerm, LpVariable } from './lp'
 import type { Room } from './room'
 import type { RebalanceRequest } from './types'

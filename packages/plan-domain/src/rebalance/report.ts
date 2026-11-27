@@ -1,5 +1,5 @@
-import { DAY, HOUR, parseLocal, ymd } from '../dates'
-import type { PlanEvent, SessionMove } from '../types'
+import { DAY, HOUR, parseLocal, ymd } from '../core/dates'
+import type { PlanEvent, SessionMove } from '../core/types'
 import type { Room } from './room'
 import type { RebalanceReason, RebalanceReport, RebalanceRequest } from './types'
 

@@ -1,4 +1,4 @@
-import type { PlanChange } from '../changes'
+import type { PlanChange } from '../core/changes'
 import type { RebalanceResult } from './types'
 
 /**

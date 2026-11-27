@@ -1,4 +1,5 @@
-import type { CalendarProvider, InboxItem } from '@lc/plan-domain'
+import type { CalendarProvider } from '@lc/plan-domain'
+import type { InboxItem } from '@lc/plan-domain/sync'
 
 /** What the host says about keeping the plan in one calendar app; nothing secret. */
 export interface CalendarSyncStatus {

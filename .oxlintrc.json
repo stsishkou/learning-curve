@@ -210,6 +210,205 @@
       }
     },
     {
+      "files": ["packages/plan-domain/src/core/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              },
+              {
+                "group": [
+                  "../insights",
+                  "../insights/**",
+                  "../protocol",
+                  "../protocol/**",
+                  "../ics",
+                  "../ics/**",
+                  "../sync",
+                  "../sync/**",
+                  "../rebalance",
+                  "../rebalance/**",
+                  "../fixtures",
+                  "../fixtures/**"
+                ],
+                "message": "core imports no other area: the areas of plan-domain depend one way."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-domain/src/insights/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              },
+              {
+                "group": [
+                  "../protocol",
+                  "../protocol/**",
+                  "../ics",
+                  "../ics/**",
+                  "../sync",
+                  "../sync/**",
+                  "../rebalance",
+                  "../rebalance/**",
+                  "../fixtures",
+                  "../fixtures/**"
+                ],
+                "message": "insights may import only core: the areas of plan-domain depend one way."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-domain/src/protocol/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              },
+              {
+                "group": [
+                  "../ics",
+                  "../ics/**",
+                  "../sync",
+                  "../sync/**",
+                  "../rebalance",
+                  "../rebalance/**",
+                  "../fixtures",
+                  "../fixtures/**"
+                ],
+                "message": "protocol may import only core, insights: the areas of plan-domain depend one way."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-domain/src/ics/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              },
+              {
+                "group": [
+                  "../insights",
+                  "../insights/**",
+                  "../protocol",
+                  "../protocol/**",
+                  "../sync",
+                  "../sync/**",
+                  "../rebalance",
+                  "../rebalance/**",
+                  "../fixtures",
+                  "../fixtures/**"
+                ],
+                "message": "ics may import only core: the areas of plan-domain depend one way."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-domain/src/sync/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              },
+              {
+                "group": [
+                  "../insights",
+                  "../insights/**",
+                  "../rebalance",
+                  "../rebalance/**",
+                  "../fixtures",
+                  "../fixtures/**"
+                ],
+                "message": "sync may import only core, protocol, ics: the areas of plan-domain depend one way."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/plan-domain/src/rebalance/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              },
+              {
+                "group": [
+                  "../insights",
+                  "../insights/**",
+                  "../protocol",
+                  "../protocol/**",
+                  "../ics",
+                  "../ics/**",
+                  "../sync",
+                  "../sync/**",
+                  "../fixtures",
+                  "../fixtures/**"
+                ],
+                "message": "rebalance may import only core: the areas of plan-domain depend one way."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // A test may use the fixtures and any area to set a scene; the direction rule is for the code under test.
+      "files": ["packages/plan-domain/src/**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*", "react", "react/**", "react-dom", "node:*"],
+                "message": "The domain is pure TypeScript: no framework, no Node, no other workspace package."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["packages/plan-data/**"],
       "rules": {
         "no-restricted-imports": [

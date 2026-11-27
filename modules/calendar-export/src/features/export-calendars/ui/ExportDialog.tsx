@@ -1,4 +1,5 @@
 import { m } from '@lc/i18n/messages'
+import type { Plan, PlanCalendar } from '@lc/plan-domain'
 import {
   ALARM_MINUTES,
   calendarICS,
@@ -7,9 +8,7 @@ import {
   icsFileName,
   IMPORT_HOWTO,
   planFileName,
-  type Plan,
-  type PlanCalendar,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/ics'
 import { Button, calendarColor, Dot, FOOT, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useEffect, useMemo, useState } from 'react'
 

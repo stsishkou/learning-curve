@@ -1,7 +1,8 @@
 import { ExportDialog } from '@lc/calendar-export'
 import { m } from '@lc/i18n/messages'
 import { locales, setLocale } from '@lc/i18n/runtime'
-import type { Plan, RebalanceRequest } from '@lc/plan-domain'
+import type { Plan } from '@lc/plan-domain'
+import type { RebalanceRequest } from '@lc/plan-domain/rebalance'
 import { PlannerPage, parsePlannerSearch, type PlannerCommand } from '@lc/planner'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 

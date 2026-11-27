@@ -1,6 +1,7 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import type { CalendarLane, LabelGroup } from '@lc/plan-domain'
+import type { LabelGroup } from '@lc/plan-domain'
+import type { CalendarLane } from '@lc/plan-domain/insights'
 import { Tag } from '@lc/ui'
 
 import { dayMs } from '../lib/scale'

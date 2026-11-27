@@ -1,6 +1,7 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { parseLocal, type Plan, type UpdatePreview } from '@lc/plan-domain'
+import { parseLocal, type Plan } from '@lc/plan-domain'
+import type { UpdatePreview } from '@lc/plan-domain/protocol'
 import { Button, FOOT, Modal, TITLE } from '@lc/ui'
 
 import { PlanDiffList, RuleWarningList } from '../../../shared/ui'

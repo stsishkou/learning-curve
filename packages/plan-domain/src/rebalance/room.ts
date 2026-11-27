@@ -1,9 +1,9 @@
-import type { BusyBlock } from '../busy'
-import { DAY, mondayOf, parseLocal, startOfDay, weekday, ymd } from '../dates'
-import { deadlineOf } from '../deadlines'
-import { occurrences } from '../occurrences'
-import type { Plan, PlanEvent } from '../types'
-import { weeklyHours } from '../weekly-hours'
+import type { BusyBlock } from '../core/busy'
+import { DAY, mondayOf, parseLocal, startOfDay, weekday, ymd } from '../core/dates'
+import { deadlineOf } from '../core/deadlines'
+import { occurrences } from '../core/occurrences'
+import type { Plan, PlanEvent } from '../core/types'
+import { weeklyHours } from '../core/weekly-hours'
 import type { RebalanceRequest } from './types'
 
 const MINUTE = 60_000

@@ -1,5 +1,5 @@
 import { readPlan } from '@lc/plan-data'
-import { calendarICS, icsFileName, IMPORT_HOWTO } from '@lc/plan-domain'
+import { calendarICS, icsFileName, IMPORT_HOWTO } from '@lc/plan-domain/ics'
 import { createFileRoute } from '@tanstack/react-router'
 import JSZip from 'jszip'
 

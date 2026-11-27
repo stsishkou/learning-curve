@@ -1,14 +1,11 @@
+import { DAY, parseLocal, type BusyBlock, type Plan } from '@lc/plan-domain'
 import {
-  DAY,
   defaultStudyHours,
-  parseLocal,
   parseRebalanceRequest,
   planRebalance,
-  type BusyBlock,
-  type Plan,
   type RebalanceRequest,
   type RebalanceResult,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/rebalance'
 
 import { loadBusy } from './busy'
 import { newestOnly } from './queue'

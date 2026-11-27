@@ -1,18 +1,9 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import {
-  calendarLanes,
-  compareLanes,
-  DAY,
-  isSession,
-  lanesRange,
-  movedSessions,
-  parseLocal,
-  previewUpdate,
-  type Plan,
-  type PlanChange,
-} from '@lc/plan-domain'
+import { DAY, isSession, parseLocal, type Plan, type PlanChange } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
+import { calendarLanes, compareLanes, lanesRange, movedSessions } from '@lc/plan-domain/insights'
+import { previewUpdate } from '@lc/plan-domain/protocol'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
 

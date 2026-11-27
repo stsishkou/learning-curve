@@ -1,4 +1,5 @@
-import { addDays, defaultStudyHours, type Plan, type RebalanceRequest } from '@lc/plan-domain'
+import { addDays, type Plan } from '@lc/plan-domain'
+import { defaultStudyHours, type RebalanceRequest } from '@lc/plan-domain/rebalance'
 
 interface FinishBy {
   calendar: string

@@ -7,13 +7,11 @@ import {
   courseProgress,
   deadlineOf,
   doneWithoutTime,
-  finishRange,
-  paceForecast,
   parseLocal,
   type Accuracy,
-  type FinishRange,
   type Plan,
 } from '@lc/plan-domain'
+import { finishRange, paceForecast, type FinishRange } from '@lc/plan-domain/insights'
 import { calendarColor, Dot, Hint } from '@lc/ui'
 import { useMemo } from 'react'
 

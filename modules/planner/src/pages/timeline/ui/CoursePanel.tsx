@@ -1,6 +1,7 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { addDays, laneSpare, parseLocal, type CalendarLane, type LaneChange, type RuleWarning } from '@lc/plan-domain'
+import { addDays, parseLocal, type RuleWarning } from '@lc/plan-domain'
+import { laneSpare, type CalendarLane, type LaneChange } from '@lc/plan-domain/insights'
 import { Button, calendarColor, Dot, FIELD, INPUT, X } from '@lc/ui'
 
 import { RuleWarningList } from '../../../shared/ui'

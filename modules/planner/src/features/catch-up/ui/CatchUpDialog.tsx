@@ -1,14 +1,13 @@
 import { fmtDay, fmtHours } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
+import type { Plan, PlanChange } from '@lc/plan-domain'
 import {
   catchUpScenarios,
   planOutlook,
   withMoves,
   type CatchUpScenario,
-  type Plan,
-  type PlanChange,
   type PlanOutlook,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/insights'
 import { Button, FOOT, META, Modal, TITLE } from '@lc/ui'
 import { useMemo, useState } from 'react'
 

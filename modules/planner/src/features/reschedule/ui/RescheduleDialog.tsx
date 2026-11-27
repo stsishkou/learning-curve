@@ -2,22 +2,24 @@ import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
 import {
   addDays,
-  currentRhythm,
   deadlineChange,
   deadlineOf,
-  defaultStudyHours,
-  movingSessions,
-  nearestRhythm,
   parseLocal,
-  previewUpdate,
-  rebalanceChange,
   shiftTargets,
   type Plan,
   type PlanChange,
+} from '@lc/plan-domain'
+import { previewUpdate } from '@lc/plan-domain/protocol'
+import {
+  currentRhythm,
+  defaultStudyHours,
+  movingSessions,
+  nearestRhythm,
+  rebalanceChange,
   type RebalanceReason,
   type RebalanceRequest,
   type RebalanceResult,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/rebalance'
 import { Button, FIELD, FOOT, INPUT, META, Modal, Segmented, TITLE } from '@lc/ui'
 import { useId, useMemo, useState, type SubmitEvent } from 'react'
 

@@ -1,6 +1,7 @@
 import { fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, type FinishRange, type PlanStats } from '@lc/plan-domain'
+import { DAY } from '@lc/plan-domain'
+import type { FinishRange, PlanStats } from '@lc/plan-domain/insights'
 import { Hint } from '@lc/ui'
 import { useRef, useState, type PointerEvent } from 'react'
 

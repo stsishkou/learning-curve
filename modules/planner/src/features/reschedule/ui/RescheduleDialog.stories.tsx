@@ -1,19 +1,14 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
+import { DAY, isSession, parseLocal, toLocalString, type Plan, type SessionMove } from '@lc/plan-domain'
+import { fixturePlan } from '@lc/plan-domain/fixtures'
 import {
-  DAY,
   currentRhythm,
-  isSession,
   nearestRhythm,
-  parseLocal,
-  toLocalString,
-  type Plan,
   type RebalanceReport,
   type RebalanceRequest,
   type RebalanceResult,
-  type SessionMove,
-} from '@lc/plan-domain'
-import { fixturePlan } from '@lc/plan-domain/fixtures'
+} from '@lc/plan-domain/rebalance'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fireEvent, fn, userEvent, waitFor, within } from 'storybook/test'
 

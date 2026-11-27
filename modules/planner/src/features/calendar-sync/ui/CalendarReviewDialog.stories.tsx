@@ -1,6 +1,7 @@
 import { m } from '@lc/i18n/messages'
-import { googleEventId, isSession, skipDay, type PlanChange } from '@lc/plan-domain'
+import { isSession, skipDay, type PlanChange } from '@lc/plan-domain'
 import { fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
+import { googleEventId } from '@lc/plan-domain/sync'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 

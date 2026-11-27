@@ -1,6 +1,7 @@
 import { fmtDay, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { addDays, DAY, type CalendarLane, type LaneSession } from '@lc/plan-domain'
+import { addDays, DAY } from '@lc/plan-domain'
+import type { CalendarLane, LaneSession } from '@lc/plan-domain/insights'
 import type { ReactNode } from 'react'
 
 import { clampPct, dayMs, type Scale } from '../lib/scale'

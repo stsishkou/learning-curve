@@ -1,21 +1,20 @@
+import { nowMinsk, type Plan } from '@lc/plan-domain'
+import { accuracyReport } from '@lc/plan-domain/insights'
 // A Model Context Protocol server for the plan, over stdio: an assistant reads the plan and its guide, previews
 // an update and applies it. It is a thin adapter: the documents and their rules come from @lc/plan-domain.
 //   pnpm --silent run mcp     (stdout carries the protocol, so nothing else may print there)
 import {
   PLAN_SCHEMA,
   UPDATE_SCHEMA,
-  accuracyReport,
   compactPlan,
-  nowMinsk,
   parseUpdate,
   planBrief,
   planGuide,
   previewUpdate,
-  rebalanceChange,
   reportPreview,
   updateOutcome,
-  type Plan,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/protocol'
+import { rebalanceChange } from '@lc/plan-domain/rebalance'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {

@@ -1,5 +1,5 @@
 import { canWrite, readPlan, saveChanges, syncCalendars } from '@lc/plan-data'
-import { parseUpdate, previewUpdate, reportPreview, updateOutcome } from '@lc/plan-domain'
+import { parseUpdate, previewUpdate, reportPreview, updateOutcome } from '@lc/plan-domain/protocol'
 import { createFileRoute } from '@tanstack/react-router'
 
 /**

@@ -1,5 +1,6 @@
 import { readPlan } from '@lc/plan-data'
-import { accuracyReport, nowMinsk } from '@lc/plan-domain'
+import { nowMinsk } from '@lc/plan-domain'
+import { accuracyReport } from '@lc/plan-domain/insights'
 import { createFileRoute } from '@tanstack/react-router'
 
 /**

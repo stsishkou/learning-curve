@@ -1,7 +1,7 @@
 // Node-only: the few Microsoft Graph calls the Outlook sync makes, over `fetch`.
 import { randomUUID } from 'node:crypto'
 
-import type { GraphBody, GraphEvent } from '@lc/plan-domain'
+import type { GraphBody, GraphEvent } from '@lc/plan-domain/sync'
 
 const API = 'https://graph.microsoft.com/v1.0'
 const TIMEOUT = 20_000

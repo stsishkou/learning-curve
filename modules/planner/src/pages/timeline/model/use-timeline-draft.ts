@@ -1,12 +1,7 @@
 import { m } from '@lc/i18n/messages'
-import {
-  deadlineChange,
-  previewUpdate,
-  rebalanceChange,
-  type Plan,
-  type PlanChange,
-  type UpdatePreview,
-} from '@lc/plan-domain'
+import { deadlineChange, type Plan, type PlanChange } from '@lc/plan-domain'
+import { previewUpdate, type UpdatePreview } from '@lc/plan-domain/protocol'
+import { rebalanceChange } from '@lc/plan-domain/rebalance'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { finishByRequest, type Rebalance } from '../../../features/reschedule'

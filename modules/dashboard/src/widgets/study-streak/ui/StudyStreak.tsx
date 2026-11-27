@@ -1,6 +1,7 @@
 import { dowShort, fmtDay, fmtHours, fmtMonthName } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { DAY, startOfDay, studyStreak, type Plan, type StudyDay } from '@lc/plan-domain'
+import { DAY, startOfDay, type Plan } from '@lc/plan-domain'
+import { studyStreak, type StudyDay } from '@lc/plan-domain/insights'
 import { Flame } from '@lc/ui'
 
 import { Card, LegendKey } from '../../../shared/ui'

@@ -3,17 +3,9 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import {
-  addDays,
-  emptyEdits,
-  GOOGLE_SCOPE,
-  googleEventId,
-  historyEdits,
-  isSession,
-  travel,
-  type PlanEvent,
-} from '@lc/plan-domain'
+import { addDays, emptyEdits, historyEdits, isSession, travel, type PlanEvent } from '@lc/plan-domain'
 import { itemAt } from '@lc/plan-domain/fixtures'
+import { GOOGLE_SCOPE, googleEventId } from '@lc/plan-domain/sync'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 
 import { FakeGoogle } from './fake-google'

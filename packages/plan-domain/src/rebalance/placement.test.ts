@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
-import { parseLocal } from '../dates'
-import type { PlanEvent } from '../types'
+import { parseLocal } from '../core/dates'
+import type { PlanEvent } from '../core/types'
 import { placeDay } from './placement'
 import { HALF_HOUR, type Room, type RoomDay } from './room'
 

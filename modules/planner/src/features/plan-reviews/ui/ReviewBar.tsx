@@ -1,6 +1,7 @@
 import { fmtDay } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { hm, parseLocal, type ReviewOffer } from '@lc/plan-domain'
+import { hm, parseLocal } from '@lc/plan-domain'
+import type { ReviewOffer } from '@lc/plan-domain/insights'
 import { Repeat, X } from '@lc/ui'
 
 interface Props {

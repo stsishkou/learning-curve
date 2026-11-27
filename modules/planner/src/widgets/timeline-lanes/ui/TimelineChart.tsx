@@ -1,5 +1,6 @@
 import { m } from '@lc/i18n/messages'
-import { DAY, groupByLabel, ymd, type CalendarLane, type LaneChange } from '@lc/plan-domain'
+import { DAY, groupByLabel, ymd } from '@lc/plan-domain'
+import type { CalendarLane, LaneChange } from '@lc/plan-domain/insights'
 import { Button, Segmented } from '@lc/ui'
 import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 

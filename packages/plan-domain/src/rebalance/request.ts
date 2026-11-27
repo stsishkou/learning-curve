@@ -1,8 +1,8 @@
-import { DAY, parseLocal, startOfDay, weekday, ymd } from '../dates'
-import { deadlineOf } from '../deadlines'
-import { isRecord } from '../edits'
-import { isSession } from '../progress'
-import type { Plan, PlanEvent } from '../types'
+import { DAY, parseLocal, startOfDay, weekday, ymd } from '../core/dates'
+import { deadlineOf } from '../core/deadlines'
+import { isRecord } from '../core/edits'
+import { isSession } from '../core/progress'
+import type { Plan, PlanEvent } from '../core/types'
 import { studyWeekdays } from './room'
 import { RHYTHMS, type RebalanceRequest, type RebalanceTarget } from './types'
 

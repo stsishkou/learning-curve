@@ -1,28 +1,24 @@
 // Node-only: keeps the plan in the person's calendar apps. A round reads what changed in the app's calendars there,
 // takes the person's edits into the plan as steps Undo takes back, holds the few that need a decision, then writes
 // what the plan has and the app does not. Rounds and decisions run one at a time, whichever app they are for.
+import { CALENDAR_PROVIDERS, parseLocal, toLocalString, type CalendarProvider, type Plan } from '@lc/plan-domain'
 import {
-  CALENDAR_PROVIDERS,
   changeOf,
   fileProposals,
   parseCalendarSync,
-  parseLocal,
   planPush,
   readRemote,
   rowOf,
-  toLocalString,
   triage,
   writtenHash,
   writtenOf,
-  type CalendarProvider,
   type CalendarSync,
   type InboxItem,
-  type Plan,
   type Proposal,
   type RemoteEvent,
   type SyncCalendarRow,
   type Written,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/sync'
 
 import { canWrite, readPlan, readSync, saveChanges, writeSync } from '../store'
 import type { CalendarAdapter } from './kit'

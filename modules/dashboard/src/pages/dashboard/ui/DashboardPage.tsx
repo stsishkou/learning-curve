@@ -1,17 +1,7 @@
 import { fmtDay, fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import {
-  DAY,
-  finishRange,
-  paceForecast,
-  parseLocal,
-  planStats,
-  shownPlan,
-  startOfDay,
-  ymd,
-  type Plan,
-  type WeekStats,
-} from '@lc/plan-domain'
+import { DAY, parseLocal, shownPlan, startOfDay, ymd, type Plan } from '@lc/plan-domain'
+import { finishRange, paceForecast, planStats, type WeekStats } from '@lc/plan-domain/insights'
 import { ScreenButtons, Segmented, stickyTop, useFullscreen, useShortcuts } from '@lc/ui'
 import { useMemo } from 'react'
 

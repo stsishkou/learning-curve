@@ -1,5 +1,6 @@
 import { m } from '@lc/i18n/messages'
-import { previewUpdate, type Plan, type PlanChange } from '@lc/plan-domain'
+import type { Plan, PlanChange } from '@lc/plan-domain'
+import { previewUpdate } from '@lc/plan-domain/protocol'
 import { Button, calendarColor, Dot, FOOT, META, Modal, TITLE } from '@lc/ui'
 import { useMemo } from 'react'
 

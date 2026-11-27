@@ -1,5 +1,5 @@
-import { planStats } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
+import { planStats } from '@lc/plan-domain/insights'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { WeeklyLoad } from './WeeklyLoad'

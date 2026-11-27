@@ -1,5 +1,5 @@
 import { feedRevisions, readPlan } from '@lc/plan-data'
-import { calendarICS, combinedCalendar, combinedICS, icsETag, icsFileName } from '@lc/plan-domain'
+import { calendarICS, combinedCalendar, combinedICS, icsETag, icsFileName } from '@lc/plan-domain/ics'
 import { createFileRoute } from '@tanstack/react-router'
 
 /**

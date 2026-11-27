@@ -8,7 +8,7 @@ import {
   type SyncCalendarRow,
   type SyncRow,
   type Written,
-} from '@lc/plan-domain'
+} from '@lc/plan-domain/sync'
 
 import type { CalendarAdapter, CalendarKit, Saved } from '../calendar-sync/kit'
 import { GoogleApiError, GoogleCalendarApi } from './api'

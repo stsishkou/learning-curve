@@ -1,7 +1,8 @@
 import { fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { MIN_LOGGED, doneWithoutTime, finishRange, isSession, parseLocal, type Plan } from '@lc/plan-domain'
+import { MIN_LOGGED, doneWithoutTime, isSession, parseLocal, type Plan } from '@lc/plan-domain'
 import { fixtureNow, fixturePlan } from '@lc/plan-domain/fixtures'
+import { finishRange } from '@lc/plan-domain/insights'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
 

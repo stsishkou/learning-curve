@@ -1,16 +1,6 @@
 import { m } from '@lc/i18n/messages'
-import {
-  calendarLanes,
-  compareLanes,
-  hiddenCalendarIds,
-  laneMoveBounds,
-  lanesRange,
-  movedSessions,
-  ymd,
-  type HistoryView,
-  type Plan,
-  type PlanChange,
-} from '@lc/plan-domain'
+import { hiddenCalendarIds, ymd, type HistoryView, type Plan, type PlanChange } from '@lc/plan-domain'
+import { calendarLanes, compareLanes, laneMoveBounds, lanesRange, movedSessions } from '@lc/plan-domain/insights'
 import { Hint, useFullscreen, useShortcuts } from '@lc/ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
