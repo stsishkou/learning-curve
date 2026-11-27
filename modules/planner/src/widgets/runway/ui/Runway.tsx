@@ -14,6 +14,7 @@ import {
   startOfDay,
 } from '@lc/plan-domain'
 import { Button, calendarColor, Dot, Hint, Pencil } from '@lc/ui'
+import type { ReactNode } from 'react'
 
 interface Props {
   plan: Plan
@@ -34,10 +35,22 @@ interface Group {
   labs: PlanEvent[]
 }
 
-const SEGMENT_LABEL = 'absolute top-3 text-[12.5px] font-semibold whitespace-nowrap'
 const SEGMENT_DATES = 'ml-1.5 hidden font-normal text-muted md:inline'
 const LAB_DONE =
   "bg-current after:h-[3px] after:w-1.5 after:transform-[rotate(-45deg)_translate(1px,-1px)] after:border-b-2 after:border-l-2 after:border-surface after:content-['']"
+
+/**
+ * The name of a segment over the strip, from where the segment starts (`at`, a share of the strip). Near the end it
+ * moves left as far as it takes to end with the strip: the space before it gives way, the name does not.
+ */
+function SegmentLabel({ at, children }: { at: string; children: ReactNode }) {
+  return (
+    <div className="absolute inset-x-0 top-3 flex">
+      <span style={{ width: at }} />
+      <div className="flex-none text-[12.5px] font-semibold whitespace-nowrap">{children}</div>
+    </div>
+  )
+}
 
 /**
  * Horizontal strip from the first session of a course to its deadline, with a marker per lab: the course the plan
@@ -171,12 +184,12 @@ export function Runway({ plan, now, onSelect, onConfigure, onReschedule }: Props
         </div>
         {groups.map((g, i) => (
           <div key={g.name}>
-            <div className={SEGMENT_LABEL} style={{ left: x(startOfDay(g.start)) }}>
+            <SegmentLabel at={x(startOfDay(g.start))}>
               {g.name}
               <small className={SEGMENT_DATES}>
                 {fmtShort(g.start)} – {fmtShort(g.end)}
               </small>
-            </div>
+            </SegmentLabel>
             {g.labs.map((lab, j) => {
               const done = isDone(lab)
               return (
@@ -199,12 +212,12 @@ export function Runway({ plan, now, onSelect, onConfigure, onReschedule }: Props
           </div>
         ))}
         {lastEnd < end && (
-          <div className={SEGMENT_LABEL} style={{ left: x(lastEnd) }}>
+          <SegmentLabel at={x(lastEnd)}>
             {m.reserve()}
             <small className={SEGMENT_DATES}>
               {fmtShort(lastEnd)} – {fmtShort(deadline)}
             </small>
-          </div>
+          </SegmentLabel>
         )}
         {now !== null && now >= start && now < end && (
           <div className="absolute top-7 bottom-[22px] -ml-px w-0.5 bg-today" style={{ left: x(now) }}>

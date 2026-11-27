@@ -102,3 +102,32 @@ export const NoDeadlineToCountTo: Story = {
     await expect(args.onConfigure).toHaveBeenCalled()
   },
 }
+
+const reserveInside = async (canvasElement: HTMLElement) => {
+  const strip = within(canvasElement).getByRole('region')
+  const inner = strip.getBoundingClientRect().right - Number.parseFloat(getComputedStyle(strip).paddingRight)
+  const reserve = within(strip).getByText(m.reserve())
+  await expect(reserve.getBoundingClientRect().right).toBeLessThanOrEqual(inner)
+}
+
+// Three spare days after the last session, as in a plan with little room left.
+const shortReserve: Plan = {
+  ...fixturePlan,
+  events: fixturePlan.events.map((e) =>
+    e.uid === 'certs-041@learning-curve' ? { ...e, start: '2026-12-26T00:00', end: '2026-12-26T00:00' } : e,
+  ),
+}
+
+/** A short reserve sits at the very end of the strip: its label, dates and all, stays inside the card. */
+export const ShortReserveStaysInside: Story = {
+  globals: { viewport: { value: 'desktop', isRotated: false } },
+  args: { plan: shortReserve },
+  play: async ({ canvasElement }) => reserveInside(canvasElement),
+}
+
+/** On a phone too, where the strip is short and the reserve a sliver at its end. */
+export const ShortReserveStaysInsideOnAPhone: Story = {
+  globals: { viewport: { value: 'mobile2', isRotated: false } },
+  args: { plan: shortReserve },
+  play: async ({ canvasElement }) => reserveInside(canvasElement),
+}
