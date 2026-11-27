@@ -30,8 +30,9 @@ nueva y de vida corta, lo cual está bien para leer y mal para «escribe este ar
 
 ### Lo que el store le pide al hosting
 
-Toda escritura del planificador pasa por `packages/plan-data/src/store.ts`, por diseño. Leámoslo como quien despliega,
-no como quien desarrolla:
+Toda escritura del planificador pasa por un solo archivo de `plan-data`, por diseño: `packages/plan-data/src/store.ts`
+en el commit fijado, hoy el adaptador `fs` en `packages/plan-data/src/fs/`. Leamos el archivo fijado como quien
+despliega, no como quien desarrolla:
 
 <Walkthrough>
 
@@ -130,8 +131,9 @@ Cómo leer la tabla del planificador:
   difícil.
 - **API** es «Con cambios» donde las funciones se ejecutan pero no pueden conservar estado entre peticiones: las
   lecturas funcionan; las escrituras necesitan otro almacenamiento.
-- **Disco** es la columna que decide. Cada «No» significa que `store.ts` pasa a ser una interfaz con una segunda
-  implementación respaldada por una base de datos o por almacenamiento de blobs, más una migración.
+- **Disco** es la columna que decide. Cada «No» significa que el puerto `PlanRepository` de `plan-service`, que
+  implementa `plan-data/fs`, necesita una segunda implementación respaldada por una base de datos o por almacenamiento
+  de blobs, más una migración.
 
 ### La decisión
 

@@ -28,8 +28,9 @@ this file and read it on the next request".
 
 ### What the store asks of a host
 
-Every write in the planner goes through `packages/plan-data/src/store.ts`, by design. Reading it as a deployer, not as
-a developer:
+Every write in the planner goes through one file of `plan-data`, by design: `packages/plan-data/src/store.ts` at the
+pinned commit, today the `fs` adapter in `packages/plan-data/src/fs/`. Reading the pinned file as a deployer, not as a
+developer:
 
 <Walkthrough>
 
@@ -125,8 +126,8 @@ How to read the planner table:
 - **SSR** is "Yes" everywhere it can run at all: server rendering is not the hard part.
 - **API** is "With changes" where functions run but cannot keep state between requests: reads work, writes need another
   store.
-- **Disk** is the column that decides. Every "No" means `store.ts` becomes an interface with a second, database- or
-  blob-backed implementation, plus a migration.
+- **Disk** is the column that decides. Every "No" means the `PlanRepository` port of `plan-service`, which `plan-data/fs`
+  implements, needs a second, database- or blob-backed implementation, plus a migration.
 
 ### The decision
 

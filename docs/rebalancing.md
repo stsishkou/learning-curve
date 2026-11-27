@@ -28,15 +28,15 @@ This document is for a reader who wants to trust the result or change how it is 
 | 1. Room | `packages/plan-domain/src/rebalance/room.ts` (`roomOf`) | `room.test.ts` |
 | 2. Which day: the targets and the program | `packages/plan-domain/src/rebalance/model.ts` (`rhythmDays`, `targetDays`, `reachOf`, `buildModel`) | `model.test.ts` |
 | 2. Which day: the order of aims | `packages/plan-domain/src/rebalance/lp.ts` (`solveInOrder`) | `lp.test.ts` |
-| 2. Which day: the solver | `packages/plan-data/src/solver.ts` (`solveLp`, HiGHS) | `solver.test.ts` |
+| 2. Which day: the solver | `packages/plan-data/src/highs/solver.ts` (`solveLp`, HiGHS) | `highs/solver.test.ts` |
 | 3. What time | `packages/plan-domain/src/rebalance/placement.ts` (`placeDay`) | `placement.test.ts` |
 | Report | `packages/plan-domain/src/rebalance/report.ts` (`reportOf`) | through `planRebalance` |
-| All together | `packages/plan-domain/src/rebalance/index.ts` (`planRebalance`) | `packages/plan-data/src/rebalance.test.ts`, `rebalance.example.test.ts` |
+| All together | `packages/plan-domain/src/rebalance/index.ts` (`planRebalance`) | `packages/plan-data/src/highs/rebalance.test.ts`, `highs/rebalance.example.test.ts` |
 | The change it stores | `packages/plan-domain/src/rebalance/change.ts` (`rebalanceChange`) | `change.test.ts` |
-| Server, MCP | `packages/plan-data/src/rebalance.ts`, `queue.ts`, `apps/web/src/server/reschedule.ts`, `packages/plan-data/scripts/mcp.ts` | `rebalance.test.ts`, `queue.test.ts` |
+| Server, MCP | `packages/plan-service/src/services/rebalance.ts` (the use case, with the busy calendar and one request at a time through `queue.ts`), `apps/web/src/server/reschedule.ts`, `apps/mcp/src/server.ts` | `services/rebalance.test.ts`, `queue.test.ts` |
 
 `plan-domain` builds the program in a neutral form (`LpModel`: variables, rows, an objective) and never imports
-a solver. `planRebalance` takes a `solve` function. `plan-data` passes `solveLp`, which runs
+a solver. `planRebalance` takes a `solve` function; `PlanPorts.solve` in `plan-service` carries it. `plan-data/highs` supplies it as `solveLp`, which runs
 [HiGHS](https://highs.dev) through the `highs` package (WebAssembly). The domain tests pass a fake solver, and the
 `plan-data` tests pass the real one.
 
@@ -201,7 +201,7 @@ are `w`. `own_i` is the day session `i` is on now.
 
 ### Variables
 
-The names below are the names in the model and in the LP text that `solver.ts` writes. Each name uses indices,
+The names below are the names in the model and in the LP text that `highs/solver.ts` writes. Each name uses indices,
 never uids.
 
 | Variable | Kind | Meaning |
@@ -395,7 +395,7 @@ Every guarantee below holds whenever the result is proven best. The last column 
 
 ## Worked example
 
-`packages/plan-data/src/rebalance.example.test.ts` runs this example with HiGHS and checks every number quoted
+`packages/plan-data/src/highs/rebalance.example.test.ts` runs this example with HiGHS and checks every number quoted
 below. If the code changes a number, change the document in the same commit.
 
 ### The plan

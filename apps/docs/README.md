@@ -90,7 +90,7 @@ code: chapters show it by reading git.
 A fence that names a file is filled from the repository when the site is built:
 
 ````md
-```ts file=packages/plan-data/src/store.ts lines=125-134
+```ts file=apps/web/vite.config.ts lines=8-30
 ```
 ````
 

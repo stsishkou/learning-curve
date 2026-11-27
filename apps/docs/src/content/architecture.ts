@@ -40,7 +40,7 @@ export const NODES: readonly MapNode[] = [
   },
   { id: 'stand', label: 'stand', path: 'apps/stand', row: 'entry', column: 0, since: 13 },
   { id: 'dashboard', label: 'dashboard', path: 'modules/dashboard', row: 'module', column: 2, since: 15 },
-  { id: 'mcp', label: 'MCP server', path: 'plan-data/scripts/mcp.ts', row: 'entry', column: 2, since: 17 },
+  { id: 'mcp', label: 'MCP server', path: 'apps/mcp', row: 'entry', column: 2, since: 17 },
   { id: 'docs', label: 'docs · lc_docs', path: 'apps/docs', row: 'entry', column: 3, since: 23 },
   { id: 'docs-contract', label: 'docs-contract', path: 'packages/docs-contract', row: 'package', column: 4, since: 24 },
   { id: 'harness', label: 'docs-harness', path: 'apps/docs-harness', row: 'entry', column: 4, since: 24 },

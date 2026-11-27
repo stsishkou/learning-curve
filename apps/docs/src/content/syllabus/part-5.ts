@@ -432,7 +432,7 @@ export const PART_5 = [
           },
         ],
         chosen: 'A long-lived Node process with a volume (Fly.io, Railway, a VPS)',
-        why: '`packages/plan-data/src/store.ts` reads and writes files on every edit and is the only writer by design, so a host with a real disk runs the planner unchanged. Moving to serverless would turn the store into an interface with a second, database-backed implementation. The project has not deployed the planner yet: this is the recommendation of the research, not a recorded decision.',
+        why: '`packages/plan-data/src/store.ts` (today the `fs` adapter in `packages/plan-data/src/fs/`) reads and writes files on every edit and is the only writer by design, so a host with a real disk runs the planner unchanged. Moving to serverless would need a second, database-backed implementation of the `PlanRepository` port, which `plan-data/fs` implements today. The project has not deployed the planner yet: this is the recommendation of the research, not a recorded decision.',
         evidence: 'inferred',
         sources: [
           { kind: 'file', ref: 'docs/deployment-research.md', note: 'the full matrix with prices and limits' },
