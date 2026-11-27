@@ -7,18 +7,22 @@ import {
   deadlineChange,
   deadlineOf,
   emptyHistory,
+  emptyTrash,
   historyEdits,
   historyView,
   isSession,
   mondayOf,
   nowMinsk,
   parseLocal,
+  parsePlanId,
   recordChange,
   toLocalString,
   travel,
   ymd,
   type Plan,
+  type PlanAccess,
   type PlanChange,
+  type PlanView,
 } from '@lc/plan-domain'
 import { fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
 import { calendarLanes, lanesRange } from '@lc/plan-domain/insights'
@@ -103,22 +107,32 @@ function heldSolver() {
   }
 }
 
+const planId = parsePlanId('default')
+const viewOf = (shown: Plan, access: PlanAccess): PlanView => ({
+  id: planId,
+  plan: shown,
+  access,
+  edited: [],
+  trash: emptyTrash(),
+  history: historyView(emptyHistory()),
+})
+
 /**
  * Stands in for the app: stores changes with the same reducer the server uses, each as its own step of the
  * history, so Apply and Undo work and nothing is saved.
  */
 function Host(props: ComponentProps<typeof TimelinePage>) {
-  const base = props.state.plan
+  const base = props.view.plan
   const [history, setHistory] = useState(emptyHistory)
   const [expanded, setExpanded] = useState(props.expanded ?? false)
-  const state = useMemo(
-    () => ({ ...props.state, plan: applyEdits(base, historyEdits(history)).plan, history: historyView(history) }),
-    [props.state, base, history],
+  const view = useMemo<PlanView>(
+    () => ({ ...props.view, plan: applyEdits(base, historyEdits(history)).plan, history: historyView(history) }),
+    [props.view, base, history],
   )
   return (
     <TimelinePage
       {...props}
-      state={state}
+      view={view}
       expanded={expanded}
       onExpandedChange={(next) => {
         props.onExpandedChange?.(next)
@@ -146,13 +160,13 @@ const meta = {
   component: TimelinePage,
   parameters: { layout: 'fullscreen' },
   args: {
-    state: { plan, canEdit: true, history: historyView(emptyHistory()) },
+    view: viewOf(plan, 'owner'),
     onChangeAll: fn(async () => {}),
     onTravel: fn(async () => {}),
     onExpandedChange: fn(),
     rebalance: fn(async (_plan: Plan, request: RebalanceRequest) => resultFor(request.calendar, 1)),
   },
-  argTypes: { state: { control: false } },
+  argTypes: { view: { control: false } },
   // The zoom is remembered per browser: every story starts from the whole plan.
   beforeEach: () => localStorage.removeItem('learning-curve:timeline-zoom'),
   render: (args) => <Host {...args} />,
@@ -450,9 +464,9 @@ export const LeavingWithADraftAsks: Story = {
   },
 }
 
-/** `canEdit: false`: courses can be picked and read, not changed. */
+/** A reader, not the owner: courses can be picked and read, not changed. */
 export const ReadOnly: Story = {
-  args: { state: { plan, canEdit: false, history: historyView(emptyHistory()) } },
+  args: { view: viewOf(plan, 'reader') },
   play: async ({ canvasElement }) => {
     const region = within(await chart(canvasElement))
     await expect(region.queryAllByRole('slider')).toEqual([])
@@ -464,7 +478,7 @@ export const ReadOnly: Story = {
 
 /** With nothing ahead in any course the page says so instead of an empty chart. */
 export const NoCourses: Story = {
-  args: { state: { plan: { ...plan, events: [] }, canEdit: true, history: historyView(emptyHistory()) } },
+  args: { view: viewOf({ ...plan, events: [] }, 'owner') },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText(m.timeline_empty())).toBeVisible()
     await expect(within(canvasElement).queryByRole('region', { name: m.timeline() })).toBeNull()

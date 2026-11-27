@@ -26,8 +26,7 @@ export const Route = createFileRoute('/')({
   validateSearch: parsePlannerSearch,
   loader: async () => {
     const [view, feed, calendars] = await Promise.all([getPlanView(), getBusyFeed(), getCalendarStatuses()])
-    // The planner still takes `canEdit` and a mutable list until it takes the view as it is.
-    return { state: { ...view, edited: [...view.edited], canEdit: view.access === 'owner' }, feed, calendars }
+    return { view, feed, calendars }
   },
   component: PlannerRoute,
 })
@@ -57,7 +56,7 @@ const rebalance = async (plan: Plan, request: RebalanceRequest) => rebalancePlan
 function PlannerRoute() {
   const navigate = Route.useNavigate()
   const router = useRouter()
-  const { state, feed, calendars } = Route.useLoaderData()
+  const { view, feed, calendars } = Route.useLoaderData()
   // A round that took edits made in the app into the plan changed it: the page reads it again.
   const readAgain = async <T extends { provider: string; takenAt: number | null }>(next: T) => {
     const before = calendars.find((status) => status.provider === next.provider)
@@ -66,79 +65,85 @@ function PlannerRoute() {
   }
   return (
     <PlannerPage
-      state={state}
-      search={Route.useSearch()}
-      // The same page with another week, view or open event: the router would otherwise scroll it back to the top.
-      onSearchChange={(patch) =>
-        void navigate({
-          search: (prev) => ({ ...prev, ...patch }),
-          resetScroll: false,
-          // Another view or period fades in; opening an event must not, or the grid would blink under its card.
-          viewTransition: 'view' in patch || 'week' in patch || 'day' in patch,
-        })
-      }
-      onChange={async (change) => {
-        await savePlanChange({ data: change })
-        await router.invalidate()
+      plan={{
+        view,
+        change: async (change) => {
+          await savePlanChange({ data: change })
+          await router.invalidate()
+        },
+        changeAll: async (changes) => {
+          await savePlanChanges({ data: [...changes] })
+          await router.invalidate()
+        },
+        travel: async (cursor) => {
+          await travelPlanHistory({ data: cursor })
+          await router.invalidate()
+        },
+        trimHistory: async () => {
+          await trimPlanHistory()
+          await router.invalidate()
+        },
       }}
-      onTravel={async (cursor) => {
-        await travelPlanHistory({ data: cursor })
-        await router.invalidate()
+      url={{
+        search: Route.useSearch(),
+        // The same page with another week, view or open event: the router would otherwise scroll it back to the top.
+        onSearchChange: (patch) =>
+          void navigate({
+            search: (prev) => ({ ...prev, ...patch }),
+            resetScroll: false,
+            // Another view or period fades in; opening an event must not, or the grid would blink under its card.
+            viewTransition: 'view' in patch || 'week' in patch || 'day' in patch,
+          }),
       }}
-      onTrimHistory={async () => {
-        await trimPlanHistory()
-        await router.invalidate()
-      }}
-      onChangeAll={async (changes) => {
-        await savePlanChanges({ data: changes })
-        await router.invalidate()
-      }}
-      library={
-        state.canEdit
-          ? {
-              list: async () => [...(await getPlanFiles())],
-              read: (id, version) => getPlanFile({ data: { id, version } }),
-              save: (file) => savePlanFile({ data: file }),
-              rename: async (id, name) => void (await renameSavedPlan({ data: { id, name } })),
-              remove: async (id, version) => void (await removeSavedPlan({ data: { id, version } })),
+      abilities={{
+        library:
+          view.access === 'owner'
+            ? {
+                list: async () => [...(await getPlanFiles())],
+                read: (id, version) => getPlanFile({ data: { id, version } }),
+                save: (file) => savePlanFile({ data: file }),
+                rename: async (id, name) => void (await renameSavedPlan({ data: { id, name } })),
+                remove: async (id, version) => void (await removeSavedPlan({ data: { id, version } })),
+              }
+            : undefined,
+        rebalance,
+        busy: {
+          host: feed.host,
+          load: async (from, to) => [...(await getBusy({ data: { from, to } }))],
+          save: feed.canSet
+            ? async (url) => {
+                await saveBusyFeed({ data: url })
+                await router.invalidate()
+              }
+            : undefined,
+        },
+        sync: calendars
+          .filter((status) => status.writable)
+          .map((status) => {
+            const { provider } = status
+            return {
+              status,
+              connectUrl: `/api/${provider}/connect`,
+              callbackPath: `/api/${provider}/callback`,
+              // The dialog goes on to the app's sign-in right after, which reloads the page.
+              saveClient: async (id, secret) => {
+                await saveCalendarClientFn({ data: { provider, id, secret } })
+              },
+              sync: async () => readAgain(await syncCalendarNow({ data: provider })),
+              accept: async (ids) => readAgain(await acceptCalendarProposals({ data: { provider, ids } })),
+              reject: async (ids) => readAgain(await rejectCalendarProposals({ data: { provider, ids } })),
+              disconnect: async () => {
+                await disconnectCalendarFn({ data: provider })
+                await router.invalidate()
+              },
             }
-          : undefined
-      }
-      renderExport={(dialog) => <ExportDialog {...dialog} />}
-      rebalance={rebalance}
-      busy={{
-        host: feed.host,
-        load: async (from, to) => [...(await getBusy({ data: { from, to } }))],
-        save: feed.canSet
-          ? async (url) => {
-              await saveBusyFeed({ data: url })
-              await router.invalidate()
-            }
-          : undefined,
+          }),
+        focus: (session) => void router.navigate({ to: '/focus', search: { session } }),
       }}
-      sync={calendars
-        .filter((status) => status.writable)
-        .map((status) => {
-          const { provider } = status
-          return {
-            status,
-            connectUrl: `/api/${provider}/connect`,
-            callbackPath: `/api/${provider}/callback`,
-            // The dialog goes on to the app's sign-in right after, which reloads the page.
-            saveClient: async (id, secret) => {
-              await saveCalendarClientFn({ data: { provider, id, secret } })
-            },
-            sync: async () => readAgain(await syncCalendarNow({ data: provider })),
-            accept: async (ids) => readAgain(await acceptCalendarProposals({ data: { provider, ids } })),
-            reject: async (ids) => readAgain(await rejectCalendarProposals({ data: { provider, ids } })),
-            disconnect: async () => {
-              await disconnectCalendarFn({ data: provider })
-              await router.invalidate()
-            },
-          }
-        })}
-      onFocus={(session) => void router.navigate({ to: '/focus', search: { session } })}
-      commands={shellCommands((to) => void router.navigate({ to }))}
+      slots={{
+        renderExport: (dialog) => <ExportDialog {...dialog} />,
+        commands: shellCommands((to) => void router.navigate({ to })),
+      }}
     />
   )
 }

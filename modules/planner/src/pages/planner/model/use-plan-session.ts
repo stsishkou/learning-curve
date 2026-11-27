@@ -11,12 +11,12 @@ import {
   trashOf,
   travel,
   trimHistory,
-  type HistoryView,
   type Plan,
   type PlanChange,
   type PlanEdits,
   type PlanHistory,
   type PlanTrash,
+  type PlanView,
   type RuleWarning,
 } from '@lc/plan-domain'
 import { planFileName } from '@lc/plan-domain/ics'
@@ -25,16 +25,18 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { downloadText } from '../../../shared/lib'
 
-export interface PlannerState {
-  plan: Plan
-  /** false on a read-only host: the planner then hides its editing controls */
-  canEdit: boolean
-  /** uids of events that differ from the generated schedule */
-  edited: string[]
-  /** Removed events and calendars that can still be restored */
-  trash: PlanTrash
-  /** The changes made so far and how many of them are applied */
-  history: HistoryView
+/** The plan on screen with the host's way to change it: the project plan, and each edit, undo and redo goes to the host. */
+export interface PlannerPlan {
+  /** The plan as the host holds it, with who may change it, which events were edited, the trash and the history */
+  view: PlanView
+  /** Stores one change. Resolves once `view` is fresh; rejects with the reason. */
+  change: (change: PlanChange) => Promise<void>
+  /** Stores the changes of an update in order, all or none. Resolves once `view` is fresh. */
+  changeAll: (changes: readonly PlanChange[]) => Promise<void>
+  /** Moves the plan to a point of its history: 0 is before the first change. Resolves once `view` is fresh. */
+  travel: (cursor: number) => Promise<void>
+  /** Keeps only the first change and the current one in the history. Resolves once `view` is fresh. */
+  trimHistory: () => Promise<void>
 }
 
 interface OpenFile {
@@ -49,22 +51,17 @@ interface OpenFile {
   history: PlanHistory
 }
 
-interface Host {
-  /** Stores one change. Resolves once `state` is fresh; rejects with the reason. */
-  onChange: (change: PlanChange) => Promise<void>
-  /** Moves the plan to a point of its history. Resolves once `state` is fresh. */
-  onTravel: (cursor: number) => Promise<void>
-  /** Keeps the first change and the current one in the history. Resolves once `state` is fresh. */
-  onTrimHistory: () => Promise<void>
-  /** Stores several changes in order, all or none. Without it they are sent one by one */
-  onChangeAll?: ((changes: PlanChange[]) => Promise<void>) | undefined
-}
-
 /**
  * The plan on screen and the one way to change it. Normally that is the project plan and changes go to the host;
  * while a file is open, the file is shown and changes stay in the browser until it is downloaded.
  */
-export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrimHistory, onChangeAll }: Host) {
+export function usePlanSession({
+  view,
+  change: onChange,
+  changeAll: onChangeAll,
+  travel: onTravel,
+  trimHistory: onTrimHistory,
+}: PlannerPlan) {
   const [file, setFile] = useState<OpenFile | null>(null)
   // Changes on their way to the host, shown at once so a dragged event does not jump back while saving.
   const [pending, setPending] = useState<PlanChange[]>([])
@@ -75,17 +72,17 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
 
   const plan = useMemo(() => {
     if (file) return applyEdits(file.base, file.edits).plan
-    if (!pending.length) return state.plan
+    if (!pending.length) return view.plan
     let edits = emptyEdits()
     for (const change of pending) {
       try {
-        edits = applyChange(state.plan, edits, change)
+        edits = applyChange(view.plan, edits, change)
       } catch {
         // A change that cannot be previewed (a restore from the trash) shows up when the host answers.
       }
     }
-    return applyEdits(state.plan, edits).plan
-  }, [file, pending, state.plan])
+    return applyEdits(view.plan, edits).plan
+  }, [file, pending, view.plan])
 
   const change = useCallback(
     async (next: PlanChange) => {
@@ -112,7 +109,7 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
 
   /** Applies the changes of an update in order, each as a step of the history. */
   const changeAll = useCallback(
-    async (list: PlanChange[]) => {
+    async (list: readonly PlanChange[]) => {
       if (file) {
         let { edits, history: steps } = file
         for (const next of list) {
@@ -121,20 +118,17 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
           steps = recordChange(steps, before, next, edits)
         }
         setFile({ ...file, edits, trash: trashOf(file.base, edits), history: steps })
-      } else if (onChangeAll) {
-        await onChangeAll(list)
       } else {
-        // oxlint-disable-next-line no-await-in-loop -- each change is stored on top of the one before
-        for (const next of list) await onChange(next)
+        await onChangeAll(list)
       }
       // The dialogs that send several changes showed their warnings before they were applied.
       setWarnings([])
       setJustChanged(true)
     },
-    [file, onChange, onChangeAll],
+    [file, onChangeAll],
   )
 
-  const history = useMemo(() => (file ? historyView(file.history) : state.history), [file, state.history])
+  const history = useMemo(() => (file ? historyView(file.history) : view.history), [file, view.history])
 
   /** Moves the plan back or forward to a point of the history. */
   const go = useCallback(
@@ -153,14 +147,14 @@ export function usePlanSession(state: PlannerState, { onChange, onTravel, onTrim
     setFile({ ...file, history: trimHistory(file.history) })
   }, [file, onTrimHistory])
 
-  const edited = useMemo(() => new Set(file ? editedUids(file.edits) : state.edited), [file, state.edited])
+  const edited = useMemo(() => new Set(file ? editedUids(file.edits) : view.edited), [file, view.edited])
 
   return {
     plan,
     /** A file is always editable: its changes never leave the browser. */
-    canEdit: file ? true : state.canEdit,
+    canEdit: file ? true : view.access === 'owner',
     edited,
-    trash: file ? file.trash : state.trash,
+    trash: file ? file.trash : view.trash,
     change,
     changeAll,
     history,

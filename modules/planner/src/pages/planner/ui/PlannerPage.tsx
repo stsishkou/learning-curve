@@ -25,7 +25,6 @@ import {
   type HistoryStep,
   type Occurrence,
   type Plan,
-  type PlanChange,
   type PlanEvent,
 } from '@lc/plan-domain'
 import { planFileName } from '@lc/plan-domain/ics'
@@ -76,7 +75,7 @@ import { toCommands, toMenuItem, toMenuItems, toShortcutRows, toShortcuts } from
 import type { PlannerSearch } from '../model/search'
 import { useDialogFlags } from '../model/use-dialog-flags'
 import { useEventDraft } from '../model/use-event-draft'
-import { usePlanSession, type PlannerState } from '../model/use-plan-session'
+import { usePlanSession, type PlannerPlan } from '../model/use-plan-session'
 import { usePlannerView } from '../model/use-planner-view'
 import { useQuietChange } from '../model/use-quiet-change'
 import { useWidePanels, type WidePanels } from '../model/use-wide-panels'
@@ -86,39 +85,50 @@ import { PlanHeading } from './PlanHeading'
 import { PlannerToolbar } from './PlannerToolbar'
 import { UndoBar } from './UndoBar'
 
-interface Props {
-  /** The plan with what the host knows about it: `{ plan, canEdit, edited, trash, history }` */
-  state: PlannerState
-  /** The part of the view kept in the URL: the week, the view, the open event */
+/** The part of the view kept in the URL, and how to change it */
+export interface PlannerUrl {
+  /** The week, the view, the open event */
   search: PlannerSearch
   /** Merges the given keys into the URL; `undefined` removes a key. */
   onSearchChange: (patch: PlannerSearch) => void
-  /** Stores one change. Resolves once `state` is fresh; rejects with the reason. */
-  onChange: (change: PlanChange) => Promise<void>
-  /** Moves the plan to a point of its history: 0 is before the first change. Resolves once `state` is fresh. */
-  onTravel: (cursor: number) => Promise<void>
-  /** Keeps only the first change and the current one in the history. Resolves once `state` is fresh. */
-  onTrimHistory: () => Promise<void>
-  /** Stores the changes of an update in order, all or none. Without it they are sent to `onChange` one by one */
-  onChangeAll?: (changes: PlanChange[]) => Promise<void>
+}
+
+/** What the host may be able to do beyond the plan itself; each one the host lacks is left out and its controls hide */
+export interface PlannerAbilities {
   /** Present when the host keeps plan files with versions: the plan file reader lists them */
   library?: PlanLibrary | undefined
-  /** More actions that work on the plan as it is shown now, such as export: at the end of the plan's name row */
-  renderActions?: (shown: { plan: Plan; hidden: ReadonlySet<string> }) => ReactNode
-  /** Present when the host has a focus page: called with the uid of the session to time there */
-  onFocus?: (uid: string) => void
   /** Present when the host can read the person's own calendar: its busy time is drawn behind the plan */
-  busy?: BusySource
+  busy?: BusySource | undefined
   /** The calendar apps the host can keep the plan in and read edits made there back from; absent where it cannot */
-  sync?: CalendarSyncSource[] | undefined
+  sync?: readonly CalendarSyncSource[] | undefined
+  /** Present when the host can work out a re-balance of a calendar: the Reschedule dialog then offers it */
+  rebalance?: ((plan: Plan, request: RebalanceRequest) => Promise<RebalanceResult>) | undefined
+  /** Present when the host has a focus page: called with the uid of the session to time there */
+  focus?: ((uid: string) => void) | undefined
+}
+
+/** What other modules and the host put into the page: their own controls and dialogs */
+export interface PlannerSlots {
+  /** More actions that work on the plan as it is shown now, such as export: at the end of the plan's name row */
+  renderActions?: ((shown: { plan: Plan; hidden: ReadonlySet<string> }) => ReactNode) | undefined
   /** The export dialog, from the module that writes the files: the calendar integrations offer it when present */
   renderExport?:
     | ((dialog: { plan: Plan; hidden: ReadonlySet<string>; open: boolean; onClose: () => void }) => ReactNode)
     | undefined
   /** Host actions listed in the command palette, such as the theme */
-  commands?: Command[]
-  /** Present when the host can work out a re-balance of a calendar: the Reschedule dialog then offers it */
-  rebalance?: ((plan: Plan, request: RebalanceRequest) => Promise<RebalanceResult>) | undefined
+  commands?: readonly Command[] | undefined
+}
+
+/** What the planner page takes from its host */
+export interface PlannerPageProps {
+  /** The plan on screen and how it is changed */
+  plan: PlannerPlan
+  /** The part of the view kept in the URL */
+  url: PlannerUrl
+  /** What the host can do besides; absent, the page offers none of it */
+  abilities?: PlannerAbilities | undefined
+  /** The controls and dialogs the host adds to the page */
+  slots?: PlannerSlots | undefined
 }
 
 const NO_CALENDARS: ReadonlySet<string> = new Set()
@@ -141,27 +151,14 @@ function takenLabel(steps: HistoryStep[]): string {
  * saves nothing itself. The host passes the plan and the URL state in and receives each edit as one `PlanChange`
  * and each undo or redo as a position in the history.
  */
-export function PlannerPage({
-  state,
-  search,
-  onSearchChange,
-  onChange,
-  onTravel,
-  onTrimHistory,
-  onChangeAll,
-  library,
-  renderActions,
-  onFocus,
-  busy,
-  sync,
-  renderExport,
-  commands,
-  rebalance,
-}: Props) {
+export function PlannerPage({ plan: hostPlan, url, abilities, slots }: PlannerPageProps) {
+  const { search, onSearchChange } = url
+  const { library, busy, sync, rebalance, focus: onFocus } = abilities ?? {}
+  const { renderActions, renderExport, commands } = slots ?? {}
   const now = useNow()
   const mod = useModKey()
   const { hidden, toggle, solo, showOnly, showAll, reset } = useHiddenCalendars()
-  const session = usePlanSession(state, { onChange, onTravel, onTrimHistory, onChangeAll })
+  const session = usePlanSession(hostPlan)
   const { plan: wholePlan, canEdit } = session
   // Calendars hidden from the list are out of every view; what saves, exports or re-plans still gets the whole plan.
   const plan = useMemo(() => shownPlan(wholePlan), [wholePlan])
@@ -807,7 +804,7 @@ export function PlannerPage({
       <PlanFileReader
         open={dialogs.isOpen('planFile')}
         shown={{ name: session.file?.name ?? planFileName(wholePlan), plan: wholePlan }}
-        project={state.plan}
+        project={hostPlan.view.plan}
         onOpen={(file) => {
           session.openFile(file.name, file.plan, file.origin)
           reset()

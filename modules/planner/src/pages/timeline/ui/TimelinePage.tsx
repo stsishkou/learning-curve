@@ -1,5 +1,5 @@
 import { m } from '@lc/i18n/messages'
-import { hiddenCalendarIds, ymd, type HistoryView, type Plan, type PlanChange } from '@lc/plan-domain'
+import { hiddenCalendarIds, ymd, type PlanChange, type PlanView } from '@lc/plan-domain'
 import { calendarLanes, compareLanes, laneMoveBounds, lanesRange, movedSessions } from '@lc/plan-domain/insights'
 import { Hint, useFullscreen, useShortcuts } from '@lc/ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -14,20 +14,12 @@ import { AppliedBar, DraftBar } from './DraftBar'
 import { DraftReview } from './DraftReview'
 import { LeaveDraftDialog } from './LeaveDraftDialog'
 
-/** The plan with what the page needs to know about it; the planner's state fits it as it is */
-export interface TimelineState {
-  plan: Plan
-  /** false on a read-only host: courses can be picked and read, not changed */
-  canEdit: boolean
-  /** Where Undo goes back from */
-  history: HistoryView
-}
-
 interface Props {
-  state: TimelineState
-  /** Stores the changes in order, each as its own step of the history. Resolves once `state` is fresh */
+  /** The plan as the host holds it. Editing controls show only to its owner: courses can otherwise be picked and read */
+  view: PlanView
+  /** Stores the changes in order, each as its own step of the history. Resolves once `view` is fresh */
   onChangeAll: (changes: PlanChange[]) => Promise<void>
-  /** Moves the plan to a point of its history. Resolves once `state` is fresh */
+  /** Moves the plan to a point of its history. Resolves once `view` is fresh */
   onTravel: (cursor: number) => Promise<void>
   /** Present when the host can work out a re-balance: a course can then be given a new finish */
   rebalance?: Rebalance | undefined
@@ -50,9 +42,10 @@ const reasonOf = (err: unknown) => (err instanceof Error ? err.message : String(
  * the changes that would do it and draws them over the plan as it is, and only Apply stores them, in one go.
  */
 export function TimelinePage(props: Props) {
-  const { state, onChangeAll, onTravel, rebalance, onDraftChange, leaving, expanded = false } = props
+  const { view, onChangeAll, onTravel, rebalance, onDraftChange, leaving, expanded = false } = props
   const { onExpandedChange } = props
-  const { plan, canEdit } = state
+  const { plan } = view
+  const canEdit = view.access === 'owner'
   const now = useNow()
   const today = now === null ? null : ymd(now)
   const draft = useTimelineDraft({ plan, today, rebalance })
@@ -149,7 +142,7 @@ export function TimelinePage(props: Props) {
   async function undo(count: number) {
     setApplied(null)
     try {
-      await onTravel(state.history.cursor - count)
+      await onTravel(view.history.cursor - count)
     } catch (err) {
       setError(m.save_failed({ reason: reasonOf(err) }))
     }

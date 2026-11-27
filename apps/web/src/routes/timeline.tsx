@@ -11,10 +11,7 @@ import { rebalancePlan } from '#/server/reschedule'
 /** The timeline page of the planner module at `/timeline`: every course on its lane, changed as a draft. */
 export const Route = createFileRoute('/timeline')({
   validateSearch: parseTimelineSearch,
-  loader: async () => {
-    const view = await getPlanView()
-    return { ...view, canEdit: view.access === 'owner' }
-  },
+  loader: () => getPlanView(),
   head: () => ({ meta: [{ title: m.timeline() }] }),
   component: TimelineRoute,
 })
@@ -36,7 +33,7 @@ function TimelineRoute() {
   })
   return (
     <TimelinePage
-      state={Route.useLoaderData()}
+      view={Route.useLoaderData()}
       onChangeAll={async (changes) => {
         await savePlanChanges({ data: changes })
         await router.invalidate()

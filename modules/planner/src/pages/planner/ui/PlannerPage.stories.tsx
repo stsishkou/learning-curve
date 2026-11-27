@@ -13,11 +13,14 @@ import {
   isSession,
   occurrences,
   parseLocal,
+  parsePlanId,
   recordChange,
   trashOf,
   travel,
   trimHistory,
   ymd,
+  type PlanAccess,
+  type PlanView,
 } from '@lc/plan-domain'
 import { fixtureEdited, fixturePlan, fixtureWeek } from '@lc/plan-domain/fixtures'
 import { clearIconsOnly, fakeFullscreen } from '@lc/ui/testing'
@@ -26,55 +29,74 @@ import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import type { CalendarSyncSource, CalendarSyncStatus } from '../../../features/calendar-sync'
+import type { PlannerSearch } from '../model/search'
 import { WIDE_PANELS_KEY } from '../model/use-wide-panels'
-import { PlannerPage } from './PlannerPage'
+import { PlannerPage, type PlannerUrl } from './PlannerPage'
 
 /**
  * Stands in for the app: keeps the URL state in memory and stores changes with the same reducer the server uses,
  * so everything on the page works and nothing is saved.
  */
 function Host(props: ComponentProps<typeof PlannerPage>) {
-  const base = props.state.plan
-  const [search, setSearch] = useState(props.search)
+  const { plan: hostPlan, url } = props
+  const base = hostPlan.view.plan
+  const [search, setSearch] = useState(url.search)
   const [history, setHistory] = useState(emptyHistory)
   const edits = historyEdits(history)
-  const state = useMemo(
+  const view = useMemo<PlanView>(
     () => ({
-      ...props.state,
+      ...hostPlan.view,
       plan: applyEdits(base, edits).plan,
-      edited: [...props.state.edited, ...editedUids(edits)],
+      edited: [...hostPlan.view.edited, ...editedUids(edits)],
       trash: trashOf(base, edits),
       history: historyView(history),
     }),
-    [props.state, base, edits, history],
+    [hostPlan.view, base, edits, history],
   )
   return (
     <PlannerPage
       {...props}
-      state={state}
-      search={search}
-      onSearchChange={(patch) => {
-        setSearch((prev) => ({ ...prev, ...patch }))
-        props.onSearchChange(patch)
+      plan={{
+        view,
+        change: async (change) => {
+          await hostPlan.change(change)
+          setHistory((prev) => {
+            const before = historyEdits(prev)
+            return recordChange(prev, applyEdits(base, before).plan, change, applyChange(base, before, change))
+          })
+        },
+        changeAll: hostPlan.changeAll,
+        travel: async (cursor) => {
+          await hostPlan.travel(cursor)
+          setHistory((prev) => travel(prev, cursor))
+        },
+        trimHistory: async () => {
+          await hostPlan.trimHistory()
+          setHistory(trimHistory)
+        },
       }}
-      onChange={async (change) => {
-        await props.onChange(change)
-        setHistory((prev) => {
-          const before = historyEdits(prev)
-          return recordChange(prev, applyEdits(base, before).plan, change, applyChange(base, before, change))
-        })
-      }}
-      onTravel={async (cursor) => {
-        await props.onTravel(cursor)
-        setHistory((prev) => travel(prev, cursor))
-      }}
-      onTrimHistory={async () => {
-        await props.onTrimHistory()
-        setHistory(trimHistory)
+      url={{
+        search,
+        onSearchChange: (patch) => {
+          setSearch((prev) => ({ ...prev, ...patch }))
+          url.onSearchChange(patch)
+        },
       }}
     />
   )
 }
+
+const planId = parsePlanId('default')
+const viewOf = (access: PlanAccess, edited: readonly string[]): PlanView => ({
+  id: planId,
+  plan: fixturePlan,
+  access,
+  edited,
+  trash: emptyTrash(),
+  history: historyView(emptyHistory()),
+})
+// A fresh spy per story, so one story's calls never count in another's.
+const urlAt = (search: PlannerSearch): PlannerUrl => ({ search, onSearchChange: fn() })
 
 const meta = {
   title: 'Planner/Page/PlannerPage',
@@ -86,21 +108,17 @@ const meta = {
     },
   },
   args: {
-    state: {
-      plan: fixturePlan,
-      canEdit: true,
-      edited: fixtureEdited,
-      trash: emptyTrash(),
-      history: historyView(emptyHistory()),
+    plan: {
+      view: viewOf('owner', fixtureEdited),
+      change: fn(async () => {}),
+      changeAll: fn(async () => {}),
+      travel: fn(async () => {}),
+      trimHistory: fn(async () => {}),
     },
-    search: { week: ymd(fixtureWeek) },
-    onSearchChange: fn(),
-    onChange: fn(async () => {}),
-    onTravel: fn(async () => {}),
-    onTrimHistory: fn(async () => {}),
-    commands: [{ id: 'host', group: 'Host', label: 'A command the host adds', run: fn() }],
+    url: urlAt({ week: ymd(fixtureWeek) }),
+    slots: { commands: [{ id: 'host', group: 'Host', label: 'A command the host adds', run: fn() }] },
   },
-  argTypes: { state: { control: false } },
+  argTypes: { plan: { control: false } },
   render: (args) => <Host {...args} />,
 } satisfies Meta<typeof PlannerPage>
 
@@ -115,15 +133,17 @@ type Story = StoryObj<typeof meta>
  */
 export const Week: Story = {}
 
-export const Month: Story = { args: { search: { week: ymd(fixtureWeek), view: 'month' } } }
+export const Month: Story = { args: { url: urlAt({ week: ymd(fixtureWeek), view: 'month' }) } }
 
-export const List: Story = { args: { search: { week: ymd(fixtureWeek), view: 'list' } } }
+export const List: Story = { args: { url: urlAt({ week: ymd(fixtureWeek), view: 'list' }) } }
 
 /**
  * All 24 hours with the calendar expanded to the whole window: the header and the runway are hidden, and the side
  * panels until they are turned on.
  */
-export const FullDayExpanded: Story = { args: { search: { week: ymd(fixtureWeek), fullDay: true, expanded: true } } }
+export const FullDayExpanded: Story = {
+  args: { url: urlAt({ week: ymd(fixtureWeek), fullDay: true, expanded: true }) },
+}
 
 const storePanels = (value: string | null) => () => {
   if (value === null) localStorage.removeItem(WIDE_PANELS_KEY)
@@ -138,7 +158,7 @@ const panel = (root: HTMLElement, name: string) => root.querySelector(`[data-pan
  */
 export const WideSidePanels: Story = {
   beforeEach: storePanels(null),
-  args: { search: { week: ymd(fixtureWeek), expanded: true } },
+  args: { url: urlAt({ week: ymd(fixtureWeek), expanded: true }) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
     await expect(panel(canvasElement, 'next')).toBeNull()
@@ -169,7 +189,7 @@ const insightsHeight = (root: HTMLElement) =>
  */
 export const WideInsightsTakesNextsRoom: Story = {
   beforeEach: storePanels('["next","insights"]'),
-  args: { search: { week: ymd(fixtureWeek), expanded: true, fullDay: true } },
+  args: { url: urlAt({ week: ymd(fixtureWeek), expanded: true, fullDay: true }) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
     await waitFor(() => expect(panel(canvasElement, 'next')).not.toBeNull())
@@ -185,22 +205,22 @@ export const WideInsightsTakesNextsRoom: Story = {
 /** A panel turned on in an earlier visit is there when the expanded calendar opens again. */
 export const WideSidePanelsRemembered: Story = {
   beforeEach: storePanels('["next"]'),
-  args: { search: { week: ymd(fixtureWeek), expanded: true } },
+  args: { url: urlAt({ week: ymd(fixtureWeek), expanded: true }) },
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(panel(canvasElement, 'next')).not.toBeNull())
     await expect(panel(canvasElement, 'insights')).toBeNull()
   },
 }
 
-/** `canEdit: false`, as on a host that cannot write the plan file: nothing on the page changes the plan. */
+/** A reader, not the owner, as on a host that cannot write the plan file: nothing on the page changes the plan. */
 export const ReadOnly: Story = {
   args: {
-    state: {
-      plan: fixturePlan,
-      canEdit: false,
-      edited: [],
-      trash: emptyTrash(),
-      history: historyView(emptyHistory()),
+    plan: {
+      view: viewOf('reader', []),
+      change: fn(async () => {}),
+      changeAll: fn(async () => {}),
+      travel: fn(async () => {}),
+      trimHistory: fn(async () => {}),
     },
   },
 }
@@ -243,13 +263,13 @@ export const FullScreenByKeys: Story = {
     await within(canvasElement).findByRole('button', { name: m.more_actions() })
     await userEvent.keyboard('{Shift>}F{/Shift}')
     await expect(screen?.calls.requests).toBe(1)
-    await expect(args.onSearchChange).not.toHaveBeenCalledWith(expect.objectContaining({ fullDay: true }))
+    await expect(args.url.onSearchChange).not.toHaveBeenCalledWith(expect.objectContaining({ fullDay: true }))
   },
 }
 
 /** Where the browser cannot fill the screen (an iPhone, a frame without leave) there is no full-screen switch. */
 export const NoFullScreenWhereTheBrowserCannot: Story = {
-  args: { search: { week: ymd(fixtureWeek), expanded: true } },
+  args: { url: urlAt({ week: ymd(fixtureWeek), expanded: true }) },
   beforeEach: withScreen({ enabled: false }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
@@ -336,7 +356,7 @@ const signedOutSource: CalendarSyncSource = {
  * signed in to again, a dot on `⋮` says so before the menu is opened.
  */
 export const IntegrationWaitsOnTheMenu: Story = {
-  args: { sync: [signedOutSource] },
+  args: { abilities: { sync: [signedOutSource] } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
     await expect(page.queryByRole('button', { name: m.integrations() })).toBeNull()
@@ -355,7 +375,7 @@ const unlogged = fixturePlan.events.filter(doneWithoutTime).toSorted((a, b) => a
  * same list, as the dashboard's link does. A time saved takes its session off the count.
  */
 export const FillTimes: Story = {
-  args: { search: { week: ymd(fixtureWeek), fill: true } },
+  args: { url: urlAt({ week: ymd(fixtureWeek), fill: true }) },
   play: async ({ args, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     const [first] = unlogged
@@ -367,13 +387,13 @@ export const FillTimes: Story = {
     await waitFor(() => expect(row).toBeVisible())
     await userEvent.click(within(row).getByRole('button', { name: m.spent_as_planned() }))
     await userEvent.click(within(dialog).getByRole('button', { name: m.save() }))
-    await expect(args.onChange).toHaveBeenCalledWith({
+    await expect(args.plan.change).toHaveBeenCalledWith({
       type: 'events.done',
       uids: [first.uid],
       done: true,
       actual: { [first.uid]: (parseLocal(first.end) - parseLocal(first.start)) / 60_000 },
     })
-    await expect(args.onSearchChange).toHaveBeenCalledWith({ fill: undefined })
+    await expect(args.url.onSearchChange).toHaveBeenCalledWith({ fill: undefined })
     await expect(await body.findByText(m.unlogged_bar({ count: unlogged.length - 1 }))).toBeVisible()
   },
 }
@@ -395,13 +415,13 @@ export const ResizeDoneAsks: Story = {
     if (!block) throw new Error('The done session is not in the grid')
     block.focus()
     await userEvent.keyboard('{Alt>}{Shift>}{ArrowDown}{/Shift}{/Alt}')
-    await expect(args.onChange).not.toHaveBeenCalled()
+    await expect(args.plan.change).not.toHaveBeenCalled()
     const longer = (doneThisWeek.e - doneThisWeek.s) / 60_000 + 30
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(
       await body.findByRole('button', { name: m.resize_done_time({ time: fmtDuration(longer * 60_000) }) }),
     )
-    await expect(args.onChange).toHaveBeenCalledWith({
+    await expect(args.plan.change).toHaveBeenCalledWith({
       type: 'event.patch',
       uid: doneThisWeek.uid,
       patch: { actual: longer },
