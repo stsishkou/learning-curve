@@ -1,0 +1,30 @@
+{
+  "name": "@lc/mcp",
+  "private": true,
+  "description": "The Model Context Protocol server for the plan, over stdio: an adapter that calls the plan services as the local owner",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lc/plan-data": "workspace:*",
+    "@lc/plan-domain": "workspace:*",
+    "@lc/plan-service": "workspace:*",
+    "@modelcontextprotocol/sdk": "catalog:"
+  },
+  "devDependencies": {
+    "@lc/plan-content": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:mcp"
+    ]
+  }
+}
