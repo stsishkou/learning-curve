@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@lc/docs-contract": "workspace:*",
-    "@lc/docs-host": "workspace:*",
+    "@lc/remote-host": "workspace:*",
     "@lc/ui": "workspace:*",
     "@module-federation/runtime": "catalog:",
     "react": "catalog:",

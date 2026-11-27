@@ -1,7 +1,7 @@
 import { DOCS_DEFAULT_LOCALE, type DocsTarget, docsPageUrl, type FeatureId, isDocsLocale } from '@lc/docs-contract'
-import { useDocsHost } from '@lc/docs-host'
 import { m } from '@lc/i18n/messages'
 import { getLocale } from '@lc/i18n/runtime'
+import { useDocsHost } from '@lc/remote-host/docs'
 import { useMatches } from '@tanstack/react-router'
 
 import type { DocsConfig } from '#/server/docs'

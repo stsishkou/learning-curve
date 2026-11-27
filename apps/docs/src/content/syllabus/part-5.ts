@@ -796,7 +796,7 @@ export const PART_5 = [
         why: 'The requirement is "nothing added to the host\'s initial bundle" and "remote URLs configurable per environment without rebuilding the host". The runtime API meets both: it is imported inside the click handler, and the manifest URL comes from the server.',
         evidence: 'evidenced',
         sources: [
-          { kind: 'file', ref: 'packages/docs-host/src/load.ts', note: 'the loader both hosts use' },
+          { kind: 'file', ref: 'packages/remote-host/src/load-remote.ts', note: 'the loader both hosts use' },
           { kind: 'doc', ref: 'https://module-federation.io/guide/runtime/runtime-api.html' },
         ],
       },
@@ -866,7 +866,7 @@ export const PART_5 = [
           "The loader creates a federation instance with the host's own React modules as the shared providers, registers the remote by its manifest URL with a cache-busting query, loads `lc_docs/help`, checks the module's shape and its contract version, and gives up after a timeout. The host imports the loader with `import()` inside the click handler.",
         files: [
           {
-            path: 'packages/docs-host/src/load.ts',
+            path: 'packages/remote-host/src/load-remote.ts',
             at: 'main',
             note: '`createInstance`, `loadRemote`, the version check and the timeout',
           },

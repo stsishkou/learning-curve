@@ -107,25 +107,25 @@ que el remote existe. Toda la federación del lado del host es un archivo, carga
 
 <Walkthrough>
 
-```ts file=packages/docs-host/src/load.ts at=main
+```ts file=packages/remote-host/src/load-remote.ts at=main
 
 ```
 
-<WalkStep lines="1" title="Fuera del primer bundle">
+<WalkStep lines="1-2" title="Fuera del primer bundle">
 
 A este módulo solo se llega a través de `import('./load')`. El bundler lo coloca, con el runtime y sus dependencias, en
 un chunk que se descarga en el primer clic.
 
 </WalkStep>
 
-<WalkStep lines="10-14" title="La API del runtime y el React del propio host">
+<WalkStep lines="3-7" title="La API del runtime y el React del propio host">
 
 `createInstance` de `@module-federation/runtime` es una función normal. Los cuatro imports de React son las copias del
 host, que está a punto de ofrecérselas al remote.
 
 </WalkStep>
 
-<WalkStep lines="35-42" title="Ofrecer un módulo compartido">
+<WalkStep lines="44-51" title="Ofrecer un módulo compartido">
 
 Cada entrada compartida dice qué versión tiene el host y cómo obtenerla (`lib`). `singleton` significa una copia por
 página: dos Reacts en un mismo árbol rompen los hooks. El comentario deja constancia de lo que pasa si las versiones no
@@ -133,35 +133,35 @@ coinciden: una advertencia, y se usa igualmente esta copia.
 
 </WalkStep>
 
-<WalkStep lines="44-52" title="Cache busting para el único nombre fijo">
+<WalkStep lines="53-61" title="Cache busting para el único nombre fijo">
 
 El manifiesto es el único archivo del remote sin hash en el nombre. Con una query que cambia en cada carga de página,
 el navegador nunca lo sirve desde su caché.
 
 </WalkStep>
 
-<WalkStep lines="54-60" title="Un plazo límite">
+<WalkStep lines="63-69" title="Un plazo límite">
 
 Un remote que se cuelga dejaría el botón girando para siempre. Pasados ocho segundos (por defecto), la carga falla y el
 host muestra su alternativa.
 
 </WalkStep>
 
-<WalkStep lines="63-73" title="Registrar el remote">
+<WalkStep lines="85-94" title="Registrar el remote">
 
 El remote se registra por nombre, con la URL de su manifiesto como entrada. Que la URL de entrada contenga `.json` es lo
 que le indica al runtime que lea primero un manifiesto; la query de cache busting no estorba.
 
 </WalkStep>
 
-<WalkStep lines="74-80" title="Cargar y ponerle nombre al fallo">
+<WalkStep lines="95-101" title="Cargar y ponerle nombre al fallo">
 
-`loadRemote('lc_docs/help')` ejecuta los pasos 2 a 5 de arriba. Cualquier error se convierte en un `DocsLoadError` con
+`loadRemote('lc_docs/help')` ejecuta los pasos 2 a 5 de arriba. Cualquier error se convierte en un `RemoteLoadError` con
 un motivo, para que la UI distinga «se agotó el tiempo» de «no se puede acceder».
 
 </WalkStep>
 
-<WalkStep lines="81-88" title="Confía, pero verifica">
+<WalkStep lines="102-105" title="Confía, pero verifica">
 
 Lo que llega por la red es `unknown` mientras no se demuestre lo contrario: primero su forma, luego su versión de
 contrato. Un remote que implementa otra versión mayor se rechaza antes de que nada de su código se ejecute en el árbol
@@ -177,32 +177,32 @@ El planificador y el harness de pruebas usan el mismo hook, así que las reglas 
 
 <Walkthrough>
 
-```ts file=packages/docs-host/src/use-docs-host.ts at=main lines=47-121
+```ts file=packages/remote-host/src/docs/use-docs-host.ts at=main lines=51-125
 
 ```
 
-<WalkStep lines="58-63" title="Los últimos valores sin recrear nada">
+<WalkStep lines="62-67" title="Los últimos valores sin recrear nada">
 
 El panel se crea una vez. El hook guarda el último contexto y los últimos handlers de eventos en refs, así que un host
 que pasa un objeto nuevo en cada render no provoca una recarga.
 
 </WalkStep>
 
-<WalkStep lines="65-69" title="Los cambios de contexto se convierten en actualizaciones">
+<WalkStep lines="69-73" title="Los cambios de contexto se convierten en actualizaciones">
 
 Cuando cambian el locale, el tema, la feature o los tokens, el panel abierto recibe `update()`. El objeto de tokens se
 compara por valor mediante `JSON.stringify`.
 
 </WalkStep>
 
-<WalkStep lines="81-95" title="Cargar una vez, bajo demanda">
+<WalkStep lines="85-99" title="Cargar una vez, bajo demanda">
 
 El primer `open` inicia la carga y guarda la promesa, así que dos clics rápidos cargan el remote una sola vez. El
 `import('./load')` dinámico es la línea que mantiene la federación fuera del primer bundle del host.
 
 </WalkStep>
 
-<WalkStep lines="97-116" title="Fallar con suavidad, reintentar después">
+<WalkStep lines="101-120" title="Fallar con suavidad, reintentar después">
 
 Si falla, la promesa guardada se descarta y `open` se resuelve con `false`: el host muestra un enlace al sitio estático,
 y el siguiente clic lo vuelve a intentar, porque puede que el remote haya vuelto.

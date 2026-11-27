@@ -10,7 +10,7 @@ Two products from one codebase:
 - **A static site.** TanStack Start, pre-rendered: every page of every language is an HTML file, with `hreflang`,
   a sitemap and a Pagefind search index. Served from any static host; this repository deploys it to GitHub Pages.
 - **A Module Federation remote** (`lc_docs`, exposing `./help`) that a React host loads at run time and shows in a
-  drawer. The planner (`apps/web`) does, through `@lc/docs-host`. The host decides the language, theme and screen;
+  drawer. The planner (`apps/web`) does, through `@lc/remote-host/docs`. The host decides the language, theme and screen;
   the contract between them is `@lc/docs-contract`.
 
 The guide's own chapters 23 and 24 explain both in depth. The integration guide (`/<locale>/integration/`) is the

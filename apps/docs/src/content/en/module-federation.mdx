@@ -105,60 +105,60 @@ exists. All of federation on the host side is one file, loaded on demand:
 
 <Walkthrough>
 
-```ts file=packages/docs-host/src/load.ts at=main
+```ts file=packages/remote-host/src/load-remote.ts at=main
 
 ```
 
-<WalkStep lines="1" title="Not in the first bundle">
+<WalkStep lines="1-2" title="Not in the first bundle">
 
 This module is only ever reached through `import('./load')`. The bundler puts it, with the runtime and its
 dependencies, in a chunk that downloads on the first click.
 
 </WalkStep>
 
-<WalkStep lines="10-14" title="The runtime API, and the host's own React">
+<WalkStep lines="3-7" title="The runtime API, and the host's own React">
 
 `createInstance` from `@module-federation/runtime` is a plain function. The four React imports are the host's copies,
 which it is about to offer to the remote.
 
 </WalkStep>
 
-<WalkStep lines="35-42" title="Offering a shared module">
+<WalkStep lines="44-51" title="Offering a shared module">
 
 Each shared entry says which version the host has and how to get it (`lib`). `singleton` means one copy per page: two
 Reacts in one tree break hooks. The comment records what happens on a mismatch: a warning and still this copy.
 
 </WalkStep>
 
-<WalkStep lines="44-52" title="Cache-busting the one fixed name">
+<WalkStep lines="53-61" title="Cache-busting the one fixed name">
 
 The manifest is the only remote file without a hash in its name. A query that changes on every page load means the
 browser never answers it from its cache.
 
 </WalkStep>
 
-<WalkStep lines="54-60" title="A deadline">
+<WalkStep lines="63-69" title="A deadline">
 
 A remote that hangs would leave the button spinning forever. After eight seconds by default the load fails, and the
 host shows its fallback.
 
 </WalkStep>
 
-<WalkStep lines="63-73" title="Register the remote">
+<WalkStep lines="85-94" title="Register the remote">
 
 The remote is registered by name with its manifest URL as the entry. An entry URL containing `.json` is what tells
 the runtime to read a manifest first; the cache-busting query does not get in the way.
 
 </WalkStep>
 
-<WalkStep lines="74-80" title="Load, and name the failure">
+<WalkStep lines="95-101" title="Load, and name the failure">
 
-`loadRemote('lc_docs/help')` performs steps 2 to 5 above. Any error becomes a `DocsLoadError` with a reason, so the UI
+`loadRemote('lc_docs/help')` performs steps 2 to 5 above. Any error becomes a `RemoteLoadError` with a reason, so the UI
 can tell "timed out" from "unreachable".
 
 </WalkStep>
 
-<WalkStep lines="81-88" title="Trust, but verify">
+<WalkStep lines="102-105" title="Trust, but verify">
 
 What came over the network is `unknown` until proven otherwise: first its shape, then its contract version. A remote
 that implements another major version is refused before any of its code runs in the host's tree.
@@ -173,32 +173,32 @@ The planner and the test harness both use the same hook, so the loading rules ar
 
 <Walkthrough>
 
-```ts file=packages/docs-host/src/use-docs-host.ts at=main lines=47-121
+```ts file=packages/remote-host/src/docs/use-docs-host.ts at=main lines=51-125
 
 ```
 
-<WalkStep lines="58-63" title="Latest values without re-creating">
+<WalkStep lines="62-67" title="Latest values without re-creating">
 
 The drawer is created once. The hook keeps the latest context and event handlers in refs, so a host that passes a new
 object on every render does not cause a reload.
 
 </WalkStep>
 
-<WalkStep lines="65-69" title="Context changes become updates">
+<WalkStep lines="69-73" title="Context changes become updates">
 
 When the locale, theme, feature or tokens change, the live drawer gets `update()`. The tokens object is compared by
 value through `JSON.stringify`.
 
 </WalkStep>
 
-<WalkStep lines="81-95" title="Load once, on demand">
+<WalkStep lines="85-99" title="Load once, on demand">
 
 The first `open` starts the load and keeps the promise, so two quick clicks load the remote once. The dynamic
 `import('./load')` is the line that keeps federation out of the host's first bundle.
 
 </WalkStep>
 
-<WalkStep lines="97-116" title="Fail soft, retry later">
+<WalkStep lines="101-120" title="Fail soft, retry later">
 
 On failure the stored promise is dropped and `open` resolves `false`: the host shows a link to the static site, and
 the next click tries again, because the remote may be back.

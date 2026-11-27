@@ -3,10 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { DocsLoadFailure } from './load'
 
+/** Where the drawer is: not asked for yet, loading the remote, open-able, or the remote could not be used. */
 export type DocsStatus = 'idle' | 'loading' | 'ready' | 'failed'
 
+/** What a host wants to hear from the drawer, by the contract's event names. */
 export type DocsEventHandlers = { [K in DocsEventName]?: ((detail: DocsEvents[K]) => void) | undefined }
 
+/** What `useDocsHost` needs from the host. */
 export interface DocsHostOptions {
   /** The remote's `mf-manifest.json`. Read at run time, so one host build can point at any deployment. */
   manifestUrl: string
@@ -15,6 +18,7 @@ export interface DocsHostOptions {
   timeoutMs?: number | undefined
 }
 
+/** What `useDocsHost` gives back: the drawer's state and how to open or close it. */
 export interface DocsHostState {
   status: DocsStatus
   /** Why the last load failed, for a host that wants to say more than "unavailable" */
@@ -26,8 +30,8 @@ export interface DocsHostState {
 
 const FAILURES: readonly DocsLoadFailure[] = ['timeout', 'unavailable', 'shape', 'version']
 
-// Read off the error rather than with `instanceof DocsLoadError`: when the loader's own chunk fails to load, the class
-// is not available either.
+// Read off the error rather than with `instanceof RemoteLoadError`: when the loader's own chunk fails to load, the
+// class is not available either.
 function failureOf(error: unknown): DocsLoadFailure {
   if (error instanceof Error && 'reason' in error)
     return FAILURES.find((reason) => reason === error.reason) ?? 'unavailable'

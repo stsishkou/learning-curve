@@ -560,7 +560,7 @@
       }
     },
     {
-      "files": ["packages/docs-host/**"],
+      "files": ["packages/remote-host/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -572,7 +572,7 @@
               },
               {
                 "group": ["@lc/*", "!@lc/docs-contract", "node:*"],
-                "message": "The docs host depends on the contract only, so any React host can use it."
+                "message": "The remote host depends on the docs contract only, so any React host can use it."
               }
             ]
           }
@@ -611,7 +611,14 @@
                 "message": "Depend on the package and import it through its public entry, not by path."
               },
               {
-                "group": ["@lc/*", "!@lc/docs-contract", "!@lc/docs-host", "!@lc/ui", "!@lc/ui/*"],
+                "group": [
+                  "@lc/*",
+                  "!@lc/docs-contract",
+                  "!@lc/remote-host",
+                  "!@lc/remote-host/*",
+                  "!@lc/ui",
+                  "!@lc/ui/*"
+                ],
                 "message": "The harness loads the guide through federation, as a host does: it never imports @lc/docs."
               }
             ]

@@ -1,6 +1,6 @@
 // A host shaped like the planner where it matters to the remote: React 19.3, the UI kit's tokens on :root, the theme
 // switched through <meta name="color-scheme">, shortcuts bound on the window, hostile global CSS, and the remote
-// loaded with the runtime API through @lc/docs-host. The Playwright tests in ../tests drive it.
+// loaded with the runtime API through @lc/remote-host/docs. The Playwright tests in ../tests drive it.
 import {
   DOCS_DEFAULT_LOCALE,
   DOCS_LOCALES,
@@ -9,7 +9,7 @@ import {
   docsPageUrl,
   type FeatureId,
 } from '@lc/docs-contract'
-import { type DocsEventHandlers, useDocsHost } from '@lc/docs-host'
+import { type DocsEventHandlers, useDocsHost } from '@lc/remote-host/docs'
 import { Button, Segmented, useShortcuts } from '@lc/ui'
 import { useMemo, useState } from 'react'
 
