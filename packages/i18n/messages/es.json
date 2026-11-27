@@ -829,7 +829,7 @@
   "help_grid_title": "Mover eventos",
   "help_grid": "Arrastra un evento a otra hora o día; arrastra un borde para cambiar su duración. De un evento repetido se mueve una sola repetición, las demás se quedan.\nCon el teclado: Alt + flechas mueven, Alt Mayús ↑ ↓ cambian la duración, Supr lo envía a la papelera. El número junto al día es las horas de estudio de ese día.",
   "help_more_title": "Más acciones",
-  "help_more": "En el menú ⋮: el historial de cambios, la papelera (guarda lo eliminado 30 días), desplazar el plan unos días, Ponerse al día, una segunda zona horaria, tu calendario real en gris detrás del plan, recordatorios antes de empezar, Ajustes (presupuesto semanal, límite diario, con cuánta antelación avisar) y la lista de teclas.",
+  "help_more": "En el menú ⋮: el archivo del plan, las integraciones con calendarios (un punto en ⋮ indica que algo te espera allí), el historial de cambios, la papelera (guarda lo eliminado 30 días), desplazar el plan unos días, Ponerse al día, una segunda zona horaria, tu calendario real en gris detrás del plan, recordatorios antes de empezar, Ajustes (presupuesto semanal, límite diario, con cuánta antelación avisar) y la lista de teclas.",
   "help_history_title": "Deshacer e historial",
   "help_history": "Cada cambio es un paso que se puede deshacer y rehacer: las flechas de aquí, Ctrl/⌘ Z y Ctrl/⌘ Mayús Z. La ventana Historial (tecla H) devuelve el plan a cualquier punto; se guardan los últimos 100 pasos.",
   "help_next_title": "Ahora y después",

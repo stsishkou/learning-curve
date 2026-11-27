@@ -829,7 +829,7 @@
   "help_grid_title": "Moving events",
   "help_grid": "Drag an event to another time or day; drag an edge to change its length. One repeat of a repeating event moves alone, the others stay.\nWith the keyboard: Alt + arrows move, Alt Shift ↑ ↓ change the length, Delete sends it to the trash. The number next to a weekday is the hours of study that day.",
   "help_more_title": "More actions",
-  "help_more": "In the ⋮ menu: the history of changes, the trash (keeps what was removed for 30 days), shifting the plan by some days, Catch up, a second time zone, your real calendar in grey behind the plan, reminders before a start, Settings (the weekly budget, the day limit, how early a reminder comes) and the list of keys.",
+  "help_more": "In the ⋮ menu: the plan file, the calendar integrations (a dot on ⋮ means something there waits for you), the history of changes, the trash (keeps what was removed for 30 days), shifting the plan by some days, Catch up, a second time zone, your real calendar in grey behind the plan, reminders before a start, Settings (the weekly budget, the day limit, how early a reminder comes) and the list of keys.",
   "help_history_title": "Undo and history",
   "help_history": "Every change is a step you can take back and redo: the arrows here, Ctrl/⌘ Z and Ctrl/⌘ Shift Z. The History window (key H) returns the plan to any point; the last 100 steps are kept.",
   "help_next_title": "Now and next",

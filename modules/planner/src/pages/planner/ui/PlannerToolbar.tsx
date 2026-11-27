@@ -49,6 +49,8 @@ interface Props {
   fullscreen?: { on: boolean; toggle: () => void } | undefined
   /** Present in the wide layout: the switches of the side panels */
   panels?: MenuItem[] | undefined
+  /** Something in the `⋮` menu waits for the person, such as a calendar app to sign in to again */
+  attention?: boolean | undefined
 }
 
 // The negative margins take the bar to the edges of the page padding, as the page header does.
@@ -71,6 +73,7 @@ export function PlannerToolbar({
   pinned = false,
   fullscreen,
   panels,
+  attention = false,
 }: Props) {
   const datePicker = useRef<HTMLInputElement>(null)
   const timeGrid = nav.view === 'week' || nav.view === 'day'
@@ -186,7 +189,7 @@ export function PlannerToolbar({
             />
           )}
           {history && <Hint title={m.help_history_title()} text={m.help_history()} className="max-md:hidden" />}
-          <Menu label={m.more_actions()} items={menu} />
+          <Menu label={m.more_actions()} items={menu} dot={attention} />
           <Hint title={m.help_more_title()} text={m.help_more()} />
         </div>
       </div>

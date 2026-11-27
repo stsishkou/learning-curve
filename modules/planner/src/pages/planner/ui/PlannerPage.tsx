@@ -32,17 +32,7 @@ import {
   type RebalanceRequest,
   type RebalanceResult,
 } from '@lc/plan-domain'
-import {
-  Button,
-  CalendarSync,
-  HelpToggle,
-  Hint,
-  IconsToggle,
-  useFullscreen,
-  useHelpMode,
-  useIconsOnly,
-  useShortcuts,
-} from '@lc/ui'
+import { Hint, useFullscreen, useHelpMode, useIconsOnly, useShortcuts } from '@lc/ui'
 import { useMemo, useState, type ReactNode } from 'react'
 
 import { Backlog } from '../../../features/backlog'
@@ -66,7 +56,7 @@ import { describeStep, HistoryDialog } from '../../../features/history'
 import { ShortcutsDialog } from '../../../features/keyboard-shortcuts'
 import { LogDoneDialog, ResizedDoneDialog, UnloggedBar, type ResizedDone } from '../../../features/log-done'
 import { CalendarsDialog, NewCourseDialog } from '../../../features/manage-calendars'
-import { FileBanner, OpenPlanFile, type PlanLibrary } from '../../../features/open-plan-file'
+import { FileBanner, PlanFileReader, type PlanLibrary } from '../../../features/open-plan-file'
 import { ReviewBar, useDismissedReviews } from '../../../features/plan-reviews'
 import { CountdownDialog, SettingsDialog } from '../../../features/plan-settings'
 import { useReminders } from '../../../features/reminders'
@@ -384,7 +374,7 @@ export function PlannerPage({
     hiddenCount: hidden.size,
     history: { cursor, total: steps.length, ...quiet },
     secondZone: secondZone?.label,
-    integrations: { waiting: apps.held.length },
+    integrations: { waiting: apps.held.length, attention },
     reminders: reminders.supported ? reminders : undefined,
     fullscreen: fullscreen.supported ? fullscreen : undefined,
     panels: expanded ? widePanels : undefined,
@@ -447,40 +437,8 @@ export function PlannerPage({
             onRename={canEdit ? (title) => quiet.change({ type: 'plan.rename', title }) : undefined}
             aside={headerAside}
           >
-            {/* On a phone the two plan buttons fill the row: the switches are in the menu there. */}
-            <IconsToggle label={m.icons_only()} hint={m.icons_only_hint()} className="max-md:hidden" />
-            <HelpToggle label={m.help_toggle()} className="max-md:hidden" />
             <Hint title={m.help_file_title()} text={m.help_file()} className="self-center max-md:hidden" />
-            <OpenPlanFile
-              shown={{
-                name: session.file?.name ?? planFileName(wholePlan),
-                plan: wholePlan,
-                origin: session.file?.origin,
-              }}
-              project={state.plan}
-              onOpen={(file) => {
-                session.openFile(file.name, file.plan, file.origin)
-                reset()
-                onSearchChange({ week: undefined, event: undefined })
-              }}
-              library={library}
-              now={now}
-              onApply={canEdit ? session.changeAll : undefined}
-            />
             {renderActions?.({ plan, hidden })}
-            <Button
-              className="relative flex items-center justify-center gap-1.5"
-              icon={<CalendarSync size={16} aria-hidden />}
-              label={m.integrations()}
-              onClick={() => dialogs.show('integrations')}
-            >
-              {attention && (
-                <span
-                  aria-hidden
-                  className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-bg bg-today"
-                />
-              )}
-            </Button>
           </PlannerHeader>
 
           <Runway
@@ -515,6 +473,7 @@ export function PlannerPage({
             : undefined
         }
         summary={expanded && view === 'week' && <BudgetLine plan={plan} weekItems={weekItems} />}
+        attention={attention}
       >
         <LabelFilter
           calendars={plan.calendars}
@@ -849,6 +808,21 @@ export function PlannerPage({
         host={busy?.host ?? null}
         onSave={busy?.save}
         onClose={() => dialogs.hide('busy')}
+      />
+      <PlanFileReader
+        open={dialogs.isOpen('planFile')}
+        shown={{ name: session.file?.name ?? planFileName(wholePlan), plan: wholePlan }}
+        project={state.plan}
+        onOpen={(file) => {
+          session.openFile(file.name, file.plan, file.origin)
+          reset()
+          onSearchChange({ week: undefined, event: undefined })
+        }}
+        library={library}
+        origin={session.file?.origin}
+        now={now}
+        onApply={canEdit ? session.changeAll : undefined}
+        onClose={() => dialogs.hide('planFile')}
       />
       <IntegrationsDialog
         open={dialogs.isOpen('integrations')}

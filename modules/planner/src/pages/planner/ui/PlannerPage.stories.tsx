@@ -25,6 +25,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
+import type { CalendarSyncSource, CalendarSyncStatus } from '../../../features/calendar-sync'
 import { WIDE_PANELS_KEY } from '../model/use-wide-panels'
 import { PlannerPage } from './PlannerPage'
 
@@ -262,21 +263,71 @@ const forgetIconsOnly = () => {
 }
 
 /**
- * `Icons only` in the header leaves the toolbar's buttons with their icons: each keeps its name for a screen reader
- * and in its tooltip. The `⋮` menu offers the same switch, for a phone and the expanded calendar.
+ * `Icons only` leaves the toolbar's buttons with their icons: each keeps its name for a screen reader and in its
+ * tooltip. The app's bar has the switch on every page; the `⋮` menu has it too, for the expanded calendar.
  */
 export const IconsOnly: Story = {
   beforeEach: forgetIconsOnly,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement)
-    await userEvent.click(await page.findByRole('button', { name: m.icons_only() }))
+    await userEvent.click(await page.findByRole('button', { name: m.more_actions() }))
+    const toggle = await page.findByRole('menuitemcheckbox', { name: m.icons_only() })
+    await userEvent.click(toggle)
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
     const event = page.getByRole('button', { name: m.event() })
     await expect(within(event).getByText(m.event()).getBoundingClientRect().width).toBeLessThanOrEqual(1)
-    await userEvent.click(page.getByRole('button', { name: m.more_actions() }))
-    await expect(await page.findByRole('menuitemcheckbox', { name: m.icons_only() })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
+  },
+}
+
+/** The plan file is opened from the `⋮` menu: the page's top is left to the plan itself. */
+export const PlanFileFromTheMenu: Story = {
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await expect(page.queryByRole('button', { name: m.open_plan_file() })).toBeNull()
+    await userEvent.click(await page.findByRole('button', { name: m.more_actions() }))
+    await userEvent.click(await page.findByRole('menuitem', { name: m.open_plan_file() }))
+    const reader = await within(document.body).findByRole('dialog')
+    await waitFor(() => expect(within(reader).getByRole('heading', { name: fixturePlan.meta.title })).toBeVisible())
+  },
+}
+
+const signedOut: CalendarSyncStatus = {
+  provider: 'google',
+  writable: true,
+  configured: true,
+  connectedAt: Date.UTC(2026, 10, 1),
+  calendars: 2,
+  events: 40,
+  inbox: [],
+  lastRound: Date.UTC(2026, 10, 20),
+  takenAt: null,
+  error: 'reconnect',
+}
+const signedOutSource: CalendarSyncSource = {
+  status: signedOut,
+  connectUrl: '/api/google/connect',
+  callbackPath: '/api/google/callback',
+  saveClient: fn(async () => {}),
+  sync: fn(async () => signedOut),
+  accept: fn(async () => signedOut),
+  reject: fn(async () => signedOut),
+  disconnect: fn(async () => {}),
+}
+
+/**
+ * The integrations are in the `⋮` menu. When one of them waits for the person, here a calendar app that has to be
+ * signed in to again, a dot on `⋮` says so before the menu is opened.
+ */
+export const IntegrationWaitsOnTheMenu: Story = {
+  args: { sync: [signedOutSource] },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement)
+    await expect(page.queryByRole('button', { name: m.integrations() })).toBeNull()
+    const more = await page.findByRole('button', { name: m.more_actions() })
+    await expect(more.querySelector('[data-dot]')).toBeVisible()
+    await userEvent.click(more)
+    const item = await page.findByRole('menuitem', { name: m.integrations_title() })
+    await waitFor(() => expect(item).toBeVisible())
   },
 }
 

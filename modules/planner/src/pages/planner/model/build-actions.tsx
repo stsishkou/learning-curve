@@ -9,6 +9,7 @@ import {
   CalendarClock,
   CalendarSync,
   Clock,
+  FileText,
   Globe,
   GraduationCap,
   History,
@@ -41,6 +42,7 @@ export type DialogName =
   | 'zone'
   | 'busy'
   | 'integrations'
+  | 'planFile'
   | 'sync'
   | 'syncReview'
   | 'export'
@@ -57,8 +59,11 @@ interface Context {
   history: { cursor: number; total: number; canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void }
   /** Name of the second time zone of the hour column, when one is chosen */
   secondZone?: string | undefined
-  /** The calendar integrations: `waiting` edits made in calendar apps wait for the person */
-  integrations: { waiting: number }
+  /**
+   * The calendar integrations: `waiting` edits made in calendar apps wait for the person; `attention` when those or
+   * a problem only the person can fix do
+   */
+  integrations: { waiting: number; attention: boolean }
   /** Present where the browser can show notifications: `lead` is how many minutes before a start they come */
   reminders?: { on: boolean; lead: number; toggle: () => void } | undefined
   /** Present where the browser can fill the whole screen */
@@ -285,11 +290,23 @@ export function buildActions(ctx: Context): PlannerAction[] {
       run: () => ctx.open('zone'),
     },
     {
+      id: 'plan-file',
+      group: plan,
+      label: m.open_plan_file(),
+      icon: <FileText {...ICON} />,
+      menu: 'always',
+      run: () => ctx.open('planFile'),
+    },
+    {
       id: 'integrations',
       group: plan,
       label: m.integrations_title(),
       icon: <CalendarSync {...ICON} />,
-      badge: ctx.integrations.waiting ? String(ctx.integrations.waiting) : undefined,
+      badge: ctx.integrations.waiting ? (
+        String(ctx.integrations.waiting)
+      ) : ctx.integrations.attention ? (
+        <span aria-hidden className="inline-block size-2 rounded-full bg-today" />
+      ) : undefined,
       menu: 'always',
       run: () => ctx.open('integrations'),
     },
