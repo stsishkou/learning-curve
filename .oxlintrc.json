@@ -140,7 +140,7 @@
     "react/exhaustive-deps": "error",
     "paraglide/no-dynamic-message-access": ["error", { "messageModuleDirectories": ["paraglide"] }]
   },
-  // Workspace dependency rules: app → modules → domain and shared; data → domain. pnpm already refuses an import
+  // Workspace dependency rules: the layer rule of docs/architecture.md, checked on package.json by scripts/check-graph.ts. pnpm already refuses an import
   // of a package that is not in package.json; these rules say which dependencies may be added at all.
   "overrides": [
     {
@@ -185,8 +185,17 @@
                 "message": "A module never imports another module or the app: the app composes them through props and slots."
               },
               {
-                "group": ["@lc/plan-data", "node:*", "@tanstack/react-start", "@tanstack/react-start/**"],
-                "message": "Modules are browser-safe and transport-free: the app owns storage and server functions and passes data in."
+                "group": [
+                  "@lc/plan-data",
+                  "@lc/plan-data/*",
+                  "@lc/plan-service",
+                  "@lc/plan-service/*",
+                  "@lc/plan-content",
+                  "node:*",
+                  "@tanstack/react-start",
+                  "@tanstack/react-start/**"
+                ],
+                "message": "Modules are browser-safe and transport-free: the app owns storage, services and server functions and passes data in."
               }
             ]
           }
@@ -571,8 +580,28 @@
                 "message": "Depend on the package and import it through its public entry, not by path."
               },
               {
+                "group": ["@lc/*", "node:*"],
+                "message": "The remote host imports no workspace package, so any React host can use it; only ./docs reads the docs contract."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/remote-host/src/docs/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
                 "group": ["@lc/*", "!@lc/docs-contract", "node:*"],
-                "message": "The remote host depends on the docs contract only, so any React host can use it."
+                "message": "The docs hook depends on the docs contract only."
               }
             ]
           }

@@ -17,7 +17,7 @@
   },
   "nx": {
     "tags": [
-      "type:shared",
+      "type:contract",
       "scope:docs"
     ]
   }

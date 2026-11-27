@@ -1,7 +1,7 @@
 {
   "name": "@lc/plan-domain",
   "private": true,
-  "description": "The study plan domain: types, Minsk dates, schedule rules, edits and .ics export. Pure TypeScript, no framework",
+  "description": "The study plan domain: types, Minsk dates, edits, the update protocol, .ics, calendar-sync and re-balance rules. Pure TypeScript, no framework",
   "type": "module",
   "exports": {
     ".": "./src/core/index.ts",

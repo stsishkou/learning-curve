@@ -23,7 +23,7 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "check:i18n": "nx run-many -t check:i18n",
-    "check": "nx run-many -t typecheck lint lint:fsd check:i18n --output-style=stream && oxfmt --check",
+    "check": "node scripts/check-graph.ts && nx run-many -t typecheck lint lint:fsd check:i18n --output-style=stream && oxfmt --check",
     "affected": "nx affected -t typecheck lint lint:fsd check:i18n build --output-style=stream",
     "graph": "nx graph",
     "prepare": "husky && nx run-many -t i18n"

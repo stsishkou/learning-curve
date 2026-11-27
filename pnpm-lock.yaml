@@ -566,9 +566,6 @@ importers:
       '@lc/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@lc/plan-content':
-        specifier: workspace:*
-        version: link:../../packages/plan-content
       '@lc/plan-data':
         specifier: workspace:*
         version: link:../../packages/plan-data
