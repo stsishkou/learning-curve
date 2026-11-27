@@ -20,7 +20,8 @@ export interface PrivateSettings {
   readonly busyFeed: (owner: UserId) => Promise<BusyFeedSetting>
   /**
    * Keeps `url` as `owner`'s address, as given, or forgets it when null. Checking the address is the caller's
-   * job. Where the host fixes the address, the next read still gives the host's.
+   * job. Where the host fixes the address, the next read still gives the host's. Called only where the store can be
+   * written: the service checks `host.writable()` first.
    */
   readonly setBusyFeed: (owner: UserId, url: string | null) => Promise<void>
 }

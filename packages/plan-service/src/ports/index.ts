@@ -24,7 +24,7 @@ export {
 export type { Clock } from './clock'
 export type { HostRules } from './host'
 export type { PlanLibrary } from './library'
-export type { PlanRepository, PlanSummary, PlanWrite, Revision, StoredPlan } from './plans'
+export type { PlanRepository, PlanRevision, PlanSummary, PlanWrite, StoredPlan } from './plans'
 export type { BusyFeedSetting, PrivateSettings } from './settings'
 export type { SyncStateStore } from './sync-state'
 

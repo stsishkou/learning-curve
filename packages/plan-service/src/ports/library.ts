@@ -12,8 +12,14 @@ export interface PlanLibrary {
   readonly list: (owner: UserId) => Promise<readonly StoredPlanFile[]>
   /** The file of `owner` with this id; null when there is none, also for an id no file could have. */
   readonly get: (owner: UserId, id: string) => Promise<StoredPlanFile | null>
-  /** Stores `file` under its own id, whole, replacing what `owner` kept under that id. */
+  /**
+   * Stores `file` under its own id, whole, replacing what `owner` kept under that id. Called only where the store can
+   * be written: the service checks `host.writable()` first.
+   */
   readonly put: (owner: UserId, file: StoredPlanFile) => Promise<void>
-  /** Removes the file with this id; removing one that is not there does nothing. */
+  /**
+   * Removes the file with this id; removing one that is not there does nothing. Called only where the store can be
+   * written: the service checks `host.writable()` first.
+   */
   readonly remove: (owner: UserId, id: string) => Promise<void>
 }

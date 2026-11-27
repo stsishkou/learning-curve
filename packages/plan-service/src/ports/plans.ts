@@ -1,10 +1,12 @@
 import type { Plan, PlanEdits, PlanHistory, PlanId, UserId } from '@lc/plan-domain'
 
+import type { Result } from '../result'
+
 /**
  * The version of a stored plan as one read saw it. It moves whenever the plan, its edits or its history are
- * written, by anyone; two revisions are only ever compared for equality, and none is ever the word `conflict`.
+ * written, by anyone; two revisions are only ever compared for equality.
  */
-export type Revision = string
+export type PlanRevision = string
 
 /** A plan as stored: the generated base, the edits on top, their history, and the revision of this read. */
 export interface StoredPlan {
@@ -19,7 +21,7 @@ export interface StoredPlan {
    * written again.
    */
   readonly plan: Plan
-  readonly revision: Revision
+  readonly revision: PlanRevision
 }
 
 /** What a save replaces: the edits, their history and the plan they give, together. */
@@ -49,16 +51,16 @@ export interface PlanRepository {
   /** The plans `owner` owns, oldest first, so the first is their default plan; empty when they own none. */
   readonly listOwned: (owner: UserId) => Promise<readonly PlanSummary[]>
   /**
-   * The plan's revision now, the same as a `get` made since would report; cheap enough to poll, which the page does
-   * to notice writes made elsewhere. Null when no plan has this id, or where the store cannot be written.
+   * The plan's revision now, cheap enough to poll, which the page does to notice writes made elsewhere. Where the
+   * store can be written, it is the same revision a later `get` reports; it is null when no plan has this id or the
+   * store cannot be written.
    */
-  readonly revision: (id: PlanId) => Promise<Revision | null>
+  readonly revision: (id: PlanId) => Promise<PlanRevision | null>
   /**
-   * Replaces the edits, the history and the plan together, or none of them, and returns the new revision, which the
-   * next `get` and `revision` report. `'conflict'`, with nothing written, when the plan was written after `expected`
-   * was read: by this process, another one (the MCP server) or `pnpm run plan`. Called only where the store can be
-   * written; elsewhere it may reject.
+   * Replaces the edits, the history and the plan together, or none of them. Answers the new revision, which the next
+   * `get` and `revision` report, or fails with `'conflict'`, with nothing written, when the plan was written after
+   * `expected` was read: by this process, another one (the MCP server) or `pnpm run plan`. Called only where the store
+   * can be written: the service checks `host.writable()` first.
    */
-  // oxlint-disable-next-line typescript/no-redundant-type-constituents -- spelled out: the caller must check for it
-  readonly save: (id: PlanId, next: PlanWrite, expected: Revision) => Promise<Revision | 'conflict'>
+  readonly save: (id: PlanId, next: PlanWrite, expected: PlanRevision) => Promise<Result<PlanRevision, 'conflict'>>
 }

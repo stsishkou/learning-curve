@@ -12,10 +12,16 @@ import type { CalendarSync } from '@lc/plan-domain/sync'
 export interface SyncStateStore {
   /** The version of each event in the plan's calendar feeds; empty (`parseRevisions(null)`) before any was saved. */
   readonly feedRevisions: (plan: PlanId) => Promise<Revisions>
-  /** Keeps `revisions` as the plan's feed revisions, in place of the earlier ones. */
+  /**
+   * Keeps `revisions` as the plan's feed revisions, in place of the earlier ones. Called only where the store can be
+   * written: the service checks `host.writable()` first.
+   */
   readonly saveFeedRevisions: (plan: PlanId, revisions: Revisions) => Promise<void>
   /** What `provider` was last given of the plan; empty (`parseCalendarSync(null)`) before its first round. */
   readonly calendarSync: (plan: PlanId, provider: CalendarProvider) => Promise<CalendarSync>
-  /** Keeps `sync` as what `provider` holds of the plan, in place of the earlier state. */
+  /**
+   * Keeps `sync` as what `provider` holds of the plan, in place of the earlier state. Called only where the store can
+   * be written: the service checks `host.writable()` first.
+   */
   readonly saveCalendarSync: (plan: PlanId, provider: CalendarProvider, sync: CalendarSync) => Promise<void>
 }
