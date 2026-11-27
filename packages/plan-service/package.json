@@ -4,7 +4,8 @@
   "description": "The application layer of the plan: the ports every store and outside service implements, who may do what, and failures as values. Pure TypeScript",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -16,6 +17,14 @@
   },
   "devDependencies": {
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "vitest": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
   },
   "nx": {
     "tags": [

@@ -454,6 +454,35 @@
       }
     },
     {
+      "files": ["packages/plan-service/src/testing/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@lc/*/src", "@lc/*/src/**", "**/apps/**", "**/modules/**", "**/packages/**"],
+                "message": "Depend on the package and import it through its public entry, not by path."
+              },
+              {
+                "group": [
+                  "@lc/*",
+                  "!@lc/plan-domain",
+                  "!@lc/plan-domain/*",
+                  "react",
+                  "react/**",
+                  "react-dom",
+                  "react-dom/**",
+                  "node:*"
+                ],
+                "message": "The testing kit depends on the domain and Vitest only."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["packages/plan-data/**"],
       "rules": {
         "no-restricted-imports": [
