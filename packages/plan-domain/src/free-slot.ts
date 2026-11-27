@@ -1,8 +1,8 @@
 import type { BusyBlock } from './busy'
 import { DAY, HOUR, mondayOf, startOfDay, weekday, ymd } from './dates'
 import { occurrences } from './occurrences'
-import { weeklyHours } from './schedule'
 import type { Plan } from './types'
+import { weeklyHours } from './weekly-hours'
 
 const STEP = HOUR / 2
 const NO_CALENDARS: ReadonlySet<string> = new Set()

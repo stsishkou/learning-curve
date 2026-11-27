@@ -1,14 +1,7 @@
 import { DAY, HOUR, mondayOf, parseLocal, startOfDay, toLocalString, weekday, ymd } from './dates'
 import { nextDeadline } from './deadlines'
 import { courseProgress, isSession, plannedHours } from './progress'
-import type { Plan, PlanEvent } from './types'
-
-/** One session in a new slot. Times are Europe/Minsk wall-clock strings. */
-export interface SessionMove {
-  uid: string
-  start: string
-  end: string
-}
+import type { Plan, PlanEvent, SessionMove } from './types'
 
 export interface CatchUpScenario {
   /**

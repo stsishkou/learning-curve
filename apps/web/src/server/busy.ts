@@ -1,5 +1,5 @@
-import { canWrite, feedAddress, loadBusy, readBusyFeed, writeBusyFeed } from '@lc/plan-data'
-import { DAY, type BusyBlock } from '@lc/plan-domain'
+import { canWrite, loadBusy, readBusyFeed, writeBusyFeed } from '@lc/plan-data'
+import { DAY, feedAddress, type BusyBlock } from '@lc/plan-domain'
 import { createServerFn } from '@tanstack/react-start'
 
 export interface BusyFeed {

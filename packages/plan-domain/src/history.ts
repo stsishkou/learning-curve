@@ -1,6 +1,6 @@
-import { isCalendarProvider, type CalendarProvider } from './calendar-sync'
 import { parseChange, type PlanChange } from './changes'
 import { emptyEdits, isRecord, parseEdits, type PlanEdits } from './edits'
+import { isCalendarProvider, type CalendarProvider } from './provider'
 import type { Plan } from './types'
 
 /** Older steps are dropped: the state before them becomes the new starting point. */

@@ -2,9 +2,9 @@ import { PlanChangeError, applyChange, parseChange, type PlanChange } from './ch
 import { diffPlans, type PlanDiff } from './diff'
 import { applyEdits, emptyEdits, isRecord } from './edits'
 import { ruleWarnings, warningText, type RuleWarning } from './rules'
-import { weeklyHours } from './schedule'
 import { UPDATE_CHANGE_TYPES, UPDATE_FORMAT } from './schema'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
+import { weeklyHours } from './weekly-hours'
 
 /** Changes to a plan as a chat or a tool returns them: the document `UPDATE_SCHEMA` describes. */
 export interface PlanUpdate {

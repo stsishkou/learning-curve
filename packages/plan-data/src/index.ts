@@ -1,4 +1,4 @@
-export { feedAddress, loadBusy, parseBusy } from './busy'
+export { loadBusy, parseBusy } from './busy'
 export {
   acceptProposals,
   calendarStatus,

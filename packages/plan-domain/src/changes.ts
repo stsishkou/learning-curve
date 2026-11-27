@@ -25,9 +25,8 @@ import { weekReview } from './goals'
 import { cleanLabel, hasLabel, labelList, sameLabel } from './labels'
 import { isSession } from './progress'
 import { PLAIN_WEEKLY_RULE, weekdaysOf } from './recurrence'
-import type { SessionMove } from './replan'
 import { purgeTrash } from './trash'
-import type { Plan, PlanEvent, WeekNote } from './types'
+import type { Plan, PlanEvent, SessionMove, WeekNote } from './types'
 
 /** What a new event needs; the uid is assigned when the change is applied. */
 export interface NewEvent {

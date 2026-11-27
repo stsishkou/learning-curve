@@ -1,6 +1,5 @@
 import { parseLocal, toLocalString, weekday } from '../dates'
-import type { SessionMove } from '../replan'
-import type { PlanEvent } from '../types'
+import type { PlanEvent, SessionMove } from '../types'
 import { HALF_HOUR, type Room, type RoomDay } from './room'
 
 const lengthOf = (e: PlanEvent) => parseLocal(e.end) - parseLocal(e.start)

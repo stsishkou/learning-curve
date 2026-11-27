@@ -2,9 +2,9 @@ import { MIN_LOGGED } from './accuracy'
 import { accuracyReport } from './accuracy-report'
 import { DAY, mondayOf, startOfDay, weekday, ymd } from './dates'
 import { isSession, plannedHours } from './progress'
-import { weeklyHours } from './schedule'
 import { UPDATE_FORMAT } from './schema'
 import type { Plan, PlanEvent } from './types'
+import { weeklyHours } from './weekly-hours'
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 

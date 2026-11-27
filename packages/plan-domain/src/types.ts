@@ -124,3 +124,10 @@ export interface QueueItem {
   description: string
   availability?: 'busy' | 'free'
 }
+
+/** One session in a new slot. Times are Europe/Minsk wall-clock strings. */
+export interface SessionMove {
+  uid: string
+  start: string
+  end: string
+}

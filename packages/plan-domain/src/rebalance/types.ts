@@ -1,4 +1,4 @@
-import type { SessionMove } from '../replan'
+import type { SessionMove } from '../types'
 
 /** Sessions per study day the dialog offers */
 export const RHYTHMS = [1 / 3, 1 / 2, 1, 3 / 2, 2, 3] as const

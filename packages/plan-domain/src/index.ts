@@ -104,14 +104,7 @@ export {
   type WeekOutcome,
   type WeekReview,
 } from './goals'
-export {
-  catchUpScenarios,
-  planOutlook,
-  withMoves,
-  type CatchUpScenario,
-  type PlanOutlook,
-  type SessionMove,
-} from './replan'
+export { catchUpScenarios, planOutlook, withMoves, type CatchUpScenario, type PlanOutlook } from './replan'
 export {
   TRASH_DAYS,
   emptyTrash,
@@ -167,10 +160,8 @@ export {
 } from './ics'
 export { hashText, parseRevisions, reviseEvents, type Revision, type Revisions } from './revisions'
 export {
-  CALENDAR_PROVIDERS,
   changeOf,
   fileProposals,
-  isCalendarProvider,
   parseCalendarSync,
   planPush,
   readRemote,
@@ -178,7 +169,6 @@ export {
   triage,
   writtenHash,
   writtenOf,
-  type CalendarProvider,
   type CalendarSync,
   type Hold,
   type InboxItem,
@@ -240,7 +230,12 @@ export {
   type ReferenceClass,
 } from './progress'
 export { planStats, type PlanStats, type WeekStats } from './stats'
-export { DEFAULT_CONFIG, buildPlan, weeklyHours, type ScheduleConfig } from './schedule'
+export { DEFAULT_CONFIG, buildPlan, type ScheduleConfig } from './schedule'
+export { weeklyHours } from './weekly-hours'
+export { feedAddress } from './feed-address'
+export { CALENDAR_PROVIDERS, isCalendarProvider, type CalendarProvider } from './provider'
+export { isPlanId, isUserId, parsePlanId, parseUserId, type PlanId, type UserId } from './ids'
+export type { PlanAccess, PlanView } from './view'
 export {
   isPlan,
   type EventKind,
@@ -249,6 +244,7 @@ export {
   type PlanCalendar,
   type PlanEvent,
   type PlanMeta,
+  type SessionMove,
   type QueueItem,
 } from './types'
 export { compactPlan, planBrief, planGuide } from './guide'

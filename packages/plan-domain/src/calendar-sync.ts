@@ -12,13 +12,6 @@ import { hashText } from './revisions'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 import { previewUpdate } from './update'
 
-/** The calendar apps the plan can be kept in. */
-export const CALENDAR_PROVIDERS = ['google', 'outlook'] as const
-export type CalendarProvider = (typeof CALENDAR_PROVIDERS)[number]
-
-export const isCalendarProvider = (value: unknown): value is CalendarProvider =>
-  CALENDAR_PROVIDERS.some((provider) => provider === value)
-
 const DONE = '✓ '
 
 /** One plan event as every calendar app is given it, before the app's own format. */

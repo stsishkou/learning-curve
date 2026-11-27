@@ -2,8 +2,8 @@ import type { NewSession, PlanChange } from './changes'
 import { DAY, HOUR, mondayOf, parseLocal, toLocalString, weekday, ymd } from './dates'
 import { occurrences } from './occurrences'
 import { studyHoursOn } from './rules'
-import { weeklyHours } from './schedule'
 import type { Plan } from './types'
+import { weeklyHours } from './weekly-hours'
 
 /** One module of a pasted course: its title, its length when the list gave one, and whether it is a lab. */
 export interface CourseModule {
