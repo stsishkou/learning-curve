@@ -4,7 +4,8 @@
   "description": "The plan database on disk (data/plan.json, data/edits.json) and the command that regenerates it. Node only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./fs": "./src/fs/index.ts"
   },
   "scripts": {
     "plan": "tsx scripts/build-plan.ts",
@@ -28,7 +29,7 @@
   },
   "nx": {
     "tags": [
-      "type:data",
+      "type:infra",
       "scope:plan"
     ]
   }

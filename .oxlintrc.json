@@ -499,6 +499,31 @@
       }
     },
     {
+      "files": ["packages/plan-data/**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@lc/*",
+                  "!@lc/plan-domain",
+                  "!@lc/plan-domain/*",
+                  "!@lc/plan-content",
+                  "!@lc/plan-service",
+                  "!@lc/plan-service/testing",
+                  "react",
+                  "react/**"
+                ],
+                "message": "The data store depends on the domain, the content and the service only."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["packages/ui/**", "packages/i18n/**"],
       "rules": {
         "no-restricted-imports": [
