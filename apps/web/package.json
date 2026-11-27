@@ -21,6 +21,7 @@
     "@lc/plan-content": "workspace:*",
     "@lc/plan-data": "workspace:*",
     "@lc/plan-domain": "workspace:*",
+    "@lc/plan-service": "workspace:*",
     "@lc/planner": "workspace:*",
     "@lc/ui": "workspace:*",
     "@tailwindcss/vite": "4.3.5",

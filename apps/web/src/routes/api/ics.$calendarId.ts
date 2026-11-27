@@ -1,6 +1,9 @@
-import { feedRevisions, readPlan } from '@lc/plan-data'
 import { calendarICS, combinedCalendar, combinedICS, icsETag, icsFileName } from '@lc/plan-domain/ics'
 import { createFileRoute } from '@tanstack/react-router'
+
+import { actorOf } from '#/server/actor'
+import { failed } from '#/server/respond'
+import { services } from '#/server/services'
 
 /**
  * GET /api/ics/:calendarId — one calendar as .ics (`certs`, `hfllm`, … or `certs.ics`);
@@ -18,8 +21,10 @@ const matches = (header: string | null, etag: string) =>
 export const Route = createFileRoute('/api/ics/$calendarId')({
   server: {
     handlers: {
-      GET: ({ params, request }) => {
-        const plan = readPlan()
+      GET: async ({ params, request }) => {
+        const feed = await services.plans.feed(actorOf())
+        if (!feed.ok) return failed(feed.error)
+        const { plan, revisions } = feed.value
         const id = params.calendarId.replace(/\.ics$/, '')
         // `all` is the combined calendar; `?calendars=certs,hfllm` narrows it.
         const only = new URL(request.url).searchParams.get('calendars')?.split(',')
@@ -35,7 +40,7 @@ export const Route = createFileRoute('/api/ics/$calendarId')({
           markDone: query.has('done'),
           alarm: Number.isInteger(alarm) && alarm > 0 && alarm <= 1440 ? alarm : undefined,
           source: request.url,
-          revisions: feedRevisions(plan),
+          revisions,
         }
         const body =
           id === 'all'

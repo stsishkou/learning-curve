@@ -1,12 +1,9 @@
-import { CalendarAuthError, finishConnect, syncCalendar } from '@lc/plan-data'
 import { isCalendarProvider } from '@lc/plan-domain'
+import type { CalendarSignInFailure } from '@lc/plan-service'
 import { createFileRoute } from '@tanstack/react-router'
 
-/** How a sign-in ended, as the planner explains it. */
-function outcome(error: unknown): 'scope' | 'client' | 'failed' {
-  if (error instanceof CalendarAuthError && (error.reason === 'scope' || error.reason === 'client')) return error.reason
-  return 'failed'
-}
+import { actorOf } from '#/server/actor'
+import { services } from '#/server/services'
 
 /** GET /api/<provider>/callback — where a calendar app's sign-in comes back; the planner then says how it went. */
 export const Route = createFileRoute('/api/$provider/callback')({
@@ -19,15 +16,11 @@ export const Route = createFileRoute('/api/$provider/callback')({
         const code = url.searchParams.get('code')
         const state = url.searchParams.get('state') ?? ''
         // Both apps come back with `error=access_denied` when the person cancels on their page.
-        let ended = url.searchParams.get('error') === 'access_denied' ? 'denied' : 'failed'
+        let ended: CalendarSignInFailure | 'connected' =
+          url.searchParams.get('error') === 'access_denied' ? 'denied' : 'failed'
         if (code) {
-          try {
-            await finishConnect(provider, code, state)
-            void syncCalendar(provider)
-            ended = 'connected'
-          } catch (err) {
-            ended = outcome(err)
-          }
+          const finished = await services.calendars.finishConnect(actorOf(), provider, code, state)
+          ended = finished.ok ? 'connected' : finished.error
         }
         return Response.redirect(new URL(`/?link=${provider}&signin=${ended}`, request.url).href, 302)
       },

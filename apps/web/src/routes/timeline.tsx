@@ -5,13 +5,16 @@ import { parseTimelineSearch, TimelinePage } from '@lc/planner'
 import { createFileRoute, useBlocker, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { getPlanState, savePlanChanges, travelPlanHistory } from '#/server/plan'
+import { getPlanView, savePlanChanges, travelPlanHistory } from '#/server/plan'
 import { rebalancePlan } from '#/server/reschedule'
 
 /** The timeline page of the planner module at `/timeline`: every course on its lane, changed as a draft. */
 export const Route = createFileRoute('/timeline')({
   validateSearch: parseTimelineSearch,
-  loader: () => getPlanState(),
+  loader: async () => {
+    const view = await getPlanView()
+    return { ...view, canEdit: view.access === 'owner' }
+  },
   head: () => ({ meta: [{ title: m.timeline() }] }),
   component: TimelineRoute,
 })

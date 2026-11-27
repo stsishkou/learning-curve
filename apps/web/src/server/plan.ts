@@ -1,103 +1,37 @@
-import { buildPlan } from '@lc/plan-content'
-import {
-  canWrite,
-  currentHistory,
-  planRevision,
-  readEdits,
-  readPlan,
-  saveChanges,
-  syncCalendars,
-  writeHistory,
-  writePlan,
-} from '@lc/plan-data'
-import {
-  editedUids,
-  historyEdits,
-  historyView,
-  parseChange,
-  trashOf,
-  travel,
-  trimHistory,
-  type HistoryView,
-  type Plan,
-  type PlanTrash,
-} from '@lc/plan-domain'
+import { parseChange, type PlanView } from '@lc/plan-domain'
+import { parseChanges, parseCursor, type PlanRevision } from '@lc/plan-service'
 import { createServerFn } from '@tanstack/react-start'
 
-export interface PlanState {
-  plan: Plan
-  /** false on a read-only host: the viewer then hides its editing controls */
-  canEdit: boolean
-  /** uids of events that differ from the generated schedule */
-  edited: string[]
-  /** Removed events and calendars that can still be restored */
-  trash: PlanTrash
-  /** The changes made in this checkout and how many of them are applied */
-  history: HistoryView
-}
+import { actorOf } from './actor'
+import { unwrap } from './respond'
+import { services } from './services'
 
-function state(plan: Plan): PlanState {
-  const edits = readEdits()
-  return {
-    plan,
-    canEdit: canWrite(),
-    edited: editedUids(edits),
-    trash: trashOf(buildPlan(), edits),
-    history: historyView(currentHistory()),
-  }
-}
-
-/** The state after a save, which each connected calendar app is sent in the background. */
-function pushed(plan: Plan): PlanState {
-  void syncCalendars()
-  return state(plan)
-}
-
-const mustWrite = () => {
-  if (!canWrite()) throw new Error('The plan is read-only here')
-}
-
-export const getPlanState = createServerFn({ method: 'GET' }).handler((): PlanState => state(readPlan()))
+/** The plan with what the person may do with it, the events they changed, the trash and the history. */
+export const getPlanView = createServerFn({ method: 'GET' }).handler(async (): Promise<PlanView> =>
+  unwrap(await services.plans.view(actorOf())),
+)
 
 /** Moves whenever the plan on disk changes, whoever changed it; null on a read-only host. */
-export const getPlanRevision = createServerFn({ method: 'GET' }).handler(() => planRevision())
+export const getPlanRevision = createServerFn({ method: 'GET' }).handler(async (): Promise<PlanRevision | null> =>
+  unwrap(await services.plans.revision(actorOf())),
+)
 
-/** Applies one change to data/edits.json, regenerates data/plan.json and adds the change to the history. */
+/** Stores one change as a step of the history; each connected calendar app is sent it in the background. */
 export const savePlanChange = createServerFn({ method: 'POST' })
   .validator(parseChange)
-  .handler(({ data }): PlanState => {
-    mustWrite()
-    return pushed(saveChanges([data]).plan)
-  })
+  .handler(async ({ data }): Promise<PlanView> => unwrap(await services.plans.apply(actorOf(), [data])))
 
 /** Stores the changes of an update in order, each a step of the history; none when one does not fit. */
 export const savePlanChanges = createServerFn({ method: 'POST' })
-  .validator((changes: unknown) => {
-    if (!Array.isArray(changes) || !changes.length) throw new Error('Changes are required')
-    return changes.map(parseChange)
-  })
-  .handler(({ data }): PlanState => {
-    mustWrite()
-    return pushed(saveChanges(data).plan)
-  })
+  .validator(parseChanges)
+  .handler(async ({ data }): Promise<PlanView> => unwrap(await services.plans.apply(actorOf(), data)))
 
 /** Moves the plan to a point of the history: 0 is before the first change, the number of steps the latest. */
 export const travelPlanHistory = createServerFn({ method: 'POST' })
-  .validator((cursor: unknown) => {
-    if (typeof cursor !== 'number' || !Number.isInteger(cursor) || cursor < 0) throw new Error('A step is required')
-    return cursor
-  })
-  .handler(({ data }): PlanState => {
-    mustWrite()
-    const history = travel(currentHistory(), data)
-    const written = writePlan(historyEdits(history))
-    writeHistory(history)
-    return pushed(written.plan)
-  })
+  .validator(parseCursor)
+  .handler(async ({ data }): Promise<PlanView> => unwrap(await services.plans.travel(actorOf(), data)))
 
 /** Keeps the ends of the history, the first change and the current one; the plan itself stays as it is. */
-export const trimPlanHistory = createServerFn({ method: 'POST' }).handler((): PlanState => {
-  mustWrite()
-  writeHistory(trimHistory(currentHistory()))
-  return state(readPlan())
-})
+export const trimPlanHistory = createServerFn({ method: 'POST' }).handler(async (): Promise<PlanView> =>
+  unwrap(await services.plans.trimHistory(actorOf())),
+)

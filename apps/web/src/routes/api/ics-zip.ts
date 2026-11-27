@@ -1,14 +1,19 @@
-import { readPlan } from '@lc/plan-data'
 import { calendarICS, icsFileName, IMPORT_HOWTO } from '@lc/plan-domain/ics'
 import { createFileRoute } from '@tanstack/react-router'
 import JSZip from 'jszip'
+
+import { actorOf } from '#/server/actor'
+import { failed } from '#/server/respond'
+import { services } from '#/server/services'
 
 /** GET /api/ics-zip — every calendar with events as .ics, plus import instructions, in one archive. */
 export const Route = createFileRoute('/api/ics-zip')({
   server: {
     handlers: {
       GET: async () => {
-        const plan = readPlan()
+        const read = await services.plans.read(actorOf())
+        if (!read.ok) return failed(read.error)
+        const plan = read.value
         const zip = new JSZip()
         const used = plan.calendars.filter((c) => plan.events.some((e) => e.calendar === c.id))
         for (const c of used) zip.file(icsFileName(c), calendarICS(plan, c))

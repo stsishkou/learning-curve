@@ -16,7 +16,7 @@ import {
   syncCalendarNow,
 } from '#/server/calendars'
 import { getPlanFile, getPlanFiles, removeSavedPlan, renameSavedPlan, savePlanFile } from '#/server/library'
-import { getPlanState, savePlanChange, savePlanChanges, travelPlanHistory, trimPlanHistory } from '#/server/plan'
+import { getPlanView, savePlanChange, savePlanChanges, travelPlanHistory, trimPlanHistory } from '#/server/plan'
 import { rebalancePlan } from '#/server/reschedule'
 import { STAND_URL } from '#/shell/ShellBar'
 import { setTheme } from '#/shell/theme'
@@ -25,8 +25,9 @@ import { setTheme } from '#/shell/theme'
 export const Route = createFileRoute('/')({
   validateSearch: parsePlannerSearch,
   loader: async () => {
-    const [state, feed, calendars] = await Promise.all([getPlanState(), getBusyFeed(), getCalendarStatuses()])
-    return { state, feed, calendars }
+    const [view, feed, calendars] = await Promise.all([getPlanView(), getBusyFeed(), getCalendarStatuses()])
+    // The planner still takes `canEdit` and a mutable list until it takes the view as it is.
+    return { state: { ...view, edited: [...view.edited], canEdit: view.access === 'owner' }, feed, calendars }
   },
   component: PlannerRoute,
 })
@@ -95,7 +96,7 @@ function PlannerRoute() {
       library={
         state.canEdit
           ? {
-              list: () => getPlanFiles(),
+              list: async () => [...(await getPlanFiles())],
               read: (id, version) => getPlanFile({ data: { id, version } }),
               save: (file) => savePlanFile({ data: file }),
               rename: async (id, name) => void (await renameSavedPlan({ data: { id, name } })),
@@ -107,7 +108,7 @@ function PlannerRoute() {
       rebalance={rebalance}
       busy={{
         host: feed.host,
-        load: (from, to) => getBusy({ data: { from, to } }),
+        load: async (from, to) => [...(await getBusy({ data: { from, to } }))],
         save: feed.canSet
           ? async (url) => {
               await saveBusyFeed({ data: url })

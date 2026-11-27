@@ -1,6 +1,10 @@
-import { canWrite, connectAddress } from '@lc/plan-data'
 import { isCalendarProvider } from '@lc/plan-domain'
+import { failureMessage } from '@lc/plan-service'
 import { createFileRoute } from '@tanstack/react-router'
+
+import { actorOf } from '#/server/actor'
+import { statusOf } from '#/server/respond'
+import { services } from '#/server/services'
 
 /**
  * GET /api/<provider>/connect — sends the browser to the calendar app's sign-in, which comes back to
@@ -10,14 +14,16 @@ import { createFileRoute } from '@tanstack/react-router'
 export const Route = createFileRoute('/api/$provider/connect')({
   server: {
     handlers: {
-      GET: ({ request, params }) => {
+      GET: async ({ request, params }) => {
         const { provider } = params
         if (!isCalendarProvider(provider)) return new Response('Unknown calendar app', { status: 404 })
-        if (!canWrite()) return new Response('The plan is read-only here', { status: 403 })
         const callback = new URL(`/api/${provider}/callback`, request.url).href
         try {
-          return Response.redirect(connectAddress(provider, callback), 302)
+          const address = await services.calendars.connectAddress(actorOf(), provider, callback)
+          if (!address.ok) return new Response(failureMessage(address.error), { status: statusOf(address.error) })
+          return Response.redirect(address.value, 302)
         } catch {
+          // It rejects when no client is known for the app: the planner then says the sign-in failed.
           return Response.redirect(new URL(`/?link=${provider}&signin=failed`, request.url).href, 302)
         }
       },
