@@ -795,9 +795,6 @@ importers:
       '@lc/plan-service':
         specifier: workspace:*
         version: link:../plan-service
-      '@modelcontextprotocol/sdk':
-        specifier: 'catalog:'
-        version: 1.32.2(supports-color@7.2.0)(zod@4.6.7)
       highs:
         specifier: 'catalog:'
         version: 1.15.4

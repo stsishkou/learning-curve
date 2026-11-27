@@ -17,7 +17,6 @@ import {
 import { itemAt } from '@lc/plan-domain/fixtures'
 import {
   RHYTHMS,
-  defaultStudyHours,
   movingSessions,
   planRebalance,
   roomOf,
@@ -26,7 +25,6 @@ import {
 } from '@lc/plan-domain/rebalance'
 import { describe, expect, test } from 'vitest'
 
-import { requestFromTool } from '../rebalance'
 import { solveLp } from './solver'
 
 const MONDAY = parseLocal('2026-12-07T00:00')
@@ -510,43 +508,4 @@ describe('on the generated schedule of this repository', () => {
     expect(result.report.finish && result.report.finish <= '2027-02-15').toBe(true)
     expectValid(plan, request, result, parseLocal('2027-01-04T08:00'), [])
   }, 30_000)
-})
-
-describe('requestFromTool', () => {
-  test('the MCP arguments map to a request', () => {
-    const plan = buildPlan(DEFAULT_CONFIG, '2026-11-22')
-    expect(requestFromTool({ calendar: 'hfllm', from: '2027-01-04', mode: 'rhythm', perDay: 0.5 }, plan)).toEqual({
-      calendar: 'hfllm',
-      from: '2027-01-04',
-      deadline: undefined,
-      target: { mode: 'rhythm', perDay: 0.5 },
-      overBudget: false,
-      hours: defaultStudyHours(plan),
-    })
-    expect(
-      requestFromTool(
-        {
-          calendar: 'hfllm',
-          from: '2027-01-04',
-          mode: 'deadline',
-          deadline: '2027-02-16',
-          overBudget: true,
-          hoursTo: '15:00',
-        },
-        plan,
-      ),
-    ).toMatchObject({
-      target: { mode: 'deadline' },
-      deadline: '2027-02-16',
-      overBudget: true,
-      hours: { from: defaultStudyHours(plan).from, to: '15:00' },
-    })
-  })
-
-  test('the deadline mode without a deadline anywhere is refused', () => {
-    const plan = planOf(course(5, () => 0.5))
-    expect(() => requestFromTool({ calendar: 'c0', from: '2026-12-07', mode: 'deadline' }, plan)).toThrow(
-      'The deadline mode needs a deadline',
-    )
-  })
 })
