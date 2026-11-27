@@ -14,6 +14,7 @@
     "mcp": "tsx scripts/mcp.ts"
   },
   "dependencies": {
+    "@lc/plan-content": "workspace:*",
     "@lc/plan-domain": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
     "highs": "catalog:",

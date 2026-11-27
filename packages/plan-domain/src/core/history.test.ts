@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 
+import { fixtureBase } from '../fixtures'
 import { applyChange, type PlanChange } from './changes'
 import { applyEdits, emptyEdits } from './edits'
 import {
@@ -14,9 +15,8 @@ import {
   travel,
   trimHistory,
 } from './history'
-import { DEFAULT_CONFIG, buildPlan } from './schedule'
 
-const base = buildPlan(DEFAULT_CONFIG, '2026-11-22')
+const base = fixtureBase
 const rename = (title: string): PlanChange => ({ type: 'plan.rename', title })
 
 /** The history after the changes, each stored as the server stores it. */

@@ -1,7 +1,7 @@
 // Course content: every item becomes one calendar event when the scheduler gives it a date.
 // Edit this file, then run `pnpm run plan` to regenerate packages/plan-data/data/plan.json.
 // Descriptions follow the project format: course URL, module URL, 1–3 line goal.
-import type { PlanCalendar, QueueItem } from './types'
+import type { PlanCalendar, QueueItem } from '@lc/plan-domain'
 
 export const CALENDARS: PlanCalendar[] = [
   {

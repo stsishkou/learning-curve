@@ -18,6 +18,7 @@
     "@lc/docs-contract": "workspace:*",
     "@lc/docs-host": "workspace:*",
     "@lc/i18n": "workspace:*",
+    "@lc/plan-content": "workspace:*",
     "@lc/plan-data": "workspace:*",
     "@lc/plan-domain": "workspace:*",
     "@lc/planner": "workspace:*",

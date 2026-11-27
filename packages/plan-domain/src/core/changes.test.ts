@@ -1,7 +1,7 @@
 import { Ajv2020 } from 'ajv/dist/2020.js'
 import { describe, expect, test } from 'vitest'
 
-import { itemAt } from '../fixtures'
+import { fixtureBase, itemAt } from '../fixtures'
 import { reviewOffers } from '../insights/reviews'
 import { planStats } from '../insights/stats'
 import { UPDATE_CHANGE_TYPES, UPDATE_SCHEMA } from '../protocol/schema'
@@ -14,11 +14,10 @@ import { weekOutcomes, weekReview } from './goals'
 import { emptyHistory, recordChange } from './history'
 import { countsTwice, groupByLabel, planLabels } from './labels'
 import { courseProgress, doneWithoutTime, isSession } from './progress'
-import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import { TRASH_DAYS, purgeTrash, trashOf } from './trash'
 import type { Plan, PlanEvent } from './types'
 
-const base = buildPlan(DEFAULT_CONFIG, '2026-11-22')
+const base = fixtureBase
 const NOW = Date.parse('2026-11-23T09:00:00Z')
 
 const apply = (changes: PlanChange[], edits: PlanEdits = emptyEdits(), now = NOW) =>

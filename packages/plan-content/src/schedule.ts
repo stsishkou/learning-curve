@@ -1,6 +1,6 @@
+import { addDays, parseLocal, weekday, type Plan, type PlanEvent, type QueueItem } from '@lc/plan-domain'
+
 import { CALENDARS, CERT1, CERT2, HFAGENTS, HFLLM, PRACTICALPY } from './content'
-import { addDays, parseLocal, weekday } from './dates'
-import type { Plan, PlanEvent, QueueItem } from './types'
 
 export interface ScheduleConfig {
   timezone: string

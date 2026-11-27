@@ -4,13 +4,13 @@ import { MIN_LOGGED } from '../core/accuracy'
 import { parseLocal, ymd } from '../core/dates'
 import { applyEdits, emptyEdits, type EventPatch } from '../core/edits'
 import { isSession } from '../core/progress'
-import { DEFAULT_CONFIG, buildPlan } from '../core/schedule'
 import type { Plan } from '../core/types'
+import { fixtureBase } from '../fixtures'
 import { planBrief } from '../protocol/guide'
 import { accuracyReport } from './accuracy-report'
 import { finishRange, paceForecast } from './forecast'
 
-const base = buildPlan(DEFAULT_CONFIG, '2026-11-22')
+const base = fixtureBase
 const before = parseLocal('2026-11-22T00:00')
 const certs = base.events.filter((e) => e.calendar === 'certs' && isSession(e) && e.kind === 'study')
 

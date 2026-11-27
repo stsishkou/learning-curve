@@ -1,8 +1,7 @@
+import { DEFAULT_CONFIG, buildPlan } from '@lc/plan-content'
 import {
   DAY,
-  DEFAULT_CONFIG,
   HOUR,
-  buildPlan,
   mondayOf,
   occurrences,
   parseLocal,

@@ -1,4 +1,4 @@
-// Regenerates the plan database from packages/plan-domain/src/content.ts, the schedule rules and data/edits.json.
+// Regenerates the plan database from packages/plan-content/src/content.ts, the schedule rules and data/edits.json.
 //   pnpm run plan            → writes data/plan.json
 //   pnpm run plan --ics   → also writes exports/*.ics
 import { mkdirSync, writeFileSync } from 'node:fs'

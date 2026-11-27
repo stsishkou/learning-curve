@@ -145,7 +145,6 @@ export {
   type CourseProgress,
   type ReferenceClass,
 } from './progress'
-export { DEFAULT_CONFIG, buildPlan, type ScheduleConfig } from './schedule'
 export { weeklyHours } from './weekly-hours'
 export { feedAddress } from './feed-address'
 export { CALENDAR_PROVIDERS, isCalendarProvider, type CalendarProvider } from './provider'

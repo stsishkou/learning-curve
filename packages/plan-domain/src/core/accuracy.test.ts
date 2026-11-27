@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { itemAt } from '../fixtures'
+import { fixtureBase, itemAt } from '../fixtures'
 import { paceForecast } from '../insights/forecast'
 import { MIN_LOGGED, accuracyOf, runningTypical } from './accuracy'
 import { applyChange, type PlanChange } from './changes'
@@ -8,10 +8,9 @@ import { mondayOf, parseLocal, toLocalString } from './dates'
 import { applyEdits, emptyEdits, type PlanEdits } from './edits'
 import { moduleOverruns, weekReview } from './goals'
 import { courseProgress, doneWithoutTime, isSession, referenceClass } from './progress'
-import { DEFAULT_CONFIG, buildPlan } from './schedule'
 import type { Plan, PlanEvent } from './types'
 
-const base = buildPlan(DEFAULT_CONFIG, '2026-11-22')
+const base = fixtureBase
 const certs = base.events.filter((e) => e.calendar === 'certs' && isSession(e) && e.kind === 'study')
 
 /** The plan with the first certs sessions done: `minutes[i]` logged on the i-th, or none where it is undefined */

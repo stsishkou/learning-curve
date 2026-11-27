@@ -2,10 +2,10 @@ import { expect, test } from 'vitest'
 
 import { DAY, parseLocal } from '../core/dates'
 import { isSession } from '../core/progress'
-import { DEFAULT_CONFIG, buildPlan } from '../core/schedule'
+import { fixtureBase } from '../fixtures'
 import { catchUpScenarios } from './replan'
 
-const plan = buildPlan(DEFAULT_CONFIG)
+const plan = fixtureBase
 
 test('squeeze names the missed sessions it found no room for, the latest ones, and moves the rest', () => {
   const sessions = plan.events.filter(isSession).toSorted((a, b) => a.start.localeCompare(b.start))

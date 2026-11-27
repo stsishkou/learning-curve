@@ -12,10 +12,10 @@ import {
 } from 'node:fs'
 import { dirname, join } from 'node:path'
 
+import { buildPlan } from '@lc/plan-content'
 import {
   applyChange,
   applyEdits,
-  buildPlan,
   emptyHistory,
   inSync,
   isPlan,

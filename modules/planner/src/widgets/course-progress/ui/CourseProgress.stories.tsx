@@ -1,6 +1,6 @@
 import { m } from '@lc/i18n/messages'
-import { buildPlan, DEFAULT_CONFIG, isSession, MIN_LOGGED, parseLocal, type Plan } from '@lc/plan-domain'
-import { fixturePlan } from '@lc/plan-domain/fixtures'
+import { isSession, MIN_LOGGED, parseLocal, type Plan } from '@lc/plan-domain'
+import { fixtureBase, fixturePlan } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 
@@ -26,7 +26,7 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {}
 
 /** A freshly generated plan: every ring is empty and each course points at its first session. */
-export const NothingDone: Story = { args: { plan: buildPlan(DEFAULT_CONFIG, '2026-11-22') } }
+export const NothingDone: Story = { args: { plan: fixtureBase } }
 
 /** The fixture with the first `count` done sessions logged at their plan. */
 const loggedFirst = (count: number): Plan => {

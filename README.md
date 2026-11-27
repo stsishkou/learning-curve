@@ -239,9 +239,9 @@ Styling is [Tailwind CSS](https://tailwindcss.com) v4; the color tokens and them
 
 ## How the plan is made
 
-1. **Content** — `packages/plan-domain/src/content.ts`: every course is a queue of sessions (title, 1 h or 2 h, description).
+1. **Content** — `packages/plan-content/src/content.ts`: every course is a queue of sessions (title, 1 h or 2 h, description).
    Calendars and their colors are defined here too.
-2. **Rules** — `packages/plan-domain/src/schedule.ts` (`DEFAULT_CONFIG`): date ranges, holidays, slots, weekly budget.
+2. **Rules** — `packages/plan-content/src/schedule.ts` (`DEFAULT_CONFIG`): date ranges, holidays, slots, weekly budget.
    - Certificates: weekdays 12:00–14:00 from 23 Nov; a 2 h challenge lab always starts at 12:00.
    - From 4 Jan: 11:00 HF LLM → Practical Python, 12:00 HF Agents, Mon/Wed 13:00 Practical Python.
    - Saturday 10:00–12:00 buffer (free time), gym Tue/Thu 08:30–10:30 (recurring).

@@ -2,8 +2,7 @@
 import { Ajv2020 } from 'ajv/dist/2020.js'
 import { expect, test } from 'vitest'
 
-import { buildPlan } from '../core/schedule'
-import { fixtureNow, fixturePlan, itemAt } from '../fixtures'
+import { fixtureBase, fixtureNow, fixturePlan, itemAt } from '../fixtures'
 import { compactPlan, planBrief, planGuide } from './guide'
 import { PLAN_SCHEMA, UPDATE_SCHEMA } from './schema'
 import { parseUpdate, previewUpdate } from './update'
@@ -19,13 +18,13 @@ const examples = (guide: string): unknown[] =>
     .map((json) => JSON.parse(json) as unknown)
 
 test('the generated plan and its short copy fit the plan schema', () => {
-  const plan = buildPlan()
+  const plan = fixtureBase
   expect(validPlan(plan), JSON.stringify(validPlan.errors)).toBe(true)
   expect(validPlan(compactPlan(fixturePlan)), JSON.stringify(validPlan.errors)).toBe(true)
 })
 
 test('every example of the guide fits the update schema, parses and applies', () => {
-  const plan = buildPlan()
+  const plan = fixtureBase
   const found = examples(planGuide(plan, fixtureNow))
   expect(found.length).toBeGreaterThanOrEqual(3)
   for (const example of found) {

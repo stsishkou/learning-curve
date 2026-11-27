@@ -1,3 +1,4 @@
+import { buildPlan } from '@lc/plan-content'
 import {
   canWrite,
   currentHistory,
@@ -10,7 +11,6 @@ import {
   writePlan,
 } from '@lc/plan-data'
 import {
-  buildPlan,
   editedUids,
   historyEdits,
   historyView,

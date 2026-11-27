@@ -1,0 +1,26 @@
+{
+  "name": "@lc/plan-content",
+  "private": true,
+  "description": "The owner's courses and the schedule generator built for them",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lc/plan-domain": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:content",
+      "scope:plan"
+    ]
+  }
+}

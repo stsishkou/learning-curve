@@ -541,6 +541,9 @@ importers:
       '@lc/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@lc/plan-content':
+        specifier: workspace:*
+        version: link:../../packages/plan-content
       '@lc/plan-data':
         specifier: workspace:*
         version: link:../../packages/plan-data
@@ -740,8 +743,21 @@ importers:
         specifier: 'catalog:'
         version: 5.1.1(@types/node@26.6.6)(@vitest/browser-playwright@5.1.1)(@vitest/ui@5.1.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
 
+  packages/plan-content:
+    dependencies:
+      '@lc/plan-domain':
+        specifier: workspace:*
+        version: link:../plan-domain
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.1(@types/node@26.6.6)(@vitest/browser-playwright@5.1.1)(@vitest/ui@5.1.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+
   packages/plan-data:
     dependencies:
+      '@lc/plan-content':
+        specifier: workspace:*
+        version: link:../plan-content
       '@lc/plan-domain':
         specifier: workspace:*
         version: link:../plan-domain

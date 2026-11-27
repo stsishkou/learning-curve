@@ -8,7 +8,7 @@
   "ignorePatterns": [
     "**/data/plan.json",
     "**/data/edits.json",
-    "**/plan-domain/src/content.ts",
+    "**/plan-content/src/content.ts",
     "**/routeTree.gen.ts",
     "**/messages/",
     "pnpm-lock.yaml",
