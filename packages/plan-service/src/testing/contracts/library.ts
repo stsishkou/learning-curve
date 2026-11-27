@@ -74,6 +74,18 @@ export function describePlanLibrary(name: string, make: () => Promise<{ library:
       expect(await library.get(owner, 'plan-one')).not.toBeNull()
     })
 
+    test.each(['../plan-one', 'a/b', ''])(
+      'an id no file could have, %j, reads null and removes nothing',
+      async (id) => {
+        const { library, owner } = await make()
+        await library.put(owner, fileOf('plan-one', 'One'))
+        expect(await library.get(owner, id)).toBeNull()
+        await library.remove(owner, id)
+        const listed = await library.list(owner)
+        expect(listed.map((file) => file.id)).toEqual(['plan-one'])
+      },
+    )
+
     test('a file read or put is the caller own', async () => {
       const { library, owner } = await make()
       const file = fileOf('plan-one', 'One')

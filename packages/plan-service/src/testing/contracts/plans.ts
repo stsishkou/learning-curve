@@ -1,4 +1,4 @@
-import { emptyEdits, parsePlanId, parseUserId, type PlanId, type UserId } from '@lc/plan-domain'
+import { emptyEdits, parsePlanId, recordChange, parseUserId, type PlanId, type UserId } from '@lc/plan-domain'
 import { describe, expect, test } from 'vitest'
 
 import type { PlanRepository, PlanWrite, StoredPlan } from '../../ports'
@@ -6,11 +6,14 @@ import type { PlanRepository, PlanWrite, StoredPlan } from '../../ports'
 const unknownPlan = parsePlanId('no-such-plan')
 const stranger = parseUserId('stranger')
 
-const written = (stored: StoredPlan, title: string, budget: number): PlanWrite => ({
-  edits: { ...stored.edits, title, budget },
-  history: stored.history,
-  plan: { ...stored.plan, meta: { ...stored.plan.meta, title } },
-})
+const written = (stored: StoredPlan, title: string, budget: number): PlanWrite => {
+  const edits = { ...stored.edits, title, budget }
+  return {
+    edits,
+    history: recordChange(stored.history, stored.plan, { type: 'plan.budget', hours: budget }, edits, undefined, 0),
+    plan: { ...stored.plan, meta: { ...stored.plan.meta, title } },
+  }
+}
 
 /**
  * The promises every `PlanRepository` keeps, as a Vitest suite. An adapter's tests call it with a `make` that builds
@@ -52,6 +55,7 @@ export function describePlanRepository(
       const after = await repo.get(seeded)
       expect(after?.revision).toBe(saved.value)
       expect(after?.edits).toEqual(next.edits)
+      expect(next.history).not.toEqual(stored.history)
       expect(after?.history).toEqual(next.history)
       expect(after?.plan).toEqual(next.plan)
     })
