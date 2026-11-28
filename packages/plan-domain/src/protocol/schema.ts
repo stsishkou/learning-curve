@@ -127,7 +127,8 @@ const EVENT: Schema = {
     },
     from: {
       type: 'string',
-      description: 'The `uid` of the session this part was split from. Kept by the app: read it, never send it.',
+      description:
+        'The `uid` of the session this one continues or was split from. Kept by the app: read it, never send it.',
     },
     measured: {
       const: true,
@@ -402,6 +403,12 @@ const CHANGES: Schema[] = [
     ['uid', 'parts'],
   ),
   change(
+    'session.continue',
+    "Adds another sitting of a session whose goal was not met: an event linked to it (`from`), with its title, calendar and notes, at `start`–`end`; the session's latest done sitting is marked unfinished. A sitting ends by the midnight after its start. `uid` is any sitting of the session.",
+    { uid: UID, start: LOCAL_TIME, end: LOCAL_TIME },
+    ['uid', 'start', 'end'],
+  ),
+  change(
     'event.remove',
     'Moves an event to the trash, a whole series when it repeats. The person can restore it for 30 days.',
     { uid: UID },
@@ -504,6 +511,7 @@ export const UPDATE_CHANGE_TYPES = [
   'event.patch',
   'event.detach',
   'event.split',
+  'session.continue',
   'event.remove',
   'events.move',
   'events.shift',

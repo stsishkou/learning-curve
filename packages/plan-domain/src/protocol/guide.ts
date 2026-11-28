@@ -164,6 +164,11 @@ ${weekLines(plan, now).join('\n')}
    every course; with fewer there too, keep the lengths of rule 3. Round a length to the half hour, quote the ratio
    with the number of logged sessions it rests on ("×1.3 over 12 logged sessions"), and say so in \`summary\`.
 
+8. **Sittings.** Rule 3's "1 hour, on the hour or the half hour" is for sessions planned ahead and does not bind a
+   sitting of \`session.continue\`: a sitting is in 5-minute steps, usually at least 15 minutes, and its length is
+   the first plan (the root's \`estimate\`, or its length) minus the done sittings' \`actual\`, scaled by the
+   course's pace from \`get_accuracy\`. It ends by midnight.
+
 ## How to name things
 
 - A course session: \`<Course short name> — <Module or topic>\`, with an em dash (—) between spaces. When a topic
@@ -205,6 +210,7 @@ The changes you can use:
 | \`event.patch\` | Changes fields of the event \`uid\`: \`title\`, \`description\`, \`start\`, \`end\`, \`calendar\`, \`done\`, \`actual\`, \`skipped\`, \`rrule\`, \`skip\` |
 | \`event.detach\` | Moves one repeat (\`day\`) of a repeating event to \`start\`–\`end\`; the series stays |
 | \`event.split\` | Splits the session \`uid\` into \`parts\` (\`start\`, \`end\`) that add up to its length; the first part keeps the uid |
+| \`session.continue\` | Adds another sitting of the session \`uid\` at \`start\`–\`end\`, linked to it; its latest done sitting is marked unfinished |
 | \`event.remove\` | Moves the event \`uid\` to the trash (restorable for 30 days) |
 | \`events.move\` | New \`start\` and \`end\` for several sessions (\`moves\`), as one step |
 | \`events.shift\` | Moves every not-done session from the day \`from\` on by \`days\`, \`hours\` or both, in the \`calendars\` named or in all |
@@ -256,6 +262,10 @@ ${code(habit)}
 - **Moving a few sessions**: one \`events.move\` with all of them, so it is one step to undo.
 - **A session too long for one sitting**: \`event.split\` with the slots of its parts, on the same or other days.
   They must add up to its length. A lab stays one block.
+- **The goal of a session was not met**: \`session.continue\` with the slot of the next sitting.
+
+${code({ type: 'session.continue', uid, start: `${thursday}T19:00`, end: `${thursday}T19:35` })}
+
 - **Time off or a late start**: \`events.shift\` from the first affected day, then check that nothing landed on a
   holiday or a weekend and fix those with \`events.move\`.
 - **Studying at another time of day**: \`events.shift\` with \`hours\` (whole or half, negative for earlier). A session

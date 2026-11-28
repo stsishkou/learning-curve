@@ -101,11 +101,51 @@ test('what the schema refuses the parser refuses too', () => {
         { type: 'session.finish', uid: 'certs-001@learning-curve', actual: 60, began: '2026-11-25T07:00', paused: 0 },
       ],
     },
+    { changes: [{ type: 'session.continue', uid: 'certs-001@learning-curve', start: '2026-11-25T07:00' }] },
   ]
   for (const update of bad) {
     expect(validUpdate(update), JSON.stringify(update)).toBe(false)
     expect(() => parseUpdate(update), JSON.stringify(update)).toThrow()
   }
+})
+
+test('the guide carries an example that continues a session', () => {
+  const found = examples(planGuide(fixtureBase, fixtureNow))
+  expect(found).toContainEqual(expect.objectContaining({ type: 'session.continue' }))
+})
+
+test('`from` inside a new event is refused by the schema and dropped by the parser', () => {
+  const update = {
+    changes: [
+      {
+        type: 'event.add',
+        event: {
+          calendar: 'personal',
+          title: 'x',
+          start: '2026-11-25T07:00',
+          end: '2026-11-25T08:00',
+          from: 'certs-001@learning-curve',
+        },
+      },
+    ],
+  }
+  expect(validUpdate(update)).toBe(false)
+  const [change] = parseUpdate(update).changes
+  expect(change?.type).toBe('event.add')
+  expect(change?.type === 'event.add' && 'from' in change.event).toBe(false)
+})
+
+test('continuing a finished session is logging, not a change to it', () => {
+  const { uid } = itemAt(fixtureBase.events.filter((e) => e.kind === 'study' && !e.done))
+  const { changes } = parseUpdate({
+    changes: [
+      { type: 'events.done', uids: [uid], done: true, actual: { [uid]: 25 } },
+      { type: 'session.continue', uid, start: '2026-11-26T18:00', end: '2026-11-26T18:35' },
+    ],
+  })
+  const preview = previewUpdate(fixtureBase, changes, fixtureNow)
+  expect(preview.problem).toBeNull()
+  expect(preview.warnings.filter((w) => w.rule === 'done')).toEqual([])
 })
 
 test('a change that does not fit the plan stops the update and names itself', () => {
