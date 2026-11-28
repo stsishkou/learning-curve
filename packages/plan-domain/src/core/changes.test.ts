@@ -102,6 +102,7 @@ const EXAMPLES: { [K in PlanChange['type']]: Extract<PlanChange, { type: K }> } 
   },
   'events.done': { type: 'events.done', uids: [SESSION, NEXT], done: true, actual: { [SESSION]: 70 } },
   'session.finish': { type: 'session.finish', uid: SESSION, actual: 68, began: '2026-11-23T12:04', paused: 7 },
+  'session.continue': { type: 'session.continue', uid: SESSION, start: '2026-11-26T18:00', end: '2026-11-26T18:35' },
   'plan.rename': { type: 'plan.rename', title: 'Another plan' },
   'plan.countdown': { type: 'plan.countdown', calendar: 'hfllm' },
   'plan.budget': { type: 'plan.budget', hours: 10 },
@@ -856,5 +857,99 @@ describe('event.split', () => {
     ])
     expect(splitInHalves({ ...event, end: '2026-11-23T12:30' })).toBeNull()
     expect(splitInHalves({ ...event, kind: 'lab' })).toBeNull()
+  })
+})
+
+/** The stopwatch stopped after 25 minutes */
+const finish25 = (uid: string, began: string): PlanChange => ({
+  type: 'session.finish',
+  uid,
+  actual: 25,
+  began,
+  paused: 0,
+})
+
+describe('session.continue', () => {
+  const continued = EXAMPLES['session.continue']
+  const tryOn = (uid: string) => () => apply([{ ...continued, uid }])
+
+  test('adds a sitting linked to the session and marks the latest done sitting unfinished', () => {
+    const edits = apply([finish25(SESSION, '2026-11-23T12:00'), continued])
+    const root = itemAt(base.events.filter((e) => e.uid === SESSION))
+    expect(added(edits)).toMatchObject({
+      from: SESSION,
+      start: '2026-11-26T18:00',
+      end: '2026-11-26T18:35',
+      kind: 'study',
+      calendar: root.calendar,
+      title: root.title,
+      description: root.description,
+      availability: root.availability,
+    })
+    expect(added(edits).uid).toMatch(/^custom-.+@learning-curve$/)
+    for (const key of ['done', 'actual', 'estimate', 'unfinished']) expect(added(edits)).not.toHaveProperty(key)
+    expect(find(planOf(edits), SESSION)?.unfinished).toBe(true)
+    expect(parseEdits(structuredClone(edits))).toEqual(edits)
+  })
+
+  test('a sitting continued from a sitting links to the root', () => {
+    const first = apply([finish25(SESSION, '2026-11-23T12:00'), continued])
+    const { uid } = added(first)
+    const renamed = apply(
+      [{ type: 'event.patch', uid, patch: { title: 'Renamed' } }, finish25(uid, '2026-11-26T18:00')],
+      first,
+    )
+    const again = { ...continued, uid, start: '2026-11-27T18:00', end: '2026-11-27T18:15' }
+    const second = apply([again], renamed)
+    expect(added(second)).toMatchObject({ from: SESSION, start: '2026-11-27T18:00', title: find(base, SESSION)?.title })
+    expect(find(planOf(second), uid)?.unfinished).toBe(true)
+    // Without its root in the plan the group is named by the sitting asked for.
+    const orphan = apply([{ type: 'event.remove', uid: SESSION }, again], renamed)
+    expect(added(orphan)).toMatchObject({ from: SESSION, title: 'Renamed' })
+  })
+
+  test('the mark goes on the latest sitting worked, not on a skipped one', () => {
+    const split = apply([EXAMPLES['event.split'], { type: 'events.done', uids: [SESSION], done: true }])
+    const part = added(split).uid
+    const edits = apply(
+      [
+        { type: 'event.patch', uid: part, patch: { done: true, skipped: true } },
+        { ...continued, start: '2026-11-27T18:00', end: '2026-11-27T18:30' },
+      ],
+      split,
+    )
+    expect(find(planOf(edits), SESSION)?.unfinished).toBe(true)
+  })
+
+  test('the history names it after the session', () => {
+    const history = recordChange(emptyHistory(), base, continued, apply([continued]))
+    expect(history.steps[0]?.subject).toBe(find(base, SESSION)?.title)
+  })
+
+  test('may end at the next midnight and not later', () => {
+    const late = { ...continued, start: '2026-11-26T23:40' }
+    expect(() => apply([{ ...late, end: '2026-11-27T00:00' }])).not.toThrow()
+    expect(() => apply([{ ...late, end: '2026-11-27T00:15' }])).toThrow(/midnight/)
+  })
+
+  test('a repeat, an all-day event and a free event cannot be continued', () => {
+    const allDay = itemAt(base.events.filter((e) => e.allDay))
+    const free = itemAt(base.events.filter((e) => e.availability === 'free' && !e.allDay))
+    expect(tryOn(GYM)).toThrow(/repeating/)
+    expect(tryOn(allDay.uid)).toThrow(/all-day/)
+    expect(tryOn(free.uid)).toThrow(/only a session/)
+  })
+
+  test('a lab gets another sitting as a lab: a sitting is not a pause', () => {
+    const lab = itemAt(base.events.filter((e) => e.kind === 'lab'))
+    expect(added(apply([{ ...continued, uid: lab.uid }]))).toMatchObject({ kind: 'lab', from: lab.uid })
+  })
+
+  test('an unknown uid, a time that is not one and an end before the start are refused', () => {
+    expect(tryOn('nope')).toThrow('Unknown event "nope"')
+    expect(() => parseChange({ ...continued, start: '2026-11-26 18:00' })).toThrow(/2026-11-23T12:00/)
+    expect(() => parseChange({ ...continued, end: undefined })).toThrow(/end/)
+    expect(() => apply([{ ...continued, end: '2026-11-26T17:30' }])).toThrow(/end after/)
+    expect(() => apply([{ ...continued, end: continued.start }])).toThrow(/end after/)
   })
 })

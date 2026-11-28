@@ -6,6 +6,8 @@ import { parseLocal, toLocalString } from './dates'
 import { applyEdits, emptyEdits, type EventPatch, type PlanEdits } from './edits'
 import { isSession } from './progress'
 import {
+  bookRest,
+  continueAt,
   groupBar,
   groupOf,
   likelyLength,
@@ -256,4 +258,82 @@ test('sittingAt finds the not-done sitting of a group by its start', () => {
   expect(sittingAt(plan, ROOT, '2026-11-25T18:00')?.uid).toBe(SITTING_2)
   expect(sittingAt(plan, ROOT, root.start)).toBeNull()
   expect(sittingAt(plan, OTHER, '2026-11-25T18:00')).toBeNull()
+})
+
+/** The root done in 25 minutes and unfinished, then a sitting of 30 done in 20 and unfinished too */
+const twiceDone: PlanEdits = {
+  ...emptyEdits(),
+  events: { [ROOT]: DONE_25 },
+  added: [sitting(SITTING_2, '2026-11-24T18:00', 30, { done: true, actual: 20, unfinished: true })],
+}
+
+test('bookRest books what is left after the latest sitting, linked to it', () => {
+  const plan = applyEdits(base, twiceDone).plan
+  const group = groupIn(plan, ROOT)
+  // Likely 75 minutes at ×1.25, 45 done: 30 left, from the end of the latest sitting.
+  const offer = bookRest(plan, group, { now: parseLocal('2026-11-24T09:00'), ratio: 1.25 })
+  expect(offer).toEqual({
+    change: { type: 'session.continue', uid: SITTING_2, start: '2026-11-24T18:30', end: '2026-11-24T19:00' },
+    start: '2026-11-24T18:30',
+    uid: null,
+  })
+  const later = bookRest(plan, group, { now: parseLocal('2026-11-25T19:10'), ratio: 1.25 })
+  expect(later?.start).toBe('2026-11-25T19:30')
+  const away = [{ title: 'Away', s: parseLocal('2026-11-24T18:30'), e: parseLocal('2026-11-24T19:30') }]
+  expect(bookRest(plan, group, { now: parseLocal('2026-11-24T09:00'), ratio: 1.25, busy: away })?.start).toBe(
+    '2026-11-24T19:30',
+  )
+
+  if (!offer) throw new Error('No slot offered')
+  const after = applyEdits(base, applyChange(base, twiceDone, offer.change, NOW)).plan
+  expect(sittingAt(after, ROOT, offer.start)).toMatchObject({ from: ROOT, end: '2026-11-24T19:00' })
+  expect(groupIn(after, ROOT)).toMatchObject({ doneMinutes: 45, bookedMinutes: 30, state: 'open' })
+})
+
+test('bookRest offers nothing while a sitting is booked, a missed one too, or when no slot is free', () => {
+  const now = parseLocal('2026-11-26T09:00')
+  const booked = planWith({ [ROOT]: DONE_25 }, [sitting(SITTING_2, '2026-11-24T16:00', 15)])
+  expect(bookRest(booked, groupIn(booked, ROOT), { now, ratio: 1 })).toBeNull()
+
+  const lone = planWith({ [ROOT]: DONE_25 })
+  const away = [{ title: 'Away', s: parseLocal('2026-11-23T00:00'), e: parseLocal('2027-01-01T00:00') }]
+  expect(bookRest(lone, groupIn(lone, ROOT), { now, ratio: 1 })).not.toBeNull()
+  expect(bookRest(lone, groupIn(lone, ROOT), { now, ratio: 1, busy: away })).toBeNull()
+})
+
+/** 2026-11-26 18:07:40, wall-clock */
+const AT = parseLocal('2026-11-26T18:07') + 40_000
+
+test('continueAt adds a sitting from now when nothing is booked', () => {
+  const lone = planWith({ [ROOT]: DONE_25 })
+  expect(continueAt(groupIn(lone, ROOT), AT, 35)).toEqual({
+    change: { type: 'session.continue', uid: ROOT, start: '2026-11-26T18:07', end: '2026-11-26T18:42' },
+    start: '2026-11-26T18:07',
+    uid: null,
+  })
+})
+
+test('continueAt moves the booked sitting, a missed one too', () => {
+  const missed = planWith({ [ROOT]: DONE_25 }, [sitting(SITTING_2, '2026-11-24T16:00', 15)])
+  expect(continueAt(groupIn(missed, ROOT), AT, 35)).toEqual({
+    change: { type: 'event.patch', uid: SITTING_2, patch: { start: '2026-11-26T18:07', end: '2026-11-26T18:22' } },
+    start: '2026-11-26T18:07',
+    uid: SITTING_2,
+  })
+})
+
+test('continueAt cuts the sitting at midnight', () => {
+  const late = parseLocal('2026-11-26T23:40')
+  const lone = planWith({ [ROOT]: DONE_25 })
+  expect(continueAt(groupIn(lone, ROOT), late, 35).change).toMatchObject({
+    type: 'session.continue',
+    start: '2026-11-26T23:40',
+    end: '2026-11-27T00:00',
+  })
+  const booked = planWith({ [ROOT]: DONE_25 }, [sitting(SITTING_2, '2026-11-24T16:00', 60)])
+  expect(continueAt(groupIn(booked, ROOT), late, 35).change).toEqual({
+    type: 'event.patch',
+    uid: SITTING_2,
+    patch: { start: '2026-11-26T23:40', end: '2026-11-27T00:00' },
+  })
 })

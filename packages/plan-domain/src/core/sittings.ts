@@ -1,3 +1,7 @@
+import type { BusyBlock } from './busy'
+import type { PlanChange } from './changes'
+import { DAY, HOUR, parseLocal, startOfDay, toLocalString } from './dates'
+import { nextFreeSlot } from './free-slot'
 import { isSession } from './progress'
 import {
   doneMinutesOf,
@@ -138,3 +142,53 @@ export function restMinutes(group: SessionGroup, ratio: number): number {
 /** The sitting of group `key` that starts at `start` and is not done yet: the one just booked there. */
 export const sittingAt = (plan: Plan, key: string, start: string): PlanEvent | null =>
   plan.events.find((e) => isSession(e) && groupKey(e) === key && e.start === start && !e.done) ?? null
+
+/** A change that gives a group another sitting, and where that sitting starts. */
+export interface ContinueOffer {
+  change: PlanChange
+  start: string
+  /** The sitting the change moves; null when it adds one, found later with `sittingAt(plan, group.key, start)` */
+  uid: string | null
+}
+
+/**
+ * The rest of a group booked in the first free slot after its latest sitting, `restMinutes` long, at the root's hour
+ * when that is free. null while a sitting is booked, a missed one included: one booked sitting at a time. `now` is
+ * Minsk wall-clock ms; `busy` is the person's own calendar.
+ */
+export function bookRest(
+  plan: Plan,
+  group: SessionGroup,
+  { now, ratio, busy }: { now: number; ratio: number; busy?: BusyBlock[] | undefined },
+): ContinueOffer | null {
+  const latest = group.sittings.at(-1)
+  const root = rootOf(group.sittings, group.key)
+  if (group.next || !latest || !root) return null
+  const rootStart = parseLocal(root.start)
+  const slot = nextFreeSlot(plan, {
+    from: Math.max(now, parseLocal(latest.end)),
+    length: restMinutes(group, ratio) * MINUTE,
+    preferHour: Math.floor((rootStart - startOfDay(rootStart)) / HOUR),
+    ...(busy ? { busy } : {}),
+  })
+  if (!slot) return null
+  const start = toLocalString(slot.s)
+  return { change: { type: 'session.continue', uid: latest.uid, start, end: toLocalString(slot.e) }, start, uid: null }
+}
+
+/**
+ * Another sitting of a group from `at` (Minsk wall-clock ms, to the minute down): the booked one moved there with
+ * its length, or a new one `minutes` long when nothing is booked. Either ends by the next midnight.
+ */
+export function continueAt(group: SessionGroup, at: number, minutes: number): ContinueOffer {
+  const begin = Math.floor(at / MINUTE) * MINUTE
+  const start = toLocalString(begin)
+  const endAfter = (length: number) => toLocalString(Math.min(begin + length, startOfDay(begin) + DAY))
+  const { next } = group
+  if (next) {
+    const end = endAfter(parseLocal(next.end) - parseLocal(next.start))
+    return { change: { type: 'event.patch', uid: next.uid, patch: { start, end } }, start, uid: next.uid }
+  }
+  const uid = group.sittings.at(-1)?.uid ?? group.key
+  return { change: { type: 'session.continue', uid, start, end: endAfter(minutes * MINUTE) }, start, uid: null }
+}

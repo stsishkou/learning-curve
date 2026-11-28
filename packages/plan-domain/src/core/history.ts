@@ -58,6 +58,7 @@ function subjectOf(plan: Plan, change: PlanChange): string {
     case 'event.split':
     case 'event.remove':
     case 'session.finish':
+    case 'session.continue':
       return plan.events.find((e) => e.uid === change.uid)?.title ?? ''
     case 'calendar.save':
     case 'course.add':

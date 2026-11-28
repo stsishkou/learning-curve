@@ -1,6 +1,6 @@
 import { fmtHours, fmtShort } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { parseLocal, type HistoryStep } from '@lc/plan-domain'
+import { hm, parseLocal, type HistoryStep } from '@lc/plan-domain'
 
 const sign = (n: number) => (n < 0 ? '−' : '+')
 
@@ -59,6 +59,13 @@ export function describeStep({ change, subject }: HistoryStep): string {
       return m.history_done_many({ count: change.uids.length })
     case 'session.finish':
       return m.history_done({ name: subject })
+    case 'session.continue': {
+      const start = parseLocal(change.start)
+      return m.history_continued({
+        name: subject,
+        time: `${fmtShort(start)} ${hm(start)}–${hm(parseLocal(change.end))}`,
+      })
+    }
     case 'plan.rename':
       return m.history_renamed({ name: subject })
     case 'plan.budget':

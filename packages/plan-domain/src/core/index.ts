@@ -38,6 +38,7 @@ export {
 export {
   PlanChangeError,
   applyChange,
+  continueProblem,
   editedUids,
   parseChange,
   shiftTargets,
@@ -147,6 +148,8 @@ export {
 } from './progress'
 export { doneMinutesOf, firstPlanOf, groupKey, groupState, isLinked, type GroupState } from './sitting-state'
 export {
+  bookRest,
+  continueAt,
   groupBar,
   groupOf,
   likelyLength,
@@ -155,6 +158,7 @@ export {
   sittingAt,
   sittingGroups,
   type BarSegment,
+  type ContinueOffer,
   type GroupBar,
   type SessionGroup,
 } from './sittings'

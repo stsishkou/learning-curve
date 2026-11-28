@@ -23,8 +23,9 @@ import {
 } from './edits'
 import { weekReview } from './goals'
 import { cleanLabel, hasLabel, labelList, sameLabel } from './labels'
-import { isSession } from './progress'
+import { isDone, isSession } from './progress'
 import { PLAIN_WEEKLY_RULE, weekdaysOf } from './recurrence'
+import { groupKey } from './sitting-state'
 import { purgeTrash } from './trash'
 import type { Plan, PlanEvent, SessionMove, WeekNote } from './types'
 
@@ -118,6 +119,8 @@ export type PlanChange =
    * first started (Minsk wall-clock) and the minutes it stood paused. Only the app sends it, never an update
    */
   | { type: 'session.finish'; uid: string; actual: number; began: string; paused: number }
+  /** Adds another sitting of the session `uid` belongs to, linked to it, and marks its latest done sitting unfinished */
+  | { type: 'session.continue'; uid: string; start: string; end: string }
   /** Gives the plan another name: the heading of the viewer and the names of the files it downloads */
   | { type: 'plan.rename'; title: string }
   /** Names the calendar whose deadline the countdown follows; null: the nearest deadline, whichever calendar's it is */
@@ -417,6 +420,11 @@ export function parseChange(input: unknown): PlanChange {
         return fail('session.finish needs actual (5 to 1440 minutes), began like 2026-11-23T12:00 and paused minutes')
       }
       return { type: 'session.finish', uid: text('uid'), actual, began, paused }
+    }
+    case 'session.continue': {
+      const [start, end] = [text('start'), text('end')]
+      if (!LOCAL_TIME.test(start) || !LOCAL_TIME.test(end)) return fail('Times must look like 2026-11-23T12:00')
+      return { type: 'session.continue', uid: text('uid'), start, end }
     }
     default:
       return fail(`Unknown change "${input.type}"`)
@@ -765,6 +773,40 @@ export function applyChange(base: Plan, edits: PlanEdits, change: PlanChange, no
       const patch: EventPatch = { done: true, actual, measured: true, began, ...(paused ? { paused } : {}) }
       return applyChange(base, next, { type: 'event.patch', uid, patch }, now)
     }
+    case 'session.continue': {
+      const { events } = applyEdits(base, next).plan
+      const event = events.find((e) => e.uid === change.uid) ?? fail(`Unknown event "${change.uid}"`)
+      const problem = continueProblem(event)
+      if (problem) fail(problem)
+      const start = parseLocal(change.start)
+      if (parseLocal(change.end) <= start) fail('A sitting must end after it starts')
+      if (parseLocal(change.end) > startOfDay(start) + DAY) {
+        fail('A sitting ends by midnight: book the rest on another day')
+      }
+      const key = groupKey(event)
+      const { calendar, title, description, availability, kind } = events.find((e) => e.uid === key) ?? event
+      // A skipped sitting cannot carry the mark: the goal was missed in the last one worked.
+      const worked = events
+        .filter((e) => isSession(e) && groupKey(e) === key && isDone(e))
+        .toSorted((a, b) => a.start.localeCompare(b.start))
+        .at(-1)
+      const marked =
+        worked && !worked.unfinished
+          ? applyChange(base, next, { type: 'event.patch', uid: worked.uid, patch: { unfinished: true } }, now)
+          : next
+      marked.added.push({
+        uid: `${newId('custom')}@learning-curve`,
+        calendar,
+        title,
+        description,
+        availability,
+        kind,
+        start: change.start,
+        end: change.end,
+        from: key,
+      })
+      return marked
+    }
   }
   return next
 }
@@ -778,6 +820,14 @@ export function splitProblem(event: PlanEvent): string | null {
   if (event.allDay) return 'An all-day event cannot be split'
   if (event.kind === 'lab') return 'A lab is one block that cannot be paused: it cannot be split'
   if (event.done) return 'A finished session cannot be split'
+  return null
+}
+
+/** Why another sitting of an event cannot be booked, in words a model can act on; null when it can. */
+export function continueProblem(event: PlanEvent): string | null {
+  if (event.rrule) return 'A repeating event is a habit, not a session: it cannot be continued'
+  if (event.allDay) return 'An all-day event is not a session: it cannot be continued'
+  if (!isSession(event)) return 'Free time and personal events are not sessions: only a session can be continued'
   return null
 }
 

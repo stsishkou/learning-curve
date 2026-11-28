@@ -918,6 +918,7 @@
   "ai_warn_done_removed": "{title}: уже пройдено, а обновление его удаляет",
   "grid_took": "заняло {time}",
   "history_split": "Разделено «{name}», частей: {count}",
+  "history_continued": "Запланировано продолжение: {name}, {time}",
   "split_in_two": "Разделить на две части",
   "split_hint": "Вторая часть встанет сразу после первой — перетащите её на другое время",
   "focus_breaks_short": "25 + 5 мин",
