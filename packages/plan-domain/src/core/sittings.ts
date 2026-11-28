@@ -11,6 +11,7 @@ import {
   isLinked,
   minutesOf,
   rootOf,
+  sittingsByKey,
   type GroupState,
 } from './sitting-state'
 import type { Plan, PlanEvent } from './types'
@@ -63,13 +64,7 @@ function groupFrom(key: string, sittings: PlanEvent[]): SessionGroup | null {
 
 /** Every session's group, a session never split nor continued being a group of one. */
 export function sittingGroups(plan: Plan): SessionGroup[] {
-  const byKey = new Map<string, PlanEvent[]>()
-  for (const e of plan.events.filter(isSession).toSorted(byStart)) {
-    const sittings = byKey.get(groupKey(e))
-    if (sittings) sittings.push(e)
-    else byKey.set(groupKey(e), [e])
-  }
-  return [...byKey].flatMap(([key, sittings]) => groupFrom(key, sittings) ?? [])
+  return [...sittingsByKey(plan.events.filter(isSession))].flatMap(([key, sittings]) => groupFrom(key, sittings) ?? [])
 }
 
 /** The group of the sitting `uid`; null when it is not a session of the plan. */

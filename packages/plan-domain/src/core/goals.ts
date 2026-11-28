@@ -36,7 +36,10 @@ export interface WeekReview {
   /** Of the missed sessions, the ones the person chose to skip */
   skipped: number
   goals: ModuleGoal[]
-  /** What the time logged this week says, with the counts it rests on */
+  /**
+   * What the time logged this week says, with the counts it rests on. A session spread over sittings counts in the week
+   * of its latest one
+   */
   accuracy: Accuracy
 }
 
@@ -157,7 +160,7 @@ export function monthGoals(plan: Plan, from: number, to: number): CourseGoal[] {
 export function weekReview(plan: Plan, monday: number, now: number): WeekReview {
   const end = monday + 7 * DAY
   const week = sessionsBetween(plan, monday, end)
-  return { ...tally(week, now), goals: goalsBetween(plan, monday, end), accuracy: accuracyOf(week) }
+  return { ...tally(week, now), goals: goalsBetween(plan, monday, end), accuracy: accuracyOf(week, plan.events) }
 }
 
 type WeekTally = Omit<WeekReview, 'goals' | 'accuracy'>

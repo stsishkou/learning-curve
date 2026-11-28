@@ -1,5 +1,6 @@
 import { accuracyOf, type Accuracy, type RatioSummary } from './accuracy'
 import { HOUR, parseLocal } from './dates'
+import { groupKey } from './sitting-state'
 import type { Plan, PlanCalendar, PlanEvent } from './types'
 
 export interface CourseProgress {
@@ -51,15 +52,19 @@ export interface ReferenceClass {
 }
 
 /**
- * The outside view of one session: what the logged sessions most like it took, the session itself left out. The
- * same course and kind once that class has `MIN_LOGGED` logged sessions, otherwise the same kind in every course,
- * otherwise nothing (docs/estimate-accuracy-research.md, 5.2).
+ * The outside view of one session: what the logged sessions most like it took, the session itself and every sitting
+ * of its group left out. The same course and kind once that class has `MIN_LOGGED` logged sessions, otherwise the
+ * same kind in every course, otherwise nothing (docs/estimate-accuracy-research.md, 5.2).
  */
 export function referenceClass(plan: Plan, event: PlanEvent): ReferenceClass | null {
-  const alike = plan.events.filter((e) => e.uid !== event.uid && isSession(e) && e.kind === event.kind)
-  const course = accuracyOf(alike.filter((e) => e.calendar === event.calendar))
+  const group = groupKey(event)
+  const alike = plan.events.filter((e) => groupKey(e) !== group && isSession(e) && e.kind === event.kind)
+  const course = accuracyOf(
+    alike.filter((e) => e.calendar === event.calendar),
+    plan.events,
+  )
   if (course.typical) return { scope: 'course', count: course.logged, typical: course.typical }
-  const kind = accuracyOf(alike)
+  const kind = accuracyOf(alike, plan.events)
   if (kind.typical) return { scope: 'kind', count: kind.logged, typical: kind.typical }
   return null
 }

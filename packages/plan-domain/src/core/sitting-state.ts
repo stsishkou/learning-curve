@@ -13,6 +13,17 @@ export const rootOf = (sittings: readonly PlanEvent[], key: string): PlanEvent |
 /** The group a sitting belongs to: the uid of the session it continues, or its own. */
 export const groupKey = (e: PlanEvent): string => e.from ?? e.uid
 
+/** The sittings of each group in `events`, by group key, each in start order. */
+export function sittingsByKey(events: readonly PlanEvent[]): Map<string, PlanEvent[]> {
+  const byKey = new Map<string, PlanEvent[]>()
+  for (const e of events.toSorted((a, b) => a.start.localeCompare(b.start))) {
+    const sittings = byKey.get(groupKey(e))
+    if (sittings) sittings.push(e)
+    else byKey.set(groupKey(e), [e])
+  }
+  return byKey
+}
+
 /** Where a session spread over sittings stands: nothing done, started but not done, or done with its goal met. */
 export type GroupState = 'planned' | 'open' | 'finished'
 

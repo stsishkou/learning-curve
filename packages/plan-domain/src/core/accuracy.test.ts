@@ -2,10 +2,10 @@ import { describe, expect, test } from 'vitest'
 
 import { fixtureBase, itemAt } from '../fixtures'
 import { paceForecast } from '../insights/forecast'
-import { MIN_LOGGED, accuracyOf, runningTypical } from './accuracy'
+import { MIN_LOGGED, accuracyOf, paceSessions, runningTypical } from './accuracy'
 import { applyChange, type PlanChange } from './changes'
-import { mondayOf, parseLocal, toLocalString } from './dates'
-import { applyEdits, emptyEdits, type PlanEdits } from './edits'
+import { DAY, mondayOf, parseLocal, toLocalString } from './dates'
+import { applyEdits, emptyEdits, type EventPatch, type PlanEdits } from './edits'
 import { moduleOverruns, weekReview } from './goals'
 import { courseProgress, doneWithoutTime, isSession, referenceClass } from './progress'
 import type { Plan, PlanEvent } from './types'
@@ -252,5 +252,126 @@ describe('moduleOverruns', () => {
       patch: { done: true },
     })
     expect(moduleOverruns(planOf(edits)).map((row) => row.ratio)).toEqual([1.5, 0.75, null])
+  })
+})
+
+/** A sitting added to continue `session`, `minutes` long from `start` */
+const sitting = (
+  session: PlanEvent,
+  uid: string,
+  start: string,
+  minutes: number,
+  fields: Partial<PlanEvent> = {},
+): PlanEvent => ({
+  ...session,
+  uid,
+  start,
+  end: toLocalString(parseLocal(start) + minutes * 60_000),
+  from: session.uid,
+  ...fields,
+})
+/** The generated plan with the patches and the added sittings given */
+const planWith = (events: Record<string, EventPatch>, added: PlanEvent[] = []): Plan =>
+  applyEdits(base, { ...emptyEdits(), events, added }).plan
+/** `session` and the sittings that continue it */
+const groupIn = (plan: Plan, session: PlanEvent) =>
+  plan.events.filter((e) => e.uid === session.uid || e.from === session.uid)
+const atX1 = (sessions: PlanEvent[]) => Object.fromEntries(sessions.map((e) => [e.uid, { done: true, actual: 60 }]))
+
+describe('a session spread over sittings', () => {
+  /** 2026-11-23 12:00–13:00 */
+  const root = itemAt(certs)
+  const ROOT = root.uid
+  /** 2026-11-23 13:00–14:00 */
+  const lone = itemAt(certs, 1)
+  /** 2026-11-24 12:00–13:00 */
+  const again = itemAt(certs, 2)
+  const others = certs.slice(3, 3 + MIN_LOGGED)
+  const DONE_25: EventPatch = { done: true, actual: 25, unfinished: true }
+  const SITTING_2 = 'sitting-2@learning-curve'
+  const SITTING_3 = 'sitting-3@learning-curve'
+
+  test('a finished group of 25 + 20 + 15 minutes on a 60-minute plan is one session at ×1', () => {
+    const plan = planWith({ [ROOT]: DONE_25 }, [
+      sitting(root, SITTING_2, '2026-11-24T18:00', 30, { done: true, actual: 20, unfinished: true }),
+      sitting(root, SITTING_3, '2026-11-25T18:00', 15, { done: true, actual: 15 }),
+    ])
+    const sittings = groupIn(plan, root)
+    const fiveOthersAtX1 = others.slice(0, 5).map((e) => ({ ...e, done: true, actual: 60 }))
+    expect(paceSessions(sittings)).toEqual([expect.objectContaining({ uid: ROOT, actual: 60, done: true })])
+    expect(paceSessions(sittings).at(0)).toMatchObject({ start: '2026-11-25T18:00', end: '2026-11-25T19:00' })
+    expect(accuracyOf([...sittings, ...fiveOthersAtX1])).toMatchObject({ done: 6, logged: 6 })
+    expect(accuracyOf([...sittings, ...fiveOthersAtX1]).typical?.ratio).toBeCloseTo(1)
+  })
+
+  test('an open group, a lone unfinished session included, is left out', () => {
+    const plan = planWith({ [ROOT]: DONE_25, [lone.uid]: DONE_25, [again.uid]: DONE_25, ...atX1(others) }, [
+      // A sitting still booked, and one done whose time ran out again.
+      sitting(root, SITTING_2, '2026-11-24T18:00', 30),
+      sitting(again, SITTING_3, '2026-11-25T18:00', 30, { done: true, actual: 20, unfinished: true }),
+    ])
+    const sessions = sessionsOf(plan)
+    const counted = new Set(paceSessions(sessions).map((e) => e.uid))
+    expect([ROOT, SITTING_2, lone.uid, again.uid, SITTING_3].filter((uid) => counted.has(uid))).toEqual([])
+    expect(accuracyOf(sessions)).toMatchObject({ done: MIN_LOGGED, logged: MIN_LOGGED })
+    expect(accuracyOf(sessions).typical?.ratio).toBeCloseTo(1)
+  })
+
+  test('a session never linked counts as before', () => {
+    const plan = planWith({
+      [ROOT]: { done: true, actual: 45 },
+      [lone.uid]: { done: true },
+      [again.uid]: { done: true, skipped: true },
+    })
+    const sessions = sessionsOf(plan)
+    expect(paceSessions(sessions)).toStrictEqual(sessions)
+    expect(paceSessions(sessions, plan.events)).toStrictEqual(sessions)
+    expect(accuracyOf(sessions)).toMatchObject({ done: 2, logged: 1, loggedPlanned: 1, loggedSpent: 0.75 })
+  })
+
+  test('a finished group takes the time of the sittings worked: none when one has none, skipped when none was', () => {
+    const skipped = { done: true, skipped: true }
+    const withSkip = planWith({ [ROOT]: DONE_25 }, [
+      sitting(root, SITTING_2, '2026-11-24T18:00', 30, skipped),
+      sitting(root, SITTING_3, '2026-11-25T18:00', 40, { done: true, actual: 35 }),
+    ])
+    const [pooled] = paceSessions(groupIn(withSkip, root))
+    expect(pooled).toMatchObject({ uid: ROOT, actual: 60 })
+    expect(pooled).not.toHaveProperty('skipped')
+
+    const untimed = planWith({ [ROOT]: DONE_25 }, [sitting(root, SITTING_2, '2026-11-24T18:00', 30, { done: true })])
+    const [unlogged] = paceSessions(groupIn(untimed, root))
+    expect(unlogged).toMatchObject({ uid: ROOT, done: true })
+    expect(unlogged).not.toHaveProperty('actual')
+
+    const parts = [{ ...root, ...skipped }, sitting(root, SITTING_2, '2026-11-24T18:00', 30, skipped)]
+    const [missed] = paceSessions(parts)
+    expect(missed).toMatchObject({ uid: ROOT, skipped: true })
+    expect(missed).not.toHaveProperty('actual')
+  })
+
+  test('a group counts in the week of its latest sitting', () => {
+    const plan = planWith({ [ROOT]: DONE_25 }, [
+      sitting(root, SITTING_2, '2026-11-30T18:00', 40, { done: true, actual: 35 }),
+    ])
+    const first = mondayOf(parseLocal(root.start))
+    const now = first + 14 * DAY
+    expect(weekReview(plan, first, now).accuracy).toMatchObject({ done: 0, logged: 0 })
+    expect(weekReview(plan, first + 7 * DAY, now).accuracy).toMatchObject({
+      done: 1,
+      logged: 1,
+      loggedPlanned: 1,
+      loggedSpent: 1,
+    })
+  })
+
+  test('referenceClass leaves out the whole group of the session in hand', () => {
+    const second = sitting(root, SITTING_2, '2026-11-24T18:00', 60, { done: true, actual: 120 })
+    const plan = planWith({ [ROOT]: DONE_25, ...atX1(others) }, [second])
+    for (const inHand of [root, second]) {
+      const like = referenceClass(plan, inHand)
+      expect(like).toMatchObject({ scope: 'course', count: MIN_LOGGED })
+      expect(like?.typical.ratio).toBeCloseTo(1)
+    }
   })
 })

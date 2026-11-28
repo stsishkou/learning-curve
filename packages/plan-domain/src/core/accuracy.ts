@@ -1,4 +1,5 @@
-import { HOUR, parseLocal } from './dates'
+import { HOUR, parseLocal, toLocalString } from './dates'
+import { firstPlanOf, groupKey, groupState, isLinked, sittingsByKey } from './sitting-state'
 import type { PlanEvent } from './types'
 
 /**
@@ -62,6 +63,37 @@ function geometric(ratios: number[]): RatioSummary {
 
 const hoursOf = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.start)) / HOUR
 
+/**
+ * A finished group as the one session it was planned as: its latest sitting, as long as the first plan, with the time
+ * of every sitting worked. Done without a time when one of them has none; skipped when none was worked.
+ */
+function pooled(key: string, sittings: readonly PlanEvent[], latest: PlanEvent): PlanEvent {
+  const { actual: _actual, skipped: _skipped, ...rest } = latest
+  const end = toLocalString(parseLocal(latest.start) + (firstPlanOf(sittings, key) * HOUR) / 60)
+  const event: PlanEvent = { ...rest, uid: key, end }
+  const worked = sittings.filter((e) => e.done && !e.skipped)
+  if (!worked.length) return { ...event, skipped: true }
+  if (worked.some((e) => e.actual === undefined)) return event
+  return { ...event, actual: worked.reduce((sum, e) => sum + (e.actual ?? 0), 0) }
+}
+
+/**
+ * The sessions as the pace counts them. A session spread over linked sittings is one sample, once it is finished:
+ * a sitting cut short is part of a session, not a fast one. An open group is left out whole, a lone session marked
+ * unfinished included. A session never linked passes through unchanged. Groups are read in `all`, which holds every
+ * sitting `sessions` may only have some of; a finished one counts where `sessions` has its latest sitting.
+ */
+export function paceSessions(sessions: readonly PlanEvent[], all: readonly PlanEvent[] = sessions): PlanEvent[] {
+  const groups = sittingsByKey(all)
+  return sessions.flatMap((e) => {
+    const key = groupKey(e)
+    const sittings = groups.get(key) ?? [e]
+    if (!isLinked(sittings)) return [e]
+    const latest = sittings.at(-1)
+    return groupState(sittings) === 'finished' && latest?.uid === e.uid ? [pooled(key, sittings, latest)] : []
+  })
+}
+
 /** The typical session once `count` sessions were logged. */
 export interface TypicalAt {
   count: number
@@ -71,10 +103,11 @@ export interface TypicalAt {
 /**
  * The typical session after each logged session, from the `MIN_LOGGED`th on, in the order they were really done:
  * the stopwatch's start where there is one, the planned start otherwise. A band that narrows is the estimate
- * settling; a line that leaves ×1 is a drift (docs/estimate-accuracy-research.md, view 4).
+ * settling; a line that leaves ×1 is a drift (docs/estimate-accuracy-research.md, view 4). Sessions are counted as
+ * `paceSessions` reads them in `all`.
  */
-export function runningTypical(sessions: readonly PlanEvent[]): TypicalAt[] {
-  const ratios = sessions
+export function runningTypical(sessions: readonly PlanEvent[], all: readonly PlanEvent[] = sessions): TypicalAt[] {
+  const ratios = paceSessions(sessions, all)
     .filter((e) => e.done && e.actual !== undefined && hoursOf(e) > 0)
     .toSorted((a, b) => (a.began ?? a.start).localeCompare(b.began ?? b.start))
     .map((e) => (e.actual ?? 0) / 60 / hoursOf(e))
@@ -84,9 +117,12 @@ export function runningTypical(sessions: readonly PlanEvent[]): TypicalAt[] {
   }))
 }
 
-/** What the logged time of `sessions` says about their planned lengths. Only the done ones count, not the skipped. */
-export function accuracyOf(sessions: readonly PlanEvent[]): Accuracy {
-  const done = sessions.filter((e) => e.done && !e.skipped)
+/**
+ * What the logged time of `sessions` says about their planned lengths. Only the done ones count, not the skipped, as
+ * `paceSessions` reads them in `all`.
+ */
+export function accuracyOf(sessions: readonly PlanEvent[], all: readonly PlanEvent[] = sessions): Accuracy {
+  const done = paceSessions(sessions, all).filter((e) => e.done && !e.skipped)
   const logged = done.filter((e) => e.actual !== undefined)
   const loggedPlanned = logged.reduce((sum, e) => sum + hoursOf(e), 0)
   const loggedSpent = logged.reduce((sum, e) => sum + (e.actual ?? 0) / 60, 0)
