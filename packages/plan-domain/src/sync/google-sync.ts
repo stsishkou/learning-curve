@@ -1,6 +1,6 @@
-import { toLocalString, toMinsk } from '../core/dates'
 // How the plan looks in Google Calendar: the event a plan event becomes there, and what an event read from Google
 // says in the terms of `calendar-sync.ts`.
+import { toLocalString, toMinsk } from '../core/dates'
 import type { RemoteEvent, Written } from './calendar-sync'
 
 /** What the app asks Google for: the calendars it makes and their events, nothing else in the account */

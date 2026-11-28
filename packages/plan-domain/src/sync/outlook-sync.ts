@@ -1,10 +1,10 @@
-import { DAY, parseLocal, startOfDay, toLocalString, toMinsk, weekday, ymd } from '../core/dates'
-import { weekdaysOf } from '../core/recurrence'
-import type { Plan } from '../core/types'
 // How the plan looks in Outlook through Microsoft Graph: the event a plan event becomes there, and what one full read
 // of a calendar says in the terms of `calendar-sync.ts`. Graph has no id the app can choose and no list of what
 // changed in a calendar other than the main one, so the app keeps the id of each event and reads its calendars whole:
 // an event that is gone was deleted, a repeat that is gone was cancelled.
+import { DAY, parseLocal, startOfDay, toLocalString, toMinsk, weekday, ymd } from '../core/dates'
+import { weekdaysOf } from '../core/recurrence'
+import type { Plan } from '../core/types'
 import { writtenHash, writtenOf, type RemoteEvent, type SyncState, type Written } from './calendar-sync'
 
 /** What the app asks Microsoft for: a refresh token, and the person's calendars, the narrowest Graph offers */
