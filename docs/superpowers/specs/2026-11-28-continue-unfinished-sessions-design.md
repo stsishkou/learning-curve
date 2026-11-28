@@ -1,6 +1,6 @@
 # Continuing an unfinished session
 
-Status: proposed, 2026-11-28.
+Status: approved, 2026-11-28.
 
 ## Why
 
