@@ -1348,5 +1348,8 @@
     }
   ],
   "course_starts_late": "Nothing fits before {day}: until then every week is at the weekly budget, or the chosen days are full.",
-  "label_add_named": "Label: add one to {name}"
+  "label_add_named": "Label: add one to {name}",
+  "sitting_part": "Part {index} of {count}",
+  "sitting_progress": "{done} of {total} min",
+  "sitting_over": "{minutes} min over the plan"
 }

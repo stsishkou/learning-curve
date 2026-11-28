@@ -1348,5 +1348,8 @@
     }
   ],
   "course_starts_late": "No cabe nada antes del {day}: hasta entonces cada semana llega al presupuesto semanal o los días elegidos están llenos.",
-  "label_add_named": "Etiqueta: añadir una a {name}"
+  "label_add_named": "Etiqueta: añadir una a {name}",
+  "sitting_part": "Parte {index} de {count}",
+  "sitting_progress": "{done} de {total} min",
+  "sitting_over": "{minutes} min por encima del plan"
 }

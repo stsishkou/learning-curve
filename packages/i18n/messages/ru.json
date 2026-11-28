@@ -1362,5 +1362,8 @@
     }
   ],
   "course_starts_late": "До {day} ничего не помещается: до этого каждая неделя упирается в недельный бюджет или выбранные дни заняты.",
-  "label_add_named": "Метка: добавить календарю {name}"
+  "label_add_named": "Метка: добавить календарю {name}",
+  "sitting_part": "Часть {index} из {count}",
+  "sitting_progress": "{done} из {total} мин",
+  "sitting_over": "на {minutes} мин больше плана"
 }
