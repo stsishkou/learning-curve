@@ -19,10 +19,9 @@ export const Route = createFileRoute('/api/plan-update')({
     handlers: {
       POST: async ({ request }) => {
         const dry = new URL(request.url).searchParams.has('dry')
-        const text = await request.text()
         let changes: PlanChange[]
         try {
-          changes = parseUpdate(text).changes
+          changes = parseUpdate(await request.text()).changes
         } catch (err) {
           return unreadable(err)
         }
