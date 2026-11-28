@@ -1,6 +1,8 @@
-import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { setTimeout as later } from 'node:timers/promises'
 
 import { emptyEdits, parsePlanId, parseUserId } from '@lc/plan-domain'
 import { parseCalendarSync } from '@lc/plan-domain/sync'
@@ -11,7 +13,7 @@ import {
   describePrivateSettings,
   describeSyncStateStore,
 } from '@lc/plan-service/testing'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 import { googleConnector } from '../google'
 import { outlookConnector } from '../outlook'
@@ -223,4 +225,86 @@ test('a sign-in needs a client and its own state, and a token needs a connected 
   const token = calendarTokens.token(LOCAL_OWNER, 'google', false)
   await expect(token).rejects.toBeInstanceOf(CalendarAuthError)
   await expect(token).rejects.toMatchObject({ reason: 'reconnect' })
+})
+
+/** A lock in `dir` as another holder would leave it: its pid and its time, which is also its modification time. */
+function lockOf(dir: string, pid: number, time = Date.now()): string {
+  const lock = join(dir, 'sync.lock')
+  writeFileSync(lock, JSON.stringify({ pid, time }))
+  utimesSync(lock, new Date(time), new Date(time))
+  return lock
+}
+
+const ran = () => Promise.resolve('ran')
+
+const nothing = (): void => undefined
+
+test('a lock whose holder no longer runs is taken over', async () => {
+  const dir = seededDir()
+  const { pid } = spawnSync(process.execPath, ['--eval', ''])
+  lockOf(dir, pid)
+  await expect(portsIn(dir).syncState.exclusive(DEFAULT_PLAN, ran)).resolves.toBe('ran')
+  expect(existsSync(join(dir, 'sync.lock'))).toBe(false)
+})
+
+test('a lock not renewed for a minute is taken over, though its holder runs', async () => {
+  const dir = seededDir()
+  lockOf(dir, process.pid, Date.now() - 61_000)
+  await expect(portsIn(dir).syncState.exclusive(DEFAULT_PLAN, ran)).resolves.toBe('ran')
+})
+
+test('a fresh lock of a running holder is waited for', async () => {
+  const dir = seededDir()
+  const lock = lockOf(dir, process.pid)
+  let started = false
+  const waiting = portsIn(dir).syncState.exclusive(DEFAULT_PLAN, () => {
+    started = true
+    return ran()
+  })
+  await later(600)
+  expect(started).toBe(false)
+  rmSync(lock)
+  await expect(waiting).resolves.toBe('ran')
+  expect(started).toBe(true)
+})
+
+test('a held lock is renewed while its work runs, and its timer stops with the work', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+  try {
+    const dir = seededDir()
+    const lock = join(dir, 'sync.lock')
+    let finish = nothing
+    const working = portsIn(dir).syncState.exclusive(
+      DEFAULT_PLAN,
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        }),
+    )
+    const old = Date.now() - 30_000
+    utimesSync(lock, new Date(old), new Date(old))
+    const held: unknown = JSON.parse(readFileSync(lock, 'utf8'))
+    expect(held).toMatchObject({ pid: process.pid })
+    expect(held).toHaveProperty('time', expect.any(Number))
+    vi.advanceTimersByTime(15_000)
+    expect(statSync(lock).mtimeMs).toBeGreaterThan(old + 20_000)
+    expect(vi.getTimerCount()).toBe(1)
+    finish()
+    await working
+    expect(vi.getTimerCount()).toBe(0)
+    expect(existsSync(lock)).toBe(false)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('another plan locks in its own folder', async () => {
+  const dir = seededDir()
+  let seen = false
+  await portsIn(dir).syncState.exclusive(parsePlanId('other'), () => {
+    seen = existsSync(join(dir, 'plans', 'other', 'sync.lock'))
+    return ran()
+  })
+  expect(seen).toBe(true)
+  expect(existsSync(join(dir, 'plans', 'other', 'sync.lock'))).toBe(false)
 })

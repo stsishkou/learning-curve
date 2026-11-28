@@ -6,7 +6,8 @@ export class Superseded extends Error {
   }
 }
 
-async function ended(work: Promise<unknown>): Promise<void> {
+/** Settles when `work` does, resolved either way: the tail of a queue, whose next job runs whatever this one did. */
+export async function ended(work: Promise<unknown>): Promise<void> {
   try {
     await work
   } catch {

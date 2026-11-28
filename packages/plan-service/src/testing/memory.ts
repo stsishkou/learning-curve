@@ -17,6 +17,7 @@ import { parseCalendarSync, type CalendarSync } from '@lc/plan-domain/sync'
 
 import { DEFAULT_PLAN, LOCAL_OWNER } from '../actor'
 import type { BusyFeedSetting, CalendarAdapter, CalendarConnector, PlanPorts, PlanRevision, StoredPlan } from '../ports'
+import { ended } from '../queue'
 import { fail, ok } from '../result'
 
 /** What `createMemoryPorts` can be told; every field is optional. */
@@ -69,9 +70,10 @@ const noSolver: Solve = () => Promise.reject(new Error('No solver in memory'))
 
 /**
  * The ports of the plan held in memory: one plan, `DEFAULT_PLAN`, owned by `options.owner` (default `LOCAL_OWNER`),
- * with no edits and no history. Reads and writes copy what passes through, as every adapter must. Connectors,
- * sign-in and tokens reject with `Error('No calendar apps in memory')`. For tests of use cases; an adapter's tests
- * run the contract suites against its own ports instead.
+ * with no edits and no history. Reads and writes copy what passes through, as every adapter must. No calendar app
+ * is set up or connected, so a round after a save ends at once; connectors, every other sign-in call and tokens
+ * reject with `Error('No calendar apps in memory')`. For tests of use cases; an adapter's tests run the contract
+ * suites against its own ports instead.
  */
 export function createMemoryPorts(options: MemoryPortsOptions = {}): MemoryPorts {
   const owner = options.owner ?? LOCAL_OWNER
@@ -93,6 +95,7 @@ export function createMemoryPorts(options: MemoryPortsOptions = {}): MemoryPorts
   const files = new Map<UserId, Map<string, StoredPlanFile>>()
   const feeds = new Map<PlanId, Revisions>()
   const syncs = new Map<string, CalendarSync>()
+  const syncTails = new Map<PlanId, Promise<void>>()
   const addresses = new Map<UserId, string>()
   if (options.busyFeed?.url) addresses.set(owner, options.busyFeed.url)
   const fixed = options.busyFeed?.fixed ?? false
@@ -144,6 +147,15 @@ export function createMemoryPorts(options: MemoryPortsOptions = {}): MemoryPorts
         syncs.set(`${plan}/${provider}`, structuredClone(sync))
         return Promise.resolve()
       },
+      exclusive: (plan, work) => {
+        const before = syncTails.get(plan) ?? Promise.resolve()
+        const next = (async () => {
+          await before
+          return work()
+        })()
+        syncTails.set(plan, ended(next))
+        return next
+      },
     },
     settings: {
       busyFeed: (who) => Promise.resolve({ url: addresses.get(who) ?? null, fixed }),
@@ -164,7 +176,7 @@ export function createMemoryPorts(options: MemoryPortsOptions = {}): MemoryPorts
     solve: options.solve ?? noSolver,
     connectors: { google: noConnector('google'), outlook: noConnector('outlook') },
     calendarSignIn: {
-      status: noApps,
+      status: () => Promise.resolve({ configured: false, connectedAt: null }),
       saveClient: noApps,
       connectAddress: noApps,
       finishConnect: noApps,

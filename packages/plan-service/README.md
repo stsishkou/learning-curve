@@ -11,7 +11,8 @@ them. The adapters live in `@lc/plan-data`; each composition root wires them.
   the set of them a composition root passes in. `src/services/` holds the use cases, built by
   `createPlanServices(ports)`: the plan, the library, busy time, re-balance and the calendar sync; each resolves the
   actor's plan and asks `accessOf` itself. `src/services/calendar-sync/` holds the sync rounds and the inbox
-  decisions, run one at a time; a stored change starts a round for every connected calendar app. `src/parse.ts` reads each use case's input from untrusted JSON, with the messages a
+  decisions, run one at a time, across processes too (`SyncStateStore.exclusive`); a stored change starts a round for
+  every connected calendar app. `src/parse.ts` reads each use case's input from untrusted JSON, with the messages a
   person sees.
 
 - `./testing` (`src/testing/index.ts`): for the tests of an adapter and of a host. `describe*` functions run the contract

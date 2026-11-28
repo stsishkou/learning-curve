@@ -1,7 +1,7 @@
 import { isSession, type CalendarProvider, type PlanChange, type PlanEvent } from '@lc/plan-domain'
 import { fixtureBase, itemAt } from '@lc/plan-domain/fixtures'
 import type { RemoteEvent, Written } from '@lc/plan-domain/sync'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 import { LOCAL_ACTOR } from '../../actor'
 import {
@@ -191,10 +191,25 @@ test('a save is sent to every connected app; what a round takes in from an app s
   expect(app.event(session.uid)).toMatchObject({ summary: 'From the planner' })
 })
 
-test('syncAll never rejects, so a save can start it without waiting', async () => {
-  const { calendars } = createPlanServices(createMemoryPorts())
-  await expect(calendars.sync(actor, 'google')).rejects.toThrow('No calendar apps in memory')
-  await expect(calendars.syncAll(actor)).resolves.toBeUndefined()
+test('syncAll never rejects, so a save can start it without waiting; it reports a fault on stderr', async () => {
+  const memory = createMemoryPorts()
+  const unreadable = new Error('The sign-in cannot be read')
+  const { calendars } = createPlanServices({
+    ...memory,
+    calendarSignIn: { ...memory.calendarSignIn, status: () => Promise.reject(unreadable) },
+  })
+  const report = vi.spyOn(console, 'error').mockImplementation(nothing)
+  try {
+    await expect(calendars.sync(actor, 'google')).rejects.toBe(unreadable)
+    expect(report).not.toHaveBeenCalled()
+    await expect(calendars.syncAll(actor)).resolves.toBeUndefined()
+    expect(report.mock.calls).toEqual([
+      ['Calendar sync failed:', unreadable],
+      ['Calendar sync failed:', unreadable],
+    ])
+  } finally {
+    report.mockRestore()
+  }
 })
 
 test('a call while a round waits joins it; one while it runs gets the next', async () => {
@@ -209,6 +224,22 @@ test('a call while a round waits joins it; one while it runs gets the next', asy
   expect(calendars.sync(actor, 'google')).toBe(next)
   release()
   await Promise.all([running, next])
+  expect(app.sessions).toBe(before + 2)
+})
+
+test('the rounds of two hosts over one store take turns: the second starts once the first has ended', async () => {
+  const { app, ports, calendars } = connected()
+  const other = createPlanServices(ports).calendars
+  value(await calendars.sync(actor, 'google'))
+  const before = app.sessions
+  const { reached, release } = app.pause()
+  const first = calendars.sync(actor, 'google')
+  await reached
+  const second = other.sync(actor, 'google')
+  await settled()
+  expect(app.sessions).toBe(before + 1)
+  release()
+  await Promise.all([first, second])
   expect(app.sessions).toBe(before + 2)
 })
 
@@ -290,12 +321,12 @@ test('statuses tell each app apart: configured, connected, and what the plan hol
 
 const refuse = () => Promise.reject(new Error('A write on a read-only host'))
 
-test('on a read-only host no round runs, nothing is written, and every change of sign-in is forbidden', async () => {
+test('on a read-only host no round runs, nothing is locked or written, and sign-in changes are forbidden', async () => {
   const { app, ports } = connected({ writable: false })
   const { calendars } = createPlanServices({
     ...ports,
     plans: { ...ports.plans, save: refuse },
-    syncState: { ...ports.syncState, saveFeedRevisions: refuse, saveCalendarSync: refuse },
+    syncState: { ...ports.syncState, saveFeedRevisions: refuse, saveCalendarSync: refuse, exclusive: refuse },
     calendarSignIn: {
       ...signIn,
       saveClient: refuse,

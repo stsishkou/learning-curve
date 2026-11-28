@@ -17,4 +17,5 @@ Tested with Vitest beside the code; the port contracts from `@lc/plan-service/te
 `pnpm exec nx run @lc/plan-data:test`.
 
 Owns `data/`: `plan.json` (generated, never hand-edited) and `edits.json` (the owner's manual edits) are tracked;
-`history.json`, `sync.json`, `local.json` (secrets) and `library/` are untracked.
+`history.json`, `sync.json`, `sync.lock` (held while a calendar round runs, in any process), `local.json` (secrets)
+and `library/` are untracked.

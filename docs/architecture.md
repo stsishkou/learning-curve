@@ -245,6 +245,7 @@ A folder with its own public entry is the default. It becomes a package only whe
 | `packages/plan-data/data/edits.json` | `plan-data/fs` | yes; the owner's manual edits |
 | `packages/plan-data/data/history.json` | `plan-data/fs` | no; undo and redo steps |
 | `packages/plan-data/data/sync.json` | `plan-data/fs` | no; calendar sync state |
+| `packages/plan-data/data/sync.lock` | `plan-data/fs` | no; there while a calendar round runs, in any process |
 | `packages/plan-data/data/local.json` | `plan-data/fs` | no; secrets and the busy-feed address |
 | `packages/plan-data/data/library/` | `plan-data/fs` | no; plan files with versions |
 

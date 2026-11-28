@@ -4,6 +4,7 @@ import type { CalendarSync, InboxItem } from '@lc/plan-domain/sync'
 import type { Actor } from '../../actor'
 import { failureMessage, type PlanFailure } from '../../failure'
 import { CalendarAuthError, type CalendarConnector, type PlanPorts } from '../../ports'
+import { ended } from '../../queue'
 import { fail, ok, type Result } from '../../result'
 import { ownPlace, placeOf, type PlanPlace } from '../place'
 import type { PlanService } from '../plans'
@@ -41,7 +42,7 @@ export type CalendarSignInFailure = 'denied' | 'scope' | 'client' | 'failed'
  * Keeps the actor's plan in the calendar apps the host is connected to. A round reads what changed in an app's
  * calendars, takes the person's edits there into the plan as steps Undo takes back, holds the few that need a
  * decision, then writes what the plan has and the app does not. Rounds and decisions run one at a time, whichever app
- * they are for.
+ * they are for, and one at a time with those of another host over the same store (the web app and the MCP server).
  *
  * Every method can answer `signed-out` or `not-found` as the plan's own reads do. One that decides or changes the
  * sign-in answers `forbidden` to a reader, as the owner is on a read-only host, where no round runs.
@@ -106,12 +107,13 @@ export interface CalendarSyncService {
   readonly disconnect: (actor: Actor, provider: CalendarProvider) => Promise<Result<CalendarStatus, PlanFailure>>
 }
 
-/** Waits for work whose caller does not: its fault has nobody to reach. */
+/** Waits for work whose caller does not, and reports its fault on stderr: nobody else would see it. */
 async function quietly(work: Promise<unknown>): Promise<void> {
   try {
     await work
-  } catch {
-    // Reported to whoever waits for it, if anyone does.
+  } catch (err) {
+    // oxlint-disable-next-line no-console -- stderr, never stdout: the MCP server's stdout carries the protocol
+    console.error('Calendar sync failed:', err)
   }
 }
 
@@ -140,14 +142,17 @@ const signInFailureOf = (err: unknown): CalendarSignInFailure =>
 export function createCalendarSyncService(ports: PlanPorts, plans: PlanService): CalendarSyncService {
   let tail: Promise<void> = Promise.resolve()
 
-  /** Runs `work` once everything queued before it has finished, whether that worked or not. */
+  /**
+   * Runs `work` once everything queued here before it has finished, whether that worked or not. Work that writes the
+   * sync state also holds the store's lock on it (`syncState.exclusive`), which another process waits for.
+   */
   function exclusive<T>(work: () => Promise<T>): Promise<T> {
     const before = tail
     const next = (async () => {
       await before
       return work()
     })()
-    tail = quietly(next)
+    tail = ended(next)
     return next
   }
 
@@ -197,16 +202,18 @@ export function createCalendarSyncService(ports: PlanPorts, plans: PlanService):
     if (access !== 'owner') return ok(await statusOf(place.value, provider))
     const { connectedAt } = await ports.calendarSignIn.status(provider)
     if (connectedAt === null) return ok(await statusOf(place.value, provider))
-    const sync = await ports.syncState.calendarSync(id, provider)
-    try {
-      const plan = await planOf(actor)
-      await syncRound(sessionOf(actor, place.value, provider, sync, plan), plan)
-      sync.error = undefined
-    } catch (err) {
-      sync.error = problemOf(ports.connectors[provider], err)
-    }
-    sync.lastRound = ports.clock.now()
-    await ports.syncState.saveCalendarSync(id, provider, sync)
+    await ports.syncState.exclusive(id, async () => {
+      const sync = await ports.syncState.calendarSync(id, provider)
+      try {
+        const plan = await planOf(actor)
+        await syncRound(sessionOf(actor, place.value, provider, sync, plan), plan)
+        sync.error = undefined
+      } catch (err) {
+        sync.error = problemOf(ports.connectors[provider], err)
+      }
+      sync.lastRound = ports.clock.now()
+      await ports.syncState.saveCalendarSync(id, provider, sync)
+    })
     return ok(await statusOf(place.value, provider))
   }
 
@@ -234,10 +241,13 @@ export function createCalendarSyncService(ports: PlanPorts, plans: PlanService):
     const decided = await exclusive(async (): Promise<Result<void, PlanFailure>> => {
       const place = await ownPlace(ports, actor)
       if (!place.ok) return place
-      const kept = await ports.syncState.calendarSync(place.value.id, provider)
-      const plan = await planOf(actor)
-      await how(sessionOf(actor, place.value, provider, kept, plan), plan, ids)
-      await ports.syncState.saveCalendarSync(place.value.id, provider, kept)
+      const { id } = place.value
+      await ports.syncState.exclusive(id, async () => {
+        const kept = await ports.syncState.calendarSync(id, provider)
+        const plan = await planOf(actor)
+        await how(sessionOf(actor, place.value, provider, kept, plan), plan, ids)
+        await ports.syncState.saveCalendarSync(id, provider, kept)
+      })
       return ok(undefined)
     })
     return decided.ok ? requestRound(actor, provider) : decided

@@ -225,7 +225,7 @@ function refusingWrites(ports: MemoryPorts): PlanPorts {
     ...ports,
     plans: { ...ports.plans, save: refuse },
     library: { ...ports.library, put: refuse, remove: refuse },
-    syncState: { ...ports.syncState, saveFeedRevisions: refuse, saveCalendarSync: refuse },
+    syncState: { ...ports.syncState, saveFeedRevisions: refuse, saveCalendarSync: refuse, exclusive: refuse },
     settings: { ...ports.settings, setBusyFeed: refuse },
   }
 }

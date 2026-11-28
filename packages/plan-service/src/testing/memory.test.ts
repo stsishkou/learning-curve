@@ -95,7 +95,10 @@ describe('createMemoryPorts', () => {
     await expect(ports.solve({ objective: [], constraints: [], variables: [] }, { timeLimit: 1 })).rejects.toThrow(
       'No solver in memory',
     )
-    await expect(ports.calendarSignIn.status('google')).rejects.toThrow('No calendar apps in memory')
+    expect(await ports.calendarSignIn.status('google')).toEqual({ configured: false, connectedAt: null })
+    await expect(ports.calendarSignIn.saveClient('google', 'id', 'secret')).rejects.toThrow(
+      'No calendar apps in memory',
+    )
     await expect(ports.calendarTokens.token(LOCAL_OWNER, 'google', false)).rejects.toThrow('No calendar apps in memory')
     expect(Object.keys(ports.connectors).toSorted()).toEqual(['google', 'outlook'])
   })

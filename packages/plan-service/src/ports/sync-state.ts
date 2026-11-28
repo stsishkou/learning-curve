@@ -24,4 +24,12 @@ export interface SyncStateStore {
    * be written: the service checks `host.writable()` first.
    */
   readonly saveCalendarSync: (plan: PlanId, provider: CalendarProvider, sync: CalendarSync) => Promise<void>
+  /**
+   * Runs `work` while no other holder works on the plan's calendar sync, in this process or in any other over the
+   * same store, and answers what `work` answers. The lock is released when `work` settles, resolved or rejected; a
+   * holder of another plan never waits for it. A round reads the state, talks to an app and saves the state inside
+   * it, so two hosts never send the same change twice. Taken only where the store can be written: the service asks
+   * for it on the owner's plan, which a read-only host never gives.
+   */
+  readonly exclusive: <T>(plan: PlanId, work: () => Promise<T>) => Promise<T>
 }
