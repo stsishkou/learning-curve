@@ -4,6 +4,7 @@ import {
   hiddenCalendarIds,
   hm,
   isSession,
+  likelyLength,
   parseLocal,
   referenceClass,
   startOfDay,
@@ -30,7 +31,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useFillHeight, useNow } from '../../../shared/lib'
 import { ScreenButtons } from '../../../shared/ui'
 import { Hourglass } from '../../../widgets/hourglass'
-import { finishRecord, likelyLength, longRun, loggedMinutes, type LongRun } from '../model/finish'
+import { finishRecord, longRun, loggedMinutes, type LongRun } from '../model/finish'
 import { useGlass } from '../model/use-glass'
 import { useStopwatch, type StopwatchState } from '../model/use-stopwatch'
 import { useTitleLead } from '../model/use-title-lead'

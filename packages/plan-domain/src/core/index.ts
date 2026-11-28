@@ -145,6 +145,19 @@ export {
   type CourseProgress,
   type ReferenceClass,
 } from './progress'
+export { doneMinutesOf, firstPlanOf, groupKey, groupState, isLinked, type GroupState } from './sitting-state'
+export {
+  groupBar,
+  groupOf,
+  likelyLength,
+  openGroups,
+  restMinutes,
+  sittingAt,
+  sittingGroups,
+  type BarSegment,
+  type GroupBar,
+  type SessionGroup,
+} from './sittings'
 export { weeklyHours } from './weekly-hours'
 export { feedAddress } from './feed-address'
 export { CALENDAR_PROVIDERS, isCalendarProvider, type CalendarProvider } from './provider'

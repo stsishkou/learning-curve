@@ -18,11 +18,6 @@ export const finishRecord = (elapsed: number, began: number, at: number): Finish
   paused: Math.min(DAY_MINUTES, Math.max(0, Math.round((at - began - elapsed) / MINUTE))),
 })
 
-const ROUND = 5 * MINUTE
-
-/** How long a session will probably take: its plan times what sessions like it took, to five minutes. */
-export const likelyLength = (planned: number, ratio: number) => Math.round((planned * ratio) / ROUND) * ROUND
-
 /** A run Finish asks about before it logs it, and whether it went past midnight. */
 export interface LongRun {
   overnight: boolean
