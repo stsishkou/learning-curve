@@ -3,6 +3,7 @@ import { failureMessage } from '@lc/plan-service'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { actorOf } from '#/server/actor'
+import { publicUrl } from '#/server/public-url'
 import { statusOf } from '#/server/respond'
 import { services } from '#/server/services'
 
@@ -17,14 +18,14 @@ export const Route = createFileRoute('/api/$provider/connect')({
       GET: async ({ request, params }) => {
         const { provider } = params
         if (!isCalendarProvider(provider)) return new Response('Unknown calendar app', { status: 404 })
-        const callback = new URL(`/api/${provider}/callback`, request.url).href
+        const callback = publicUrl(`/api/${provider}/callback`, request)
         try {
           const address = await services.calendars.connectAddress(actorOf(), provider, callback)
           if (!address.ok) return new Response(failureMessage(address.error), { status: statusOf(address.error) })
           return Response.redirect(address.value, 302)
         } catch {
           // It rejects when no client is known for the app: the planner then says the sign-in failed.
-          return Response.redirect(new URL(`/?link=${provider}&signin=failed`, request.url).href, 302)
+          return Response.redirect(publicUrl(`/?link=${provider}&signin=failed`, request), 302)
         }
       },
     },

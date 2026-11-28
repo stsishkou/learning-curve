@@ -3,6 +3,7 @@ import type { CalendarSignInFailure } from '@lc/plan-service'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { actorOf } from '#/server/actor'
+import { publicUrl } from '#/server/public-url'
 import { services } from '#/server/services'
 
 /** GET /api/<provider>/callback — where a calendar app's sign-in comes back; the planner then says how it went. */
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/api/$provider/callback')({
           const finished = await services.calendars.finishConnect(actorOf(), provider, code, state)
           ended = finished.ok ? 'connected' : finished.error
         }
-        return Response.redirect(new URL(`/?link=${provider}&signin=${ended}`, request.url).href, 302)
+        return Response.redirect(publicUrl(`/?link=${provider}&signin=${ended}`, request), 302)
       },
     },
   },
