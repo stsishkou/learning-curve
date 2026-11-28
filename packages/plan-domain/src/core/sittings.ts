@@ -1,6 +1,14 @@
-import { parseLocal } from './dates'
 import { isSession } from './progress'
-import { doneMinutesOf, firstPlanOf, groupKey, groupState, isLinked, type GroupState } from './sitting-state'
+import {
+  doneMinutesOf,
+  firstPlanOf,
+  groupKey,
+  groupState,
+  isLinked,
+  minutesOf,
+  rootOf,
+  type GroupState,
+} from './sitting-state'
 import type { Plan, PlanEvent } from './types'
 
 const MINUTE = 60_000
@@ -8,7 +16,6 @@ const ROUND = 5 * MINUTE
 /** The shortest rest worth booking, minutes */
 const REST_MIN = 15
 
-const minutesOf = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.start)) / MINUTE
 const byStart = (a: PlanEvent, b: PlanEvent) => a.start.localeCompare(b.start)
 
 /** A planned session and the sittings that continue it, read from the plan. */
@@ -34,12 +41,12 @@ export interface SessionGroup {
 }
 
 function groupFrom(key: string, sittings: PlanEvent[]): SessionGroup | null {
-  const lead = sittings.find((e) => e.uid === key) ?? sittings.at(0)
-  if (!lead) return null
+  const root = rootOf(sittings, key)
+  if (!root) return null
   return {
     key,
-    calendar: lead.calendar,
-    title: lead.title,
+    calendar: root.calendar,
+    title: root.title,
     sittings,
     firstPlan: firstPlanOf(sittings, key),
     doneMinutes: sittings.reduce((sum, e) => sum + doneMinutesOf(e), 0),

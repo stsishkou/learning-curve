@@ -3,7 +3,12 @@ import type { PlanEvent } from './types'
 
 const MINUTE = 60_000
 
-const minutesOf = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.start)) / MINUTE
+/** A sitting's planned length, minutes. */
+export const minutesOf = (e: PlanEvent) => (parseLocal(e.end) - parseLocal(e.start)) / MINUTE
+
+/** The event a group is named and planned by: its root, or its earliest sitting when the root is gone. */
+export const rootOf = (sittings: readonly PlanEvent[], key: string): PlanEvent | undefined =>
+  sittings.find((e) => e.uid === key) ?? sittings.at(0)
 
 /** The group a sitting belongs to: the uid of the session it continues, or its own. */
 export const groupKey = (e: PlanEvent): string => e.from ?? e.uid
@@ -20,7 +25,7 @@ export function groupState(sittings: readonly PlanEvent[]): GroupState {
 
 /** Minutes the session was first planned with: the root's, or the earliest sitting's when the root is gone. */
 export function firstPlanOf(sittings: readonly PlanEvent[], key: string): number {
-  const root = sittings.find((e) => e.uid === key) ?? sittings.at(0)
+  const root = rootOf(sittings, key)
   return root ? (root.estimate ?? minutesOf(root)) : 0
 }
 
