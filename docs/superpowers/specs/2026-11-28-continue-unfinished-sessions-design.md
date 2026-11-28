@@ -112,7 +112,8 @@ New read model in `packages/plan-domain/src/core/sittings.ts`, exported from `@l
 
 ### The bar
 
-The whole bar is `max(firstPlan, doneMinutes + bookedMinutes)`. Segments in sitting order:
+The whole bar is `max(firstPlan, doneMinutes + bookedMinutes)`. Segments, done ones first and then booked ones, each
+in start order, so the bar fills from the left:
 
 - done sitting: filled, sized by its minutes;
 - booked sitting: hatched, sized by its length;
