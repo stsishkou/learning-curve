@@ -30,19 +30,31 @@ export function canWritePlan(dir: string): boolean {
 const planFiles = (dir: string): readonly string[] =>
   ['plan.json', 'edits.json', 'history.json'].map((name) => join(dir, name))
 
-/** The size and modification time of the three files, as one string; a missing file counts as `-`. */
-const fileRevision = (dir: string): PlanRevision =>
-  planFiles(dir)
-    .map((file) => {
-      const stat = statSync(file, { bigint: true, throwIfNoEntry: false })
-      return stat ? `${stat.mtimeNs}:${stat.size}` : '-'
-    })
-    .join('/')
+/** A file's modification time and size, as one string; `-` when it is missing. */
+function fileStamp(file: string): string {
+  const stat = statSync(file, { bigint: true, throwIfNoEntry: false })
+  return stat ? `${stat.mtimeNs}:${stat.size}` : '-'
+}
 
-/** The plan on disk, so edits saved since the last build are visible; a copy of the bundled one when none is there. */
-function readPlan(dir: string): Plan {
-  const plan = readJsonIfPresent(join(dir, 'plan.json'))
-  return isPlan(plan) ? plan : structuredClone(bundledPlan)
+/** The stamps of the three files, as one string. */
+const fileRevision = (dir: string): PlanRevision => planFiles(dir).map(fileStamp).join('/')
+
+/**
+ * The plan on disk, so edits saved since the last build are visible; the bundled one when none is there. It is parsed
+ * once per version of `plan.json` and shared, so a caller that hands it out copies it.
+ */
+function planReader(dir: string): () => Plan {
+  const file = join(dir, 'plan.json')
+  let kept: { readonly stamp: string; readonly plan: Plan } | null = null
+  return () => {
+    // Taken before the file is read: a write in between leaves an old stamp on new content, which costs one more read.
+    const stamp = fileStamp(file)
+    if (kept?.stamp !== stamp) {
+      const plan = readJsonIfPresent(file)
+      kept = { stamp, plan: isPlan(plan) ? plan : bundledPlan }
+    }
+    return kept.plan
+  }
 }
 
 const owns = (id: PlanId): boolean => id === DEFAULT_PLAN
@@ -55,15 +67,18 @@ const owns = (id: PlanId): boolean => id === DEFAULT_PLAN
  * Beyond the port: each file is replaced by a rename, so a reader never sees half a file. The revision is the size
  * and modification time of the three files, so it also moves when `pnpm run plan` or the MCP server writes them.
  * The files are written one after another, so a crash between two renames leaves files from two saves, and a writer
- * that starts between the revision check and the first rename is not noticed; both were so before.
+ * that starts between the revision check and the first rename is not noticed; both were so before. `plan.json` is
+ * parsed again only when its size or modification time moved, so the revision poll, which lists the owner's plans
+ * for their title, costs a few `stat` calls.
  */
 export function createFsPlans(dir: string): PlanRepository {
+  const readPlan = planReader(dir)
   return {
     get: (id) => {
       if (!owns(id)) return Promise.resolve(null)
       // Taken before the files are read: a write in between makes the revision stale, never the content.
       const revision = fileRevision(dir)
-      const plan = readPlan(dir)
+      const plan = structuredClone(readPlan())
       const stored: StoredPlan = {
         id,
         owner: LOCAL_OWNER,
@@ -76,7 +91,7 @@ export function createFsPlans(dir: string): PlanRepository {
       return Promise.resolve(stored)
     },
     listOwned: (owner: UserId): Promise<readonly PlanSummary[]> =>
-      Promise.resolve(owner === LOCAL_OWNER ? [{ id: DEFAULT_PLAN, title: readPlan(dir).meta.title }] : []),
+      Promise.resolve(owner === LOCAL_OWNER ? [{ id: DEFAULT_PLAN, title: readPlan().meta.title }] : []),
     revision: (id) => Promise.resolve(owns(id) && canWritePlan(dir) ? fileRevision(dir) : null),
     save: (id, next, expected) => {
       if (!owns(id)) return Promise.reject(new Error('Unknown plan'))

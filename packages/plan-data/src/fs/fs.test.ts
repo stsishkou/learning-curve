@@ -1,5 +1,15 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as later } from 'node:timers/promises'
@@ -106,6 +116,25 @@ test('a change made to the files elsewhere moves the revision', async () => {
   expect(await plans.revision(DEFAULT_PLAN)).not.toBe(before)
   const after = await plans.get(DEFAULT_PLAN)
   expect(after?.edits.budget).toBe(8)
+})
+
+test('plan.json is parsed once per version: an unchanged file is not read again, a changed one is', async () => {
+  const dir = seededDir()
+  const { plans } = portsIn(dir)
+  const file = join(dir, 'plan.json')
+  const listed = [{ id: DEFAULT_PLAN, title: bundledPlan.meta.title }]
+  expect(await plans.listOwned(LOCAL_OWNER)).toEqual(listed)
+  chmodSync(file, 0o000)
+  try {
+    // Unreadable now: only the plan kept from the read before can answer.
+    expect(await plans.listOwned(LOCAL_OWNER)).toEqual(listed)
+    const stored = await plans.get(DEFAULT_PLAN)
+    expect(stored?.plan).toEqual(bundledPlan)
+  } finally {
+    chmodSync(file, 0o644)
+  }
+  writeFileSync(file, JSON.stringify({ ...bundledPlan, meta: { ...bundledPlan.meta, title: 'Changed elsewhere' } }))
+  expect(await plans.listOwned(LOCAL_OWNER)).toEqual([{ id: DEFAULT_PLAN, title: 'Changed elsewhere' }])
 })
 
 test('an unknown plan id has no revision and is not listed', async () => {
