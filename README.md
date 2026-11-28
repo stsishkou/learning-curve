@@ -63,6 +63,7 @@ Each app starts on its own; there is no command that starts them all. Day to day
 |---|---|---|
 | The planner (`apps/web`) | `pnpm run dev` | http://localhost:3000 |
 | The planner, production build | `pnpm run build`, then `pnpm start` | http://localhost:3000 |
+| The planner in Docker | `docker compose up -d --build`: see [apps/web/README.md](apps/web/README.md#container) | http://localhost:3000 |
 | The guide (`apps/docs`) | `pnpm run docs` | http://localhost:3100 |
 | The guide inside the planner | `pnpm run docs:build`, then `pnpm --filter @lc/docs preview` | http://localhost:4310 |
 | The guide's test host (`apps/docs-harness`) | `pnpm --filter @lc/docs-harness dev` | http://localhost:4320 |

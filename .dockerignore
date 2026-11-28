@@ -1,0 +1,37 @@
+# What the image build (apps/web/Dockerfile) never sees: a smaller context, and no secrets in any layer.
+
+# Installed and built inside the image instead.
+**/node_modules
+**/.output
+**/dist
+**/dist-ssr
+**/.vite
+**/.nitro
+**/.tanstack
+.nx
+
+# Generated translations: the build compiles them again.
+packages/i18n/src/paraglide
+
+# Live data and secrets belong on the /data volume, never in an image.
+# plan.json stays: the build bundles it as the read-only fallback plan.
+packages/plan-data/data/*
+!packages/plan-data/data/plan.json
+packages/plan-data/exports
+
+# Settings files with secrets (see planner.env.example).
+planner.env
+.env
+.env.*
+
+# Version control, CI, editors, agents and test reports: not needed to build.
+.git
+.github
+.husky
+.idea
+.vscode
+.claude
+.superpowers
+**/test-results
+**/playwright-report
+**/*.log

@@ -20,3 +20,24 @@ Run `pnpm run dev` (port 3000), `pnpm exec nx run @lc/web:build` and `pnpm run s
 and by the stand. `PLAN_DATA_DIR` moves the data directory, `PLAN_READONLY=1` switches writing off.
 
 Owns no data files: `@lc/plan-data/fs` reads and writes `packages/plan-data/data`.
+
+## Container
+
+`Dockerfile` builds the planner from the repository root (the build context) into an image that holds only Nitro's
+output and runs it as an unprivileged user on port 3000. `compose.yaml` and `planner.env.example` at the root run it:
+
+```bash
+cp planner.env.example planner.env              # optional: OAuth clients, read-only mode, docs button
+docker compose up -d --build                    # http://localhost:3000
+docker compose --profile seed run --rm seed     # once: copy the plan from this checkout into the volume
+```
+
+- **Data**: everything the planner writes lives on the volume at `/data` (`PLAN_DATA_DIR`). An empty volume serves the
+  plan bundled at build time, read-only; the seed copies `plan.json`, `edits.json`, `history.json`, `sync.json` and
+  `library/`, never `local.json`. Back the volume up: it holds the plan, the history and the calendar tokens.
+- **One server**: the files and the calendar-sync lock assume one container per volume, so run no replicas.
+- **Calendar apps**: register `https://<your-domain>/api/google/callback` and `/api/outlook/callback` on the OAuth
+  clients set in `planner.env`, then connect the apps again in the deployed planner.
+- **No sign-in yet**: anyone who reaches the server can edit the plan. Put an authenticating proxy in front of it, or
+  set `PLAN_READONLY=1` for a public, view-only planner.
+- **Other CPUs**: the image is built for the machine that builds it; add `--platform linux/amd64` for an x86 server.

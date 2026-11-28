@@ -1,0 +1,51 @@
+# The planner in Docker, on this machine or on one server.
+#   docker compose up -d --build                  build the image and start it on http://localhost:3000
+#   docker compose --profile seed run --rm seed   once: copy the plan from this checkout into the volume
+#   docker compose logs -f planner                follow the server's output
+name: learning-curve
+
+services:
+  planner:
+    # Built from the whole workspace; the Dockerfile lives with the app it packages.
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: learning-curve-planner
+    # Settings and secrets, all optional: copy planner.env.example to planner.env.
+    env_file:
+      - path: planner.env
+        required: false
+    # The plan, edits, history and calendar tokens: one volume that outlives the container.
+    # One container per volume: the files and the calendar-sync lock assume a single server.
+    volumes:
+      - plan-data:/data
+    # Another port on the host: PLANNER_PORT=8080 docker compose up -d
+    ports:
+      - '${PLANNER_PORT:-3000}:3000'
+    restart: unless-stopped
+
+  # One-off, after the first `up`: copies the plan from packages/plan-data/data into an empty volume.
+  # It keeps sync.json, so the server goes on with the calendars this checkout made instead of adding new ones;
+  # from then on only the server should sync them. local.json (secrets) stays behind: set the OAuth clients in
+  # planner.env and connect the calendar apps again on the server.
+  seed:
+    profiles: [seed]
+    # The image `up` built; never looked up on a registry.
+    image: learning-curve-planner
+    pull_policy: never
+    volumes:
+      - plan-data:/data
+      - ./packages/plan-data/data:/seed:ro
+    entrypoint: [sh, -c]
+    command:
+      - |
+        if [ -e /data/plan.json ]; then echo 'The volume already holds a plan: nothing copied.'; exit 0; fi
+        cp /seed/plan.json /seed/edits.json /data/
+        for file in history.json sync.json; do
+          if [ -e "/seed/$$file" ]; then cp "/seed/$$file" /data/; fi
+        done
+        if [ -d /seed/library ]; then cp -R /seed/library /data/; fi
+        echo 'Plan copied into the volume.'
+
+volumes:
+  plan-data:
