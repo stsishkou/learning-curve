@@ -41,21 +41,47 @@ test('an update whose second change does not fit stores nothing and names it', a
   expect(await ports.plans.get(DEFAULT_PLAN)).toEqual(before)
 })
 
-test('a save that meets another writer is tried again once on fresh data', async () => {
-  const ports = createMemoryPorts()
-  ports.conflictsLeft = 1
-  const result = await createPlanServices(ports).plans.apply(LOCAL_ACTOR, [{ type: 'plan.rename', title: 'X' }])
-  expect(result.ok).toBe(true)
-  ports.conflictsLeft = 2
-  const again = await createPlanServices(ports).plans.apply(LOCAL_ACTOR, [{ type: 'plan.rename', title: 'Y' }])
-  expect(again).toEqual(fail({ kind: 'conflict' }))
-})
-
 const storedPlan = async (ports: PlanPorts) => {
   const stored = await ports.plans.get(DEFAULT_PLAN)
   if (!stored) throw new Error('No default plan')
   return stored
 }
+
+test('a save that meets another writer is tried again once on a fresh read, keeping what the other wrote', async () => {
+  const memory = createMemoryPorts()
+  const theirs: PlanChange = { type: 'event.patch', uid: SECOND, patch: { title: 'Theirs' } }
+  let competed = false
+  /** Another writer saves its change after the first read of the plan and before the first save. */
+  const ports: PlanPorts = {
+    ...memory,
+    plans: {
+      ...memory.plans,
+      save: async (id, next, expected) => {
+        if (!competed) {
+          competed = true
+          const stored = await storedPlan(memory)
+          const edits = applyChange(stored.base, stored.edits, theirs, NOW)
+          const plan = applyEdits(stored.base, edits).plan
+          const saved = await memory.plans.save(id, { edits, history: stored.history, plan }, stored.revision)
+          expect(saved.ok).toBe(true)
+        }
+        return memory.plans.save(id, next, expected)
+      },
+    },
+  }
+  value(await createPlanServices(ports).plans.apply(LOCAL_ACTOR, [rename('Mine')]))
+  expect(competed).toBe(true)
+  const stored = await storedPlan(memory)
+  expect(stored.plan.meta.title).toBe('Mine')
+  expect(stored.plan.events.find((event) => event.uid === SECOND)?.title).toBe('Theirs')
+})
+
+test('a save that meets another writer twice answers conflict', async () => {
+  const ports = createMemoryPorts()
+  ports.conflictsLeft = 2
+  const again = await createPlanServices(ports).plans.apply(LOCAL_ACTOR, [rename('Y')])
+  expect(again).toEqual(fail({ kind: 'conflict' }))
+})
 
 test('edits changed outside the history start the history again', async () => {
   const ports = createMemoryPorts()
