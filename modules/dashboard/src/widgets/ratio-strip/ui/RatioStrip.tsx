@@ -4,6 +4,7 @@ import {
   MIN_LOGGED,
   accuracyOf,
   isSession,
+  paceSessions,
   parseLocal,
   type Accuracy,
   type EventKind,
@@ -83,7 +84,7 @@ function Key({ label, children }: { label: string; children: ReactNode }) {
 function rowsOf(plan: Plan): Row[] {
   return plan.calendars.flatMap((calendar) => {
     const sessions = plan.events.filter((e) => e.calendar === calendar.id && isSession(e))
-    const marks = sessions
+    const marks = paceSessions(sessions, plan.events)
       .flatMap((event) => {
         const planned = (parseLocal(event.end) - parseLocal(event.start)) / MINUTE
         return event.done && event.actual !== undefined && planned > 0
@@ -91,7 +92,7 @@ function rowsOf(plan: Plan): Row[] {
           : []
       })
       .toSorted((a, b) => a.event.start.localeCompare(b.event.start))
-    return marks.length ? [{ calendar, marks, accuracy: accuracyOf(sessions) }] : []
+    return marks.length ? [{ calendar, marks, accuracy: accuracyOf(sessions, plan.events) }] : []
   })
 }
 
@@ -140,7 +141,8 @@ function stopsOf(row: Row, x: (ratio: number) => number, xs: number[], slots: nu
 
 /**
  * Every logged session of every course as a mark on a log axis of real ÷ planned time, against the line of the plan.
- * From `MIN_LOGGED` logged sessions a course also shows its typical session with its 95% interval.
+ * From `MIN_LOGGED` logged sessions a course also shows its typical session with its 95% interval. A session spread
+ * over sittings is one mark once finished, as `paceSessions` counts it, and none while open.
  */
 export function RatioStrip({ plan }: { plan: Plan }) {
   const box = useRef<HTMLDivElement>(null)

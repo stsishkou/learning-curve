@@ -1,6 +1,7 @@
+import { fmtDay, fmtDuration, fmtRatio } from '@lc/i18n/format'
 import { m } from '@lc/i18n/messages'
-import { MIN_LOGGED, isSession, parseLocal, type Plan } from '@lc/plan-domain'
-import { fixturePlan } from '@lc/plan-domain/fixtures'
+import { MIN_LOGGED, isSession, parseLocal, toLocalString, type Plan, type PlanEvent } from '@lc/plan-domain'
+import { fixturePlan, itemAt } from '@lc/plan-domain/fixtures'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 
@@ -20,6 +21,41 @@ const logged = (ratios: number[], count = Infinity): Plan => {
 }
 
 const SPREAD = [1.25, 1, 1.5, 0.75, 1.25, 1.25, 2, 1, 1.5, 0.9, 1.25, 1.1, 1.75, 1.25]
+
+const MINUTE = 60_000
+const certs = fixturePlan.events.filter((e) => e.calendar === 'certs' && isSession(e))
+const certsName = fixturePlan.calendars.find((c) => c.id === 'certs')?.name ?? ''
+/** 2026-11-23 12:00–13:00, done */
+const root = itemAt(certs)
+/** 2026-11-23 13:00–14:00, done */
+const cut = itemAt(certs, 1)
+
+/** A sitting added to continue the root, `minutes` long from `start` */
+const sitting = (uid: string, start: string, minutes: number, fields: Partial<PlanEvent>): PlanEvent => ({
+  ...root,
+  uid,
+  start,
+  end: toLocalString(parseLocal(start) + minutes * MINUTE),
+  from: root.uid,
+  ...fields,
+})
+const SITTINGS = [
+  sitting('sitting-2@learning-curve', '2026-11-24T18:00', 30, { done: true, actual: 20, unfinished: true }),
+  sitting('sitting-3@learning-curve', '2026-11-25T18:00', 15, { done: true, actual: 15 }),
+]
+
+/** The logged fixture with the root done in 25 minutes and continued in two sittings, and the next one cut short. */
+const spread = (): Plan => {
+  const plan = logged(SPREAD)
+  const shortened = { actual: 25, unfinished: true }
+  return {
+    ...plan,
+    events: [
+      ...plan.events.map((e) => (e.uid === root.uid || e.uid === cut.uid ? { ...e, ...shortened } : e)),
+      ...SITTINGS,
+    ],
+  }
+}
 
 const meta = {
   title: 'Dashboard/Widgets/RatioStrip',
@@ -87,5 +123,31 @@ export const NothingLogged: Story = {
   args: { plan: fixturePlan },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText(m.dash_strip_none())).toBeVisible()
+  },
+}
+
+/**
+ * A session spread over sittings is one mark, its time over its first plan at its latest sitting's day: 25 + 20 + 15
+ * minutes of a 60-minute session read ×1, not as three fast sessions. A session cut short and not finished has none.
+ */
+export const SpreadSession: Story = {
+  args: { plan: spread() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const row = await canvas.findByRole('img', { name: (label: string) => label.startsWith(`${certsName}: `) })
+    const uids = [root.uid, cut.uid, ...SITTINGS.map((e) => e.uid)]
+    await expect(uids.filter((uid) => row.querySelector(`[data-mark="${uid}"]`))).toEqual([root.uid])
+    // The table under the chart: one line for the session, none for the one cut short.
+    const [title, ...more] = canvas.getAllByText(root.title)
+    await expect(more).toHaveLength(0)
+    const cells = [...(title?.closest('tr')?.querySelectorAll('td') ?? [])].map((td) => td.textContent)
+    await expect(cells).toEqual([
+      root.title,
+      fmtDay(parseLocal('2026-11-25T18:00')),
+      fmtDuration(60 * MINUTE),
+      fmtDuration(60 * MINUTE),
+      fmtRatio(1),
+    ])
+    await expect(canvas.queryAllByText(cut.title)).toHaveLength(0)
   },
 }
