@@ -24,6 +24,10 @@ layer allows.
 `remote-host` is the one shared package that reads a contract: its `./docs` entry is the docs remote's hook. Only that
 entry may import `@lc/docs-contract`; the generic loader at `.` imports no workspace package.
 
+A module imports less than its tag allows: of the workspace packages, lint (the `modules/**` override in
+`.oxlintrc.json`) lets it import `@lc/plan-domain`, `@lc/ui` and `@lc/i18n` only. It keeps `@lc/docs-contract` and
+`@lc/remote-host` out, though the tag allows them, because only a host that loads a remote uses them.
+
 ```
 apps        web ───────────┬───────────┬──────────────┐      mcp         docs      docs-harness   stand
              │             │           │              │       │            │
@@ -214,8 +218,8 @@ A folder with its own public entry is the default. It becomes a package only whe
   shows Collapse in its own top row. The page itself is a slice of a module (`pages/`), a file route in
   `apps/web/src/routes` renders it, and the route keeps no logic.
 - **A module**: copy the shape of `modules/calendar-export` (`package.json` with the `type:module` tag, `tsconfig.json`,
-  `src/index.ts`, a `README.md`), add it to `apps/web/package.json` and compose it in a route. The lint rule for
-  `modules/**` already refuses every `@lc/*` package except domain, UI and i18n.
+  `src/index.ts`, a `README.md`), add it to `apps/web/package.json` and compose it in a route. Of the workspace
+  packages it may import `@lc/plan-domain`, `@lc/ui` and `@lc/i18n` only, which lint already enforces ([Layers](#layers)).
 - **A server function**: `apps/web/src/server/`, calling `services` (built once in `services.ts`); the result goes into the
   module as props. Failures leave through `respond.ts`.
 - **Something read from outside the plan** (the person's own calendar): fetched and parsed by an adapter (`plan-data/ical`)
