@@ -116,7 +116,7 @@ export const PART_2 = [
             ref: '746a107',
             note: 'edits.json holds patches by event uid, applied by the plan command and the server function',
           },
-          { kind: 'file', ref: 'README.md', note: 'lines 211-212' },
+          { kind: 'file', ref: 'README.md', note: 'lines 270-271' },
           { kind: 'file', ref: 'CLAUDE.md', note: 'the rule for plan.json, edits.json and store.ts' },
         ],
       },

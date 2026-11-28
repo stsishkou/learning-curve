@@ -34,9 +34,12 @@ Run from the repository root; Nx runs the task in every project that has it and 
 | `pnpm run build` / `pnpm start` | Production build (Nitro) into `apps/web/.output`, with a per-project log, and the Node server |
 | `pnpm run stand` / `pnpm run stand:build` | The component stand (Storybook) on port 6006, and its static build in `apps/stand/dist`: see [docs/component-stand.md](docs/component-stand.md) |
 | `pnpm run stand:test` | Every story as a test in headless Chromium: it renders, its interactions pass, axe finds no accessibility violation |
+| `pnpm run docs` / `pnpm run docs:build` | The guide on port 3100 with hot reload, and its static build with the federation remote: see [apps/docs/README.md](apps/docs/README.md) |
+| `pnpm run docs:test` | Builds the guide and its test host, then Playwright loads the docs remote inside the host |
+| `pnpm run mcp` | The MCP server over stdio, for an assistant: see [For language models and tools](#for-language-models-and-tools) |
 | `pnpm run plan` | Rebuilds `plan.json` from the course content, schedule rules and manual edits |
 | `pnpm run plan --ics` | Same, plus writes `packages/plan-data/exports/*.ics` and import instructions |
-| `pnpm run test` | Unit tests of `plan-domain` and `plan-data`; the calendar sync runs against a fake Google and a fake Outlook, never the real ones |
+| `pnpm run test` | Vitest unit tests in every project that has them: the rules, the use cases, the adapters, the modules, the MCP server and the guide's citations. The calendar sync runs against a fake Google and a fake Outlook, never the real ones |
 | `pnpm run check` | Typecheck, lint, Feature-Sliced check, translation check and format check |
 | `pnpm run affected` | The same checks plus build, only for projects changed since `main` |
 | `pnpm run typecheck` | `tsc --noEmit` (TypeScript 7) in every project |
@@ -49,6 +52,52 @@ One project: `pnpm exec nx run @lc/planner:typecheck`. Add `--skip-nx-cache` to 
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix: …`, `build: …`);
 a Husky `commit-msg` hook checks them with commitlint.
+
+## Develop and test
+
+### Running the apps
+
+Each app starts on its own; there is no command that starts them all. Day to day, `pnpm run dev` is enough.
+
+| App | Command | Address |
+|---|---|---|
+| The planner (`apps/web`) | `pnpm run dev` | http://localhost:3000 |
+| The planner, production build | `pnpm run build`, then `pnpm start` | http://localhost:3000 |
+| The guide (`apps/docs`) | `pnpm run docs` | http://localhost:3100 |
+| The guide inside the planner | `pnpm run docs:build`, then `pnpm --filter @lc/docs preview` | http://localhost:4310 |
+| The guide's test host (`apps/docs-harness`) | `pnpm --filter @lc/docs-harness dev` | http://localhost:4320 |
+| The component stand (`apps/stand`) | `pnpm run stand` | http://localhost:6006 |
+| The MCP server (`apps/mcp`) | `pnpm run mcp`, usually started by the assistant through `.mcp.json` | stdio |
+
+In development the planner's docs button loads the guide's remote from port 4310 (`DOCS_REMOTE_URL` sets another
+address), so it works only while the guide's preview runs. The planner and the MCP server read and write the same
+files in `packages/plan-data/data`; `PLAN_DATA_DIR` points either at another directory and `PLAN_READONLY=1` switches
+writing off.
+
+### Testing
+
+| What changed | Where its test goes | Run |
+|---|---|---|
+| A rule in `plan-domain` | a `*.test.ts` beside the file, with the fixtures of `@lc/plan-domain/fixtures` | `pnpm run test` |
+| A use case in `plan-service` | beside the service, over `createMemoryPorts()` from `@lc/plan-service/testing` | `pnpm run test` |
+| An adapter in `plan-data` | the port's contract suite (`describePlanRepository`, `describeSyncStateStore`, …) plus its own cases; Google and Outlook against their fakes | `pnpm run test` |
+| A component, widget or page | a story in the module; the stand turns every story into a test | `pnpm run stand:test` |
+| The guide or its remote | the chapter's citations, and the remote in the test host | `pnpm --filter @lc/docs test`, `pnpm run docs:test` |
+
+Before a commit, run `pnpm run check` and `pnpm run test`; format with `pnpm run fmt`. After changing the courses or
+the schedule rules: `pnpm run plan && pnpm run check && pnpm run test && pnpm run build`. CI
+(`.github/workflows/ci.yml`) runs the format check, `pnpm run affected` and the stand's tests on pull requests and on
+pushes to `main` and `develop`; the docs workflow runs the guide's own tests.
+
+### Where the how-to lives
+
+- [docs/architecture.md](docs/architecture.md): the layers, what may import what, and **Adding things**, the steps for a
+  use case, a kind of edit, a port, an adapter, a page, a module or a server function.
+- A `README.md` in every project under `apps/`, `modules/` and `packages/`: what it is, its public entry, how to run
+  and test it.
+- [docs/component-stand.md](docs/component-stand.md): the stand and how to add a story.
+- [docs/rebalancing.md](docs/rebalancing.md): how a calendar is re-balanced.
+- [CLAUDE.md](CLAUDE.md): the project's rules in short, for coding agents and people alike.
 
 ## What the viewer does
 
@@ -395,24 +444,25 @@ a reload. A page out of sight checks again when it comes back.
 ## Structure
 
 ```
-apps/web/                    TanStack Start shell
+apps/web/                    TanStack Start shell: routes, server functions, /api/*; builds the services once
   src/routes/                index.tsx (planner; ?week=YYYY-MM-DD&view=day|week|month|year|list), timeline.tsx,
-                             focus.tsx, dashboard.tsx, api/ (plan, ics, ics-zip)
-  src/server/                server functions: read the plan, save an event edit, re-balance a calendar
+                             focus.tsx, dashboard.tsx, api/ (plan, plan-update, plan-accuracy, plan-schema,
+                             plan-guide, ics, ics-zip, calendar sign-in)
+apps/mcp/                    the MCP server over stdio
+apps/docs/                   the guide: a static site and the docs remote
+apps/docs-harness/           a minimal host that tests the docs remote
+apps/stand/                  the component stand (Storybook)
 modules/planner/             planner, timeline and focus pages, Feature-Sliced layers inside
 modules/calendar-export/     export dialog
-packages/plan-domain/src/
-  content.ts                 courses, sessions, calendars
-  schedule.ts                scheduling rules → Plan
-  edits.ts                   manual changes applied over the schedule
-  ics.ts                     RFC 5545 export
-  occurrences.ts             expands events (RRULE, all-day) for a date range
-  dates.ts                   Minsk wall-clock date helpers
-  rebalance/                 re-balancing a calendar: room, integer program, placement, report
-packages/plan-data/          data/plan.json (generated, committed), data/edits.json, scripts/build-plan.ts,
-                             src/solver.ts (HiGHS)
+modules/dashboard/           progress page
+packages/plan-domain/        the rules, pure TypeScript: core, insights, protocol, ics, sync, rebalance, fixtures
+packages/plan-content/       the courses (content.ts) and the schedule (schedule.ts)
+packages/plan-service/       ports, use cases, failures as values; ./testing for tests
+packages/plan-data/          the adapters (files, iCal, HiGHS, Google, Outlook), data/, and `pnpm run plan`
+packages/docs-contract/      the docs remote's public contract
+packages/remote-host/        loading a federated module into a React host
 packages/i18n/               messages, Paraglide output, format.ts
-packages/ui/                 buttons, segmented control, modal, theme.css
+packages/ui/                 the UI kit and the theme
 ```
 
 The rules for what may import what are in [docs/architecture.md](docs/architecture.md).
