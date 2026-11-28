@@ -1,5 +1,4 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { chmodSync } from 'node:fs'
 import { join } from 'node:path'
 
 import type { CalendarProvider } from '@lc/plan-domain'
@@ -69,7 +68,6 @@ export function createFsCalendarAccounts(
 
   function writeAccount(provider: CalendarProvider, patch: Account) {
     writeJsonAtomic(file, { ...readObject(file), [provider]: { ...readAccount(provider), ...patch } }, 0o600)
-    chmodSync(file, 0o600)
   }
 
   function clientOf(provider: CalendarProvider): { id: string; secret: string } | null {

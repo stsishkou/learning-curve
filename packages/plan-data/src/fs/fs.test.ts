@@ -142,10 +142,13 @@ test('an unknown plan id has no revision and is not listed', async () => {
   expect(await ports.plans.revision(parsePlanId('other'))).toBeNull()
 })
 
-test('local.json is readable by its owner only', async () => {
+test('local.json is readable by its owner only, also when it was not before', async () => {
   const dir = seededDir()
   const { settings } = portsIn(dir)
   await settings.setBusyFeed(LOCAL_OWNER, 'https://x/a.ics')
+  expect(statSync(join(dir, 'local.json')).mode & 0o777).toBe(0o600)
+  chmodSync(join(dir, 'local.json'), 0o644)
+  await settings.setBusyFeed(LOCAL_OWNER, 'https://x/b.ics')
   expect(statSync(join(dir, 'local.json')).mode & 0o777).toBe(0o600)
 })
 

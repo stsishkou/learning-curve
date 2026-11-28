@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import type { UserId } from '@lc/plan-domain'
@@ -30,8 +30,6 @@ export function createFsSettings(dir: string, busyFeedFromHost: string | null): 
       const file = localFile(dir, owner)
       mkdirSync(dirname(file), { recursive: true })
       writeJsonAtomic(file, { ...readObject(file), busyFeed: url ?? undefined }, 0o600)
-      // A file that was there keeps its old mode through a rename of a new one only when the mode option applies.
-      chmodSync(file, 0o600)
       return Promise.resolve()
     },
   }

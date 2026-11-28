@@ -30,7 +30,8 @@ export function readObject(file: string): Record<string, unknown> {
 
 /**
  * Writes `value` whole or not at all: to a temporary file in the same directory, then renamed over `file`, so a
- * reader never sees half of it. The file is created with `mode` when given.
+ * reader never sees half of it. The file has `mode` when given (less what the umask takes), whatever mode the file it
+ * replaces had: the temporary file is always new.
  */
 export function writeJsonAtomic(file: string, value: unknown, mode?: number): void {
   const temporary = `${file}.${process.pid}.${randomUUID()}.tmp`
