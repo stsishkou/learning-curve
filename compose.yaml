@@ -1,6 +1,7 @@
-# The planner in Docker, on this machine or on one server.
+# The planner in Docker, on this machine or on one server. The full guide: docs/deployment.md.
 #   docker compose up -d --build                  build the image and start it on http://localhost:3000
 #   docker compose --profile seed run --rm seed   once: copy the plan from this checkout into the volume
+#   docker compose --profile proxy up -d          on a server: HTTPS and a password in front (see Caddyfile)
 #   docker compose logs -f planner                follow the server's output
 name: learning-curve
 
@@ -11,20 +12,22 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     image: learning-curve-planner
-    # Settings and secrets, all optional: copy planner.env.example to planner.env.
+    # Settings and secrets, all optional: copy planner.env.example to planner.env (PLANNER_ENV_FILE names another).
     env_file:
-      - path: planner.env
+      - path: ${PLANNER_ENV_FILE:-planner.env}
         required: false
     # The plan, edits, history and calendar tokens: one volume that outlives the container.
     # One container per volume: the files and the calendar-sync lock assume a single server.
     volumes:
       - plan-data:/data
-    # Another port on the host: PLANNER_PORT=8080 docker compose up -d
+    # Reachable from this machine only; on a server the proxy is the one public door.
+    # Another port: PLANNER_PORT=8080 docker compose up -d
     ports:
-      - '${PLANNER_PORT:-3000}:3000'
+      - '127.0.0.1:${PLANNER_PORT:-3000}:3000'
     restart: unless-stopped
 
-  # One-off, after the first `up`: copies the plan from packages/plan-data/data into an empty volume.
+  # One-off, after the first `up`: copies a plan into an empty volume, from packages/plan-data/data or from the
+  # folder PLAN_SEED_DIR names (on a server: where you copied your files, outside the git checkout).
   # It keeps sync.json, so the server goes on with the calendars this checkout made instead of adding new ones;
   # from then on only the server should sync them. local.json (secrets) stays behind: set the OAuth clients in
   # planner.env and connect the calendar apps again on the server.
@@ -33,9 +36,11 @@ services:
     # The image `up` built; never looked up on a registry.
     image: learning-curve-planner
     pull_policy: never
+    # Writes as the server's user, so the planner can change the files it finds.
+    user: node
     volumes:
       - plan-data:/data
-      - ./packages/plan-data/data:/seed:ro
+      - ${PLAN_SEED_DIR:-./packages/plan-data/data}:/seed:ro
     entrypoint: [sh, -c]
     command:
       - |
@@ -47,5 +52,28 @@ services:
         if [ -d /seed/library ]; then cp -R /seed/library /data/; fi
         echo 'Plan copied into the volume.'
 
+  # Optional, on a server with a domain: Caddy gets the certificate, asks for a password, and forwards to the planner.
+  # Needs PLANNER_DOMAIN, PROXY_USER and PROXY_PASSWORD_HASH in planner.env, and ports 80 and 443 open.
+  proxy:
+    profiles: [proxy]
+    image: caddy:2
+    env_file:
+      - path: ${PLANNER_ENV_FILE:-planner.env}
+        required: true
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and their keys: kept across restarts, so they are not requested again.
+      - proxy-data:/data
+      - proxy-config:/config
+    depends_on:
+      - planner
+    restart: unless-stopped
+
 volumes:
   plan-data:
+  proxy-data:
+  proxy-config:

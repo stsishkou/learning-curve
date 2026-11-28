@@ -1,0 +1,19 @@
+# HTTPS and a password in front of the planner: the `proxy` service of compose.yaml.
+# PLANNER_DOMAIN, PROXY_USER and PROXY_PASSWORD_HASH come from planner.env (see planner.env.example).
+
+{$PLANNER_DOMAIN} {
+	# One account for the whole planner, until it has sign-in of its own.
+	basic_auth {
+		{$PROXY_USER} {$PROXY_PASSWORD_HASH}
+	}
+
+	# Calendar apps that subscribe to the .ics feeds cannot type a password. To let them, replace the block above
+	# with the two below; the feeds are then readable by anyone who has their address.
+	# @private not path /api/ics/*
+	# basic_auth @private {
+	# 	{$PROXY_USER} {$PROXY_PASSWORD_HASH}
+	# }
+
+	# Keeps the original host and adds X-Forwarded-Proto: https, which the calendar sign-in callbacks are built from.
+	reverse_proxy planner:3000
+}

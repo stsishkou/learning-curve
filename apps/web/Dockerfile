@@ -31,18 +31,21 @@ RUN pnpm exec nx run @lc/web:build
 # ---- runtime: only the server output, run by an unprivileged user ----
 FROM node:${NODE_VERSION}-slim AS runtime
 WORKDIR /app
-# Production mode; the port to listen on; where the plan's files live (see compose.yaml for the volume).
+# Production mode; the port to listen on (hosts such as Railway set PORT); where the plan's files live.
 ENV NODE_ENV=production PORT=3000 PLAN_DATA_DIR=/data
 
 # Nitro's output is self-contained: it traced its dependencies, highs and its .wasm included.
 COPY --from=build --chown=node:node /repo/apps/web/.output ./.output
 
-# The data directory, owned by the server's user so a new volume mounted here is writable.
+# The data directory, owned by the server's user so a Docker volume mounted here starts writable.
 # Empty, it serves the plan bundled at build time, read-only, until plan.json is copied in.
 RUN mkdir /data && chown node:node /data
 VOLUME /data
 
-USER node
+# Starts as root only to hand a host's root-owned volume to `node`, then runs the server as `node`.
+COPY --chmod=755 apps/web/docker-entrypoint.sh /usr/local/bin/planner-entrypoint
+ENTRYPOINT ["planner-entrypoint"]
+
 EXPOSE 3000
 # Healthy while the plan answers. The slim image has no curl, so Node's fetch does the request.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

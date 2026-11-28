@@ -16,6 +16,7 @@
     "docs:test": "nx run @lc/docs-harness:test --output-style=stream",
     "plan": "nx run @lc/plan-data:plan --output-style=stream",
     "mcp": "pnpm --silent --filter @lc/mcp run start",
+    "docker:smoke": "bash scripts/docker-smoke.sh",
     "i18n": "nx run-many -t i18n",
     "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint lint:fsd",
