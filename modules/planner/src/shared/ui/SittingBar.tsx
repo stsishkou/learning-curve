@@ -8,6 +8,7 @@ const SEGMENT: Record<BarSegment['kind'], string> = {
     'bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_45%,var(--surface))_0_2px,var(--surface)_2px_5px)]',
   rest: 'border border-dashed border-[color-mix(in_srgb,var(--c)_60%,var(--surface))]',
 }
+const CURRENT = 'bg-(--c)'
 const OVERRUN =
   'pointer-events-none absolute inset-y-0 right-0 bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--c)_14%,transparent)_0_4px,transparent_4px_8px)]'
 
@@ -38,7 +39,7 @@ export function SittingBar({ bar, current, size, label }: Props) {
       {bar.segments.map((s, i) => (
         <span
           key={`${s.kind}-${s.uid ?? i}`}
-          className={`${SEGMENT[s.kind]} ${s.kind === 'done' && s.uid === current ? 'bg-(--c)' : ''}`}
+          className={s.kind === 'done' && s.uid === current ? CURRENT : SEGMENT[s.kind]}
           style={{ flexGrow: s.minutes, flexBasis: 0 }}
         />
       ))}
