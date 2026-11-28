@@ -50,6 +50,7 @@ export type CalendarSignInFailure = 'denied' | 'scope' | 'client' | 'failed'
 export interface CalendarSyncService {
   /** How the plan is kept in each app, in the order of `CALENDAR_PROVIDERS`. */
   readonly statuses: (actor: Actor) => Promise<Result<readonly CalendarStatus[], PlanFailure>>
+  /** How the plan is kept in `provider`, as `statuses` tells it; it starts no round. */
   readonly status: (actor: Actor, provider: CalendarProvider) => Promise<Result<CalendarStatus, PlanFailure>>
   /**
    * One round with `provider`, now. A call while a round waits to start joins it; one while it runs gets the next.

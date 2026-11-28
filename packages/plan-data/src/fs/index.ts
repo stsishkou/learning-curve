@@ -45,6 +45,10 @@ export interface FsPorts {
   readonly settings: PrivateSettings
   /** The host's account in each calendar app, kept in `local.json` */
   readonly calendarSignIn: CalendarSignIn
+  /**
+   * Access tokens to that account, from the refresh token in `local.json`; kept in memory, per process, until a minute
+   * before they expire
+   */
   readonly calendarTokens: CalendarTokens
   /**
    * True when the directory holds a `plan.json` this process may write; asked on every call. It does not read
