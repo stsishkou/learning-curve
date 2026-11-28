@@ -5,7 +5,7 @@ import { DAY, HOUR, parseLocal, toLocalString } from '../core/dates'
 import { applyEdits, emptyEdits, type EventPatch } from '../core/edits'
 import { isSession } from '../core/progress'
 import type { Plan, PlanEvent } from '../core/types'
-import { fixtureBase } from '../fixtures'
+import { fixtureBase, itemAt } from '../fixtures'
 import { finishRange, paceForecast } from './forecast'
 
 const base = fixtureBase
@@ -94,5 +94,44 @@ describe('finishRange', () => {
     const range = finishRange(plan, later, { calendar: 'certs' })
     expect(range?.scope).toBe('all')
     expect(range?.late).toBe(range?.likely)
+  })
+})
+
+/** A sitting added to continue `session`, `minutes` long from `start` */
+const sitting = (session: PlanEvent, uid: string, start: string, minutes: number, fields: Partial<PlanEvent>) => ({
+  ...session,
+  uid,
+  start,
+  end: toLocalString(parseLocal(start) + minutes * 60_000),
+  from: session.uid,
+  ...fields,
+})
+
+test('a finished group of three sittings counts as one logged session, an open one as none', () => {
+  const root = itemAt(certs)
+  const open = itemAt(certs, 1)
+  const others = certs.slice(2, 1 + MIN_LOGGED)
+  // 50 + 40 + 30 minutes on a 60-minute plan: ×2 as a whole, ×0.83, ×1.33 and ×2 sitting by sitting.
+  const plan = applyEdits(base, {
+    ...emptyEdits(),
+    events: {
+      ...Object.fromEntries(took(others, [2])),
+      [root.uid]: { done: true, actual: 50, unfinished: true },
+      [open.uid]: { done: true, actual: 25, unfinished: true },
+    },
+    added: [
+      sitting(root, 'sitting-2@learning-curve', '2026-11-24T18:00', 30, { done: true, actual: 40, unfinished: true }),
+      sitting(root, 'sitting-3@learning-curve', '2026-11-25T18:00', 15, { done: true, actual: 30 }),
+      sitting(open, 'sitting-4@learning-curve', '2026-11-26T18:00', 30, { done: true, actual: 20, unfinished: true }),
+    ],
+  }).plan
+  const forecast = paceForecast(plan, before, 'certs')
+  expect(forecast.logged).toBe(MIN_LOGGED)
+  expect(forecast.pace).toBeCloseTo(2)
+  // Every draw is the ×2 of a whole session: no sitting's own ratio spreads the range.
+  expect(finishRange(plan, before, { calendar: 'certs' })).toEqual({
+    likely: forecast.finish,
+    late: forecast.finish,
+    scope: 'course',
   })
 })

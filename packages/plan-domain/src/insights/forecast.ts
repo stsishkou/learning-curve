@@ -1,4 +1,4 @@
-import { MIN_LOGGED, accuracyOf } from '../core/accuracy'
+import { MIN_LOGGED, accuracyOf, paceSessions } from '../core/accuracy'
 import { DAY, mondayOf, parseLocal, startOfDay } from '../core/dates'
 import { courseProgress, isSession, plannedHours } from '../core/progress'
 import type { Plan, PlanEvent } from '../core/types'
@@ -6,7 +6,7 @@ import type { Plan, PlanEvent } from '../core/types'
 export interface PaceForecast {
   /** Real hours per planned hour of the logged sessions; 1 until enough are logged to say (`MIN_LOGGED`) */
   pace: number
-  /** Done sessions with a logged time: the forecast is only as good as this number */
+  /** Done sessions with a logged time, as the pace counts them: the forecast is only as good as this number */
   logged: number
   /** Hours of the sessions that are not done, as planned and as they will take at each course's pace */
   remaining: number
@@ -67,9 +67,10 @@ export function paceForecast(plan: Plan, now: number, calendar?: string): PaceFo
     .filter((e) => isSession(e) && paceOf.has(e.calendar))
     .toSorted((a, b) => a.start.localeCompare(b.start))
   const open = sessions.filter((e) => !e.done)
+  const accuracy = accuracyOf(sessions, plan.events)
   const forecast: PaceForecast = {
-    pace: accuracyOf(sessions).pace ?? 1,
-    logged: sessions.filter((e) => e.done && e.actual !== undefined).length,
+    pace: accuracy.pace ?? 1,
+    logged: accuracy.logged,
     remaining: 0,
     needed: 0,
     missed: 0,
@@ -167,9 +168,10 @@ function draw(pool: Pool, u: number): number {
 /**
  * Evidence-Based Scheduling's Monte Carlo: in each simulated future every open session takes its planned length
  * times a ratio drawn from the logged sessions of its course, or of every course while its own are fewer than
- * `MIN_LOGGED`. A session already resized to the pace takes the drawn ratio over the pool's pace, so only the spread
- * is added to it. Each future is poured into the calendar as `paceForecast` does. Null while some open session has
- * nothing to draw from (docs/estimate-accuracy-research.md, 5.1).
+ * `MIN_LOGGED`; a session spread over sittings is one of them, as `paceSessions` counts it. A session already resized
+ * to the pace takes the drawn ratio over the pool's pace, so only the spread is added to it. Each future is poured
+ * into the calendar as `paceForecast` does. Null while some open session has nothing to draw from
+ * (docs/estimate-accuracy-research.md, 5.1).
  *
  * Each future first resamples the logged sessions and draws from that resample. Drawn straight from the log, the
  * ratios of thirty sessions average out and the range shrinks to a day or two, as if six logged sessions had settled
@@ -190,13 +192,8 @@ export function finishRange(
     .toSorted((a, b) => a.start.localeCompare(b.start))
   const last = open.at(-1)
   if (!last) return null
-  const recent = plan.events.filter(
-    (e) =>
-      isSession(e) &&
-      e.done &&
-      e.actual !== undefined &&
-      plannedHours(e) > 0 &&
-      parseLocal(e.began ?? e.start) > now - HORIZON,
+  const recent = paceSessions(plan.events.filter(isSession), plan.events).filter(
+    (e) => e.done && e.actual !== undefined && plannedHours(e) > 0 && parseLocal(e.began ?? e.start) > now - HORIZON,
   )
   const every = poolOf(recent)
   const pools = new Map<string, Pool>()

@@ -1,4 +1,12 @@
-export { MIN_LOGGED, accuracyOf, runningTypical, type Accuracy, type RatioSummary, type TypicalAt } from './accuracy'
+export {
+  MIN_LOGGED,
+  accuracyOf,
+  paceSessions,
+  runningTypical,
+  type Accuracy,
+  type RatioSummary,
+  type TypicalAt,
+} from './accuracy'
 export type { BusyBlock } from './busy'
 export {
   moduleHours,
