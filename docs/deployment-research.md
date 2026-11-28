@@ -25,8 +25,9 @@ There are two different things to host, and they need different kinds of hosting
 | Docs + remote + stand, cheapest | **GitHub Pages** | $0, no extra account | Sends `Access-Control-Allow-Origin: *` (checked live). Fixed `max-age=600`: handled with a hashed `remoteEntry` and a cache-busting query on the manifest. |
 | Docs + remote + stand, best value | **Cloudflare Workers static assets** | $0 | `_headers` for per-path CORS and `immutable`, branch previews. Needs a Cloudflare account and an API token. |
 
-The repository's CI deploys the static outputs to GitHub Pages (`.github/workflows/docs.yml`). The planner stays
-undeployed: hosting it is the owner's decision, and chapter 22 of the docs walks through the options.
+The repository's CI deploys the static outputs to GitHub Pages (`.github/workflows/docs.yml`). The planner ships as a
+Docker image; how to run it locally, on a VPS and on these hosts is in [deployment.md](deployment.md). Chapter 22 of the
+docs walks through the options.
 
 ## 2. The planner
 

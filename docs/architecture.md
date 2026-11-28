@@ -81,7 +81,7 @@ packages/
   remote-host/         what a React host needs to show a federated module; `./docs` is the docs hook
   i18n/                messages (ru, en, es), compiled Paraglide output, locale-aware formatting
   ui/                  the UI kit and the Tailwind theme tokens
-scripts/               check-graph.ts
+scripts/               check-graph.ts, docker-smoke.sh (the planner image's smoke test)
 ```
 
 ### plan-domain: one package, several entries

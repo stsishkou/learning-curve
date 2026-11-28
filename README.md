@@ -37,6 +37,7 @@ Run from the repository root; Nx runs the task in every project that has it and 
 | `pnpm run docs` / `pnpm run docs:build` | The guide on port 3100 with hot reload, and its static build with the federation remote: see [apps/docs/README.md](apps/docs/README.md) |
 | `pnpm run docs:test` | Builds the guide and its test host, then Playwright loads the docs remote inside the host |
 | `pnpm run mcp` | The MCP server over stdio, for an assistant: see [For language models and tools](#for-language-models-and-tools) |
+| `pnpm run docker:smoke` | Builds the planner's Docker image and checks it in throwaway containers (`--proxy` adds the HTTPS proxy): see [docs/deployment.md](docs/deployment.md) |
 | `pnpm run plan` | Rebuilds `plan.json` from the course content, schedule rules and manual edits |
 | `pnpm run plan --ics` | Same, plus writes `packages/plan-data/exports/*.ics` and import instructions |
 | `pnpm run test` | Vitest unit tests in every project that has them: the rules, the use cases, the adapters, the modules, the MCP server and the guide's citations. The calendar sync runs against a fake Google and a fake Outlook, never the real ones |
@@ -63,7 +64,7 @@ Each app starts on its own; there is no command that starts them all. Day to day
 |---|---|---|
 | The planner (`apps/web`) | `pnpm run dev` | http://localhost:3000 |
 | The planner, production build | `pnpm run build`, then `pnpm start` | http://localhost:3000 |
-| The planner in Docker | `docker compose up -d --build`: see [apps/web/README.md](apps/web/README.md#container) | http://localhost:3000 |
+| The planner in Docker | `docker compose up -d --build`, then once `docker compose --profile seed run --rm seed`: see [docs/deployment.md](docs/deployment.md), which also covers servers and hosted services | http://localhost:3000 |
 | The guide (`apps/docs`) | `pnpm run docs` | http://localhost:3100 |
 | The guide inside the planner | `pnpm run docs:build`, then `pnpm --filter @lc/docs preview` | http://localhost:4310 |
 | The guide's test host (`apps/docs-harness`) | `pnpm --filter @lc/docs-harness dev` | http://localhost:4320 |
@@ -84,6 +85,7 @@ writing off.
 | An adapter in `plan-data` | the port's contract suite (`describePlanRepository`, `describeSyncStateStore`, …) plus its own cases; Google and Outlook against their fakes | `pnpm run test` |
 | A component, widget or page | a story in the module; the stand turns every story into a test | `pnpm run stand:test` |
 | The guide or its remote | the chapter's citations, and the remote in the test host | `pnpm --filter @lc/docs test`, `pnpm run docs:test` |
+| The Docker image, `compose.yaml` or the `Caddyfile` | a check in `scripts/docker-smoke.sh` | `pnpm run docker:smoke` (`--proxy` for the proxy) |
 
 Before a commit, run `pnpm run check` and `pnpm run test`; format with `pnpm run fmt`. After changing the courses or
 the schedule rules: `pnpm run plan && pnpm run check && pnpm run test && pnpm run build`. CI
